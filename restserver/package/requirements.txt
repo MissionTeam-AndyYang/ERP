@@ -1,0 +1,10 @@
+validictory==1.1.3
+Flask==0.20.0
+SQLAlchemy==2.0.29
+jsonschema
+pytz
+dateutil
+tzdata
+argon2-cffi
+
+

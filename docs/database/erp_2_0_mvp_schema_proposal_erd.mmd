@@ -1,0 +1,325 @@
+erDiagram
+  ROLES ||--o{ USERS : grants
+  EMPLOYEES ||--o| USERS : account
+  EMPLOYEES ||--o{ VEHICLES : drives
+  EMPLOYEES ||--o{ WORK_ORDER_ASSIGNMENTS : assigned
+
+  CUSTOMERS ||--o{ SALES_ORDERS : places
+  SALES_ORDERS ||--o{ SALES_ORDER_LINES : contains
+  PRODUCTS ||--o{ SALES_ORDER_LINES : ordered
+
+  SUPPLIERS ||--o{ ITEMS : supplies
+  SUPPLIERS ||--o{ PURCHASE_ORDERS : receives
+  PURCHASE_ORDERS ||--o{ PURCHASE_ORDER_LINES : contains
+  ITEMS ||--o{ PURCHASE_ORDER_LINES : purchased
+
+  PRODUCTION_LINES ||--o{ PRODUCTS : default_line
+  PRODUCTS ||--o{ PRODUCT_VERSIONS : versions
+  PRODUCTS ||--o{ BOM_HEADERS : has_bom
+  PRODUCT_VERSIONS ||--o{ BOM_HEADERS : version_bom
+  BOM_HEADERS ||--o{ BOM_LINES : contains
+  ITEMS ||--o{ BOM_LINES : component
+
+  WAREHOUSES ||--o{ WAREHOUSE_LOCATIONS : contains
+  WAREHOUSE_LOCATIONS ||--o{ INVENTORY_BATCHES : stores
+  ITEMS ||--o{ INVENTORY_BATCHES : stocked
+  ITEMS ||--o{ INVENTORY_TRANSACTIONS : moved
+  INVENTORY_BATCHES ||--o{ INVENTORY_TRANSACTIONS : batch_movement
+  WAREHOUSE_LOCATIONS ||--o{ INVENTORY_TRANSACTIONS : source_or_target
+
+  SALES_ORDER_LINES ||--o{ WORK_ORDERS : triggers
+  PRODUCTS ||--o{ WORK_ORDERS : makes
+  BOM_HEADERS ||--o{ WORK_ORDERS : uses
+  PRODUCTION_LINES ||--o{ WORK_ORDERS : scheduled
+  WORK_ORDERS ||--o{ WORK_ORDER_MATERIALS : requires
+  ITEMS ||--o{ WORK_ORDER_MATERIALS : consumed
+  WORK_ORDERS ||--o{ PRODUCTION_REPORTS : reports
+  WORK_ORDERS ||--o{ WORK_ORDER_ASSIGNMENTS : staffed
+
+  WORK_ORDERS ||--o{ QUALITY_INSPECTIONS : inspected
+  INVENTORY_BATCHES ||--o{ QUALITY_INSPECTIONS : inspected
+  PRODUCTS ||--o{ QUALITY_INSPECTIONS : inspected
+  QUALITY_INSPECTIONS ||--o{ QUALITY_INSPECTION_ITEMS : checks
+  QUALITY_INSPECTIONS ||--o{ QUALITY_EXCEPTIONS : raises
+  WORK_ORDERS ||--o{ QUALITY_EXCEPTIONS : source
+  INVENTORY_BATCHES ||--o{ QUALITY_EXCEPTIONS : source
+
+  WORK_ORDERS ||--o{ FINISHED_GOODS_BATCHES : produces
+  PRODUCTS ||--o{ FINISHED_GOODS_BATCHES : finished_good
+  INVENTORY_BATCHES ||--o| FINISHED_GOODS_BATCHES : inventory_record
+
+  CUSTOMERS ||--o{ SHIPMENTS : receives
+  SALES_ORDERS ||--o{ SHIPMENTS : fulfilled_by
+  SHIPMENTS ||--o{ SHIPMENT_LINES : contains
+  SALES_ORDER_LINES ||--o{ SHIPMENT_LINES : fulfills
+  FINISHED_GOODS_BATCHES ||--o{ SHIPMENT_LINES : ships_batch
+  PRODUCTS ||--o{ SHIPMENT_LINES : ships_product
+  SHIPMENTS ||--o{ DISPATCHES : dispatched
+  VEHICLES ||--o{ DISPATCHES : assigned_vehicle
+  EMPLOYEES ||--o{ DISPATCHES : assigned_driver
+
+  USERS ||--o{ SALES_ORDERS : creates
+  USERS ||--o{ PURCHASE_ORDERS : creates
+  USERS ||--o{ WORK_ORDERS : creates
+  USERS ||--o{ BOM_HEADERS : approves
+  USERS ||--o{ QUALITY_INSPECTIONS : inspects
+  USERS ||--o{ QUALITY_EXCEPTIONS : owns
+  USERS ||--o{ AUDIT_LOGS : acts
+
+  ROLES {
+    bigint id PK
+    varchar code UK
+    varchar name
+  }
+
+  USERS {
+    bigint id PK
+    varchar username UK
+    bigint role_id FK
+    bigint employee_id FK
+    varchar status
+  }
+
+  EMPLOYEES {
+    bigint id PK
+    varchar employee_no UK
+    varchar name
+    varchar department
+    varchar status
+  }
+
+  CUSTOMERS {
+    bigint id PK
+    varchar customer_no UK
+    varchar name
+    varchar status
+  }
+
+  SUPPLIERS {
+    bigint id PK
+    varchar supplier_no UK
+    varchar name
+    varchar status
+  }
+
+  ITEMS {
+    bigint id PK
+    varchar item_code UK
+    varchar item_name
+    varchar item_type
+    varchar uom
+    bigint default_supplier_id FK
+  }
+
+  PRODUCTS {
+    bigint id PK
+    varchar product_code UK
+    varchar product_name
+    varchar uom
+    bigint default_bom_id FK
+    bigint default_production_line_id FK
+  }
+
+  PRODUCT_VERSIONS {
+    bigint id PK
+    bigint product_id FK
+    varchar version_no
+    date effective_from
+    date effective_to
+  }
+
+  BOM_HEADERS {
+    bigint id PK
+    varchar bom_no UK
+    bigint product_id FK
+    bigint product_version_id FK
+    varchar status
+  }
+
+  BOM_LINES {
+    bigint id PK
+    bigint bom_header_id FK
+    int line_no
+    bigint item_id FK
+    decimal qty_per
+  }
+
+  WAREHOUSES {
+    bigint id PK
+    varchar warehouse_code UK
+    varchar warehouse_name
+    varchar warehouse_type
+  }
+
+  WAREHOUSE_LOCATIONS {
+    bigint id PK
+    bigint warehouse_id FK
+    varchar location_code
+    varchar temperature_zone
+  }
+
+  VEHICLES {
+    bigint id PK
+    varchar vehicle_no UK
+    bigint driver_employee_id FK
+    varchar status
+  }
+
+  SALES_ORDERS {
+    bigint id PK
+    varchar order_no UK
+    bigint customer_id FK
+    date order_date
+    varchar status
+  }
+
+  SALES_ORDER_LINES {
+    bigint id PK
+    bigint sales_order_id FK
+    bigint product_id FK
+    decimal ordered_qty
+    decimal shipped_qty
+  }
+
+  PURCHASE_ORDERS {
+    bigint id PK
+    varchar po_no UK
+    bigint supplier_id FK
+    date order_date
+    varchar status
+  }
+
+  PURCHASE_ORDER_LINES {
+    bigint id PK
+    bigint purchase_order_id FK
+    bigint item_id FK
+    decimal ordered_qty
+    decimal received_qty
+  }
+
+  INVENTORY_BATCHES {
+    bigint id PK
+    varchar batch_no
+    bigint item_id FK
+    bigint warehouse_location_id FK
+    decimal qty_on_hand
+    date expiry_date
+  }
+
+  INVENTORY_TRANSACTIONS {
+    bigint id PK
+    varchar transaction_no UK
+    varchar transaction_type
+    bigint item_id FK
+    bigint inventory_batch_id FK
+    decimal qty
+  }
+
+  WORK_ORDERS {
+    bigint id PK
+    varchar work_order_no UK
+    bigint sales_order_line_id FK
+    bigint product_id FK
+    bigint bom_header_id FK
+    bigint production_line_id FK
+    decimal planned_qty
+    varchar status
+  }
+
+  WORK_ORDER_MATERIALS {
+    bigint id PK
+    bigint work_order_id FK
+    bigint item_id FK
+    decimal required_qty
+    decimal issued_qty
+    decimal consumed_qty
+  }
+
+  PRODUCTION_REPORTS {
+    bigint id PK
+    varchar report_no UK
+    bigint work_order_id FK
+    decimal good_qty
+    decimal defect_qty
+    decimal oee
+  }
+
+  WORK_ORDER_ASSIGNMENTS {
+    bigint id PK
+    bigint work_order_id FK
+    bigint employee_id FK
+    varchar role_in_work_order
+    varchar status
+  }
+
+  QUALITY_INSPECTIONS {
+    bigint id PK
+    varchar inspection_no UK
+    varchar inspection_type
+    bigint work_order_id FK
+    bigint inventory_batch_id FK
+    bigint product_id FK
+    varchar result
+  }
+
+  QUALITY_INSPECTION_ITEMS {
+    bigint id PK
+    bigint quality_inspection_id FK
+    varchar check_item
+    varchar result
+  }
+
+  QUALITY_EXCEPTIONS {
+    bigint id PK
+    varchar exception_no UK
+    bigint quality_inspection_id FK
+    varchar category
+    varchar severity
+    varchar status
+  }
+
+  FINISHED_GOODS_BATCHES {
+    bigint id PK
+    varchar finished_batch_no UK
+    bigint work_order_id FK
+    bigint product_id FK
+    bigint inventory_batch_id FK
+    decimal produced_qty
+    decimal available_qty
+  }
+
+  SHIPMENTS {
+    bigint id PK
+    varchar shipment_no UK
+    bigint sales_order_id FK
+    bigint customer_id FK
+    datetime planned_ship_at
+    varchar status
+  }
+
+  SHIPMENT_LINES {
+    bigint id PK
+    bigint shipment_id FK
+    bigint sales_order_line_id FK
+    bigint finished_goods_batch_id FK
+    bigint product_id FK
+    decimal shipped_qty
+  }
+
+  DISPATCHES {
+    bigint id PK
+    varchar dispatch_no UK
+    bigint shipment_id FK
+    bigint vehicle_id FK
+    bigint driver_employee_id FK
+    varchar status
+  }
+
+  AUDIT_LOGS {
+    bigint id PK
+    bigint actor_user_id FK
+    varchar entity_type
+    bigint entity_id
+    varchar action
+    datetime created_at
+  }

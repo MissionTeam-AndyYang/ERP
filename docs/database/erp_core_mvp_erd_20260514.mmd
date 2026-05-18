@@ -1,0 +1,44 @@
+erDiagram
+    roles ||--o{ users : has
+    users ||--o{ audit_logs : creates
+
+    customers ||--o{ sales_orders : places
+    sales_orders ||--o{ sales_order_lines : contains
+    products ||--o{ sales_order_lines : ordered_as
+
+    products ||--o{ product_versions : has
+    products ||--o{ bom_headers : has
+    bom_headers ||--o{ bom_lines : contains
+    items ||--o{ bom_lines : component
+
+    suppliers ||--o{ items : supplies
+    suppliers ||--o{ purchase_orders : receives
+    purchase_orders ||--o{ purchase_order_lines : contains
+    items ||--o{ purchase_order_lines : purchased_as
+
+    warehouses ||--o{ warehouse_locations : contains
+    items ||--o{ inventory_batches : stocked_as
+    warehouse_locations ||--o{ inventory_batches : stores
+    inventory_batches ||--o{ inventory_transactions : moves
+
+    production_lines ||--o{ work_orders : runs
+    sales_order_lines ||--o{ work_orders : drives
+    products ||--o{ work_orders : produces
+    work_orders ||--o{ work_order_materials : requires
+    inventory_batches ||--o{ work_order_materials : issued_from
+    work_orders ||--o{ production_reports : records
+
+    work_orders ||--o{ quality_inspections : inspected_by
+    quality_inspections ||--o{ quality_inspection_items : contains
+    quality_inspections ||--o{ quality_exceptions : may_create
+
+    work_orders ||--o{ finished_goods_batches : outputs
+    finished_goods_batches ||--o{ shipment_lines : shipped_as
+    sales_orders ||--o{ shipments : fulfilled_by
+    shipments ||--o{ shipment_lines : contains
+    shipments ||--o{ dispatches : delivered_by
+
+    employees ||--o{ work_order_assignments : assigned_to
+    work_orders ||--o{ work_order_assignments : has
+    employees ||--o{ quality_inspections : inspector
+    employees ||--o{ dispatches : driver

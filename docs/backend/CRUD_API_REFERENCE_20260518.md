@@ -6,7 +6,7 @@
 
 後端基準：
 
-- FastAPI
+- Flask API
 - SQLAlchemy
 - Alembic baseline migration
 - API prefix：`/api/v1`

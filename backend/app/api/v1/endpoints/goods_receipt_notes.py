@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Response, status
-from sqlalchemy.orm import Session
+from flask import Blueprint
 
-from app.db.session import get_db
+from app.api.v1.utils import get_db, json_response, parse_body, parse_pagination
 from app.schemas.goods_receipt_notes import (
     GoodsReceiptNoteCreate,
     GoodsReceiptNoteList,
@@ -16,49 +15,39 @@ from app.services.goods_receipt_notes import (
     update_goods_receipt_note,
 )
 
-
-router = APIRouter()
-
-
-@router.get("", response_model=GoodsReceiptNoteList)
-def read_goods_receipt_notes(
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
-    db: Session = Depends(get_db),
-) -> GoodsReceiptNoteList:
-    total, items = list_goods_receipt_notes(db, skip=skip, limit=limit)
-    return GoodsReceiptNoteList(total=total, items=items)
+router = Blueprint("goods_receipt_notes", __name__)
 
 
-@router.post("", response_model=GoodsReceiptNoteRead, status_code=status.HTTP_201_CREATED)
-def create_goods_receipt_note_endpoint(
-    payload: GoodsReceiptNoteCreate,
-    db: Session = Depends(get_db),
-) -> GoodsReceiptNoteRead:
-    return create_goods_receipt_note(db, payload)
+@router.get("")
+def read_goods_receipt_notes():
+    skip, limit = parse_pagination()
+    total, items = list_goods_receipt_notes(get_db(), skip=skip, limit=limit)
+    payload = GoodsReceiptNoteList(
+        total=total,
+        items=[GoodsReceiptNoteRead.model_validate(item) for item in items],
+    )
+    return json_response(payload)
 
 
-@router.get("/{no}", response_model=GoodsReceiptNoteRead)
-def read_goods_receipt_note(
-    no: str,
-    db: Session = Depends(get_db),
-) -> GoodsReceiptNoteRead:
-    return get_goods_receipt_note_by_no(db, no)
+@router.post("")
+def create_goods_receipt_note_endpoint():
+    note = create_goods_receipt_note(get_db(), parse_body(GoodsReceiptNoteCreate))
+    return json_response(GoodsReceiptNoteRead.model_validate(note), 201)
 
 
-@router.patch("/{no}", response_model=GoodsReceiptNoteRead)
-def update_goods_receipt_note_endpoint(
-    no: str,
-    payload: GoodsReceiptNoteUpdate,
-    db: Session = Depends(get_db),
-) -> GoodsReceiptNoteRead:
-    return update_goods_receipt_note(db, no, payload)
+@router.get("/<no>")
+def read_goods_receipt_note(no: str):
+    note = get_goods_receipt_note_by_no(get_db(), no)
+    return json_response(GoodsReceiptNoteRead.model_validate(note))
 
 
-@router.delete("/{no}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_goods_receipt_note_endpoint(
-    no: str,
-    db: Session = Depends(get_db),
-) -> Response:
-    delete_goods_receipt_note(db, no)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/<no>")
+def update_goods_receipt_note_endpoint(no: str):
+    note = update_goods_receipt_note(get_db(), no, parse_body(GoodsReceiptNoteUpdate))
+    return json_response(GoodsReceiptNoteRead.model_validate(note))
+
+
+@router.delete("/<no>")
+def delete_goods_receipt_note_endpoint(no: str):
+    delete_goods_receipt_note(get_db(), no)
+    return json_response(None, 204)

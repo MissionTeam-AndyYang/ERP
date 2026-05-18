@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Response, status
-from sqlalchemy.orm import Session
+from flask import Blueprint
 
-from app.db.session import get_db
+from app.api.v1.utils import get_db, json_response, parse_body, parse_pagination
 from app.schemas.batch_numbers import (
     BatchNumberCreate,
     BatchNumberList,
@@ -16,49 +15,39 @@ from app.services.batch_numbers import (
     update_batch_number,
 )
 
-
-router = APIRouter()
-
-
-@router.get("", response_model=BatchNumberList)
-def read_batch_numbers(
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
-    db: Session = Depends(get_db),
-) -> BatchNumberList:
-    total, items = list_batch_numbers(db, skip=skip, limit=limit)
-    return BatchNumberList(total=total, items=items)
+router = Blueprint("batch_numbers", __name__)
 
 
-@router.post("", response_model=BatchNumberRead, status_code=status.HTTP_201_CREATED)
-def create_batch_number_endpoint(
-    payload: BatchNumberCreate,
-    db: Session = Depends(get_db),
-) -> BatchNumberRead:
-    return create_batch_number(db, payload)
+@router.get("")
+def read_batch_numbers():
+    skip, limit = parse_pagination()
+    total, items = list_batch_numbers(get_db(), skip=skip, limit=limit)
+    payload = BatchNumberList(
+        total=total,
+        items=[BatchNumberRead.model_validate(item) for item in items],
+    )
+    return json_response(payload)
 
 
-@router.get("/{no}", response_model=BatchNumberRead)
-def read_batch_number(
-    no: str,
-    db: Session = Depends(get_db),
-) -> BatchNumberRead:
-    return get_batch_number_by_no(db, no)
+@router.post("")
+def create_batch_number_endpoint():
+    batch_number = create_batch_number(get_db(), parse_body(BatchNumberCreate))
+    return json_response(BatchNumberRead.model_validate(batch_number), 201)
 
 
-@router.patch("/{no}", response_model=BatchNumberRead)
-def update_batch_number_endpoint(
-    no: str,
-    payload: BatchNumberUpdate,
-    db: Session = Depends(get_db),
-) -> BatchNumberRead:
-    return update_batch_number(db, no, payload)
+@router.get("/<no>")
+def read_batch_number(no: str):
+    batch_number = get_batch_number_by_no(get_db(), no)
+    return json_response(BatchNumberRead.model_validate(batch_number))
 
 
-@router.delete("/{no}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_batch_number_endpoint(
-    no: str,
-    db: Session = Depends(get_db),
-) -> Response:
-    delete_batch_number(db, no)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/<no>")
+def update_batch_number_endpoint(no: str):
+    batch_number = update_batch_number(get_db(), no, parse_body(BatchNumberUpdate))
+    return json_response(BatchNumberRead.model_validate(batch_number))
+
+
+@router.delete("/<no>")
+def delete_batch_number_endpoint(no: str):
+    delete_batch_number(get_db(), no)
+    return json_response(None, 204)

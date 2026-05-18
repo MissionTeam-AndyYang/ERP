@@ -1,11 +1,10 @@
-from fastapi.testclient import TestClient
+from flask.testing import FlaskClient
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
 from app.main import app
 
 
-def seed_purchase_order_chain(client: TestClient) -> None:
+def seed_purchase_order_chain(client: FlaskClient) -> None:
     assert (
         client.post(
             "/api/v1/product-orders",
@@ -43,8 +42,8 @@ def test_goods_receipt_note_crud_advances_warehouse_workflow(db_session: Session
     def override_get_db() -> Session:
         return db_session
 
-    app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
+    app.config["TEST_DB_SESSION"] = db_session
+    client = app.test_client()
     try:
         seed_purchase_order_chain(client)
 
@@ -62,28 +61,28 @@ def test_goods_receipt_note_crud_advances_warehouse_workflow(db_session: Session
             },
         )
         assert create_response.status_code == 201
-        created = create_response.json()
+        created = create_response.json
         assert created["no"] == "GRN-CRUD-001"
         assert created["purchase_order_no"] == "PO-GRN-001"
 
         read_response = client.get("/api/v1/goods-receipt-notes/GRN-CRUD-001")
         assert read_response.status_code == 200
-        assert read_response.json()["checkedCount"] == 38
+        assert read_response.json["checkedCount"] == 38
 
         list_response = client.get("/api/v1/goods-receipt-notes")
         assert list_response.status_code == 200
-        assert list_response.json()["total"] == 1
+        assert list_response.json["total"] == 1
 
         update_response = client.patch(
             "/api/v1/goods-receipt-notes/GRN-CRUD-001",
             json={"checkedCount": 40, "comment": "Accepted"},
         )
         assert update_response.status_code == 200
-        assert update_response.json()["checkedCount"] == 40
+        assert update_response.json["checkedCount"] == 40
 
         workflow_response = client.get("/api/v1/workflows/order-to-warehouse/SO-GRN-001")
         assert workflow_response.status_code == 200
-        workflow = workflow_response.json()
+        workflow = workflow_response.json
         assert workflow["complete"] is False
         assert workflow["goods_receipt_note"]["exists"] is True
         assert workflow["goods_receipt_note"]["no"] == "GRN-CRUD-001"
@@ -96,7 +95,7 @@ def test_goods_receipt_note_crud_advances_warehouse_workflow(db_session: Session
         missing_response = client.get("/api/v1/goods-receipt-notes/GRN-CRUD-001")
         assert missing_response.status_code == 404
     finally:
-        app.dependency_overrides.clear()
+        app.config.pop("TEST_DB_SESSION", None)
 
 
 def test_goods_receipt_note_validates_purchase_order_and_duplicate_no(
@@ -105,8 +104,8 @@ def test_goods_receipt_note_validates_purchase_order_and_duplicate_no(
     def override_get_db() -> Session:
         return db_session
 
-    app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
+    app.config["TEST_DB_SESSION"] = db_session
+    client = app.test_client()
     try:
         missing_order_response = client.post(
             "/api/v1/goods-receipt-notes",
@@ -121,6 +120,6 @@ def test_goods_receipt_note_validates_purchase_order_and_duplicate_no(
 
         assert first_response.status_code == 201
         assert second_response.status_code == 409
-        assert "already exists" in second_response.json()["detail"]
+        assert "already exists" in second_response.json["detail"]
     finally:
-        app.dependency_overrides.clear()
+        app.config.pop("TEST_DB_SESSION", None)

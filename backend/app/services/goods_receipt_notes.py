@@ -1,7 +1,7 @@
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.models.ewdb import GoodsReceiptNote, PurchaseOrder
 from app.schemas.goods_receipt_notes import GoodsReceiptNoteCreate, GoodsReceiptNoteUpdate
 
@@ -24,10 +24,7 @@ def list_goods_receipt_notes(
 def get_goods_receipt_note_by_no(db: Session, no: str) -> GoodsReceiptNote:
     goods_receipt_note = db.scalar(select(GoodsReceiptNote).where(GoodsReceiptNote.no == no))
     if goods_receipt_note is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Goods receipt note '{no}' was not found.",
-        )
+        raise ApiError(404, f"Goods receipt note '{no}' was not found.")
     return goods_receipt_note
 
 
@@ -36,10 +33,7 @@ def _ensure_purchase_order_exists(db: Session, purchase_order_no: str | None) ->
         return
     purchase_order = db.scalar(select(PurchaseOrder).where(PurchaseOrder.no == purchase_order_no))
     if purchase_order is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Purchase order '{purchase_order_no}' was not found.",
-        )
+        raise ApiError(400, f"Purchase order '{purchase_order_no}' was not found.")
 
 
 def create_goods_receipt_note(
@@ -48,10 +42,7 @@ def create_goods_receipt_note(
 ) -> GoodsReceiptNote:
     existing = db.scalar(select(GoodsReceiptNote).where(GoodsReceiptNote.no == payload.no))
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Goods receipt note '{payload.no}' already exists.",
-        )
+        raise ApiError(409, f"Goods receipt note '{payload.no}' already exists.")
 
     _ensure_purchase_order_exists(db, payload.purchase_order_no)
     goods_receipt_note = GoodsReceiptNote(**payload.model_dump())
@@ -73,10 +64,7 @@ def update_goods_receipt_note(
     if next_no and next_no != no:
         existing = db.scalar(select(GoodsReceiptNote).where(GoodsReceiptNote.no == next_no))
         if existing is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Goods receipt note '{next_no}' already exists.",
-            )
+            raise ApiError(409, f"Goods receipt note '{next_no}' already exists.")
 
     if "purchase_order_no" in data:
         _ensure_purchase_order_exists(db, data["purchase_order_no"])

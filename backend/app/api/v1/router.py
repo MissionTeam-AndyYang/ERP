@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from flask import Blueprint
 
 from app.api.v1.endpoints import (
     batch_numbers,
@@ -11,26 +11,12 @@ from app.api.v1.endpoints import (
     workflows,
 )
 
-api_router = APIRouter()
-api_router.include_router(health.router, prefix="/health", tags=["health"])
-api_router.include_router(product_orders.router, prefix="/product-orders", tags=["product-orders"])
-api_router.include_router(
-    purchase_requests.router,
-    prefix="/purchase-requests",
-    tags=["purchase-requests"],
-)
-api_router.include_router(
-    purchase_orders.router, prefix="/purchase-orders", tags=["purchase-orders"]
-)
-api_router.include_router(
-    goods_receipt_notes.router,
-    prefix="/goods-receipt-notes",
-    tags=["goods-receipt-notes"],
-)
-api_router.include_router(batch_numbers.router, prefix="/batch-numbers", tags=["batch-numbers"])
-api_router.include_router(
-    inventory_records.router,
-    prefix="/inventory-records",
-    tags=["inventory-records"],
-)
-api_router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
+api_router = Blueprint("api_v1", __name__)
+api_router.register_blueprint(health.router, url_prefix="/health")
+api_router.register_blueprint(product_orders.router, url_prefix="/product-orders")
+api_router.register_blueprint(purchase_requests.router, url_prefix="/purchase-requests")
+api_router.register_blueprint(purchase_orders.router, url_prefix="/purchase-orders")
+api_router.register_blueprint(goods_receipt_notes.router, url_prefix="/goods-receipt-notes")
+api_router.register_blueprint(batch_numbers.router, url_prefix="/batch-numbers")
+api_router.register_blueprint(inventory_records.router, url_prefix="/inventory-records")
+api_router.register_blueprint(workflows.router, url_prefix="/workflows")

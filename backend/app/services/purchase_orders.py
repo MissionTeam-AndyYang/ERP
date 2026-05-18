@@ -1,7 +1,7 @@
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.models.ewdb import PurchaseOrder, PurchaseRequest
 from app.schemas.purchase_orders import PurchaseOrderCreate, PurchaseOrderUpdate
 
@@ -24,10 +24,7 @@ def list_purchase_orders(
 def get_purchase_order_by_no(db: Session, no: str) -> PurchaseOrder:
     purchase_order = db.scalar(select(PurchaseOrder).where(PurchaseOrder.no == no))
     if purchase_order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Purchase order '{no}' was not found.",
-        )
+        raise ApiError(404, f"Purchase order '{no}' was not found.")
     return purchase_order
 
 
@@ -38,19 +35,13 @@ def _ensure_purchase_request_exists(db: Session, purchase_request_no: str | None
         select(PurchaseRequest).where(PurchaseRequest.no == purchase_request_no)
     )
     if purchase_request is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Purchase request '{purchase_request_no}' was not found.",
-        )
+        raise ApiError(400, f"Purchase request '{purchase_request_no}' was not found.")
 
 
 def create_purchase_order(db: Session, payload: PurchaseOrderCreate) -> PurchaseOrder:
     existing = db.scalar(select(PurchaseOrder).where(PurchaseOrder.no == payload.no))
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Purchase order '{payload.no}' already exists.",
-        )
+        raise ApiError(409, f"Purchase order '{payload.no}' already exists.")
 
     _ensure_purchase_request_exists(db, payload.purchase_request_no)
     purchase_order = PurchaseOrder(**payload.model_dump())
@@ -72,10 +63,7 @@ def update_purchase_order(
     if next_no and next_no != no:
         existing = db.scalar(select(PurchaseOrder).where(PurchaseOrder.no == next_no))
         if existing is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Purchase order '{next_no}' already exists.",
-            )
+            raise ApiError(409, f"Purchase order '{next_no}' already exists.")
 
     if "purchase_request_no" in data:
         _ensure_purchase_request_exists(db, data["purchase_request_no"])

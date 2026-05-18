@@ -12,7 +12,7 @@
 - Frontend: React / Next.js / TypeScript
 - UI: Tailwind CSS / ShadCN UI
 - Charts: Recharts
-- Backend: Python
+- Backend: Python / Flask API / SQLAlchemy
 - Database: MariaDB
 
 ## 主要目錄
@@ -46,7 +46,7 @@ Sprint 1-1：Design System + Dashboard UI Prototype
 
 ## 第二階段
 
-Sprint 11：Backend FastAPI 專案骨架已建立於 `backend/`。
+Sprint 11：Backend Flask API 專案骨架已建立於 `backend/`。
 
 詳細啟動方式請見：
 

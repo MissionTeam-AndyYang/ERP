@@ -1,7 +1,7 @@
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.models.ewdb import ProductOrder
 from app.schemas.product_orders import ProductOrderCreate, ProductOrderUpdate
 
@@ -24,20 +24,14 @@ def list_product_orders(
 def get_product_order_by_no(db: Session, no: str) -> ProductOrder:
     product_order = db.scalar(select(ProductOrder).where(ProductOrder.no == no))
     if product_order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Product order '{no}' was not found.",
-        )
+        raise ApiError(404, f"Product order '{no}' was not found.")
     return product_order
 
 
 def create_product_order(db: Session, payload: ProductOrderCreate) -> ProductOrder:
     existing = db.scalar(select(ProductOrder).where(ProductOrder.no == payload.no))
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Product order '{payload.no}' already exists.",
-        )
+        raise ApiError(409, f"Product order '{payload.no}' already exists.")
 
     product_order = ProductOrder(**payload.model_dump())
     db.add(product_order)
@@ -58,10 +52,7 @@ def update_product_order(
     if next_no and next_no != no:
         existing = db.scalar(select(ProductOrder).where(ProductOrder.no == next_no))
         if existing is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Product order '{next_no}' already exists.",
-            )
+            raise ApiError(409, f"Product order '{next_no}' already exists.")
 
     for field, value in data.items():
         setattr(product_order, field, value)

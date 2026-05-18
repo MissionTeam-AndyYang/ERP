@@ -250,4 +250,4 @@
 3. 建立 SQLAlchemy models 的第一批 base module。
 4. 建立 Alembic migration，但先不強制把所有 legacy FK 一次加完。
 
-這樣可以讓後續 FastAPI + SQLAlchemy 的開發更穩，也能避免一開始就被 75 張表與大量推論關聯卡住。
+這樣可以讓後續 Flask API + SQLAlchemy 的開發更穩，也能避免一開始就被 75 張表與大量推論關聯卡住。

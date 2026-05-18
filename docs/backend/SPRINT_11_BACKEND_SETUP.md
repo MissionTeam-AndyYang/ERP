@@ -4,7 +4,7 @@
 
 建立 ERP 2.0 第二階段 MVP 的 Backend 基礎：
 
-- FastAPI app
+- Flask API app
 - MariaDB 連線設定
 - SQLAlchemy session
 - Alembic migration 骨架
@@ -53,7 +53,7 @@ DATABASE_URL=mysql+pymysql://erp_user:erp_password@127.0.0.1:3306/erp_2_0?charse
 ## 啟動 API
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m flask --app app.main:app run --host 127.0.0.1 --port 8000 --debug
 ```
 
 ## Health Check

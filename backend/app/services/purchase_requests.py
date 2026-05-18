@@ -1,7 +1,7 @@
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.models.ewdb import ProductOrder, PurchaseRequest, PurchaseRequestItem
 from app.schemas.purchase_requests import (
     PurchaseRequestCreate,
@@ -45,10 +45,7 @@ def list_purchase_requests(
 def get_purchase_request_by_no(db: Session, no: str) -> PurchaseRequest:
     purchase_request = db.scalar(select(PurchaseRequest).where(PurchaseRequest.no == no))
     if purchase_request is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Purchase request '{no}' was not found.",
-        )
+        raise ApiError(404, f"Purchase request '{no}' was not found.")
     return purchase_request
 
 
@@ -62,20 +59,14 @@ def create_purchase_request(
 ) -> PurchaseRequestRead:
     existing = db.scalar(select(PurchaseRequest).where(PurchaseRequest.no == payload.no))
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Purchase request '{payload.no}' already exists.",
-        )
+        raise ApiError(409, f"Purchase request '{payload.no}' already exists.")
 
     if payload.product_order_no:
         product_order = db.scalar(
             select(ProductOrder).where(ProductOrder.no == payload.product_order_no)
         )
         if product_order is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product order '{payload.product_order_no}' was not found.",
-            )
+            raise ApiError(400, f"Product order '{payload.product_order_no}' was not found.")
 
     data = payload.model_dump(exclude={"items"})
     purchase_request = PurchaseRequest(**data)
@@ -106,10 +97,7 @@ def update_purchase_request(
     if next_no and next_no != no:
         existing = db.scalar(select(PurchaseRequest).where(PurchaseRequest.no == next_no))
         if existing is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Purchase request '{next_no}' already exists.",
-            )
+            raise ApiError(409, f"Purchase request '{next_no}' already exists.")
         items = list(
             db.scalars(
                 select(PurchaseRequestItem).where(PurchaseRequestItem.purchase_request_no == no)
@@ -122,10 +110,7 @@ def update_purchase_request(
     if product_order_no:
         product_order = db.scalar(select(ProductOrder).where(ProductOrder.no == product_order_no))
         if product_order is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product order '{product_order_no}' was not found.",
-            )
+            raise ApiError(400, f"Product order '{product_order_no}' was not found.")
 
     for field, value in data.items():
         setattr(purchase_request, field, value)
@@ -156,10 +141,7 @@ def delete_purchase_request_item(db: Session, no: str, item_id: int) -> None:
         )
     )
     if item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Purchase request item '{item_id}' was not found.",
-        )
+        raise ApiError(404, f"Purchase request item '{item_id}' was not found.")
     db.delete(item)
     db.commit()
 

@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Response, status
-from sqlalchemy.orm import Session
+from flask import Blueprint
 
-from app.db.session import get_db
+from app.api.v1.utils import get_db, json_response, parse_body, parse_pagination
 from app.schemas.purchase_orders import (
     PurchaseOrderCreate,
     PurchaseOrderList,
@@ -16,49 +15,39 @@ from app.services.purchase_orders import (
     update_purchase_order,
 )
 
-
-router = APIRouter()
-
-
-@router.get("", response_model=PurchaseOrderList)
-def read_purchase_orders(
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
-    db: Session = Depends(get_db),
-) -> PurchaseOrderList:
-    total, items = list_purchase_orders(db, skip=skip, limit=limit)
-    return PurchaseOrderList(total=total, items=items)
+router = Blueprint("purchase_orders", __name__)
 
 
-@router.post("", response_model=PurchaseOrderRead, status_code=status.HTTP_201_CREATED)
-def create_purchase_order_endpoint(
-    payload: PurchaseOrderCreate,
-    db: Session = Depends(get_db),
-) -> PurchaseOrderRead:
-    return create_purchase_order(db, payload)
+@router.get("")
+def read_purchase_orders():
+    skip, limit = parse_pagination()
+    total, items = list_purchase_orders(get_db(), skip=skip, limit=limit)
+    payload = PurchaseOrderList(
+        total=total,
+        items=[PurchaseOrderRead.model_validate(item) for item in items],
+    )
+    return json_response(payload)
 
 
-@router.get("/{no}", response_model=PurchaseOrderRead)
-def read_purchase_order(
-    no: str,
-    db: Session = Depends(get_db),
-) -> PurchaseOrderRead:
-    return get_purchase_order_by_no(db, no)
+@router.post("")
+def create_purchase_order_endpoint():
+    purchase_order = create_purchase_order(get_db(), parse_body(PurchaseOrderCreate))
+    return json_response(PurchaseOrderRead.model_validate(purchase_order), 201)
 
 
-@router.patch("/{no}", response_model=PurchaseOrderRead)
-def update_purchase_order_endpoint(
-    no: str,
-    payload: PurchaseOrderUpdate,
-    db: Session = Depends(get_db),
-) -> PurchaseOrderRead:
-    return update_purchase_order(db, no, payload)
+@router.get("/<no>")
+def read_purchase_order(no: str):
+    purchase_order = get_purchase_order_by_no(get_db(), no)
+    return json_response(PurchaseOrderRead.model_validate(purchase_order))
 
 
-@router.delete("/{no}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_purchase_order_endpoint(
-    no: str,
-    db: Session = Depends(get_db),
-) -> Response:
-    delete_purchase_order(db, no)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/<no>")
+def update_purchase_order_endpoint(no: str):
+    purchase_order = update_purchase_order(get_db(), no, parse_body(PurchaseOrderUpdate))
+    return json_response(PurchaseOrderRead.model_validate(purchase_order))
+
+
+@router.delete("/<no>")
+def delete_purchase_order_endpoint(no: str):
+    delete_purchase_order(get_db(), no)
+    return json_response(None, 204)

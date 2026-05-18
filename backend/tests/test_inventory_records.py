@@ -1,11 +1,10 @@
-from fastapi.testclient import TestClient
+from flask.testing import FlaskClient
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
 from app.main import app
 
 
-def seed_batch_number_chain(client: TestClient) -> None:
+def seed_batch_number_chain(client: FlaskClient) -> None:
     assert client.post("/api/v1/product-orders", json={"no": "SO-INV-001"}).status_code == 201
     assert (
         client.post(
@@ -51,8 +50,8 @@ def test_inventory_record_crud_completes_warehouse_workflow(db_session: Session)
     def override_get_db() -> Session:
         return db_session
 
-    app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
+    app.config["TEST_DB_SESSION"] = db_session
+    client = app.test_client()
     try:
         seed_batch_number_chain(client)
 
@@ -71,29 +70,29 @@ def test_inventory_record_crud_completes_warehouse_workflow(db_session: Session)
             },
         )
         assert create_response.status_code == 201
-        created = create_response.json()
+        created = create_response.json
         assert created["id"] is not None
         assert created["batchNumber"] == "BATCH-INV-001"
 
         record_id = created["id"]
         read_response = client.get(f"/api/v1/inventory-records/{record_id}")
         assert read_response.status_code == 200
-        assert read_response.json()["warehouse_no"] == "WH-001"
+        assert read_response.json["warehouse_no"] == "WH-001"
 
         list_response = client.get("/api/v1/inventory-records")
         assert list_response.status_code == 200
-        assert list_response.json()["total"] == 1
+        assert list_response.json["total"] == 1
 
         update_response = client.patch(
             f"/api/v1/inventory-records/{record_id}",
             json={"count": 23, "comment": "One unit reserved"},
         )
         assert update_response.status_code == 200
-        assert update_response.json()["count"] == 23
+        assert update_response.json["count"] == 23
 
         workflow_response = client.get("/api/v1/workflows/order-to-warehouse/SO-INV-001")
         assert workflow_response.status_code == 200
-        workflow = workflow_response.json()
+        workflow = workflow_response.json
         assert workflow["complete"] is True
         assert workflow["missing_steps"] == []
         assert len(workflow["inventory_records"]) == 1
@@ -105,15 +104,15 @@ def test_inventory_record_crud_completes_warehouse_workflow(db_session: Session)
         missing_response = client.get(f"/api/v1/inventory-records/{record_id}")
         assert missing_response.status_code == 404
     finally:
-        app.dependency_overrides.clear()
+        app.config.pop("TEST_DB_SESSION", None)
 
 
 def test_inventory_record_validates_batch_number(db_session: Session) -> None:
     def override_get_db() -> Session:
         return db_session
 
-    app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
+    app.config["TEST_DB_SESSION"] = db_session
+    client = app.test_client()
     try:
         response = client.post(
             "/api/v1/inventory-records",
@@ -121,6 +120,6 @@ def test_inventory_record_validates_batch_number(db_session: Session) -> None:
         )
 
         assert response.status_code == 400
-        assert "was not found" in response.json()["detail"]
+        assert "was not found" in response.json["detail"]
     finally:
-        app.dependency_overrides.clear()
+        app.config.pop("TEST_DB_SESSION", None)

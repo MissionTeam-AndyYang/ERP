@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, Query, Response, status
-from sqlalchemy.orm import Session
+from flask import Blueprint
 
-from app.db.session import get_db
+from app.api.v1.utils import get_db, json_response, parse_body, parse_pagination
 from app.schemas.inventory_records import (
     InventoryRecordCreate,
     InventoryRecordList,
@@ -16,49 +15,41 @@ from app.services.inventory_records import (
     update_inventory_record,
 )
 
-
-router = APIRouter()
-
-
-@router.get("", response_model=InventoryRecordList)
-def read_inventory_records(
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=200),
-    db: Session = Depends(get_db),
-) -> InventoryRecordList:
-    total, items = list_inventory_records(db, skip=skip, limit=limit)
-    return InventoryRecordList(total=total, items=items)
+router = Blueprint("inventory_records", __name__)
 
 
-@router.post("", response_model=InventoryRecordRead, status_code=status.HTTP_201_CREATED)
-def create_inventory_record_endpoint(
-    payload: InventoryRecordCreate,
-    db: Session = Depends(get_db),
-) -> InventoryRecordRead:
-    return create_inventory_record(db, payload)
+@router.get("")
+def read_inventory_records():
+    skip, limit = parse_pagination()
+    total, items = list_inventory_records(get_db(), skip=skip, limit=limit)
+    payload = InventoryRecordList(
+        total=total,
+        items=[InventoryRecordRead.model_validate(item) for item in items],
+    )
+    return json_response(payload)
 
 
-@router.get("/{record_id}", response_model=InventoryRecordRead)
-def read_inventory_record(
-    record_id: int,
-    db: Session = Depends(get_db),
-) -> InventoryRecordRead:
-    return get_inventory_record_by_id(db, record_id)
+@router.post("")
+def create_inventory_record_endpoint():
+    inventory_record = create_inventory_record(get_db(), parse_body(InventoryRecordCreate))
+    return json_response(InventoryRecordRead.model_validate(inventory_record), 201)
 
 
-@router.patch("/{record_id}", response_model=InventoryRecordRead)
-def update_inventory_record_endpoint(
-    record_id: int,
-    payload: InventoryRecordUpdate,
-    db: Session = Depends(get_db),
-) -> InventoryRecordRead:
-    return update_inventory_record(db, record_id, payload)
+@router.get("/<int:record_id>")
+def read_inventory_record(record_id: int):
+    inventory_record = get_inventory_record_by_id(get_db(), record_id)
+    return json_response(InventoryRecordRead.model_validate(inventory_record))
 
 
-@router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_inventory_record_endpoint(
-    record_id: int,
-    db: Session = Depends(get_db),
-) -> Response:
-    delete_inventory_record(db, record_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/<int:record_id>")
+def update_inventory_record_endpoint(record_id: int):
+    inventory_record = update_inventory_record(
+        get_db(), record_id, parse_body(InventoryRecordUpdate)
+    )
+    return json_response(InventoryRecordRead.model_validate(inventory_record))
+
+
+@router.delete("/<int:record_id>")
+def delete_inventory_record_endpoint(record_id: int):
+    delete_inventory_record(get_db(), record_id)
+    return json_response(None, 204)

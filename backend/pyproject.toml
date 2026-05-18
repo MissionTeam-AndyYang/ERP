@@ -4,8 +4,9 @@ version = "0.1.0"
 description = "ERP 2.0 backend API for Smart Food Factory MVP"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.116.0",
-    "uvicorn[standard]>=0.35.0",
+    "flask>=3.0.0",
+    "flask-cors>=5.0.0",
+    "pydantic>=2.10.0",
     "sqlalchemy>=2.0.0",
     "alembic>=1.16.0",
     "pydantic-settings>=2.10.0",

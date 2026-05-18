@@ -1,7 +1,7 @@
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ApiError
 from app.models.ewdb import BatchNumber, InventoryRecord
 from app.schemas.inventory_records import InventoryRecordCreate, InventoryRecordUpdate
 
@@ -24,10 +24,7 @@ def list_inventory_records(
 def get_inventory_record_by_id(db: Session, record_id: int) -> InventoryRecord:
     inventory_record = db.get(InventoryRecord, record_id)
     if inventory_record is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Inventory record '{record_id}' was not found.",
-        )
+        raise ApiError(404, f"Inventory record '{record_id}' was not found.")
     return inventory_record
 
 
@@ -36,10 +33,7 @@ def _ensure_batch_number_exists(db: Session, batch_number_no: str | None) -> Non
         return
     batch_number = db.scalar(select(BatchNumber).where(BatchNumber.no == batch_number_no))
     if batch_number is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Batch number '{batch_number_no}' was not found.",
-        )
+        raise ApiError(400, f"Batch number '{batch_number_no}' was not found.")
 
 
 def create_inventory_record(

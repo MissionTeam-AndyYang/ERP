@@ -53,3 +53,12 @@ Sprint 11：Backend Flask API 專案骨架已建立於 `backend/`。
 ```txt
 docs/backend/SPRINT_11_BACKEND_SETUP.md
 ```
+
+## 協作文件
+
+```txt
+CONTRIBUTING.md
+docs/backend/CODING_CONVENTION.md
+docs/frontend/CODING_CONVENTION.md
+docs/engineering/CODE_REVIEW_CHECKLIST.md
+```

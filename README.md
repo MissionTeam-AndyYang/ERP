@@ -15,6 +15,15 @@
 - Backend: Python / Flask API / SQLAlchemy
 - Database: MariaDB
 
+## 目前資料庫與後端基準
+
+- Database baseline: `docs/database/EWDB_20260521.sql`
+- Database review: `docs/database/EWDB_20260521_BASELINE_REVIEW.md`
+- Legacy/reference API source: `restserver/package`
+- Restserver review: `docs/backend/RESTSERVER_CODE_REVIEW_20260521.md`
+
+> 註：`restserver/` 是工程師推送到 GitHub `main` 的既有 Flask API 參考實作；`backend/` 仍是 ERP 2.0 新 API baseline。兩者合併前需先完成 schema、auth、dependency 與 deployment 對齊。
+
 ## 主要目錄
 
 ```bash
@@ -37,7 +46,12 @@ src/
 docs/
  ├── design-system/
  ├── architecture/
+ ├── backend/
+ ├── database/
  └── codex/
+
+restserver/
+ └── package/             # GitHub main 提供的既有 Flask API 參考實作
 ```
 
 ## 第一階段

@@ -185,6 +185,26 @@ Sidebar 是 ERP 主導航中心。
 
 ---
 
+## 十一之一、EWDB 20260521 模組對齊
+
+UI 模組與資料模型需以 `docs/database/EWDB_20260521.sql` 的 domain group 作為資訊架構基準。畫面命名可以維持使用者熟悉的中文模組，但資料來源、篩選條件與明細頁必須能追溯到下列表群。
+
+| UI 模組 | 主要資料表群 | 設計重點 |
+|---|---|---|
+| 基礎資料 | enterprise, company, bank_account, material, product, goods, employee, device | 高密度列表、快速搜尋、狀態與關聯摘要 |
+| 銷售中心 | quotation, contract, product_order, shipping_order, order_payment | 單據流程、客戶/品項關聯、付款狀態 |
+| 採購中心 | purchase_request, purchase_request_item, purchase_order, goods_receipt_note | 請購到收貨流程、缺漏步驟提示 |
+| 倉儲中心 | batch_number, inventory_order, inventory_record, inventory_delta, ship_wh_alias, ship_wh | 批號、庫位、出入庫、月統計 |
+| 生產中心 | factory, process, production_line, station, equipment, work_order, process_order, production_data | 產線狀態、工單進度、報工明細 |
+| APS / 產能 | aps_quantity, aps_quantity_item, pl_man_capacity, pl_item_capacity, pl_item_loss | 產能配置、工時、人力與耗損 |
+| BOM / 品項結構 | bom, bom_item, bom1, bom2, product_spec, product_bom_spec | 樹狀結構、版本、用量與損耗 |
+| 財務統計 | payment, order_item_month_statistic, shipping_payment, warehouse_payment, labor_wage | 金額彙總、期間篩選、異常檢查 |
+| 系統與權限 | member, session, user_group, employee | 登入狀態、角色權限、操作稽核 |
+
+資料表仍保留 EWDB 欄位命名，例如 `creationTime`, `expectedCount`, `checkedCount`, `item_ref_displayName`。前端顯示層可以轉換成中文標籤，但 API contract 與 TypeScript type 應保留原始欄位，避免資料對接時出現隱性 mapping。
+
+---
+
 ## 十二、Button 規格
 
 Primary Button：用於儲存、下一步、主要操作。Blue Background、White Text、Radius 12、Height 44。

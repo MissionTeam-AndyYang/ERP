@@ -2,7 +2,7 @@
 
 日期：2026-05-18
 
-資料庫基準：`docs/database/EWDB_20260517_3.sql`
+資料庫基準：`docs/database/EWDB_20260521.sql`
 
 後端基準：
 
@@ -10,6 +10,8 @@
 - SQLAlchemy
 - Alembic baseline migration
 - API prefix：`/api/v1`
+
+> 2026-05-21 更新：GitHub `main` 已加入 `docs/database/EWDB_20260521.sql` 與 `restserver/package`。本文件描述的是 `backend/` ERP 2.0 新 API 的 CRUD baseline；`restserver/` 屬於既有 EWDB API 參考實作，review 結果請見 `docs/backend/RESTSERVER_CODE_REVIEW_20260521.md`。
 
 ## 目的
 

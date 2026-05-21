@@ -983,7 +983,7 @@ class CExpectedData(CPrivilegeControl):
                                  .outerjoin(CTableProductLine,
                                             CTableProductLine.no == CTableWorkOrder.production_line_no)
                                  .group_by(CTableWorkOrder.no)
-                                 .order_by(CTableWorkOrder.date.desc())
+                                 .order_by(CTableWorkOrder.date.asc())
                                  .offset(n_start).limit(n_count).all())
                 else:
                     lst_obj_query = (obj_session.query(CTableWorkOrder, CTableProductLine)
@@ -991,7 +991,7 @@ class CExpectedData(CPrivilegeControl):
                                  .outerjoin(CTableProductLine,
                                                 CTableProductLine.no == CTableWorkOrder.production_line_no)
                                  .group_by(CTableWorkOrder.no)
-                                 .order_by(CTableWorkOrder.date.desc())
+                                 .order_by(CTableWorkOrder.date.asc())
                                  .all())
                 lst_ids = []
                 dict_workOrder = {}

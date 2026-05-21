@@ -303,7 +303,7 @@ class CInventory(CPrivilegeControl):
             dict_group_data = defaultdict(lambda: {
                 "group":"",
                 "date": 0,
-                "creator_id":"",
+                "creator_no":"",
                 "ref_no":"",
                 "refCategory":0,
                 "category": 0,
@@ -326,7 +326,7 @@ class CInventory(CPrivilegeControl):
             for obj_row in lst_tmp:
                 str_group_key = obj_row.group
                 if not dict_group_data[str_group_key]["date"]:
-                    n_category, n_subCategory, str_item_name, str_item_ref_no, str_item_ref_displayName = get_item_info(obj_row.item_no)
+                    n_category, n_subCategory, str_item_name= get_item_info(obj_row.item_no)
                     obj_batch = (
                         obj_session.query(CTableBatchNumber)
                         .filter(CTableBatchNumber.no == obj_row.batchNumber )
@@ -344,7 +344,7 @@ class CInventory(CPrivilegeControl):
                     dict_group_data[str_group_key].update({
                         "group": obj_row.group,
                         "date": obj_row.date,
-                        "creator_id": obj_row.creator_id,
+                        "creator_no": obj_row.creator_no,
                         "ref_no": str_ref_no,
                         "refCategory": obj_row.refCategory,
                         "category": obj_row.category,

@@ -107,8 +107,6 @@ def get_item_info( str_item_no):
     n_category = 0
     n_subCategory = 0
     str_item_name = ""
-    str_item_ref_no = ""
-    str_item_ref_displayName = ""
 
     with CDBMgr() as obj_dbmgr:
         obj_session = obj_dbmgr.get_session()
@@ -120,8 +118,6 @@ def get_item_info( str_item_no):
         if obj_prodcut:
             n_category = EItemCategory.PRODUCT
             str_item_name = obj_prodcut.name
-            str_item_ref_no = obj_prodcut.customer_no
-            str_item_ref_displayName = obj_prodcut.customer_displayName
             n_subCategory = obj_prodcut.category
         else:
             obj_inprodcut = (
@@ -132,8 +128,6 @@ def get_item_info( str_item_no):
             if obj_inprodcut:
                 n_category = EItemCategory.INPRODUCT
                 str_item_name = obj_inprodcut.name
-                str_item_ref_no = obj_inprodcut.customer_no
-                str_item_ref_displayName = obj_inprodcut.customer_displayName
             else:
                 obj_material = (
                     obj_session.query(CTableMaterial)
@@ -144,9 +138,8 @@ def get_item_info( str_item_no):
                     n_category = obj_material.category
                     n_subCategory= obj_material.subCategory
                     str_item_name = obj_material.name
-                    str_item_ref_no = obj_material.supplier_no
-                    str_item_ref_displayName = obj_material.supplier_displayName
-    return  n_category, n_subCategory, str_item_name,  str_item_ref_no,  str_item_ref_displayName
+
+    return  n_category, n_subCategory, str_item_name
 
 
 def get_item_unitWarehouse(str_item_no):
@@ -215,22 +208,11 @@ def retrieve_warehouse_info(obj_session, n_category, obj_batch, dict_row):
     dict_row["warehouseUnitLen"] = 0
     dict_row["warehouseCountLen"] = 0
     if n_category not in [EItemCategory.INPRODUCT, EItemCategory.PRODUCT]:
-        obj_price = (
-            obj_session.query(CTableMaterialPrice)
-            .filter(CTableMaterialPrice.item_no == dict_row["item_no"])
-            .first()
-        )
-        if obj_price:
-            # retrieve  purchaseUnitWeight / warehouseUnitWeight for material
-            # cal count
-            dict_price = object_as_dict(obj_price)
-            if dict_price["warehouseUnitWeight"]:
-                dict_row["warehouseUnitWeight"] = dict_price["warehouseUnitWeight"]
-                dict_row["warehouseCountWeight"] = convert_to_kg(round(dict_row["checkedCount"] * dict_price["purchaseWeightUnit"], 2), dict_row["warehouseUnitWeight"])
-            if dict_price["warehouseUnitLength"]:
-                dict_row["warehouseUnitLen"] = dict_price["warehouseUnitLength"]
-                dict_row["warehouseCountLen"] = convert_to_m(round(
-                    dict_row["checkedCount"] * dict_price["purchaseLengthUnit"], 2),dict_price["warehouseUnitLength"])
+        # retrieve  purchaseUnitWeight / warehouseUnitWeight for material
+        # cal count
+        dict_row["warehouseUnitWeight"] = dict_row["unit"] #dict_price["warehouseUnitWeight"]
+        dict_row["warehouseCountWeight"] = dict_row["checkedCount"]#convert_to_kg(round(dict_row["checkedCount"] * dict_price["purchaseWeightUnit"], 2), dict_row["warehouseUnitWeight"])
+
     else:
         dict_row["warehouseUnitWeight"] = obj_batch.unit if obj_batch else 0
         dict_row["warehouseCountWeight"] = obj_batch.checkedCount if obj_batch else 0

@@ -647,13 +647,13 @@ class CProductData(CPrivilegeControl):
                                           .query(
                                                 func.group_concat(func.distinct(CTableProductionData.work_order_no)).label("workOrderNos"),
                                                 CTableProductLine.name,
-                                                func.count(CTableProductionData.product_line_no).label("lineCount")  # 計算筆數
+                                                func.count(CTableProductionData.production_line_no).label("lineCount")  # 計算筆數
                                                 )
                                           .filter(CTableProductionData.product_order_no == str_product_order,
                                                   CTableProductionData.oneProcess == n_oneProcess)
                                           .outerjoin(CTableProductLine,
-                                                     CTableProductLine.no == CTableProductionData.product_line_no)
-                                          .group_by(CTableProductionData.product_line_no)
+                                                     CTableProductLine.no == CTableProductionData.production_line_no)
+                                          .group_by(CTableProductionData.production_line_no)
                                           .all())
                     for str_workOrderNos, name, lineCount in lst_obj_production:
                         dict_extra_data["productLine"].append({"name": name, "count": lineCount})

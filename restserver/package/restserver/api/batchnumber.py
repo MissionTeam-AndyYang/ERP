@@ -94,7 +94,7 @@ class CBatchNumber(CPrivilegeControl):
                     # retrieve inventory count
                     for obj_row in lst_obj_result:
                         if obj_row:
-                            _, n_subCategory, _, _, _ = get_item_info(obj_row.item_no)
+                            _, n_subCategory, _ = get_item_info(obj_row.item_no)
                             dict_row = object_as_dict(obj_row)
                             dict_row["itemSubCategory"] = n_subCategory
                             # 判斷是否為過期品

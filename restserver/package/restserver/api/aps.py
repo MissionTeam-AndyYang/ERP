@@ -84,46 +84,46 @@ class CQuantity(CPrivilegeControl):
                         .all()
                     )
 
-                for obj_aps, obj_order, obj_contract in lst_obj_result:
-                    str_order_no = obj_aps.product_order_no
-                    dict_grouped[str_order_no].append(obj_aps)
-                    dict_order_grouped[str_order_no] = (obj_order, obj_contract)
+                    for obj_aps, obj_order, obj_contract in lst_obj_result:
+                        str_order_no = obj_aps.product_order_no
+                        dict_grouped[str_order_no].append(obj_aps)
+                        dict_order_grouped[str_order_no] = (obj_order, obj_contract)
 
-                for str_order_no, lst_aps in dict_grouped.items():
-                    obj_order = dict_order_grouped[str_order_no][0]
-                    obj_contract = dict_order_grouped[str_order_no][1]
-                    dict_data = {
-                        "product_order": {"no": obj_order.no if obj_order else "",
-                                          "unit": obj_order.unit if obj_order else 0,
-                                          "item_name": obj_order.item_name if obj_order else "",
-                                          "item_ref_displayName": obj_order.item_ref_displayName if obj_order else "",
-                                          "price": obj_order.price if obj_order else 0,
-                                          "count": obj_order.count if obj_order else 0,
-                                          "amount": obj_order.amount if obj_order else 0,
-                                          "preparedCount": obj_order.preparedCount if obj_order else 0,
-                                          "paymentType": obj_order.payment_type if obj_order else 0,
+                    for str_order_no, lst_aps in dict_grouped.items():
+                        obj_order = dict_order_grouped[str_order_no][0]
+                        obj_contract = dict_order_grouped[str_order_no][1]
+                        dict_data = {
+                            "product_order": {"no": obj_order.no if obj_order else "",
+                                              "unit": obj_order.unit if obj_order else 0,
+                                              "item_name": obj_order.item_name if obj_order else "",
+                                              "item_ref_displayName": obj_order.item_ref_displayName if obj_order else "",
+                                              "price": obj_order.price if obj_order else 0,
+                                              "count": obj_order.count if obj_order else 0,
+                                              "amount": obj_order.amount if obj_order else 0,
+                                              "preparedCount": obj_order.preparedCount if obj_order else 0,
+                                              "paymentType": obj_order.payment_type if obj_order else 0,
 
-                                          "contractCategory": obj_contract.category if obj_contract else 0,
-                                          "contractType": obj_contract.type if obj_contract else 0,
-                                          "contractItemStyle": obj_contract.itemStyle if obj_contract else 0,
-                                          "contractComment": obj_contract.comment if obj_contract else "",
+                                              "contractCategory": obj_contract.category if obj_contract else 0,
+                                              "contractType": obj_contract.type if obj_contract else 0,
+                                              "contractItemStyle": obj_contract.itemStyle if obj_contract else 0,
+                                              "contractComment": obj_contract.comment if obj_contract else "",
 
-                                          },
-                        "process": []
-                    }
-                    for obj_data in lst_aps:
-                        dict_process = {
-                            "no": obj_data.no if obj_data else "",
-                            "item_name": obj_data.item_name if obj_data else "",
-                            "oneProcess": obj_data.oneProcess if obj_data else 0,
-                            "secProcess": obj_data.secProcess if obj_data else 0,
-                            "unit": obj_data.unit if obj_order else 0,
-                            "amount": obj_data.amount if obj_data else 0,
-                            "hours": round(obj_data.minutes/60.0, 2) if obj_data else 0 # 換算成小時
+                                              },
+                            "process": []
                         }
-                        dict_data["process"].append(dict_process)
-                    dict_data["process"] = sorted(dict_data["process"], key=lambda x: x['oneProcess'])
-                    lst_result.append(dict_data)
+                        for obj_data in lst_aps:
+                            dict_process = {
+                                "no": obj_data.no if obj_data else "",
+                                "item_name": obj_data.item_name if obj_data else "",
+                                "oneProcess": obj_data.oneProcess if obj_data else 0,
+                                "secProcess": obj_data.secProcess if obj_data else 0,
+                                "unit": obj_data.unit if obj_order else 0,
+                                "amount": obj_data.amount if obj_data else 0,
+                                "hours": round(obj_data.minutes/60.0, 2) if obj_data else 0 # 換算成小時
+                            }
+                            dict_data["process"].append(dict_process)
+                        dict_data["process"] = sorted(dict_data["process"], key=lambda x: x['oneProcess'])
+                        lst_result.append(dict_data)
                 dict_extra_data['total'] = n_total
                 dict_extra_data['count'] = len(lst_order_nos) # 回傳訂購訂單筆數
                 dict_extra_data['results'] = lst_result

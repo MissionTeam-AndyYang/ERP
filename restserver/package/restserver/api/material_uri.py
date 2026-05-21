@@ -25,13 +25,6 @@ class CItemPriceURI(CAPIBase):
     def _is_vaildate_param(self):
         return True if not self._is_get_method() else False
 
-class CMaterialHistoryURI(CAPIBase):
-
-    def _get_executor(self):
-        return CMaterialHistory()
-
-    def _is_vaildate_param(self):
-        return True if not self._is_get_method() else False
 
 
 @material.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -43,10 +36,5 @@ def index():
 @material.route(URL_PATH + '/' + SUBKEY + '/itemprice' , methods=['GET'])
 def price():
     obj_uri = CItemPriceURI()
-    return obj_uri.run()
-
-@material.route(URL_PATH + '/' + SUBKEY + '/history' , methods=['GET'])
-def history():
-    obj_uri = CMaterialHistoryURI()
     return obj_uri.run()
 

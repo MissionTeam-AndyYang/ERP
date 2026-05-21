@@ -88,9 +88,9 @@ class CCBOMTree(IBomTree):
                          "bom":{
                              "bomNo": obj_bom.bom_no if obj_bom else '',
                              "bomVer": obj_bom.bom_version if obj_bom else '',
-                             "productVer_no": obj_prodcut_ver.no,
-                             "productVer": obj_prodcut_ver.version,
-                             "productVerDate": obj_prodcut_ver.date
+                             "productVer_no": obj_prodcut_ver.no if obj_prodcut_ver else '',
+                             "productVer": obj_prodcut_ver.version if obj_prodcut_ver else 0,
+                             "productVerDate": obj_prodcut_ver.date if obj_prodcut_ver else 0,
                          },
                          "productProc": dict_process,
                          "children": []}

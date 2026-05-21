@@ -47,7 +47,7 @@ class CContract(object):
                     # 動態加入alias表 (CTableShipWarehouseAlias)
                     if alias_table:
                         query = query.add_entity(alias_table).outerjoin(alias_table,
-                                                                       contract_table.item_no == alias_table.no)
+                                                                       contract_table.sw_alias_no == alias_table.no)
 
                     # 處理公司與支付的
                     query = (query.outerjoin(CTableCompany, contract_table.item_ref_no == CTableCompany.no)

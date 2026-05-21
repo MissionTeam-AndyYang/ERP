@@ -651,7 +651,7 @@ class CBatchRecord(CPrivilegeControl):
                         lst_obj_result = (
                             obj_session.query(CTableProductionDataInput)
                             .join(CTableProductionData,
-                                  CTableProductionDataInput.production_data_id == CTableProductionData.id)
+                                  CTableProductionDataInput.work_order_no == CTableProductionData.work_order_no)
                             .filter(CTableProductionDataInput.batch_number == request.args.get("no"),
                                     CTableProductionDataInput.action == 1)
                             .order_by(CTableProductionData.date.asc())
@@ -685,7 +685,7 @@ class CBatchRecord(CPrivilegeControl):
                         lst_obj_result = (
                             obj_session.query(CTableProductionDataOutput)
                             .join(CTableProductionData,
-                                  CTableProductionDataOutput.production_data_id == CTableProductionData.id)
+                                  CTableProductionDataOutput.work_order_no == CTableProductionData.work_order_no)
                             .filter(CTableProductionDataOutput.batch_number == request.args.get("no"))
                             .order_by(CTableProductionData.date.asc())
                             .all()
@@ -1056,7 +1056,7 @@ class CBatchRecord(CPrivilegeControl):
         obj_return = (
             obj_session.query(CTableProductionDataInput)
             .filter(
-                CTableProductionDataInput.production_data_id == obj_data1.production_data_id,
+                CTableProductionDataInput.work_order_no == obj_data1.work_order_no,
                 CTableProductionDataInput.batch_number == str_batch_no,
                 CTableProductionDataInput.action == 2)
             .first()

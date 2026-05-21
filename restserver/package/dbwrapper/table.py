@@ -1,39 +1,36 @@
-from sqlalchemy import Column, Integer, String, Float, Time, JSON, orm, ForeignKey, Text, Date, DateTime, func, Index,and_
+from sqlalchemy import Column, Integer, String, Float, Time, JSON, orm, ForeignKey, Text, Date, DateTime, func, UniqueConstraint, Index,and_
 Base = orm.declarative_base()
 from sqlalchemy.orm import relationship, foreign, remote
 
-class CTableServer(Base):
-    __tablename__ = 'server_info'
-    id =Column(String(length=60), primary_key=True)
-    timezone = Column(String(length=60))
-
-
-
-
 class CTablePayment(Base):
     __tablename__ = 'payment'
-    id =Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     type = Column(Integer)
     source = Column(Integer)
     date = Column(Integer)
     period = Column(Integer)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('type', 'source', 'date', 'period', name='uq_payment_composite'),
+    )
 
 class CTableBankAccount(Base):
     __tablename__ = 'bank_account'
-    id =Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    category = Column(Integer)
+    currency = Column(Integer)
     displayName = Column(String(length=60))
     name = Column(String(length=60))
     branch = Column(String(length=60))
     account = Column(String(length=60))
-    number = Column(String(length=60), primary_key=True)
+    number = Column(String(length=60), unique=True)
     creationTime = Column(Integer)
 
 class CTableEnterprise(Base):
     __tablename__ = 'enterprise'
-    no = Column(String(length=20),primary_key=True)
-    businessNo = Column(String(length=20))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    businessNo = Column(String(length=60))
     displayName = Column(String(length=60))
     name = Column(String(length=60))
     address = Column(String(length=100))
@@ -43,12 +40,15 @@ class CTableEnterprise(Base):
     department = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', 'businessNo', name='uq_enterprise_composite'),
+    )
 
 class CTableCompany(Base):
     __tablename__ = 'company'
-
-    no = Column(String(length=20),primary_key=True)
-    businessNo = Column(String(length=20))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    businessNo = Column(String(length=60))
     displayName = Column(String(length=60))
     name = Column(String(length=60))
     address = Column(String(length=100))
@@ -68,80 +68,16 @@ class CTableCompany(Base):
     bankNo = Column(String(length=60))
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-'''
-class CTableCustomer(Base):
-    __tablename__ = 'customer'
-    id = Column(String(length=60))
-    no = Column(String(length=20), unique=True, primary_key=True)
-    category = Column(Integer)
-    businessNo = Column(String(length=20))
-    displayName = Column(String(length=60))
-    name = Column(String(length=60))
-    address = Column(String(length=100))
-    phone = Column(String(length=100))
-    fax = Column(String(length=20))
-    contactName = Column(String(length=60))
-    contactPhone = Column(JSON)
-    contactTitle = Column(String(length=60))
-    contactEmail = Column(String(length=60))
-    payment_id = Column(String(length=60))
-    bank_account_id = Column(String(length=60))
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', 'businessNo', name='uq_company_composite'),
+    )
 
 
-class CTableSupplier(Base):
-    __tablename__ = 'supplier'
-    id = Column(String(length=60))
-    no = Column(String(length=20), unique=True,primary_key=True)
-    category = Column(Integer)
-    businessNo = Column(String(length=20))
-    displayName = Column(String(length=60))
-    name = Column(String(length=60))
-    address = Column(String(length=100))
-    phone = Column(String(length=100))
-    fax = Column(String(length=20))
-    contactName = Column(String(length=60))
-    contactPhone = Column(JSON)
-    contactTitle = Column(String(length=60))
-    contactEmail = Column(String(length=60))
-    payment_id = Column(String(length=60))
-    bankDisplayName = Column(String(length=60))
-    bankName = Column(String(length=60))
-    bankBranch = Column(String(length=60))
-    bankAccount = Column(String(length=60))
-    bankNo = Column(String(length=60))
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
 
-
-class CTableVendor(Base):
-    __tablename__ = 'vendor'
-    id = Column(String(length=60))
-    no = Column(String(length=20), unique=True,primary_key=True)
-    category = Column(Integer)
-    businessNo = Column(String(length=20))
-    displayName = Column(String(length=60))
-    name = Column(String(length=60))
-    address = Column(String(length=100))
-    phone = Column(String(length=100))
-    fax = Column(String(length=20))
-    contactName = Column(String(length=60))
-    contactPhone = Column(JSON)
-    contactTitle = Column(String(length=60))
-    contactEmail = Column(String(length=60))
-    payment_id = Column(String(length=60))
-    bankDisplayName = Column(String(length=60))
-    bankName = Column(String(length=60))
-    bankBranch = Column(String(length=60))
-    bankAccount = Column(String(length=60))
-    bankNo = Column(String(length=60))
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
-'''
 class CTableTransItems(Base):
     __tablename__ = 'trans_items'
-    no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     name = Column(String(length=100))
     category = Column(Integer)
     attribute = Column(Integer)
@@ -151,15 +87,21 @@ class CTableTransItems(Base):
     item_name = Column(String(length=60))
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+
     contracts = relationship(
         "CTableContract",
         primaryjoin="CTableTransItems.no == foreign(CTableContract.item_no)",
         uselist=True
     )
 
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_trans_items_composite'),
+    )
+
 class CTableTransItems2(Base):
     __tablename__ = 'trans_items2'
-    no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     name = Column(String(length=100))
     category = Column(Integer)
     attribute = Column(Integer)
@@ -167,66 +109,32 @@ class CTableTransItems2(Base):
     company_displayName = Column(String(length=60))
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_trans_items2_composite'),
+    )
 class CTableMaterial(Base):
     __tablename__ = 'material'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     category = Column(Integer)
     subCategory = Column(Integer)
-    type = Column(Integer)
     name = Column(String(length=100))
-    supplier_no = Column(String(length=60))
-    supplier_displayName = Column(String(length=60))
     unitShipping = Column(Integer)
     unitWarehouse = Column(Integer)
     unitProduct = Column(Integer)
-    package1Unit = Column(Integer)
-    package12Count = Column(Float)
-    package2Unit = Column(Integer)
-    package23Count = Column(Float)
-    package3Unit = Column(Integer)
-    package34Count = Column(Float)
-    package4Unit = Column(Integer)
-    specUnitType = Column(Integer)
-    specUnit = Column(Integer)
-    specValue = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
-class CTableMaterialPrice(Base):
-    __tablename__ = 'material_price'
-    id = Column(String(length=60))
-    item_no = Column(String(length=20), primary_key=True)
-    date = Column(Integer)
-    purchaseCount = Column(Float)
-    purchaseUnit = Column(Integer)
-    purchasePrice = Column(Float)
-    purchaseWeightUnit = Column(Float)
-    purchaseLengthUnit = Column(Float)
-    purchaseCountUnit = Column(Float)
-    warehouseUnitWeight = Column(Integer)
-    warehousePriceWeight = Column(Float)
-    warehouseUnitLength = Column(Integer)
-    warehousePriceLength = Column(Float)
-    warehouseUnitCount = Column(Integer)
-    warehousePriceCount = Column(Float)
-    costUnitWeight = Column(Integer)
-    costPriceWeight = Column(Float)
-    costUnitLength = Column(Integer)
-    costPriceLength = Column(Float)
-    costUnitCount = Column(Integer)
-    costPriceCount = Column(Float)
-    creationTime = Column(Float)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_material_composite'),
+    )
 
 class CTableItemPrice(Base):
     __tablename__ = 'item_price'
-    no = Column(String(length=60))
-    item_no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_no = Column(String(length=60))
     item_name = Column(String(length=100))
     itemCategory = Column(Integer)
-    date = Column(Integer, primary_key=True)
+    date = Column(Integer)
     whUnitWeight = Column(Integer)
     whUnitLength = Column(Integer)
     costUnitWeight = Column(Integer)
@@ -250,6 +158,10 @@ class CTableItemPrice(Base):
     costPriceLength = Column(Float)
     laborCost = Column(Float)
     creationTime = Column(Float)
+    __table_args__ = (
+        UniqueConstraint('item_no', 'date', name='uq_item_price_composite'),
+    )
+
     # 1. 對應 Material ([1, 2, 3])
     material = relationship(
         "CTableMaterial",
@@ -287,30 +199,38 @@ class CTableItemPrice(Base):
 
 class CTableItemLoss(Base):
     __tablename__ = 'item_loss'
-    item_no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_no = Column(String(length=60))
     itemCategory = Column(Integer)
-    date = Column(Integer, primary_key=True)
+    date = Column(Integer)
     unit = Column(Integer)
     value = Column(Float)
     estValue = Column(Float)
     creationTime = Column(Float)
+    __table_args__ = (
+        UniqueConstraint('item_no', 'date', name='uq_item_loss_composite'),
+    )
+
 
 class CTableItemHours(Base):
     __tablename__ = 'item_hours'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    item_no = Column(String(length=20), unique=True)
+    item_no = Column(String(length=60))
     itemCategory = Column(Integer)
     date = Column(Integer, unique=True)
     unit = Column(Integer)
     value = Column(Float)
     estValue = Column(Float)
     creationTime = Column(Float)
-
+    __table_args__ = (
+            UniqueConstraint('item_no', 'date', name='uq_item_hours_composite'),
+        )
 class CTableSamplePrice(Base):
     __tablename__ = 'sample_price'
-    item_no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_no = Column(String(length=60))
     itemVer = Column(Integer)
-    date = Column(Integer, primary_key=True)
+    date = Column(Integer)
     estWHUnitWeight = Column(Integer)
     estWHPriceWeight = Column(Float)
     estCostUnitWeight = Column(Integer)
@@ -322,53 +242,18 @@ class CTableSamplePrice(Base):
     costPriceWeight = Column(Float)
     laborCost = Column(Float)
     creationTime = Column(Float)
-class CTableInproductPrice(Base):
-    __tablename__ = 'inproduct_price'
-    id = Column(String(length=60))
-    item_no = Column(String(length=20), primary_key=True)
-    date = Column(Integer, primary_key=True)
-    warehouseUnit  = Column(Integer)
-    warehousePrice  = Column(Float)
-    costUnit = Column(Integer)
-    costPrice = Column(Float)
-    comment = Column(String(length=128))
-    creationTime  = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('item_no', 'date', name='uq_sample_price_composite'),
+    )
 
-
-class CTableProductPrice(Base):
-    __tablename__ = 'product_price'
-    id = Column(String(length=60))
-    item_no = Column(String(length=20), primary_key=True)
-    date = Column(Integer, primary_key=True)
-    warehouseUnit = Column(Integer)
-    warehousePrice = Column(Float)
-    costUnit = Column(Integer)
-    costPrice = Column(Float)
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
-
-
-class CTableProductSellPrice(Base):
-    __tablename__ = 'product_sellprice'
-    id = Column(String(length=60))
-    item_no = Column(String(length=20), primary_key=True)
-    quotation_no = Column(String(length=20), primary_key=True)
-    date = Column(Integer)
-    quantity  = Column(Integer)
-    unit  = Column(Integer)
-    price = Column(Float)
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
 
 class CTableBatchNumber(Base):
     __tablename__ = 'batch_number'
-
-    id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
     date = Column(Integer)
-    no = Column(String(length=20),  unique=True, primary_key=True, index=True)
-    creator_id = Column(String(length=60))
-
-    ref_no = Column(String(length=60), primary_key=True, index=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
+    ref_no = Column(String(length=60))
     refCategory = Column(Integer)
 
     item_no = Column(String(length=60))
@@ -386,6 +271,9 @@ class CTableBatchNumber(Base):
     validDateNo = Column(String(length=60))
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', 'ref_no', name='uq_batch_number_composite'),
+    )
     serialNo_data = relationship(
         "CTableBatchNoSerialNo",
         backref=None,  # 不需要反向回去
@@ -398,10 +286,11 @@ class CTableBatchNumber(Base):
 
 class CTableBatchNoSerialNo(Base):
     __tablename__ = 'batchno_serialno'
-    batch_number = Column(String(length=60),ForeignKey('batch_number.no'), primary_key=True)
-    serialNo = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    batch_number = Column(String(length=60),ForeignKey('batch_number.no'))
+    serialNo = Column(String(length=60))
     #batchno_data = relationship("CTableBatchNumber", back_populates="serialNo_data")
-    ref_order_no = Column(String(length=60), primary_key=True)
+    ref_order_no = Column(String(length=60))
     ref_order_no_category = Column(Integer)
     time = Column(Integer)
     unit = Column(Integer)
@@ -410,13 +299,16 @@ class CTableBatchNoSerialNo(Base):
     validDate = Column(Integer)
     warehouse_no = Column(String(length=60))
     updatedTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('batch_number', 'serialNo', 'ref_order_no', name='uq_batchno_serialno_composite'),
+    )
 #CTableBatchNumber.serialNo_data = relationship("CTableBatchNoSerialNo", order_by=CTableBatchNoSerialNo.batch_number, back_populates="batchno_data")
 
 class CTableInventoryOrder(Base):
     __tablename__ = 'inventory_order'
-    no = Column(String(length=60),primary_key=True)
-    creator_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
     date = Column(Integer)
     category = Column(Integer)
     subCategory = Column(Integer)
@@ -431,16 +323,17 @@ class CTableInventoryOrder(Base):
     expectedCount = Column(Float)
     checkedCount = Column(Float)
     amount = Column(Integer)
-    result = Column(Integer)
-    resultTime = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_inventory_order_composite'),
+    )
 
 class CTableInventoryRec(Base):
     __tablename__ = 'inventory_record'
-    id = Column(String(length=60),primary_key=True)
-    creator_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
     group = Column(String(length=60))
+    creator_no = Column(String(length=60))
     refCategory = Column(Integer)
     ref_no = Column(String(length=60))
     warehouse_no = Column(String(length=60))
@@ -448,7 +341,7 @@ class CTableInventoryRec(Base):
     date = Column(Integer)
     source = Column(Integer)
     category = Column(Integer)
-    batchNumber = Column(String(length=60))
+    batchNumber = Column(String(length=20))
     serialNo = Column(String(length=60))
     item_no = Column(String(length=60))
     item_name = Column(String(length=60))
@@ -467,15 +360,19 @@ class CTableInventoryRec(Base):
 
 class CTableShipWarehouseAlias(Base):
     __tablename__ = 'ship_wh_alias'
-    no = Column(String(length=20), unique=True,primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     name = Column(String(length=60))
     category = Column(Integer)
     type = Column(Integer)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_ship_wh_alias_composite'),
+    )
 class CTableShipWarehouse(Base):
     __tablename__ = 'ship_wh'
-    no = Column(String(length=20), unique=True,primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     company_no = Column(String(length=60))
     company_displayName = Column(String(length=60))
     name = Column(String(length=60))
@@ -485,15 +382,18 @@ class CTableShipWarehouse(Base):
     unit = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_ship_wh_composite'),
+    )
 
 class CTableShipWarehouseContract(Base):
     __tablename__ = 'ship_wh_contract'
-    no = Column(String(length=20), unique=True,primary_key=True)
-    date = Column(Integer,primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60), unique=True)
+    date = Column(Integer)
     displayName = Column(String(length=60))
     ref_no = Column(String(length=60))
-    item_no = Column(String(length=60))
+    sw_alias_no = Column(String(length=60))
     item_no = Column(String(length=60))
     item_name = Column(String(length=60))
     item_ref_no = Column(String(length=60))
@@ -507,11 +407,14 @@ class CTableShipWarehouseContract(Base):
     fee = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', 'date', name='uq_ship_wh_contract_composite'),
+    )
 class CTableShipWarehouseQuotation(Base):
     __tablename__ = 'ship_wh_quotation'
-    no = Column(String(length=20), unique=True,primary_key=True)
-    date = Column(Integer,primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    date = Column(Integer)
     item_no = Column(String(length=60))
     item_name = Column(String(length=60))
     item_ref_no = Column(String(length=60))
@@ -525,11 +428,13 @@ class CTableShipWarehouseQuotation(Base):
     fee = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', 'date', name='uq_ship_wh_quotation_composite'),
+    )
 class CTableShippingRec(Base):
     __tablename__ = 'shipping_record'
-    no = Column(String(length=20), unique=True,primary_key=True)
-    date = Column(Integer,primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Integer)
     refCategory = Column(Integer)
     ref_no = Column(String(length=60))
     ref_parent_no = Column(String(length=60))
@@ -542,16 +447,16 @@ class CTableShippingRec(Base):
     contract_no = Column(String(length=60))
     unit = Column(Integer)
     price = Column(Float)
-    expectedCount = Column(Float)
-    checkedCount = Column(Float)
+    count = Column(Integer)
+    checkedCount = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
 
 
 class CTableWarehouseRec(Base):
     __tablename__ = 'warehouse_record'
-    no = Column(String(length=20), unique=True,primary_key=True)
-    date = Column(Integer,primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Integer)
     batch_no = Column(String(length=60))
     sw_alias_no = Column(String(length=60))
     sw_alias_name = Column(String(length=60))
@@ -567,29 +472,13 @@ class CTableWarehouseRec(Base):
     days = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-'''
-class CTableWarehousePrice(Base):
-    __tablename__ = 'warehouse_price'
-    no = Column(String(length=20), unique=True,primary_key=True)
-    version = Column(Integer)
-    date = Column(Integer)
-    displayName = Column(String(length=60))
-    warehouse_no = Column(String(length=60))
-    category = Column(Integer)
-    region = Column(Integer)
-    type = Column(Integer)
-    unit = Column(Integer)
-    price = Column(Float)
-    fee = Column(Float)
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
-'''
+
 
 class CTableProductOrder(Base):
     __tablename__ = 'product_order'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
-    creator_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
     date = Column(Integer)
     ref_no = Column(String(length=60))
     item_no = Column(String(length=60))
@@ -607,16 +496,17 @@ class CTableProductOrder(Base):
     payment_source = Column(Integer)
     payment_date = Column(Integer)
     payment_period = Column(Integer)
-    result = Column(Integer)
-    resultTime = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_product_order_composite'),
+    )
 
 class CTableShippingOrder(Base):
     __tablename__ = 'shipping_order'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
-    creator_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
     product_order_no = Column(String(length=60))
     date = Column(Integer)
     category = Column(Integer)
@@ -633,18 +523,19 @@ class CTableShippingOrder(Base):
     feeCount = Column(Float) # 沒使用
     amount = Column(Integer)
     addDeleteAmount = Column(Integer)
-    result = Column(Integer)
-    resultTime = Column(Integer)
+
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_shipping_order_composite'),
+    )
 
 class CTablePurchaseOrder(Base):
     __tablename__ = 'purchase_order'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
-    creator_id = Column(String(length=60))
-    purchase_request_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
+    purchase_request_no = Column(String(length=60))
     date = Column(Integer)
     ref_no = Column(String(length=60))
     item_ref_no           = Column(String(length=60))
@@ -661,18 +552,18 @@ class CTablePurchaseOrder(Base):
     payment_source = Column(Integer)
     payment_date = Column(Integer)
     payment_period = Column(Integer)
-    result = Column(Integer)
-    resultTime = Column(Integer)
+
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_purchase_order_composite'),
+    )
 
 class CTableGoodsReceiptNote (Base):
     __tablename__ = 'goods_receipt_note'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True, index=True)  # 建立索引
-
-    creator_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
     purchase_order_no = Column(String(length=60))
     date                  = Column(Integer)
     category              = Column(Integer)
@@ -689,19 +580,20 @@ class CTableGoodsReceiptNote (Base):
     feeCount = Column(Float) # 沒使用
     amount= Column(Integer)
     addDeleteAmount= Column(Integer)
-    result                = Column(Integer)
-    resultTime            = Column(Integer)
+
     comment               = Column(String(length=128))
     creationTime          = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_goods_receipt_note_composite'),
+    )
 
 
 class CTableWorkOrder(Base):
     __tablename__ = 'work_order'
-    id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
     date = Column(Integer)
-    no = Column(String(length=20), primary_key=True)
-    creator_id = Column(String(length=60))
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
     product_order_no = Column(String(length=60), ForeignKey('product_order.no'))
     product_order = relationship("CTableProductOrder", back_populates="work_order")
     aps_no = Column(String(length=60))
@@ -721,22 +613,22 @@ class CTableWorkOrder(Base):
     processCount = Column(Float)
     laborCount = Column(Integer)
     laborList = Column(JSON)
-    result = Column(Integer)
-    resultTime = Column(Integer)
+
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_work_order_composite'),
+    )
 CTableProductOrder.work_order = relationship("CTableWorkOrder", order_by=CTableProductOrder.no, back_populates="product_order")
 
 
 
 class CTableProductionData(Base):
     __tablename__ = 'production_data'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    creator_no = Column(String(length=60))
 
-    id = Column(String(length=60))
-    creator_id = Column(String(length=60))
-
-    work_order_no = Column(String(length=60), ForeignKey('work_order.no'), primary_key=True)
+    work_order_no = Column(String(length=60), ForeignKey('work_order.no'))
     work_order = relationship("CTableWorkOrder", back_populates="production_data")
 
     product_order_no = Column(String(length=60))
@@ -745,35 +637,29 @@ class CTableProductionData(Base):
     product_no = Column(String(length=60))
     product_name = Column(String(length=100))
     date = Column(Integer)
-    product_line_no = Column(String(length=60))
+    production_line_no = Column(String(length=60))
     oneProcess = Column(Integer)
     secProcess = Column(Integer)
-    preStartTime = Column(Integer, primary_key=True)
-    preEndTime = Column(Integer, primary_key=True)
-    postStartTime = Column(Integer, primary_key=True)
-    postEndTime = Column(Integer, primary_key=True)
     item_no = Column(String(length=60))
     item_name = Column(String(length=100))
-    unit = Column(Integer)
-    count = Column(Float)
     materialLoss = Column(Float)
-    grossWeight = Column(Float)
-    comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('work_order_no', name='uq_production_data_composite'),
+    )
 CTableWorkOrder.production_data = relationship("CTableProductionData", order_by=CTableProductionData.work_order_no, back_populates="work_order")
 
 
 class CTableProductionDataInput(Base):
     __tablename__ = 'production_data_input'
-    id                = Column(String(length=60), primary_key=True)
-    production_data_id = Column(String(length=60), ForeignKey('production_data.id'))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    work_order_no = Column(String(length=60), ForeignKey('production_data.work_order_no'))
     production_data = relationship("CTableProductionData", back_populates="input_data")
-    work_order_no = Column(String(length=60))
     process_order_no = Column(String(length=60))
     group = Column(String(length=60))
     time            = Column(Integer)
-    action            = Column(Integer, primary_key=True)
+    action            = Column(Integer)
     item_no            = Column(String(length=60))
     item_name          = Column(String(length=100))
     category = Column(Integer) #itemCategory
@@ -782,23 +668,19 @@ class CTableProductionDataInput(Base):
     serial_no          = Column(String(length=60))
     unit               = Column(Integer)
     count              = Column(Float)
-    #receiveCount              = Column(Float)
-    #returnCount              = Column(Float)
-    #wasteCount              = Column(Float)
-    avgLoss = Column(Float)
     comment = Column(String(length=128))
 
+    __table_args__ = (
+        UniqueConstraint('work_order_no', 'group', 'action', 'item_no', 'batch_number', 'serial_no', name='uq_production_data_input_composite'),
+    )
 CTableProductionData.input_data = relationship("CTableProductionDataInput", order_by=CTableProductionDataInput.work_order_no, back_populates="production_data")
 
 
 class CTableProductionDataOutput(Base):
     __tablename__ = 'production_data_output'
-    id                = Column(String(length=60), primary_key=True)
-
-    production_data_id = Column(String(length=60), ForeignKey('production_data.id'))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    work_order_no = Column(String(length=60), ForeignKey('production_data.work_order_no'))
     production_data = relationship("CTableProductionData", back_populates="output_data")
-
-    work_order_no = Column(String(length=60))
     process_order_no = Column(String(length=60))
 
     time            = Column(Integer)
@@ -815,161 +697,80 @@ class CTableProductionDataOutput(Base):
     valid_date         = Column(Integer)
     valid_date_no      = Column(String(length=60))
     comment = Column(String(length=128))
-
+    __table_args__ = (
+        UniqueConstraint('work_order_no', 'group', 'action', 'item_no', 'batch_number', 'serial_no',
+                         name='uq_production_data_output_composite'),
+    )
 CTableProductionData.output_data = relationship("CTableProductionDataOutput", order_by=CTableProductionDataOutput.work_order_no, back_populates="production_data")
 
 class CTableProductionDataReuse(Base):
     __tablename__ = 'production_data_reuse'
-    id                = Column(String(length=60))
-    production_data_id = Column(String(length=60), ForeignKey('production_data.id'), primary_key=True)
-    work_order_no = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    work_order_no = Column(String(length=60), ForeignKey('production_data.work_order_no'))
     process_order_no = Column(String(length=60))
     production_data = relationship("CTableProductionData", back_populates="reuse_data")
+    group = Column(String(length=60))
     time            = Column(Integer)
-    action            = Column(Integer, primary_key=True)
+    action            = Column(Integer)
     item_no            = Column(String(length=60))
     item_name          = Column(String(length=100))
     itemSubCategory    = Column(Integer)
     category           = Column(Integer)
-    batch_number       = Column(String(length=60), primary_key=True)
-    serial_no          = Column(String(length=60), primary_key=True)
+    batch_number       = Column(String(length=60))
+    serial_no          = Column(String(length=60))
     unit               = Column(Integer)
     count              = Column(Float)
     comment = Column(String(length=128))
-
+    __table_args__ = (
+        UniqueConstraint('work_order_no',  'group', 'action', 'item_no', 'batch_number', 'serial_no', 'category', name='uq_production_data_reuse_composite'),
+    )
 CTableProductionData.reuse_data = relationship("CTableProductionDataReuse", order_by=CTableProductionDataReuse.work_order_no, back_populates="production_data")
 
 class CTableProductionDataLabor(Base):
     __tablename__ = 'production_data_labor'
-    id                = Column(String(length=60))
-    production_data_id = Column(String(length=60), ForeignKey('production_data.id'))
-    work_order_no     = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    work_order_no     = Column(String(length=60), ForeignKey('production_data.work_order_no'))
     production_data = relationship("CTableProductionData", back_populates="labor_data")
-    employee_no       = Column(String(length=60), primary_key=True)
+    employee_no       = Column(String(length=60))
     employee_name     = Column(String(length=100))
     employee_type     = Column(Integer)
     employee_jobTitle = Column(Integer)
     employee_level    = Column(Integer)
     station_no        = Column(String(length=60))
-    action            = Column(Integer, primary_key=True)
-    stationStage       = Column(Integer, primary_key=True)
-    startTime     = Column(Integer, primary_key=True)
-    endTime       = Column(Integer, primary_key=True)
-    hours = Column(Integer)
+    action            = Column(Integer)
+    stationStage       = Column(Integer)
+    startTime     = Column(Integer)
+    endTime       = Column(Integer)
+    hours = Column(Float)
+    __table_args__ = (
+        UniqueConstraint('work_order_no', 'employee_no', 'stationStage', 'action', 'startTime', 'endTime', name='uq_production_data_labor_composite'),
+    )
 CTableProductionData.labor_data = relationship("CTableProductionDataLabor", order_by=CTableProductionDataLabor.work_order_no, back_populates="production_data")
 
 
 class CTableProductionDataMachine(Base):
     __tablename__ = 'production_data_machine'
-    id                = Column(String(length=60), primary_key=True)
-    production_data_id = Column(String(length=60), ForeignKey('production_data.id'))
-    work_order_no     = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    work_order_no     = Column(String(length=60), ForeignKey('production_data.work_order_no'))
     production_data = relationship("CTableProductionData", back_populates="machine_data")
     time             = Column(Integer)
     equipment_no       = Column(String(length=60))
     equipment_name     = Column(String(length=100))
-    action             = Column(Integer, primary_key=True)
+    action             = Column(Integer)
     temperature        = Column(Float)
     speed             = Column(Float)
     creationTime       = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('work_order_no', 'equipment_no', 'action', name='uq_production_data_machine_composite'),
+    )
 CTableProductionData.machine_data = relationship("CTableProductionDataMachine", order_by=CTableProductionDataMachine.work_order_no, back_populates="production_data")
 
 
-class CTableLaborWage(Base):
-    __tablename__ = 'labor_wage'
-    id                = Column(Integer)
-    date = Column(Integer, primary_key=True)
-    type = Column(Integer, primary_key=True)
-    level = Column(Integer, primary_key=True)
-    hourly = Column(Integer)
-    creationTime = Column(Integer)
-
-
-
-class CTable2023ProductionData(Base):
-    __tablename__ = '2023_production_data'
-
-    #input_data = relationship("CTable2023ProductionDataInput", backref="2023_production_data")
-
-    id = Column(String(length=60))
-    creator_id = Column(String(length=60))
-    work_order_no = Column(String(length=60), primary_key=True)
-    product_order_no = Column(String(length=60))
-    customer_no = Column(String(length=60))
-    customer_displayName = Column(String(length=60))
-    product_no = Column(String(length=60))
-    product_name = Column(String(length=100))
-    date = Column(Integer)
-    product_line_id = Column(String(length=60))
-    oneProcess = Column(Integer)
-    secProcess = Column(Integer)
-    startTime = Column(Integer, primary_key=True)
-    endTime = Column(Integer, primary_key=True)
-    preTotalTime = Column(Integer)
-    postTotalTime = Column(Integer)
-    laborCount = Column(Integer)
-    laborList = Column(JSON)
-    item_no = Column(String(length=60))
-    item_name = Column(String(length=100))
-    valid_date         = Column(String(length=60))
-    valid_date_no      = Column(String(length=60))
-    unit = Column(Integer)
-    count = Column(Float)
-    materialLoss = Column(Float)
-    grossWeight = Column(Float)
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
-
-class CTable2023ProductionDataInput(Base):
-    __tablename__ = '2023_production_data_input'
-    id                = Column(String(length=60), primary_key=True)
-    production_data_id = Column(String(length=60), ForeignKey('2023_production_data.id'))
-    production_data_2023 = relationship("CTable2023ProductionData", back_populates="input_data")
-
-    work_order_no = Column(String(length=60))
-    group = Column(String(length=60))
-    item_id            = Column(String(length=60))
-    item_name          = Column(String(length=100))
-    category           = Column(Integer)
-    batch_number       = Column(String(length=60))
-    unit               = Column(Integer)
-    count              = Column(Float)
-    remainingCount     = Column(Float)
-    wasteCount         = Column(Float)
-    avgLoss            = Column(Float)
-
-
-CTable2023ProductionData.input_data = relationship("CTable2023ProductionDataInput", order_by=CTable2023ProductionDataInput.id, back_populates="production_data_2023")
-
-
-class CTable2023ProductionDataOutput(Base):
-    __tablename__ = '2023_production_data_output'
-    id                = Column(String(length=60), primary_key=True)
-    production_data_id = Column(String(length=60))
-
-    work_order_no = Column(String(length=60))
-    group = Column(String(length=60))
-    item_id            = Column(String(length=60))
-    item_name          = Column(String(length=100))
-    category           = Column(Integer)
-    batch_number       = Column(String(length=60))
-    valid_date         = Column(Integer)
-    valid_date_no      = Column(String(length=60))
-    unit               = Column(Integer)
-    count              = Column(Float)
-
-
-class CTableHourlyWage(Base):
-    __tablename__ = 'hourly_wage'
-    id = Column(String(length=60))
-    date = Column(Integer, primary_key=True)
-    monthly = Column(Integer)
-    hourly = Column(Integer)
-    creationTime = Column(Integer)
 
 class CTableSession(Base):
     __tablename__ = 'session'
-    id = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     token = Column(String(length=60))
     user_no = Column(String(length=60))
     expiredTime = Column(Integer)
@@ -977,65 +778,60 @@ class CTableSession(Base):
 
 class CTableMember(Base):
     __tablename__ = 'member'
-    user_no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_no = Column(String(length=60), unique=True)
     account = Column(String(length=60))
-    password = Column(String(length=60))
-
+    password = Column(String(length=100))
+    __table_args__ = (
+        UniqueConstraint('user_no', name='uq_member_composite'),
+    )
 class CTableUserGroup(Base):
     __tablename__ = 'user_group'
-    id = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(length=60))
     role = Column(Integer)
     users = Column(JSON)
     privileges = Column(JSON)
-
+    __table_args__ = (
+        UniqueConstraint('name', name='uq_user_group_composite'),
+    )
 
 class CTableInproduct(Base):
     __tablename__ = 'inproduct'
-    id = Column(String(length=60))
-    no = Column(String(length=60), primary_key=True)
-
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     category = Column(Integer)
     name = Column(String(length=100))
-    customer_no = Column(String(length=60))
-    customer_displayName = Column(String(length=60))
     unitShipping = Column(Integer)
     unitWarehouse = Column(Integer)
     unitProduct = Column(Integer)
-    package3Unit = Column(Integer)
-    package34Count = Column(Float)
-    package4Unit = Column(Integer)
-    version = Column(String(length=60))
-    version_history = Column(JSON)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_inproduct_composite'),
+    )
     bom_specs = relationship("CTableInproductBOMSpec", back_populates="inproduct_data", lazy='select')
 
 
 class CTableProduct(Base):
     __tablename__ = 'product'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     category = Column(Integer)
     name = Column(String(length=100))
-    customer_no = Column(String(length=60))
-    customer_displayName = Column(String(length=60))
     unitShipping = Column(Integer)
     unitWarehouse = Column(Integer)
     unitProduct = Column(Integer)
-    package1Unit = Column(Integer)
-    package12Count = Column(Float)
-    package2Unit = Column(Integer)
-    package23Count = Column(Float)
     version = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_product_composite'),
+    )
 class CTableGoods(Base):
     __tablename__ = 'goods'
-
-    no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     category = Column(Integer)
     subCategory = Column(Integer)
     name = Column(String(length=100))
@@ -1044,50 +840,58 @@ class CTableGoods(Base):
     unitProduct = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_goods_composite'),
+    )
 class CTableBOM(Base):
     __tablename__ = 'bom'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     displayName = Column(String(length=60))
     date = Column(Integer)
     unit = Column(Integer)
     weight = Column(Float)
-    version = Column(Float, primary_key=True)
+    version = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
     item_data = relationship("CTableBOMItem", order_by="CTableBOMItem.item_no", back_populates="bom_data", lazy='select')
-
+    __table_args__ = (
+        UniqueConstraint('no', 'version', name='uq_bom_composite'),
+    )
 
 class CTableBOMItem(Base):
     __tablename__ = 'bom_item'
-    bom_id = Column(String(length=60), ForeignKey('bom.id'), primary_key=True)
-    item_no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    bom_no = Column(String(length=60), ForeignKey('bom.no'))
+    item_no = Column(String(length=60))
     item_name = Column(String(length=60))
     unit = Column(Integer)
     weight = Column(Float)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('bom_no', 'item_no', name='uq_bom_item_composite'),
+    )
     bom_data = relationship("CTableBOM", back_populates="item_data")
 
 
 class CTableBOM1Number(Base):
     __tablename__ = 'bom1_number'
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
-    category = Column(Integer)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     displayName = Column(String(length=60))
     unit = Column(Integer)
     weight = Column(Float)
-    bom_id = Column(String(length=60))
+    bom_no = Column(String(length=60))
     bom_version = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_bom1_number_composite'),
+    )
 
 class CTableBOM1(Base):
     __tablename__ = 'bom1'
-    id = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     parent_no = Column(String(length=60))
     parent_name = Column(String(length=60))
     child_category = Column(Integer)
@@ -1100,27 +904,29 @@ class CTableBOM1(Base):
     processWeight = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('parent_no', 'child_id', 'weight', name='uq_bom1_composite'),
+    )
 
 class CTableBOM2Number(Base):
     __tablename__ = 'bom2_number'
-
+    id = Column(Integer, primary_key=True, autoincrement=True)
     #bom2_data = relationship("CTableInproductBOMSpec", backref="CTableBOM2Number")
-
-    id = Column(String(length=60))
-    no = Column(String(length=20), primary_key=True)
-    category = Column(Integer)
+    no = Column(String(length=60))
     displayName = Column(String(length=60))
     unit = Column(Integer)
     weight = Column(Float)
-    bom_id = Column(String(length=60))
+    bom_no = Column(String(length=60))
     bom_version = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_bom2_number_composite'),
+    )
 
 class CTableBOM2(Base):
     __tablename__ = 'bom2'
-    id = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     parent_no = Column(String(length=60))
     parent_name = Column(String(length=60))
     child_category = Column(Integer)
@@ -1137,25 +943,27 @@ class CTableBOM2(Base):
     comment = Column(String(length=128))
     creationTime = Column(Integer)
 
+
 class CTableInproductBOMSpec(Base):
     __tablename__ = 'inproduct_bom_spec'
-    id = Column(String(length=60))
-    inproduct_id = Column(String(length=60))
-    inproduct_no = Column(String(length=60), ForeignKey('inproduct.no'), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    inproduct_no = Column(String(length=60), ForeignKey('inproduct.no'))
     category = Column(Integer)
-    item_no = Column(String(length=60), primary_key=True)
+    item_no = Column(String(length=60))
     item_version = Column(Integer)
     bom12_no = Column(String(length=60))
     count = Column(Integer)
     unit = Column(Integer)
     weight = Column(Float)
-
+    __table_args__ = (
+        UniqueConstraint('inproduct_no', 'item_no', 'item_version', 'bom12_no', name='uq_inproduct_bom_spec_composite'),
+    )
     inproduct_data = relationship("CTableInproduct", back_populates="bom_specs", lazy='select')
 
 
 class CTableProductSpec(Base):
     __tablename__ = 'product_spec'
-    id = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     product_no = Column(String(length=60))
     product_version = Column(Integer)
     bom_no = Column(String(length=60))
@@ -1168,11 +976,13 @@ class CTableProductSpec(Base):
     weight = Column(Float)
     expectedLoss = Column(Float)
     actualLoss = Column(Float)
+    __table_args__ = (
+        UniqueConstraint('product_no', 'product_version', 'item_no', name='uq_product_spec_composite'),
+    )
 
 class CTableProductBOMSpec(Base):
     __tablename__ = 'product_bom_spec'
-    id = Column(String(length=60), primary_key=True)
-    product_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
     product_no = Column(String(length=60))
     product_version = Column(Integer)
     level = Column(Integer)
@@ -1180,12 +990,15 @@ class CTableProductBOMSpec(Base):
     count = Column(Integer)
     unit = Column(Integer)
     weight = Column(Float)
+    __table_args__ = (
+        UniqueConstraint('product_no', 'product_version', 'bom2_no', name='uq_product_bom_spec_composite'),
+    )
 
 class CTableProcessOrder (Base):
     __tablename__ = 'process_order'
-
-    no = Column(String(length=20), primary_key=True, index=True)  # 建立索引
-    creator_id = Column(String(length=60))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
     work_order_no = Column(String(length=60))
     refProcess = Column(Integer)
     date = Column(Integer)
@@ -1202,69 +1015,14 @@ class CTableProcessOrder (Base):
     count = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
-
-
-class CTableBasicHistory(Base):
-    __tablename__ = 'basic_history'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ref_no = Column(String(length=20))
-    fieldName = Column(String(length=60), nullable=False)
-    oldValue = Column(Text)
-    newValue = Column(Text)
-    modifiedBy = Column(String(length=60))
-    modifiedAt = Column(Integer)
-
-
-class CTableItemHistory(Base):
-    __tablename__ = 'item_history'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ref_no = Column(String(length=20))
-    fieldName = Column(String(length=60), nullable=False)
-    oldValue = Column(Text)
-    newValue = Column(Text)
-    modifiedBy = Column(String(length=60))
-    modifiedAt = Column(Integer)
-
-
-class CTableItemPriceHistory(Base):
-    __tablename__ = 'item_price_history'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ref_no = Column(String(length=20))
-    fieldName = Column(String(length=60), nullable=False)
-    oldValue = Column(Text)
-    newValue = Column(Text)
-    modifiedBy = Column(String(length=60))
-    modifiedAt = Column(Integer)
-
-class CTableBatchNoHistory(Base):
-    __tablename__ = 'batchno_history'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ref_no = Column(String(length=20))
-    fieldName = Column(String(length=60), nullable=False)
-    oldValue = Column(Text)
-    newValue = Column(Text)
-    modifiedBy = Column(String(length=60))
-    modifiedAt = Column(Integer)
-
-class CTableWarehouseHistory(Base):
-    __tablename__ = 'warehouse_history'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ref_no = Column(String(length=20))
-    fieldName = Column(String(length=60), nullable=False)
-    oldValue = Column(Text)
-    newValue = Column(Text)
-    modifiedBy = Column(String(length=60))
-    modifiedAt = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_process_order_composite'),
+    )
 
 class CTableEmployee(Base):
     __tablename__ = 'employee'
-    no = Column(String(length=20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     name = Column(String(length=60))
     type = Column(Integer)
     level = Column(Integer)
@@ -1282,41 +1040,54 @@ class CTableEmployee(Base):
 
     comment = Column(String(length=60))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_employee_composite'),
+    )
 
 class CTableProcess(Base):
     __tablename__ = 'process'
-    no = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     oneProcess = Column(Integer)
     secProcess = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_process_composite'),
+    )
 
 class CTableFactory(Base):
     __tablename__ = 'factory'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     region = Column(String(length=60))
     location = Column(String(length=60))
-    comment = Column(String(length=60))
-    creationTime = Column(Integer)
+    comment = Column(String(length=128))
+
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_factory_composite'),
+    )
     # 1(Factory) → 多(ProductLine)
     line_data = relationship("CTableProductLine", back_populates="factory_data")
 class CTableProductLine(Base):
     __tablename__ = 'production_line'
-
-    no = Column(String(length=60), primary_key=True)   # 改成 PK（正確）
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     name = Column(String(length=60))
     process_no = Column(String(length=60))
     oneProcess = Column(Integer)
     secProcess = Column(Integer)
     factory_no = Column(String(60), ForeignKey("factory.no"))
     location = Column(String(60))
-    equipment_id = Column(JSON)
     capacityUnit = Column(Integer)
     capacity = Column(Float)
     laborCount = Column(Integer)
     laborEfficiency = Column(Float)
     comment = Column(String(128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_production_line_composite'),
+    )
 
     # 多(ProductLine) → 1(Factory)
     factory_data = relationship("CTableFactory", back_populates="line_data")
@@ -1326,14 +1097,16 @@ class CTableProductLine(Base):
 
 class CTableStation(Base):
     __tablename__ = 'station'
-
-    no = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
     production_line_no = Column(String(length=60), ForeignKey("production_line.no"))
     name = Column(String(length=60))
     stage = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_station_composite'),
+    )
     # 多 → 1 (Station → ProductLine)
     line_data = relationship("CTableProductLine", back_populates="station_data")
 
@@ -1342,9 +1115,9 @@ class CTableStation(Base):
 
 class CTableEquipment(Base):
     __tablename__ = 'equipment'
-
-    no = Column(Integer, primary_key=True)
-    station_no = Column(Integer, ForeignKey("station.no"))  # station.no 是 Integer
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    station_no = Column(String(length=60), ForeignKey("station.no"))  # station.no 是 Integer
     name = Column(String(length=60))
     model = Column(String(length=60))
     manufacturer = Column(String(length=60))
@@ -1352,48 +1125,41 @@ class CTableEquipment(Base):
     appearance = Column(String(length=128))
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_equipment_composite'),
+    )
     # 多 → 1 (Equipment → Station)
     station_data = relationship("CTableStation", back_populates="equipment_data")
 
 
 class CTableProcessLabor(Base):
     __tablename__ = 'process_labor'
+    id = Column(Integer, primary_key=True, autoincrement=True)
     date = Column(Integer)
-    creator_id = Column(String(length=60))
-    work_order_no = Column(String(60), primary_key=True)
-    employee_no = Column(String(60), ForeignKey('employee.no'), primary_key=True)
+    creator_no = Column(String(length=60))
+    work_order_no = Column(String(60))
+    employee_no = Column(String(60), ForeignKey('employee.no'))
     production_line_no = Column(String(60), ForeignKey('production_line.no'))
     station_no = Column(String(60), ForeignKey('station.no'))
 
     employee_data = relationship("CTableEmployee")
     production_line_data = relationship("CTableProductLine")
     station_data = relationship("CTableStation")
-
+    __table_args__ = (
+        UniqueConstraint('work_order_no', 'employee_no', name='uq_process_labor_composite'),
+    )
 class CTableDevice(Base):
     __tablename__ = 'device'
-    no = Column(String(length=60), primary_key=True)
-    hardwareId = Column(String(length=128), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    hardwareId = Column(String(length=128))
     name = Column(String(length=60))
     role = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
-
-
-
-
-class CTableBatchNoSerialNoGroup(Base):
-    __tablename__ = 'batchno_serialno_group'
-
-    time = Column(Integer)
-    warehouse_no = Column(String(length=60))
-    group = Column(String(length=60), primary_key=True)
-    batch_number = Column(String(length=60), primary_key=True)
-    serialNo = Column(String(length=60), primary_key=True)
-    count = Column(Float)
-    comment = Column(String(length=128))
-
+    __table_args__ = (
+        UniqueConstraint('no', 'hardwareId', name='uq_device_composite'),
+    )
 
 class CTableDeviceLog(Base):
     __tablename__ = 'device_log'
@@ -1402,38 +1168,41 @@ class CTableDeviceLog(Base):
     role = Column(Integer)
     action = Column(Integer)
     data = Column(Text) # 實際儲存 JSON 字串
-
     creationTime = Column(Integer)
+
+
+class CTableBatchNoSerialNoGroup(Base):
+    __tablename__ = 'batchno_serialno_group'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    time = Column(Integer)
+    warehouse_no = Column(String(length=60))
+    group = Column(String(length=60))
+    batch_number = Column(String(length=60))
+    serialNo = Column(String(length=60))
+    count = Column(Float)
+    comment = Column(String(length=128))
+    __table_args__ = (
+        UniqueConstraint('group', 'batch_number', 'serialNo', name='uq_batchno_serialno_group_composite'),
+    )
 
 class CTableRWItems (Base):
     __tablename__ = 'rw_items'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     item_no = Column(String(length=60))
 
-
-class CTablePSMonthStatistic (Base):
-    __tablename__ = 'ps_month_statistic'
-    id = Column(Integer, primary_key=True)
-    year = Column(Integer)
-    month = Column(Integer)
-    kind = Column(Integer)
-    category = Column(Integer)
-    specified_no =  Column(String(length=60))
-    specified_name = Column(String(length=60))
-    amount = Column(Float)
-    creationTime = Column(Integer)
 
 
 class CTableInventoryDelta(Base):
     __tablename__ = 'inventory_delta'
-    id = Column(String(length=60))
-    warehouse_no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    warehouse_no = Column(String(length=60))
     warehouse_displayName = Column(String(length=60))
-    date = Column(Date, primary_key=True)
-    timezone = Column(String(length=60), primary_key=True)
+    date = Column(Date)
+    timezone = Column(String(length=60))
     kind = Column(Integer)
     category = Column(Integer)
-    specified_no = Column(String(length=60), primary_key=True)
+    specified_no = Column(String(length=60))
     specified_name = Column(String(length=60))
     specified_ref_no = Column(String(length=60))
     specified_ref_name = Column(String(length=60))
@@ -1446,32 +1215,38 @@ class CTableInventoryDelta(Base):
     outCount = Column(Float)
     outAmount = Column(Float)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('warehouse_no', 'date', 'timezone', 'specified_no', name='uq_inventory_delta_composite'),
+    )
 class CTableInventoryMonthStatistic(Base):
     __tablename__ = 'inventory_month_statistic'
-    id = Column(String(length=60))
-    warehouse_no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    warehouse_no = Column(String(length=60))
     warehouse_displayName = Column(String(length=60))
-    date = Column(Date, primary_key=True)
-    timezone = Column(String(length=60), primary_key=True)
-    category = Column(Integer, primary_key=True)
+    date = Column(Date)
+    timezone = Column(String(length=60))
+    category = Column(Integer)
     startAmount = Column(Float)
     inPurchaseAmount = Column(Float)
     inAmount = Column(Float)
     outAmount = Column(Float)
     endAmount = Column(Float)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('warehouse_no', 'date', 'timezone', 'category', name='uq_Inventory_month_statistic_composite'),
+    )
 class CTableInventoryItemMonthStatistic(Base):
     __tablename__ = 'inventory_item_month_statistic'
-    id = Column(String(length=60))
-    warehouse_no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    warehouse_no = Column(String(length=60))
     warehouse_displayName = Column(String(length=60))
-    date = Column(Date, primary_key=True)
-    timezone = Column(String(length=60), primary_key=True)
+    date = Column(Date)
+    timezone = Column(String(length=60))
     kind = Column(Integer)
     category = Column(Integer)
-    specified_no = Column(String(length=60), primary_key=True)
+    specified_no = Column(String(length=60))
     specified_name = Column(String(length=60))
     specified_ref_no = Column(String(length=60))
     specified_ref_name = Column(String(length=60))
@@ -1483,27 +1258,34 @@ class CTableInventoryItemMonthStatistic(Base):
     endCount = Column(Float)
     endAmount = Column(Float)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('warehouse_no', 'date', 'timezone', 'specified_no', 'specified_ref_no', name='uq_Inventory_item_month_statistic_composite'),
+    )
 
 class CTableOrderItemMonthStatistic(Base):
     __tablename__ = 'order_item_month_statistic'
-    id = Column(String(length=60))
-    date = Column(Date, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    date = Column(Date)
     timezone = Column(String(length=60))
-    kind = Column(Integer, primary_key=True)
-    category = Column(Integer, primary_key=True)
-    subCategory = Column(Integer, primary_key=True)
+    kind = Column(Integer)
+    category = Column(Integer)
+    subCategory = Column(Integer)
     type = Column(Integer)
-    specified_no = Column(String(length=60), primary_key=True)
+    specified_no = Column(String(length=60))
     specified_name = Column(String(length=60))
     payment = Column(Float)
     amount = Column(Float)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('date', 'kind', 'specified_no', 'category', 'subCategory',
+                         name='uq_order_item_month_statistic_composite'),
+    )
 
 class CTableOrderPayment(Base):
     __tablename__ = 'order_payment'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
     no = Column(String(length=60))
     group_no = Column(String(length=60))
     date = Column(Integer)
@@ -1519,21 +1301,24 @@ class CTableOrderPayment(Base):
     month = Column(Date)
     price = Column(Float)
     count = Column(Float)
-    amount = Column(Float)
+    amount = Column(Integer)
     addDeleteAmount = Column(Integer)
-    totalAmount = Column(Float)
-    balance = Column(Float)
+    totalAmount = Column(Integer)
+    balance = Column(Integer)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', 'date', name='uq_order_payment_composite'),
+    )
 
 class CTableShippingPayment(Base):
     __tablename__ = 'shipping_payment'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
     no = Column(String(length=60))
     group_no = Column(String(length=60))
     date = Column(Integer)
     arapType = Column(Integer)
-    record_no = Column(String(length=60))
+    record_no = Column(Integer)
     refCategory = Column(Integer)
     ref_no = Column(String(length=60))
     ref_sub_no = Column(String(length=60))
@@ -1543,20 +1328,24 @@ class CTableShippingPayment(Base):
     month = Column(Date)
     price = Column(Float)
     count = Column(Float)
-    amount = Column(Float)
+    amount = Column(Integer)
     addDeleteAmount = Column(Integer)
-    totalAmount = Column(Float)
-    balance = Column(Float)
+    totalAmount = Column(Integer)
+    balance = Column(Integer)
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', 'date', name='uq_shipping_payment_composite'),
+    )
 
 class CTableWarehousePayment(Base):
     __tablename__ = 'warehouse_payment'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
     no = Column(String(length=60))
     group_no = Column(String(length=60))
     date = Column(Integer)
     arapType = Column(Integer)
-    record_no = Column(String(length=60))
+    record_no = Column(Integer)
     batch_no = Column(String(length=60))
     item_ref_no = Column(String(length=60))
     item_ref_displayName = Column(String(length=60))
@@ -1569,11 +1358,17 @@ class CTableWarehousePayment(Base):
     totalAmount = Column(Float)
     balance = Column(Float)
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', 'date', name='uq_warehouse_payment_composite'),
+    )
+
 class CTableQuotation(Base):
     __tablename__ = 'quotation'
-    no = Column(String(length=60), primary_key=True)
-    creator_id = Column(String(length=60))
-    date = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
+    date = Column(Integer)
     category = Column(Integer)
     type = Column(Integer)
     itemStyle = Column(Integer)
@@ -1586,13 +1381,19 @@ class CTableQuotation(Base):
     unitConversion = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no', name='uq_quotation_composite'),
+    )
+
 
 class CTableContract(Base):
     __tablename__ = 'contract'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    no = Column(String(length=60))
     ref_no = Column(String(length=60))
-    creator_id = Column(String(length=60))
-    date = Column(Integer, primary_key=True)
+    creator_no = Column(String(length=60))
+    date = Column(Integer)
     displayName = Column(String(length=60))
     category = Column(Integer)
     type = Column(Integer)
@@ -1610,56 +1411,36 @@ class CTableContract(Base):
     unitConversion = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
-
-
-
-class CTableARAP(Base):
-    __tablename__ = 'arap'
-    no = Column(String(length=60), primary_key=True)
-    type = Column(Integer)
-    ref_no = Column(String(length=60))
-    refCategory = Column(Integer)
-    ref_sub_no = Column(String(length=60))
-    month = Column(Date)
-    itemRefCategory = Column(Integer)
-    item_ref_no = Column(String(length=60))
-    item_ref_displayName = Column(String(length=60))
-    paymentType = Column(Integer)
-
-    amount = Column(Float)
-    pendingAmount = Column(Float)
-    balance = Column(Float)
-    arap_nos = Column(JSON)
-    arapAmount = Column(Float)
-    invoice = Column(JSON)
-    comment = Column(String(length=128))
-    creationTime = Column(Integer)
-
-
+    __table_args__ = (
+        UniqueConstraint('no', 'date', name='uq_contract_composite'),
+    )
 
 class CTableAPSQuantityItem(Base):
     __tablename__ = 'aps_quantity_item'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    product_order_no = Column(String(length=60), unique=True)
-    output_item_no = Column(String(length=60), unique=True)
-    oneProcess = Column(Integer, unique=True)
-    secProcess = Column(Integer, unique=True)
+    product_order_no = Column(String(length=60))
+    output_item_no = Column(String(length=60))
+    oneProcess = Column(Integer)
+    secProcess = Column(Integer)
     #aps_quantity_id = Column(String(length=60), ForeignKey('APS_quantity.id'))
-    item_no = Column(String(length=60), unique=True)
+    item_no = Column(String(length=60))
     item_name = Column(String(length=60))
     itemCategory = Column(Integer)
     unit = Column(Integer)
     count = Column(Float)
+    creationTime = Column(Integer)
     #quantity_data = relationship("CTableAPSQuantity", back_populates="item_data")
-
+    __table_args__ = (
+        UniqueConstraint('product_order_no', 'oneProcess', 'secProcess', 'item_no', name='uq_aps_quantity_item_composite'),
+    )
 class CTableAPSQuantity(Base):
     __tablename__ = 'aps_quantity'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    no = Column(String(length=60), unique=True)
-    product_order_no = Column(String(length=60), unique=True)
-    oneProcess = Column(Integer, unique=True)
-    secProcess = Column(Integer, unique=True)
-    item_no = Column(String(length=60), unique=True)
+    no = Column(String(length=60))
+    product_order_no = Column(String(length=60))
+    oneProcess = Column(Integer)
+    secProcess = Column(Integer)
+    item_no = Column(String(length=60))
     item_name = Column(String(length=60))
     itemCategory = Column(Integer)
     amount = Column(Float)
@@ -1667,7 +1448,10 @@ class CTableAPSQuantity(Base):
     minutes = Column(Integer)
     laborCount = Column(Integer)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('product_order_no', 'oneProcess', 'secProcess', 'item_no',
+                         name='uq_aps_quantity_composite'),
+    )
     item_data = relationship(
         "CTableAPSQuantityItem",
         primaryjoin=and_(
@@ -1680,50 +1464,18 @@ class CTableAPSQuantity(Base):
     )
     #item_data = relationship("CTableAPSQuantityItem", order_by="CTableAPSQuantityItem.aps_quantity_id", back_populates="quantity_data", lazy='select')
 
-
-
-class CTableAPSQuantityHistory(Base):
-    __tablename__ = 'aps_quantity_history'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ref_product_order_no = Column(String(length=60))
-    ref_item_no = Column(String(length=60))
-    ref_oneProcess = Column(Integer)
-    fieldName = Column(String(length=60), nullable=False)
-    oldValue = Column(Text)
-    newValue = Column(Text)
-    modifiedBy = Column(String(length=60))
-    modifiedAt = Column(Integer)
-
-
-class CTableAPSQuantityItemHistory(Base):
-    __tablename__ = 'aps_quantity_item_history'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ref_product_order_no = Column(String(length=60))
-    ref_item_no = Column(String(length=60))
-    ref_oneProcess = Column(Integer)
-    ref_sub_item_no = Column(String(length=60))
-    fieldName = Column(String(length=60), nullable=False)
-    oldValue = Column(Text)
-    newValue = Column(Text)
-    modifiedBy = Column(String(length=60))
-    modifiedAt = Column(Integer)
-
-class CTableTemp(Base):
-    __tablename__ = 'temp'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    work_order_no = Column(String(length=20))
-    date = Column(Integer)
-
-
 class CTableProductProcess(Base):
     __tablename__ = 'product_process'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    no = Column(String(length=60))
     item_no = Column(String(length=60))
     version = Column(Integer)
     date = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', 'version',  'item_no',
+                         name='uq_product_process_composite'),
+    )
     # 建立一對多關係
     flows = relationship(
         "CTableProcessFlow",
@@ -1735,36 +1487,50 @@ class CTableProductProcess(Base):
 class CTableProcessCapacity(Base):
     __tablename__ = 'process_capacity'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    date = Column(Integer, unique=True)
-    oneProcess = Column(Integer, unique=True)
-    secProcess = Column(Integer, unique=True)
+    date = Column(Integer)
+    oneProcess = Column(Integer)
+    secProcess = Column(Integer)
     unit = Column(Integer)
     hourlyOutput = Column(Float)
     laborCount = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('date', 'oneProcess', 'secProcess', name='uq_process_capacity_composite'),
+    )
 
 class CTableProcessFlow(Base):
     __tablename__ = 'process_flow'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    no = Column(String(length=60))
     product_process_no = Column(String(length=60),
         ForeignKey("product_process.no"))
     order = Column(Integer)
     oneProcess = Column(Integer)
     secProcess = Column(Integer)
     process = relationship("CTableProductProcess", back_populates="flows")
+    __table_args__ = (
+        UniqueConstraint('no', 'product_process_no', 'order', name='uq_process_flow_composite'),
+    )
 
 class CTableProductVer(Base):
     __tablename__ = 'product_ver'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    no = Column(String(length=60))
     item_no = Column(String(length=60))
     version = Column(Integer)
     date = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('no', 'version',  'item_no', name='uq_product_ver_composite'),
+    )
 
 class CTablePLManCapacity(Base):
     __tablename__ = 'pl_man_capacity'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    no = Column(String(length=60))
     month = Column(Date)
     pl_no = Column(String(length=60))
     pl_name = Column(String(length=60))
@@ -1773,11 +1539,13 @@ class CTablePLManCapacity(Base):
     unit = Column(Integer)
     hourlyOutput = Column(Float)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('month', 'pl_no', name='uq_pl_man_capacity_composite'),
+    )
 
 class CTablePLItemCapacity(Base):
     __tablename__ = 'pl_item_capacity'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     month = Column(Date)
     pl_no = Column(String(length=60))
     pl_name = Column(String(length=60))
@@ -1797,11 +1565,13 @@ class CTablePLItemCapacity(Base):
     materialCost = Column(Float)
     laborCost = Column(Float)
     creationTime = Column(Integer)
-
+    __table_args__ = (
+        UniqueConstraint('month', 'item_no', 'pl_no', name='uq_pl_item_capacity_composite'),
+    )
 
 class CTablePLItemLoss(Base):
     __tablename__ = 'pl_item_loss'
-    no = Column(String(length=60), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     month = Column(Date)
     pl_item_capacity_no = Column(String(length=60))
     item_no = Column(String(length=60))
@@ -1811,34 +1581,18 @@ class CTablePLItemLoss(Base):
     weightRatio = Column(Float)
     lossRate = Column(Float)
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('month', 'item_no', name='uq_pl_item_loss_composite'),
+    )
 
-
-'''
-    class CTableProcessOrder1 (Base):
-        __tablename__ = 'process_order1'
-        id = Column(String(length=60))
-        no = Column(String(length=20), primary_key=True)
-        creator_id = Column(String(length=60))
-        work_order_no = Column(String(length=60))
-        date                  = Column(Integer)
-        category                  = Column(Integer)
-        result                = Column(Integer)
-        resultTime            = Column(Integer)
-        comment               = Column(String(length=128))
-        creationTime          = Column(Integer)
-        # 建立一對多關係
-        items = relationship("CTableProcessOrderItem", backref="process_order", lazy="subquery")
-    
-    class CTableProcessOrderItem(Base):
-        __tablename__ = 'process_order_item'
-        id = Column(String(length=60), primary_key=True)
-        process_order_no = Column(String(length=60), ForeignKey("process_order.no"))
-        item_no = Column(String(length=60))
-        item_name = Column(String(length=60))
-        item_ref_no = Column(String(length=60))
-        item_ref_displayName = Column(String(length=60))
-        itemCategory = Column(Integer)
-        batch_number = Column(String(length=60))
-        unit = Column(Integer)
-        count = Column(Float)
-'''
+class CTableLaborWage(Base):
+    __tablename__ = 'labor_wage'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Integer)
+    type = Column(Integer)
+    level = Column(Integer)
+    hourly = Column(Integer)
+    creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('date', 'type', 'level', name='uq_labor_wage_composite'),
+    )

@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, orm
 
 class CMaria(object):
 
-    def __init__(self, str_db='ewdb', str_host='localhost', n_port=3306, str_user='root', str_password='ew42885615'):
+    def __init__(self, str_db='ai', str_host='localhost', n_port=3306, str_user='root', str_password='ew42885615'):
         self.__m_objDB = None
         self.__m_n_port = n_port
         self.__m_str_db = str_db

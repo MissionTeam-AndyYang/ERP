@@ -295,8 +295,8 @@ class CBSNoSubject(object):
             if obj_work:
                 str_uuid = str(uuid.uuid4()).replace("-", "")
                 new_data = CTableProductionData(
-                    id=str_uuid,
-                    creator_id='',
+
+                    creator_no=None,
                     work_order_no=str_ref_no,
                     product_order_no=obj_work.product_order_no,
                     customer_no=obj_work.customer_no,
@@ -304,23 +304,13 @@ class CBSNoSubject(object):
                     product_no=obj_work.product_no,
                     product_name=obj_work.product_name,
                     date=n_date,
-                    product_line_no=obj_work.production_line_no,
+                    production_line_no=obj_work.production_line_no,
                     oneProcess=obj_work.oneProcess,
                     secProcess=obj_work.secProcess,
-                    preStartTime=0,
-                    preEndTime=0,
-                    postStartTime=0,
-                    postEndTime=0,
-                    #preTotalTime=0,
-                    #postTotalTime=0,
-                    #laborCount=0,
-                    #laborList=[""],
+
                     item_no=obj_work.output_item_no,
                     item_name=obj_work.output_item_name,
-                    unit=0,
-                    count=0,
                     materialLoss=0,
-                    grossWeight=0,
                     comment='',
                     creationTime=util_retrieve_now_time()
                 )
@@ -376,11 +366,10 @@ class CBSNoSubject(object):
                         self.__class__.__name__, str_message, str_ref_no, str_batchno, dict_serialNo["serialNo"]))
             else:
                 new_input = CTableProductionDataInput(
-                    id=str_uuid,
+
                     work_order_no=str_ref_no,
                     process_order_no=str_ref_no_sub,
-                    group="",
-                    production_data_id=str_data_id,
+                    group="group_1",
                     time=n_date,
                     action=n_action,
                     item_no=obj_item.item_no,
@@ -391,7 +380,6 @@ class CBSNoSubject(object):
                     serial_no=dict_serialNo["serialNo"],
                     unit=obj_item.unit,
                     count=dict_serialNo["value"],
-                    avgLoss=0,
                     comment = str_comment
                 )
                 if obj_dbmgr.insert(new_input) != EErrorCode.ERROR_SUCCESS:
@@ -442,16 +430,16 @@ class CBSNoSubject(object):
                         self.__class__.__name__, str_message, str_ref_no, str_batchno, dict_serialNo["serialNo"]))
             else:
                 new_output = CTableProductionDataOutput(
-                    id=str_uuid,
+
                     work_order_no=str_ref_no,
                     process_order_no=str_ref_no_sub,
-                    production_data_id=str_data_id,
                     time=n_date,
                     action=EOutputAction.WORK,
                     group=str_group,
                     item_no=obj_item.item_no,
                     item_name=obj_item.item_name,
                     category=obj_item.itemCategory,
+                    itemSubCategory=obj_item.itemSubCategory,
                     batch_number=str_batchno,
                     serial_no=dict_serialNo["serialNo"],
                     unit=obj_item.unit,
@@ -508,10 +496,9 @@ class CBSNoSubject(object):
                         self.__class__.__name__, str_message, str_ref_no, str_batchno, dict_serialNo["serialNo"]))
             else:
                 new_reuse = CTableProductionDataReuse(
-                    id=str_uuid,
                     work_order_no=str_ref_no,
                     process_order_no=str_ref_no_sub,
-                    production_data_id=str_data_id,
+                    group="group_1",
                     time=n_date,
                     action=EOutputAction.WORK,
                     item_no=obj_item.item_no,

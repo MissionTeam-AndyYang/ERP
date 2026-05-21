@@ -52,21 +52,21 @@ class CAuth(object):
                         if obj_data and obj_data.user_no:
                             ph.verify(obj_data.password, str_password)
                             # Generate token
-                            str_uuid = str(uuid.uuid4()).replace("-", "")
+                            #str_uuid = str(uuid.uuid4()).replace("-", "")
                             str_tmp_token = str(uuid.uuid4()).replace('-', '')
                             n_time = util_retrieve_now_time() + self.ALIVETIME
 
                             new_data = CTableSession(
-                                id=str_uuid,
+                                #id=str_uuid,
                                 token=str_tmp_token,
                                 user_no=obj_data.user_no,
                                 expiredTime=n_time
                             )
                             # Insert to session collection
                             if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                                str_id = str_uuid
-                            if str_id:
-                                str_token = str_tmp_token
+                                str_id = new_data.id
+                                if str_id:
+                                    str_token = str_tmp_token
                             else:
                                 CLogger().log(CLogger.LOG_LEVELERROR, '[%s] failed to add record (account:%s, pwd: %s)'
                                               % (self.__class__.__name__, str_account, str_password))
@@ -79,41 +79,7 @@ class CAuth(object):
                     except Exception as error:
                         CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
                                       % (self.__class__.__name__, error))
-                    '''
-                    obj_data = (
-                        obj_session.query(CTableMember)
-                        .filter(
-                                CTableMember.account == str_account,
-                                CTableMember.password == str_password
-                                )
-                        .first()
-                    )
-                    
 
-                    if obj_data and obj_data.user_no:
-                        # Generate token
-                        str_uuid = str(uuid.uuid4()).replace("-", "")
-                        str_tmp_token = str(uuid.uuid4()).replace('-', '')
-                        n_time = util_retrieve_now_time() + self.ALIVETIME
-
-                        new_data = CTableSession(
-                            id=str_uuid,
-                            token=str_tmp_token,
-                            user_no=obj_data.user_id,
-                            expired_time=n_time
-                        )
-                        # Insert to session collection
-                        if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                            str_id = str_uuid
-                        if str_id:
-                            str_token = str_tmp_token
-                        else:
-                            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] failed to add record (account:%s, pwd: %s)'
-                                          % (self.__class__.__name__, str_account, str_password))
-                    else:
-                        CLogger().log(CLogger.LOG_LEVELERROR, '[%s] failed to retrieve data (account:%s, pwd: %s)'
-                                      % (self.__class__.__name__, str_account, str_password))
-                    '''
             else:
                 CLogger().log(CLogger.LOG_LEVELERROR, '[%s] invalid data' % (self.__class__.__name__))
         except Exception as error:

@@ -138,7 +138,7 @@ class CProductOrder(CPrivilegeControl):
                            'date': obj_row[3].date if obj_row[3] is not None else 0,
                            'comment': obj_row[3].comment if obj_row[3] is not None else ""
                        }
-                       n_category, n_subCategory, _, _, _ = get_item_info(dict_row['item_no'])
+                       n_category, n_subCategory, _ = get_item_info(dict_row['item_no'])
                        dict_row['itemCategory'] = n_category
                        dict_row['itemSubCategory'] = n_subCategory
 
@@ -348,7 +348,7 @@ class CShippingOrder(CPrivilegeControl):
                 for obj_row in lst_obj_result:
                     dict_row = object_as_dict(obj_row[0])
                     dict_row['payment_type'] = obj_row[1]
-                    n_category, n_subCategory, _, _, _ = get_item_info(dict_row['item_no'])
+                    n_category, n_subCategory, _ = get_item_info(dict_row['item_no'])
                     dict_row['itemCategory'] = n_category
                     dict_row['itemSubCategory'] = n_subCategory
                     dict_row['inventory'] = []

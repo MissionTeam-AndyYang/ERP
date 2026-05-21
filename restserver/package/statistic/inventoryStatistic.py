@@ -343,7 +343,7 @@ class CInventoryDelta(IInventoryStatistic):
         with CDBMgr() as obj_dbmgr:
             str_uuid = str(uuid.uuid4()).replace("-", "")
             new_data = CTableInventoryDelta(
-                id=str_uuid,
+
                 warehouse_no=dict_data["warehouse_no"],
                 warehouse_displayName=dict_data["warehouse_displayName"],
                 date=dict_data["date"],
@@ -365,7 +365,7 @@ class CInventoryDelta(IInventoryStatistic):
                 creationTime=util_retrieve_now_time()
             )
             if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                str_id = str_uuid
+                str_id = new_data.id
             else:
                 str_message = 'failed to create inventory delta'
                 CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))
@@ -798,7 +798,7 @@ class CInventoryItemMonth():
                     dict_data['itemCategory'] = 0
                     dict_data['itemSubCategory'] = 0
                     if dict_data['kind'] != EInventoryDeltaKind.BATCHNO:
-                        n_category, n_subCategory, _,  _,  _ = util_get_item_info(dict_data['specified_no'])
+                        n_category, n_subCategory, _ = util_get_item_info(dict_data['specified_no'])
                         dict_data['itemCategory'] = n_category
                         dict_data['itemSubCategory'] = n_subCategory
                     dict_data['unit'] = 0
@@ -1012,50 +1012,35 @@ class CInventoryItemMonth():
             kind = item.get("kind")
             specified_no = item.get("specified_no")
             dict_no[kind].append(specified_no)
+
+
         lst_price = []
         for n_kind, lst_no in dict_no.items():
-            if n_kind == 1:
-                lst_tmp = (
-                    obj_session.query(CTableMaterialPrice)
-                    .with_entities(CTableMaterialPrice.item_no,
-                                    CTableMaterialPrice.warehouseUnitWeight,
-                                   CTableMaterialPrice.warehousePriceWeight,
-                                   CTableMaterialPrice.warehouseUnitLength,
-                                   CTableMaterialPrice.warehousePriceLength,
-                                   CTableMaterialPrice.warehouseUnitCount,
-                                   CTableMaterialPrice.warehousePriceCount
-                                   )
-                    .filter(CTableMaterialPrice.item_no.in_(lst_no))
-                    .all()
+            obj_subq = (
+                obj_session.query(
+                    CTableItemPrice.item_no.label("sub_item_no"),
+                    func.max(CTableItemPrice.date).label("max_date")
                 )
+                .filter(CTableItemPrice.item_no.in_(lst_no))
+                .group_by(CTableItemPrice.item_no)
+                .subquery()
+            )
 
-                for row in lst_tmp:
-                    n_unit = 0
-                    f_price = 0
-                    n_w_unit = row[1]
-                    n_l_unit = row[3]
-                    n_c_unit = row[5]
-                    if n_w_unit:
-                        n_unit = n_w_unit
-                        f_price = row[2]
-                    elif n_l_unit:
-                        n_unit = n_l_unit
-                        f_price = row[4]
-                    elif n_c_unit:
-                        n_unit = n_c_unit
-                        f_price = row[6]
-                    lst_price.append((row[0], n_unit, f_price))
-            else:
-                obj_table = CTableInproductPrice if n_kind == 2 else CTableProductPrice
-                lst_tmp = (
-                    obj_session.query(obj_table)
-                    .with_entities(obj_table.item_no,
-                                    obj_table.warehouseUnit,
-                                   obj_table.warehousePrice)
-                    .filter(obj_table.item_no.in_(lst_no))
-                    .all()
+            # Join 子查詢，只撈出最新日期的那一列資料
+            lst_tmp = (
+                obj_session.query(
+                    CTableItemPrice.item_no,
+                    CTableItemPrice.whUnitWeight,
+                    CTableItemPrice.whPriceWeight
                 )
-                lst_price.extend(lst_tmp)
+                .join(
+                    obj_subq,
+                    (CTableItemPrice.item_no == obj_subq.c.sub_item_no) &
+                    (CTableItemPrice.date == obj_subq.c.max_date)
+                )
+                .all()
+            )
+            lst_price.extend(lst_tmp)
 
         if lst_price:
             dict_map = {
@@ -1255,7 +1240,7 @@ class CInventoryItemMonth():
         with CDBMgr() as obj_dbmgr:
             str_uuid = str(uuid.uuid4()).replace("-", "")
             new_data = CTableInventoryItemMonthStatistic(
-                id=str_uuid,
+
                 warehouse_no=dict_data["warehouse_no"],
                 warehouse_displayName=dict_data["warehouse_displayName"],
                 date=dict_data["date"],
@@ -1277,7 +1262,7 @@ class CInventoryItemMonth():
             )
 
             if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                str_id = str_uuid
+                str_id = new_data.id
             else:
                 str_message = 'failed to create inventory item month'
                 CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))
@@ -1695,7 +1680,7 @@ class CInventoryMonth(IInventoryStatistic):
         with CDBMgr() as obj_dbmgr:
             str_uuid = str(uuid.uuid4()).replace("-", "")
             new_data = CTableInventoryMonthStatistic(
-                id=str_uuid,
+
                 warehouse_no=dict_data["warehouse_no"],
                 warehouse_displayName=dict_data["warehouse_displayName"],
                 date=dict_data["date"],
@@ -1709,7 +1694,7 @@ class CInventoryMonth(IInventoryStatistic):
                 creationTime=util_retrieve_now_time()
             )
             if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                str_id = str_uuid
+                str_id = new_data.id
             else:
                 str_message = 'failed to create inventory month'
                 CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))

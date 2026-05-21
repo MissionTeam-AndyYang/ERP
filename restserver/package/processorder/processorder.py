@@ -153,16 +153,18 @@ class CCProcessOrder(object):
                     .filter(CTableInproduct.no == obj_result.item_no)
                     .first()
                 )
+                str_item_ref_no = None #obj_inproduct.customer_no if obj_inproduct else "",
+                str_item_ref_displayName = ""#obj_inproduct.customer_displayName if obj_inproduct else "",
                 dict_data ={ "no":"",
-                             "creator_id":"",
+                             "creator_id": None,
                              "work_order_no": self.__m_str_no,
                              "date": self.__m_obj_work_order.date if self.__m_obj_work_order else 0,
                              "refProcess":self.__m_obj_work_order.oneProcess if self.__m_obj_work_order else 0,
                              "category": EProcessOrdeCategory.REMAINING,
                              "item_no": obj_result.item_no,
                              "item_name": obj_inproduct.name if obj_inproduct else "",
-                             "item_ref_no": obj_inproduct.customer_no if obj_inproduct else "",
-                             "item_ref_displayName": obj_inproduct.customer_displayName if obj_inproduct else "",
+                             "item_ref_no": str_item_ref_no,
+                             "item_ref_displayName": str_item_ref_displayName,
                              "itemCategory": EItemCategory.INPRODUCT,
                              "itemSubCategory": obj_inproduct.category if obj_inproduct else 0,
                              "unit": EUnit.KILOGRAM,
@@ -198,10 +200,12 @@ class CCProcessOrder(object):
             str_no_prefix_return = ""
             n_index = 1
             for dict_input in lst_input:
-                # 領料
-                n_category, n_subCategory, str_item_name, str_item_ref_no, str_item_ref_displayName = self.__get_item_info(dict_input["item_no"])
+                # 領料 料品品項產商的資訊
+                n_category, n_subCategory, str_item_name = self.__get_item_info(dict_input["item_no"])
+                str_item_ref_no = None
+                str_item_ref_displayName = ""
                 dict_data = {"no": "",
-                             "creator_id": "",
+                             "creator_id": None,
                              "work_order_no": self.__m_str_no,
                              "date": self.__m_obj_work_order.date if self.__m_obj_work_order else 0,
                              "refProcess": self.__m_obj_work_order.oneProcess if self.__m_obj_work_order else 0,
@@ -247,9 +251,11 @@ class CCProcessOrder(object):
             str_item_no = self.__m_obj_work_order.output_item_no if self.__m_obj_work_order else ""
             n_unit = self.__m_obj_work_order.processUnit if self.__m_obj_work_order else 0
             n_count = self.__m_obj_work_order.processCount
-            n_category, n_subCategory, str_item_name, str_item_ref_no, str_item_ref_displayName = self.__get_item_info(str_item_no)
+            n_category, n_subCategory, str_item_name = self.__get_item_info(str_item_no)
+            str_item_ref_no = None
+            str_item_ref_displayName = ""
             dict_data = {"no": "",
-                         "creator_id": "",
+                         "creator_id": None,
                          "work_order_no": self.__m_str_no,
                          "date": self.__m_obj_work_order.date if self.__m_obj_work_order else 0,
                          "refProcess": self.__m_obj_work_order.oneProcess if self.__m_obj_work_order else 0,
@@ -321,7 +327,7 @@ class CCProcessOrder(object):
             with CDBMgr() as obj_dbmgr:
                 new_data = CTableProcessOrder(
                     no=str_no,
-                    creator_id=dict_data["creator_id"],
+                    creator_no=dict_data["creator_id"],
                     work_order_no=dict_data["work_order_no"],
                     refProcess=dict_data["refProcess"],
                     date=dict_data["date"],
@@ -450,8 +456,7 @@ class CCProcessOrder(object):
         n_category = 0
         n_subCategory = 0
         str_item_name = ""
-        str_item_ref_no = ""
-        str_item_ref_displayName = ""
+
 
         with CDBMgr() as obj_dbmgr:
             obj_session = obj_dbmgr.get_session()
@@ -464,8 +469,6 @@ class CCProcessOrder(object):
                 n_category = EItemCategory.PRODUCT
                 n_subCategory = obj_prodcut.category
                 str_item_name = obj_prodcut.name
-                str_item_ref_no = obj_prodcut.customer_no
-                str_item_ref_displayName = obj_prodcut.customer_displayName
             else:
                 obj_inprodcut = (
                     obj_session.query(CTableInproduct)
@@ -476,8 +479,6 @@ class CCProcessOrder(object):
                     n_category = EItemCategory.INPRODUCT
                     n_subCategory = obj_inprodcut.category
                     str_item_name = obj_inprodcut.name
-                    str_item_ref_no = obj_inprodcut.customer_no
-                    str_item_ref_displayName = obj_inprodcut.customer_displayName
                 else:
                     obj_material = (
                         obj_session.query(CTableMaterial)
@@ -488,6 +489,4 @@ class CCProcessOrder(object):
                         n_category = obj_material.category
                         n_subCategory= obj_material.subCategory
                         str_item_name = obj_material.name
-                        str_item_ref_no = obj_material.supplier_no
-                        str_item_ref_displayName = obj_material.supplier_displayName
-        return  n_category, n_subCategory, str_item_name,  str_item_ref_no,  str_item_ref_displayName
+        return  n_category, n_subCategory, str_item_name

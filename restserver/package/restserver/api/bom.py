@@ -184,175 +184,22 @@ class CBom(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-
-    def post(self, str_timezone='' , str_id=''):
+    def post(self, str_timezone='', str_id=''):
         str_message = 'success'
         n_status_code = 200
         n_code = EErrorCode.ERROR_SUCCESS
         dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {
-                                       "displayName": {'type': 'string'},
-                                       "version": {'type': 'number'},
-                                       "comment": {'type': 'string', 'blank': True},
-                                       "items": {'type': 'array', 'required': True,
-                                                          'items': {'type': 'object',
-                                                                    'properties': {
-                                                                                   "unit": {
-                                                                                       'type': 'integer'},
-                                                                                   "weight": {
-                                                                                       'type': 'number'},
-                                                                                   "material_no": {
-                                                                                       'type': 'string'},
-                                                                                    "material_name": {
-                                                                                        'type': 'string'}
-                                                                    }}}
-                                      }}
-        '''
-        01-03 --- BOM
-        04-05 --- 建立日期:年
-        06-07 --- 建立日期:月
-        08-10 --- 隨機
-        '''
-        try:
-            dict_param =  request.get_json()
-            validictory.validate(dict_param, dict_schema)
-            n_max_retries = 5
-            with CDBMgr() as obj_dbmgr:
-                obj_session = obj_dbmgr.get_session()
-                str_uuid = str(uuid.uuid4()).replace("-", "")
-                str_no = self.__gen_no()
-
-                n_nuit = 0
-                f_weight = 0.0
-                for dict_item in dict_param["items"]:
-                    n_nuit = dict_item["unit"]
-                    f_weight += dict_item["weight"]
-                new_data = CTableBOM(
-                    id=str_uuid,
-                    no= str_no,
-                    displayName=dict_param["displayName"],
-                    unit=n_nuit,
-                    weight=f_weight,
-                    version=dict_param["version"],
-                    comment=dict_param["comment"],
-                    creationTime=util_retrieve_now_time(),
-                )
-
-                for n_index in range(1, n_max_retries + 1):
-                    if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                        dict_extra_data = {"id": str_uuid}
-                        for dict_item in dict_param["items"]:
-                            str_item_uuid = str(uuid.uuid4()).replace("-", "")
-                            new_item = CTableBOMItem(
-                                id=str_item_uuid,
-                                bom_id=str_uuid,
-                                item_no=dict_item["material_no"],
-                                item_name=dict_item["material_name"],
-                                unit=dict_item["unit"],
-                                weight=dict_item["weight"],
-                                creationTime=util_retrieve_now_time()
-                            )
-                            if not obj_dbmgr.insert(new_item) == EErrorCode.ERROR_SUCCESS:
-                                str_message = 'failed to create BOM obj_session'
-                                CLogger().log(CLogger.LOG_LEVELERROR,
-                                              '[%s] %s' % (self.__class__.__name__, str_message))
-
-                        break
-                    else:
-                        n_code = EErrorCode.ERROR_OTHER_ERROR
-                        str_message = 'failed to create BOM'
-                        CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))
-        except Exception as error:
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                          % (self.__class__.__name__, str(error)))
 
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def put(self, str_timezone='' , str_id=''):
+    def put(self, str_timezone='', str_id=''):
+        dict_param = {}
         str_message = 'success'
         n_status_code = 200
         n_code = EErrorCode.ERROR_SUCCESS
         dict_extra_data = {}
         dict_schema = {'type': 'object',
-                       'properties': {
-                                       "no": {'type': 'string'},
-                                       "displayName": {'type': 'string'},
-                                       "version": {'type': 'number'},
-                                       "comment": {'type': 'string', 'blank': True},
-                                       "items": {'type': 'array', 'required': True,
-                                                          'items': {'type': 'object',
-                                                                    'properties': {
-                                                                                   "unit": {
-                                                                                       'type': 'integer'},
-                                                                                   "weight": {
-                                                                                       'type': 'number'},
-                                                                                   "material_no": {
-                                                                                       'type': 'string'},
-                                                                                    "material_name": {
-                                                                                        'type': 'string'}
-                                                                    }}}
-                                      }}
-        '''
-        01-03 --- BOM
-        04-05 --- 建立日期:年
-        06-07 --- 建立日期:月
-        08-10 --- 隨機
-        '''
-        try:
-            dict_param = request.get_json()
-            validictory.validate(dict_param, dict_schema)
-            n_max_retries = 5
-            with CDBMgr() as obj_dbmgr:
-                obj_session = obj_dbmgr.get_session()
-                str_uuid = str(uuid.uuid4()).replace("-", "")
-                n_nuit = 0
-                f_weight = 0.0
-                for dict_item in dict_param["items"]:
-                    n_nuit = dict_item["unit"]
-                    f_weight += dict_item["weight"]
-                new_data = CTableBOM(
-                    id =str_uuid,
-                    no = dict_param["no"],
-                    displayName=dict_param["displayName"],
-                    unit=n_nuit,
-                    weight=f_weight,
-                    version=dict_param["version"],
-                    comment=dict_param["comment"],
-                    creationTime=util_retrieve_now_time(),
-                )
-
-                for n_index in range(1, n_max_retries + 1):
-                    if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                        dict_extra_data = {"id": str_uuid}
-                        for dict_item in dict_param["items"]:
-                            str_item_uuid = str(uuid.uuid4()).replace("-", "")
-                            new_item = CTableBOMItem(
-                                id=str_item_uuid,
-                                bom_id=str_uuid,
-                                item_no=dict_item["material_no"],
-                                item_name=dict_item["material_name"],
-                                unit=dict_item["unit"],
-                                weight=dict_item["weight"],
-                                creationTime=util_retrieve_now_time()
-                            )
-                            if not obj_dbmgr.insert(new_item) == EErrorCode.ERROR_SUCCESS:
-                                str_message = 'failed to create BOM item'
-                                CLogger().log(CLogger.LOG_LEVELERROR,
-                                              '[%s] %s' % (self.__class__.__name__, str_message))
-
-                        break
-                    else:
-                        n_code = EErrorCode.ERROR_OTHER_ERROR
-                        str_message = 'failed to create BOM'
-                        CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))
-        except Exception as error:
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                          % (self.__class__.__name__, str(error)))
+                       'properties': {}}
 
         return n_status_code, n_code, str_message, dict_extra_data
 
@@ -361,38 +208,9 @@ class CBom(CPrivilegeControl):
         n_status_code = 200
         n_code = EErrorCode.ERROR_SUCCESS
         dict_extra_data = {}
-        if not request.args.get("no"):
-            n_status_code = 400
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'invalid parameter'
-        else:
-            try:
-                with CDBMgr() as obj_dbmgr:
-                    obj_session = obj_dbmgr.get_session()
-                    ids_query = (obj_session.query(
-                        CTableBOM.id)
-                                 .filter(CTableBOM.no == request.args.get("no"))
-                                 )
-                    ids = [id[0] for id in ids_query.all()]
-                    if ids:
-                        #obj_result = obj_session.query(CTableBOMItem).filter(CTableBOMItem.bom_id.in_(ids)).delete()
-                        obj_delete = delete(CTableBOMItem).where(CTableBOMItem.bom_id.in_(ids))
-                        obj_result = obj_session.execute(obj_delete)
-                        deleted_rows = obj_result.rowcount
-                        print(f"Deleted {deleted_rows} rows. (BomItem)")
-                        obj_session.commit()
 
-                    obj_delete = delete(CTableBOM).where(CTableBOM.no == request.args.get("no"))
-                    obj_result = obj_session.execute(obj_delete)
-                    deleted_rows = obj_result.rowcount
-                    print(f"Deleted {deleted_rows} rows. (Bom)")
-                    obj_session.commit()
-            except Exception as error:
-                n_code = EErrorCode.ERROR_OTHER_ERROR
-                str_message = 'throw exception (error: %s)' % str(error)
-                CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                              % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
+
 
 
     def __fill_query_params(self):
@@ -1263,7 +1081,7 @@ class CBomAPS(CPrivilegeControl):
                 print("父節點", parent_process, parent_no, parent_name)
                 str_item_uuid = str(uuid.uuid4()).replace("-", "")
                 new_data = CTableAPSQuantity(
-                    id = str_item_uuid,
+                    no = str_item_uuid,
                     product_order_no=obj_order.no,
                     product_order_count = obj_order.count,
                     Product_order_expectedDate = 0,
@@ -1271,7 +1089,7 @@ class CBomAPS(CPrivilegeControl):
                     item_no = parent_no,
                     item_name = parent_name,
                     itemCategory = node["category"],
-                    count = node["total_weight"],
+                    amount = node["total_weight"],
                     unit = node["unit"],
                     minutes = 0,
                     laborCount = 0,
@@ -1294,7 +1112,6 @@ class CBomAPS(CPrivilegeControl):
                     # 檢查是否已存在這個 parent-child 關係
                     existing = obj_session.query(CTableAPSQuantityItem).filter_by(
                         product_order_no=obj_order.no,
-                        output_item_no=parent_no,
                         oneProcess=parent_process,
                         item_no=child_no
                     ).first()
@@ -1302,10 +1119,9 @@ class CBomAPS(CPrivilegeControl):
                     if not existing:
                         str_item_uuid = str(uuid.uuid4()).replace("-", "")
                         obj_item = CTableAPSQuantityItem(
-                            id=str_item_uuid,
                             product_order_no=obj_order.no,
-                            output_item_no=parent_no,
                             oneProcess=parent_process,
+                            secProcess=0, #待補
                             item_no =child_no,
                             item_name=child_name,
                             itemCategory=child["category"],

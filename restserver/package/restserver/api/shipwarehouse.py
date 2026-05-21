@@ -82,21 +82,6 @@ class CShipWarehouse(CPrivilegeControl):
         n_status_code = 200
         n_code = EErrorCode.ERROR_SUCCESS
         dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {
-                                        "company_no": {'type': 'string'},
-                                        "company_displayName": {'type': 'string'},
-                                        "displayName": {'type': 'string'},
-                                        "region": {'type': 'integer'},
-                                        "category": {'type': 'integer'},
-                                        "subCategory": {'type': 'integer'},
-                                        "unit": {'type': 'integer'},
-                                        "validDate": {'type': 'integer'},
-                                        "maxCapacity": {'type': 'number'},
-                                        "price": {'type': 'number'},
-                                        "comment": {'type': 'string', 'blank': True}
-                                    }
-                        }
         try:
             pass
         except Exception as error:
@@ -204,107 +189,22 @@ class CShipWarehouseContract(CPrivilegeControl):
 
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
+    def post(self, str_timezone='', str_id=''):
+        str_message = 'success'
+        n_status_code = 200
+        n_code = EErrorCode.ERROR_SUCCESS
+        dict_extra_data = {}
+
+        return n_status_code, n_code, str_message, dict_extra_data
+
+    def put(self, str_timezone='', str_id=''):
+        dict_param = {}
         str_message = 'success'
         n_status_code = 200
         n_code = EErrorCode.ERROR_SUCCESS
         dict_extra_data = {}
         dict_schema = {'type': 'object',
-                       'properties': {
-                                        "company_no": {'type': 'string'},
-                                        "company_displayName": {'type': 'string'},
-                                        "displayName": {'type': 'string'},
-                                        "region": {'type': 'integer'},
-                                        "category": {'type': 'integer'},
-                                        "subCategory": {'type': 'integer'},
-                                        "unit": {'type': 'integer'},
-                                        "validDate": {'type': 'integer'},
-                                        "maxCapacity": {'type': 'number'},
-                                        "price": {'type': 'number'},
-                                        "comment": {'type': 'string', 'blank': True}
-                                    }
-                        }
-        try:
-            dict_param = request.get_json()
-            validictory.validate(dict_param, dict_schema)
-            with CDBMgr() as obj_dbmgr:
-                obj_session = obj_dbmgr.get_session()
-                str_uuid = str(uuid.uuid4()).replace("-", "")
-                str_no = self.__gen_no(dict_param)
-                new_data = CTableShipWarehouseContract(
-                    id=str_uuid,
-                    no=str_no,
-                    company_no=dict_param["company_no"],
-                    company_displayName=dict_param["company_displayName"],
-                    displayName=dict_param["displayName"],
-                    region=dict_param["region"],
-                    category=dict_param["category"],
-                    subCategory=dict_param["subCategory"],
-                    validDate=dict_param["validDate"],
-                    maxCapacity=dict_param["maxCapacity"],
-                    unit=dict_param["unit"],
-                    price=dict_param["price"],
-                    comment=dict_param["comment"],
-                    creationTime=util_retrieve_now_time()
-                )
-                if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                    dict_extra_data = {"id": str_uuid}
-                else:
-                    n_code = EErrorCode.ERROR_OTHER_ERROR
-                    str_message = 'failed to create warehouse price'
-                    CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))
-        except Exception as error:
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                          % (self.__class__.__name__, str(error)))
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_param = request.get_json()
-        if not request.args.get("no"):
-            n_status_code = 400
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'invalid parameter'
-        else:
-            with CDBMgr() as obj_dbmgr:
-                obj_session = obj_dbmgr.get_session()
-                obj_warehouse = (
-                    obj_session.query(CTableShipWarehouseContract)
-                    .filter(CTableShipWarehouseContract.no == request.args.get("no"))
-                    .first()
-                )
-                dict_warehouse = object_as_dict(obj_warehouse)
-                dict_old = deepcopy(dict_warehouse)
-                if "displayName" in dict_param:
-                    dict_warehouse["displayName"] = dict_param["displayName"]
-                if "category" in dict_param:
-                    dict_warehouse["category"] = dict_param["category"]
-                if "subCategory" in dict_param:
-                    dict_warehouse["subCategory"] = dict_param["subCategory"]
-                if "validDate" in dict_param:
-                    dict_warehouse["validDate"] = dict_param["validDate"]
-                if "maxCapacity" in dict_param:
-                    dict_warehouse["maxCapacity"] = dict_param["maxCapacity"]
-                if "unit" in dict_param:
-                    dict_warehouse["unit"] = dict_param["unit"]
-                if "price" in dict_param:
-                    dict_warehouse["price"] = dict_param["price"]
-                if "comment" in dict_param:
-                    dict_warehouse["comment"] = dict_param["comment"]
-                print(request.args.get("no"))
-                if obj_dbmgr.update(CTableShipWarehouseContract, [CTableShipWarehouseContract.no == request.args.get("no")], dict_warehouse) != EErrorCode.ERROR_SUCCESS:
-                    n_code = EErrorCode.ERROR_OTHER_ERROR
-                    str_message = 'failed to update warehouse'
-                    CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))
-                else:
-                    # update history
-                    self.__update_history(obj_session, request.args.get("no"), dict_old, "999999999")
+                       'properties': {}}
 
         return n_status_code, n_code, str_message, dict_extra_data
 
@@ -314,34 +214,7 @@ class CShipWarehouseContract(CPrivilegeControl):
         n_code = EErrorCode.ERROR_SUCCESS
         dict_extra_data = {}
 
-        if not request.args.get("no"):
-            n_status_code = 400
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'invalid parameter'
-        else:
-            try:
-                with CDBMgr() as obj_dbmgr:
-                    obj_session = obj_dbmgr.get_session()
-                    obj_delete = delete(CTableShipWarehouseContract).where(CTableShipWarehouseContract.no == request.args.get("no"))
-                    obj_result = obj_session.execute(obj_delete)
-                    deleted_rows = obj_result.rowcount
-                    print(f"Deleted {deleted_rows} rows.")
-
-                    # delete ItemHistory
-                    obj_delete2 = delete(CTableWarehouseHistory).where(
-                        CTableWarehouseHistory.ref_no == request.args.get("no"))
-                    obj_result2 = obj_session.execute(obj_delete2)
-                    deleted_rows2 = obj_result2.rowcount
-                    print(f"Deleted {deleted_rows2} rows.")
-
-                    obj_session.commit()
-            except Exception as error:
-                n_code = EErrorCode.ERROR_OTHER_ERROR
-                str_message = 'throw exception (error: %s)' % str(error)
-                CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                              % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
-
 
     def __fill_query_params(self):
         lst_where = []
@@ -364,30 +237,6 @@ class CShipWarehouseContract(CPrivilegeControl):
         str_date = datetime.fromtimestamp(dict_param["validDate"]).strftime('%y%m%d')
         str_no = "WH%d%s" %(dict_param["region"], str_date) + util_random_code(3)
         return str_no
-
-    def __update_history(self, obj_session, str_no, old_data, user_id):
-            new_obj_data = obj_session.query(CTableShipWarehouseContract).filter_by(no=str_no).first()
-            if not new_obj_data:
-                raise ValueError("warehouse not found")
-
-            changes = []
-            n_now = util_retrieve_now_time()
-            for field, old_value in old_data.items():
-                new_value = getattr(new_obj_data, field)  # 更新後的值
-                if old_value != new_value:  # 檢查是否有變更
-                    changes.append(
-                        CTableWarehouseHistory(
-                            ref_no=str_no,
-                            fieldName=field,
-                            oldValue=str(old_value) if old_value is not None else None,
-                            newValue=str(new_value) if new_value is not None else None,
-                            modifiedBy=user_id,
-                            modifiedAt=n_now
-                        )
-                    )
-            if changes:
-                obj_session.add_all(changes)
-            obj_session.commit()
 
 class CShippingRec(CPrivilegeControl):
 
@@ -441,7 +290,6 @@ class CShippingRec(CPrivilegeControl):
                     #)
                     # .outerjoin(CTablePaidPayment, CTableCompany.paid_id == CTablePaidPayment.id)
                     #.outerjoin(CTableReceivedPayment, CTableCompany.received_id == CTableReceivedPayment.id)
-
                     .order_by(CTableShippingRec.date.asc())
                 )
 
@@ -466,7 +314,7 @@ class CShippingRec(CPrivilegeControl):
                             obj_parent_order = obj_product if obj_product else obj_purchase if obj_purchase else None
                             #obj_payment = obj_paid_payment if obj_paid_payment else obj_received_payment if obj_received_payment else None
                             dict_row = {
-                                "no":obj_rec.no if obj_rec else "",
+                                "id":obj_rec.id if obj_rec else "",
                                 "date": obj_rec.date if obj_rec else 0,
                                 "count": obj_rec.count if obj_rec else 0,
                                 "alias": {"name": obj_alias.name if obj_alias else "",
@@ -598,7 +446,7 @@ class CShipPayment(CPrivilegeControl):
                 lst_obj_result = (
                     obj_session.query(CTableShippingPayment, CTableShippingRec, CTableShipWarehouseContract, subq)
                     .join(subq, CTableShippingPayment.no == subq.c.payment_no)
-                    .outerjoin(CTableShippingRec, CTableShippingPayment.record_no == CTableShippingRec.no)
+                    .outerjoin(CTableShippingRec, CTableShippingPayment.record_no == CTableShippingRec.id)
                     .outerjoin(CTableShipWarehouseContract,
                                CTableShippingRec.contract_no == CTableShipWarehouseContract.no)
                     .order_by(CTableShippingPayment.date.desc())
@@ -708,7 +556,7 @@ class CShipARAP(CPrivilegeControl):
                             .outerjoin(CTableShipWarehouseContract,
                                        CTableShippingRec.contract_no == CTableShipWarehouseContract.no)
                             .filter(
-                                CTableShippingRec.no.in_(lst_recNos)
+                                CTableShippingRec.id.in_(lst_recNos)
                             )
                             .all()
                         )
@@ -794,7 +642,7 @@ class CWarehouseRec(CPrivilegeControl):
                             obj_contract = obj_row.CTableShipWarehouseContract
 
                             dict_row = {
-                                "no":obj_rec.no if obj_rec else "",
+                                "id":obj_rec.id if obj_rec else "",
                                 "date": obj_rec.date if obj_rec else 0,
                                 "count": obj_rec.count if obj_rec else 0,
                                 "days": obj_rec.days if obj_rec else 0,
@@ -924,7 +772,7 @@ class CWarehousePayment(CPrivilegeControl):
                 lst_obj_result = (
                     obj_session.query(CTableWarehousePayment, CTableWarehouseRec, CTableShipWarehouseContract, subq)
                     .join(subq, CTableWarehousePayment.no == subq.c.payment_no)
-                    .outerjoin(CTableWarehouseRec, CTableWarehousePayment.record_no == CTableWarehouseRec.no)
+                    .outerjoin(CTableWarehouseRec, CTableWarehousePayment.record_no == CTableWarehouseRec.id)
                     .outerjoin(CTableShipWarehouseContract,
                                CTableWarehouseRec.contract_no == CTableShipWarehouseContract.no)
                     .order_by(CTableWarehousePayment.date.desc())
@@ -1037,7 +885,7 @@ class CWarehouseARAP(CPrivilegeControl):
                             .outerjoin(CTableShipWarehouseContract,
                                        CTableWarehouseRec.contract_no == CTableShipWarehouseContract.no)
                             .filter(
-                                CTableWarehouseRec.no.in_(lst_recNos)
+                                CTableWarehouseRec.id.in_(lst_recNos)
                             )
                             .all()
                         )

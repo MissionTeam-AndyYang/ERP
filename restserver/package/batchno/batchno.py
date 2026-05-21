@@ -28,10 +28,10 @@ class CCBatchNumber(object):
                 str_uuid = str(uuid.uuid4()).replace("-", "")
                 str_no = self.__gen_no(dict_param)
                 new_data = CTableBatchNumber(
-                    id=str_uuid,
+                    #id=str_uuid,
                     no=str_no,
                     date=dict_param["date"],
-                    creator_id=dict_param["creator_id"],
+                    creator_no=dict_param["creator_id"] if dict_param["creator_id"]  else None ,
                     ref_no=dict_param["ref_no"],
                     refCategory=dict_param["refCategory"],
                     item_no=dict_param["item_no"],
@@ -58,6 +58,8 @@ class CCBatchNumber(object):
             CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
                           % (self.__class__.__name__, str(error)))
         return str_id
+
+
     def update(self, str_no, dict_param, str_user_id):
         n_code = EErrorCode.ERROR_SUCCESS
 
@@ -91,10 +93,9 @@ class CCBatchNumber(object):
                 n_code = EErrorCode.ERROR_OTHER_ERROR
                 str_message = 'failed to update batchnumber'
                 CLogger().log(CLogger.LOG_LEVELERROR, '[%s] %s' % (self.__class__.__name__, str_message))
-            else:
-                # update history
-                self.__update_history(obj_session, str_no, dict_old, str_user_id)
+
         return n_code
+
     def delete(self, str_no):
         n_code = EErrorCode.ERROR_SUCCESS
         if str_no:
@@ -106,14 +107,6 @@ class CCBatchNumber(object):
                     obj_result = obj_session.execute(obj_delete)
                     deleted_rows = obj_result.rowcount
                     print(f"Deleted batchNumber {deleted_rows} rows.")
-
-                    # delete ItemHistory
-                    obj_delete2 = delete(CTableBatchNoHistory).where(
-                        CTableBatchNoHistory.ref_no == request.args.get("no"))
-                    obj_result2 = obj_session.execute(obj_delete2)
-                    deleted_rows2 = obj_result2.rowcount
-                    print(f"Deleted batchNumber history {deleted_rows2} rows.")
-
                     obj_session.commit()
             except Exception as error:
                 n_code = EErrorCode.ERROR_OTHER_ERROR
@@ -128,26 +121,3 @@ class CCBatchNumber(object):
         str_no = "BN%d%d%s" %(dict_param["itemCategory"],  dict_param["itemType"], str_date) + util_random_code(2)
         return str_no
 
-    def __update_history(self, obj_session, str_no, old_data, str_user_id):
-            new_obj_data = obj_session.query(CTableBatchNumber).filter_by(no=str_no).first()
-            if not new_obj_data:
-                raise ValueError("batchno not found")
-
-            changes = []
-            n_now = util_retrieve_now_time()
-            for field, old_value in old_data.items():
-                new_value = getattr(new_obj_data, field)  # 更新後的值
-                if old_value != new_value:  # 檢查是否有變更
-                    changes.append(
-                        CTableBatchNoHistory(
-                            ref_no=str_no,
-                            fieldName=field,
-                            oldValue=str(old_value) if old_value is not None else None,
-                            newValue=str(new_value) if new_value is not None else None,
-                            modifiedBy=str_user_id,
-                            modifiedAt=n_now
-                        )
-                    )
-            if changes:
-                obj_session.add_all(changes)
-            obj_session.commit()

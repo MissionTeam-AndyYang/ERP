@@ -36,6 +36,7 @@ from package.restserver.api.aps_uri import aps
 from package.restserver.api.heartbeat_uri import heartbeat
 from package.restserver.api.goods_uri import goods
 from package.restserver.api.quotation_uri import quotation
+from package.restserver.api.plstatistics_uri import plstatistics
 
 from package.common.common import *
 
@@ -70,6 +71,7 @@ g_obj_flask.register_blueprint(heartbeat)
 
 g_obj_flask.register_blueprint(goods)
 g_obj_flask.register_blueprint(quotation)
+g_obj_flask.register_blueprint(plstatistics)
 
 g_shutdown_count = 0
 

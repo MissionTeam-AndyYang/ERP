@@ -82,8 +82,6 @@ def util_get_item_info( str_item_no):
     n_category = 0
     n_subCategory = 0
     str_item_name = ""
-    str_item_ref_no = ""
-    str_item_ref_displayName = ""
 
     with CDBMgr() as obj_dbmgr:
         obj_session = obj_dbmgr.get_session()
@@ -95,8 +93,6 @@ def util_get_item_info( str_item_no):
         if obj_prodcut:
             n_category = EItemCategory.PRODUCT
             str_item_name = obj_prodcut.name
-            str_item_ref_no = obj_prodcut.customer_no
-            str_item_ref_displayName = obj_prodcut.customer_displayName
             n_subCategory = obj_prodcut.category
         else:
             obj_inprodcut = (
@@ -107,8 +103,6 @@ def util_get_item_info( str_item_no):
             if obj_inprodcut:
                 n_category = EItemCategory.INPRODUCT
                 str_item_name = obj_inprodcut.name
-                str_item_ref_no = obj_inprodcut.customer_no
-                str_item_ref_displayName = obj_inprodcut.customer_displayName
             else:
                 obj_material = (
                     obj_session.query(CTableMaterial)
@@ -119,9 +113,7 @@ def util_get_item_info( str_item_no):
                     n_category = obj_material.category
                     n_subCategory= obj_material.subCategory
                     str_item_name = obj_material.name
-                    str_item_ref_no = obj_material.supplier_no
-                    str_item_ref_displayName = obj_material.supplier_displayName
-    return  n_category, n_subCategory, str_item_name,  str_item_ref_no,  str_item_ref_displayName
+    return  n_category, n_subCategory, str_item_name
 
 def util_new_get_item_info( str_item_no):
     str_name = ''

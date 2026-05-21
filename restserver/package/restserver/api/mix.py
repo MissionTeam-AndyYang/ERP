@@ -82,11 +82,13 @@ class CMixItem(CPrivilegeControl):
 
                 lst_result = []
                 for obj_row in lst_obj_rows:
-                    dict_bom = {}
-                    if obj_row.category == EItemCategory.PRODUCT:
-                        dict_bom = self.__get_product_bom(obj_session, obj_row.no)
-                    else:
-                        dict_bom = self.__get_inproduct_bom(obj_session, obj_row.no)
+
+                    # 三元運算子
+                    dict_bom = (
+                        self.__get_product_bom(obj_session, obj_row.no)
+                        if obj_row.category == EItemCategory.PRODUCT
+                        else self.__get_inproduct_bom(obj_session, obj_row.no)
+                    )
                     dict_data = {
                         "no": obj_row.no,
                         "name": obj_row.name,
@@ -111,49 +113,51 @@ class CMixItem(CPrivilegeControl):
 
     def __get_product_bom(self, obj_session, str_item_no):
         try:
+            dict_bom = {}
             obj_ver = (
                 obj_session.query(CTableProductVer)
                 .filter( CTableProductVer.item_no == str_item_no)
                 .order_by(CTableProductVer.date.desc())
                 .first()
             )
-            # 取得內容物淨重+單位
-            str_item_no_box = str_item_no+ '_1'
-            obj_result = (
-                obj_session.query(
-                    func.sum(CTableProductSpec.weight).label('total_weight'),
-                    CTableProductSpec.unit
+            if obj_ver:
+                # 取得內容物淨重+單位
+                str_item_no_box = str_item_no+ '_1'
+                obj_result = (
+                    obj_session.query(
+                        func.sum(CTableProductSpec.weight).label('total_weight'),
+                        CTableProductSpec.unit
+                    )
+                    .filter(
+                        CTableProductSpec.product_no == str_item_no_box,
+                        CTableProductSpec.product_version == obj_ver.version
+                    )
+                    .group_by(CTableProductSpec.unit)  # 依照單位分組，確保能抓到 unit
+                    .first()
                 )
-                .filter(
-                    CTableProductSpec.product_no == str_item_no_box,
-                    CTableProductSpec.product_version == obj_ver.version
-                )
-                .group_by(CTableProductSpec.unit)  # 依照單位分組，確保能抓到 unit
-                .first()
-            )
 
-            # 取得物料
-            n_bom2Weight = (
-                obj_session.query(
-                    func.sum(CTableProductBOMSpec.weight).label('total_weight')
+                # 取得物料
+                n_bom2Weight = (
+                    obj_session.query(
+                        func.sum(CTableProductBOMSpec.weight).label('total_weight')
+                    )
+                    .filter(
+                        CTableProductBOMSpec.product_no == str_item_no_box,
+                        CTableProductBOMSpec.product_version == obj_ver.version
+                    )
+                    .scalar() or 0
                 )
-                .filter(
-                    CTableProductBOMSpec.product_no == str_item_no_box,
-                    CTableProductBOMSpec.product_version == obj_ver.version
-                )
-                .scalar() or 0
-            )
-            n_netWeight = obj_result.total_weight if obj_result else 0
+                n_netWeight = obj_result.total_weight if obj_result else 0
 
-            n_grossWeight = n_netWeight + n_bom2Weight
-            dict_bom = {
-                "assemblyNo": obj_ver.no if obj_ver else "",
-                "version": obj_ver.version if obj_ver else 0,
-                "date": obj_ver.date if obj_ver else 0,
-                "unit": obj_result.unit if obj_result else 0,
-                "netWeight": n_netWeight,
-                "grossWeight": n_grossWeight,
-            }
+                n_grossWeight = n_netWeight + n_bom2Weight
+                dict_bom = {
+                    "assemblyNo": obj_ver.no if obj_ver else "",
+                    "version": obj_ver.version if obj_ver else 0,
+                    "date": obj_ver.date if obj_ver else 0,
+                    "unit": obj_result.unit if obj_result else 0,
+                    "netWeight": n_netWeight,
+                    "grossWeight": n_grossWeight,
+                }
         except Exception as error:
             CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
                           % (self.__class__.__name__, str(error)))
@@ -161,7 +165,6 @@ class CMixItem(CPrivilegeControl):
 
     def __get_inproduct_bom(self, obj_session, str_item_no):
         try:
-
             # 取得內容物淨重+單位
             n_version = 1
             lst_result = (
@@ -189,7 +192,7 @@ class CMixItem(CPrivilegeControl):
             # 取得物料
             n_bom2Weight = (
                 obj_session.query(
-                    func.sum(CTableProductBOMSpec.weight).label('total_weight')
+                    func.sum(CTableInproductBOMSpec.weight).label('total_weight')
                 )
                 .filter(
                     CTableInproductBOMSpec.inproduct_no == str_item_no,

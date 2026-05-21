@@ -27,8 +27,7 @@ class CCInventroyRec(object):
             with CDBMgr() as obj_dbmgr:
                 str_uuid = str(uuid.uuid4()).replace("-", "")
                 new_data = CTableInventoryRec(
-                    id=str_uuid,
-                    creator_id=dict_data.get("creator_id",""),
+                    #id=str_uuid,
                     group=str_group,
                     ref_no = dict_data.get("ref_no",""),
                     refCategory= dict_data.get("ref_category",0),
@@ -54,7 +53,7 @@ class CCInventroyRec(object):
                     creationTime=util_retrieve_now_time()
                 )
                 if obj_dbmgr.insert(new_data) == EErrorCode.ERROR_SUCCESS:
-                    str_id = str_uuid
+                    str_id = new_data.id
                     self.__notify_observers(dict_data)
                 else:
                     str_message = 'failed to create inventory record'

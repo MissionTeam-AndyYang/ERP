@@ -57,6 +57,35 @@ The 20260522 workflow should be understood as a full factory transaction backbon
 
 Runtime verification was run after installing `restserver/package/requirements.txt` into `backend/.venv`.
 
+### Latest engineer DB verification
+
+Updated result reviewed on 2026-05-22 from:
+
+```txt
+docs/backend/runtime-verification/RESTSERVER_RUNTIME_VERIFICATION_20260522_ENGINEER.md
+```
+
+Conclusion: the engineer environment now passes both restserver runtime verification and database-backed schema verification against the EWDB 20260522 baseline.
+
+Confirmed latest values:
+
+| Area | Result |
+| --- | --- |
+| Restserver import / heartbeat | OK, heartbeat HTTP 200 |
+| ORM table count | 79 |
+| Flask blueprints | 26 |
+| Flask routes | 70 |
+| Database target | `localhost:3306/ewdb` |
+| Database table count | 79 |
+| Database foreign keys | 118 |
+| Database unique constraints | 73 |
+| Required workflow tables | all present |
+| Missing required tables | none |
+
+This matches the `EWDB_20260522.sql` baseline summary: 79 tables, 118 foreign keys, and 73 unique constraints.
+
+The previous engineer result showed a schema mismatch (`table_count=88`, `fk_count=0`, `unique_count=10`). The latest result indicates that the engineer database has now been re-imported or corrected to match the expected EWDB 20260522 schema.
+
 Completed checks:
 
 - ORM metadata import passed.

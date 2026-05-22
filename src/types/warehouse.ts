@@ -9,6 +9,34 @@ export type WarehouseKpi = {
   tone: StatusTone;
 };
 
+export type WarehouseWorkspaceTab = "overview" | "batches" | "movements" | "storage";
+
+export type WarehouseSourceType = "採購" | "生產" | "出貨" | "調整";
+
+export type WarehouseRecord = {
+  id: string;
+  itemNo: string;
+  itemName: string;
+  category: InventoryCategory;
+  warehouseNo: string;
+  warehouseName: string;
+  batchNo: string;
+  sourceType: WarehouseSourceType;
+  sourceNo: string;
+  quantity: number;
+  unit: string;
+  amount: number;
+  expiryDate: string;
+  daysLeft: number;
+  status: string;
+  tone: StatusTone;
+  storageDays: number;
+  storageCharge: number;
+  paymentStatus: string;
+  workflow: WarehouseWorkflowStep[];
+  relatedDocuments: WarehouseRelatedDocument[];
+};
+
 export type InventoryItem = {
   sku: string;
   name: string;
@@ -44,5 +72,26 @@ export type WarehouseTask = {
   owner: string;
   dueTime: string;
   status: string;
+  tone: StatusTone;
+};
+
+export type WarehouseWorkflowStep = {
+  label: string;
+  ref: string;
+  status: "完成" | "進行中" | "待處理";
+  tone: StatusTone;
+};
+
+export type WarehouseRelatedDocument = {
+  type: string;
+  no: string;
+  status: string;
+  tone: StatusTone;
+};
+
+export type WarehouseException = {
+  id: string;
+  title: string;
+  description: string;
   tone: StatusTone;
 };

@@ -54,6 +54,27 @@ Sprint 11：Backend Flask API 專案骨架已建立於 `backend/`。
 docs/backend/SPRINT_11_BACKEND_SETUP.md
 ```
 
+## 最新資料庫與 Restserver 基準
+
+目前資料庫與工作流程基準：
+
+```txt
+docs/database/EWDB_20260522.sql
+docs/database/EWDB_20260522_WORKFLOW.md
+```
+
+目前 legacy Flask restserver 程式碼位於：
+
+```txt
+restserver/package
+```
+
+最新複檢紀錄：
+
+```txt
+docs/backend/RESTSERVER_DB_RECHECK_20260522.md
+```
+
 ## 協作文件
 
 ```txt

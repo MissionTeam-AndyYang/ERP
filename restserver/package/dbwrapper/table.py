@@ -23,8 +23,11 @@ class CTableBankAccount(Base):
     name = Column(String(length=60))
     branch = Column(String(length=60))
     account = Column(String(length=60))
-    number = Column(String(length=60), unique=True)
+    number = Column(String(length=60))
     creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('number', name='uq_bank_account_composite'),
+    )
 
 class CTableEnterprise(Base):
     __tablename__ = 'enterprise'
@@ -58,8 +61,8 @@ class CTableCompany(Base):
     contactPhone = Column(JSON)
     contactTitle = Column(String(length=60))
     contactEmail = Column(String(length=60))
-    received_id = Column(String(length=60))
-    paid_id = Column(String(length=60))
+    received_id = Column(Integer)
+    paid_id = Column(Integer)
     bankCurrency = Column(Integer)
     bankDisplayName = Column(String(length=60))
     bankName = Column(String(length=60))
@@ -69,7 +72,7 @@ class CTableCompany(Base):
     comment = Column(String(length=128))
     creationTime = Column(Integer)
     __table_args__ = (
-        UniqueConstraint('no', 'businessNo', name='uq_company_composite'),
+        UniqueConstraint('no', name='uq_company_composite'),
     )
 
 class CTableTransItems(Base):
@@ -155,7 +158,7 @@ class CTableItemPrice(Base):
     costPriceWeight2 = Column(Float)
     costPriceLength = Column(Float)
     laborCost = Column(Float)
-    creationTime = Column(Float)
+    creationTime = Column(Integer)
     __table_args__ = (
         UniqueConstraint('item_no', 'date', name='uq_item_price_composite'),
     )
@@ -204,7 +207,7 @@ class CTableItemLoss(Base):
     unit = Column(Integer)
     value = Column(Float)
     estValue = Column(Float)
-    creationTime = Column(Float)
+    creationTime = Column(Integer)
     __table_args__ = (
         UniqueConstraint('item_no', 'date', name='uq_item_loss_composite'),
     )
@@ -219,7 +222,7 @@ class CTableItemHours(Base):
     unit = Column(Integer)
     value = Column(Float)
     estValue = Column(Float)
-    creationTime = Column(Float)
+    creationTime = Column(Integer)
     __table_args__ = (
             UniqueConstraint('item_no', 'date', name='uq_item_hours_composite'),
         )
@@ -238,7 +241,7 @@ class CTableSamplePrice(Base):
     costUnitWeight = Column(Integer)
     costPriceWeight = Column(Float)
     laborCost = Column(Float)
-    creationTime = Column(Float)
+    creationTime = Column(Integer)
     __table_args__ = (
         UniqueConstraint('item_no', 'date', name='uq_sample_price_composite'),
     )
@@ -349,7 +352,7 @@ class CTableInventoryRec(Base):
     unit = Column(Integer)
     count = Column(Float)
     price = Column(Float)
-    amount = Column(Integer)
+    amount = Column(Float)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
     registerDevId = Column(String(length=60))
@@ -454,7 +457,7 @@ class CTableWarehouseRec(Base):
     __tablename__ = 'warehouse_record'
     id = Column(Integer, primary_key=True, autoincrement=True)
     date = Column(Integer)
-    ref_no = Column(String(length=60))
+    ref_no = Column(Integer)
     batch_no = Column(String(length=60))
     sw_alias_no = Column(String(length=60))
     sw_alias_name = Column(String(length=60))
@@ -487,7 +490,7 @@ class CTableProductOrder(Base):
     price = Column(Float)
     count = Column(Float)
     preparedCount = Column(Float)
-    amount = Column(Integer)
+    amount = Column(Float)
     expectedDate = Column(Integer)
     address = Column(String(length=100))
     payment_type = Column(Integer)
@@ -533,7 +536,7 @@ class CTableShippingOrder(Base):
 
 
 class CTablePurchaseRequest(Base):
-    __tablename__ = 'purchase_request '
+    __tablename__ = 'purchase_request'
     id = Column(Integer, primary_key=True, autoincrement=True)
     no = Column(String(length=60))
     creator_no = Column(String(length=60))
@@ -565,7 +568,7 @@ class CTablePurchaseOrder(Base):
     unit = Column(Integer)
     price = Column(Float)
     count = Column(Float)
-    amount = Column(Integer)
+    amount = Column(Float)
     expectedDate = Column(Integer)
     address = Column(String(length=100))
     payment_type = Column(Integer)
@@ -741,7 +744,7 @@ class CTableProductionDataReuse(Base):
     count              = Column(Float)
     comment = Column(String(length=128))
     __table_args__ = (
-        UniqueConstraint('work_order_no',  'group', 'action', 'item_no', 'batch_number', 'serial_no', 'category', name='uq_production_data_reuse_composite'),
+        UniqueConstraint('work_order_no', 'group', 'action', 'item_no', 'category', 'batch_number', 'serial_no', name='uq_production_data_reuse_composite'),
     )
 CTableProductionData.reuse_data = relationship("CTableProductionDataReuse", order_by=CTableProductionDataReuse.work_order_no, back_populates="production_data")
 
@@ -776,7 +779,7 @@ class CTableProductionDataMachine(Base):
     time             = Column(Integer)
     equipment_no       = Column(String(length=60))
     equipment_name     = Column(String(length=100))
-    action             = Column(Integer)
+    action             = Column(String(length=60))
     temperature        = Column(Float)
     speed             = Column(Float)
     creationTime       = Column(Integer)
@@ -870,7 +873,7 @@ class CTableBOM(Base):
     date = Column(Integer)
     unit = Column(Integer)
     weight = Column(Float)
-    version = Column(Float)
+    version = Column(Integer)
     comment = Column(String(length=128))
     creationTime = Column(Integer)
     item_data = relationship("CTableBOMItem", order_by="CTableBOMItem.item_no", back_populates="bom_data", lazy='select')
@@ -1268,9 +1271,9 @@ class CTableInventoryItemMonthStatistic(Base):
     unit = Column(Integer)
     startCount = Column(Float)
     startAmount = Column(Float)
-    inCount = Column(Float)
+    inCount = Column(Integer)
     inAmount = Column(Float)
-    endCount = Column(Float)
+    endCount = Column(Integer)
     endAmount = Column(Float)
     creationTime = Column(Integer)
     __table_args__ = (
@@ -1289,11 +1292,11 @@ class CTableOrderItemMonthStatistic(Base):
     type = Column(Integer)
     specified_no = Column(String(length=60))
     specified_name = Column(String(length=60))
-    payment = Column(Float)
-    amount = Column(Float)
+    payment = Column(Integer)
+    amount = Column(Integer)
     creationTime = Column(Integer)
     __table_args__ = (
-        UniqueConstraint('date', 'kind', 'specified_no', 'category', 'subCategory',
+        UniqueConstraint('date', 'kind', 'category', 'subCategory', 'specified_no',
                          name='uq_order_item_month_statistic_composite'),
     )
 
@@ -1342,7 +1345,7 @@ class CTableShippingPayment(Base):
     paymentType = Column(Integer)
     month = Column(Date)
     price = Column(Float)
-    count = Column(Float)
+    count = Column(Integer)
     amount = Column(Integer)
     addDeleteAmount = Column(Integer)
     totalAmount = Column(Integer)
@@ -1367,11 +1370,11 @@ class CTableWarehousePayment(Base):
     paymentType = Column(Integer)
     month = Column(Date)
     price = Column(Float)
-    count = Column(Float)
-    amount = Column(Float)
+    count = Column(Integer)
+    amount = Column(Integer)
     addDeleteAmount = Column(Integer)
-    totalAmount = Column(Float)
-    balance = Column(Float)
+    totalAmount = Column(Integer)
+    balance = Column(Integer)
     creationTime = Column(Integer)
     __table_args__ = (
         UniqueConstraint('no', 'date', name='uq_warehouse_payment_composite'),
@@ -1419,7 +1422,7 @@ class CTableContract(Base):
     itemSubCategory = Column(Integer)
     item_ref_no = Column(String(length=60))
     item_ref_displayName = Column(String(length=60))
-    payment_id = Column(String(length=60))
+    payment_id = Column(Integer)
     unit = Column(Integer)
     price = Column(Float)
     shippingPrice = Column(Float)
@@ -1446,7 +1449,7 @@ class CTableAPSQuantityItem(Base):
     creationTime = Column(Integer)
     #quantity_data = relationship("CTableAPSQuantity", back_populates="item_data")
     __table_args__ = (
-        UniqueConstraint('product_order_no', 'oneProcess', 'secProcess', 'item_no', name='uq_aps_quantity_item_composite'),
+        UniqueConstraint('product_order_no', 'output_item_no', 'oneProcess', 'secProcess', 'item_no', name='uq_aps_quantity_item_composite'),
     )
 class CTableAPSQuantity(Base):
     __tablename__ = 'aps_quantity'
@@ -1464,7 +1467,7 @@ class CTableAPSQuantity(Base):
     laborCount = Column(Integer)
     creationTime = Column(Integer)
     __table_args__ = (
-        UniqueConstraint('product_order_no', 'oneProcess', 'secProcess', 'item_no',
+        UniqueConstraint('no', 'product_order_no', 'oneProcess', 'secProcess', 'item_no',
                          name='uq_aps_quantity_composite'),
     )
     item_data = relationship(
@@ -1488,7 +1491,7 @@ class CTableProductProcess(Base):
     version = Column(Integer)
     date = Column(Integer)
     __table_args__ = (
-        UniqueConstraint('no', 'version',  'item_no',
+        UniqueConstraint('no', 'item_no', 'version',
                          name='uq_product_process_composite'),
     )
     # 建立一對多關係
@@ -1538,7 +1541,7 @@ class CTableProductVer(Base):
     version = Column(Integer)
     date = Column(Integer)
     __table_args__ = (
-        UniqueConstraint('no', 'version',  'item_no', name='uq_product_ver_composite'),
+        UniqueConstraint('no', 'item_no', 'version', name='uq_product_ver_composite'),
     )
 
 class CTablePLManCapacity(Base):
@@ -1569,7 +1572,7 @@ class CTablePLItemCapacity(Base):
     bomWeight = Column(Float)
     bomUnit = Column(Integer)
     productCount = Column(Integer)
-    hours = Column(Integer)
+    hours = Column(Float)
     count = Column(Float)
     unit = Column(Integer)
     hourlyOutput = Column(Float)
@@ -1579,7 +1582,7 @@ class CTablePLItemCapacity(Base):
     laborCost = Column(Float)
     creationTime = Column(Integer)
     __table_args__ = (
-        UniqueConstraint('month', 'item_no', 'pl_no', name='uq_pl_item_capacity_composite'),
+        UniqueConstraint('month', 'pl_no', 'item_no', name='uq_pl_item_capacity_composite'),
     )
 
 class CTablePLItemLoss(Base):
@@ -1614,3 +1617,6 @@ class CTableRWItems (Base):
     __tablename__ = 'rw_items'
     id = Column(Integer, primary_key=True, autoincrement=True)
     item_no = Column(String(length=60))
+    __table_args__ = (
+        UniqueConstraint('item_no', name='uq_rw_items_composite'),
+    )

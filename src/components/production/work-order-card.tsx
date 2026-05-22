@@ -1,6 +1,6 @@
 import { Clock, Package, UserRound } from "lucide-react";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { WorkflowStepper } from "@/components/production/workflow-stepper";
+import { StatusBadge } from "@/components/ui/status-badge";
 import type { WorkOrder, WorkOrderStage } from "@/types/production";
 
 type WorkOrderCardProps = {

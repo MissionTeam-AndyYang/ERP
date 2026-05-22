@@ -302,26 +302,39 @@ Includes:
 - Session.
 - Runtime/API settings.
 
+## User Review Decisions
+
+Recorded on 2026-05-22:
+
+| Question | Decision |
+| --- | --- |
+| First core page | Warehouse |
+| First-version user view | Manager / overall management |
+| First-version behavior | Query, review, and workflow status first |
+| Excel baseline | `11.0` and `12.0` should be treated as newer and preferred over `1.0` and `2.0` |
+| Next workflow | Production |
+
 ## First Implementation Slice
 
 Recommended first slice:
 
 ```txt
-Orders workspace
+Warehouse workspace
 ```
 
 Reason:
 
-- It is the best operational pivot.
-- It naturally connects purchasing, production, and shipping.
-- It lets frontend design reveal the API needs without implementing every module.
+- It gives management an immediate operating view of stock, batches, expiry, movement, and warehouse cost exposure.
+- It touches purchasing, production, shipping, inventory, and traceability without requiring write actions in the first version.
+- It is a good read-only/status-first screen while backend review and DB alignment continue.
 
-Minimum Orders page:
+Minimum Warehouse page:
 
-- Sales order table.
-- Selected order detail panel.
-- Three workflow lanes: Purchasing, Production, Shipping.
-- Related document lists.
+- KPI strip.
+- Inventory/batch table.
+- Selected stock or batch detail panel.
+- Workflow timeline showing purchasing/production/shipping source.
+- Related warehouse/payment records.
 - Empty/loading/error states.
 
 ## API Mapping Priorities

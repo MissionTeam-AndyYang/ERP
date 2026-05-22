@@ -124,8 +124,11 @@ class CAPIBase(object):
 
 
     def _is_reset_alive_time(self):
-        #return True
-         return False
+        import os
+        if os.getenv("TOKEN_ENABLED", "0").lower() == "1":
+            return False
+        else:
+            return True
 
     def _is_vaildate_param(self):
         return True if self._is_post_method() or self._is_put_method() else False

@@ -72,8 +72,6 @@ class CTableCompany(Base):
         UniqueConstraint('no', 'businessNo', name='uq_company_composite'),
     )
 
-
-
 class CTableTransItems(Base):
     __tablename__ = 'trans_items'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -229,7 +227,6 @@ class CTableSamplePrice(Base):
     __tablename__ = 'sample_price'
     id = Column(Integer, primary_key=True, autoincrement=True)
     item_no = Column(String(length=60))
-    itemVer = Column(Integer)
     date = Column(Integer)
     estWHUnitWeight = Column(Integer)
     estWHPriceWeight = Column(Float)
@@ -457,6 +454,7 @@ class CTableWarehouseRec(Base):
     __tablename__ = 'warehouse_record'
     id = Column(Integer, primary_key=True, autoincrement=True)
     date = Column(Integer)
+    ref_no = Column(String(length=60))
     batch_no = Column(String(length=60))
     sw_alias_no = Column(String(length=60))
     sw_alias_name = Column(String(length=60))
@@ -530,6 +528,28 @@ class CTableShippingOrder(Base):
         UniqueConstraint('no', name='uq_shipping_order_composite'),
     )
 
+
+
+
+
+class CTablePurchaseRequest(Base):
+    __tablename__ = 'purchase_request '
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    creator_no = Column(String(length=60))
+    product_order_no = Column(String(length=60))
+    date = Column(Integer)
+    item_no = Column(String(length=60))
+    unit = Column(Integer)
+    count = Column(Float)
+    expectedDate = Column(Integer)
+    comment = Column(String(length=128))
+    creationTime = Column(Integer)
+    __table_args__ = (
+        UniqueConstraint('no','product_order_no','item_no', name='uq_purchase_request_composite'),
+    )
+
+
 class CTablePurchaseOrder(Base):
     __tablename__ = 'purchase_order'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -552,7 +572,6 @@ class CTablePurchaseOrder(Base):
     payment_source = Column(Integer)
     payment_date = Column(Integer)
     payment_period = Column(Integer)
-
     comment = Column(String(length=128))
     creationTime = Column(Integer)
     __table_args__ = (
@@ -1185,10 +1204,6 @@ class CTableBatchNoSerialNoGroup(Base):
         UniqueConstraint('group', 'batch_number', 'serialNo', name='uq_batchno_serialno_group_composite'),
     )
 
-class CTableRWItems (Base):
-    __tablename__ = 'rw_items'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    item_no = Column(String(length=60))
 
 
 
@@ -1529,8 +1544,6 @@ class CTableProductVer(Base):
 class CTablePLManCapacity(Base):
     __tablename__ = 'pl_man_capacity'
     id = Column(Integer, primary_key=True, autoincrement=True)
-
-    no = Column(String(length=60))
     month = Column(Date)
     pl_no = Column(String(length=60))
     pl_name = Column(String(length=60))
@@ -1596,3 +1609,8 @@ class CTableLaborWage(Base):
     __table_args__ = (
         UniqueConstraint('date', 'type', 'level', name='uq_labor_wage_composite'),
     )
+
+class CTableRWItems (Base):
+    __tablename__ = 'rw_items'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_no = Column(String(length=60))

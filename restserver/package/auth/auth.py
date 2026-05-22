@@ -68,7 +68,9 @@ class CAuth(object):
                                 if str_id:
                                     str_token = str_tmp_token
                             else:
-                                CLogger().log(CLogger.LOG_LEVELERROR, '[%s] failed to add record (account:%s, pwd: %s)'
+                                CLogger().log(CLogger.LOG_LEVELERROR, '[%s] failed to add record (account:%s)'
+                                              % (self.__class__.__name__, str_account))
+                                CLogger().log(CLogger.LOG_LEVELDEBUG, '[%s] failed to add record (account:%s, pwd: %s)'
                                               % (self.__class__.__name__, str_account, str_password))
                         else:
                             CLogger().log(CLogger.LOG_LEVELERROR, '[%s] failed to retrieve data (account:%s, pwd: %s)'

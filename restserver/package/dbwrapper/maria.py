@@ -1,15 +1,20 @@
 # coding=utf8
 from sqlalchemy import create_engine, orm
+import os
+from dotenv import load_dotenv
 
 class CMaria(object):
 
-    def __init__(self, str_db='ai', str_host='localhost', n_port=3306, str_user='root', str_password='ew42885615'):
-        self.__m_objDB = None
-        self.__m_n_port = n_port
-        self.__m_str_db = str_db
-        self.__m_str_user = str_user
-        self.__m_str_host = str_host
-        self.__m_str_password = str_password
+    def __init__(self):
+        # 開發環境載入 .env
+        if os.getenv("ENV", "dev") == "dev":
+            load_dotenv("../config/.env.dev")
+        self.__m_str_host = os.getenv("DB_HOST")
+        self.__m_n_port = int(os.getenv("DB_PORT", 3306))
+        self.__m_str_db = os.getenv("DB_NAME")
+        self.__m_str_user = os.getenv("DB_USER")
+        self.__m_str_password = os.getenv("DB_PASSWORD")
+
 
     def gen_connection_str(self):
         str_connection = 'mariadb+mariadbconnector://'

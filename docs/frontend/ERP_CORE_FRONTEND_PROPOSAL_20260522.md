@@ -2,7 +2,9 @@
 
 日期：2026-05-22
 
-Basis:
+## Current Baseline
+
+來源基準：
 
 - `docs/database/EWDB_20260522.sql`
 - `docs/database/EWDB_20260522_WORKFLOW.md`
@@ -10,21 +12,34 @@ Basis:
 - `docs/frontend/恆旺_ERP_Web Markup.html`
 - `restserver/package`
 
+已實作並推送到 `main`：
+
+- Warehouse workspace: `src/app/warehouse/page.tsx`
+- Production workspace: `src/app/production/page.tsx`
+- ESLint 9 / Next 16 lint baseline: `eslint.config.mjs`
+
 ## Goal
 
-Build a simplified, clear, attractive, and easy-to-operate ERP frontend that uses the Excel/HTML work as a screen inventory, but reorganizes it around the actual EWDB workflow.
+建立一個簡化、清晰、好看、易操作的 ERP 前端。Excel/HTML 應作為畫面與欄位盤點來源，但新的前端不應直接把所有 Excel 分頁變成一層層選單，而是以 EWDB workflow 為核心重整。
 
-The new frontend should not expose every Excel tab as top-level UI. It should guide users through the core factory workflows first, while preserving detailed master-data screens where they are needed.
+## User Decisions
+
+| Question | Decision |
+| --- | --- |
+| First core page | Warehouse |
+| First-version user view | Manager / overall management |
+| First-version behavior | Query, review, and workflow status first |
+| Excel baseline | `11.0` and `12.0` are newer and preferred over `1.0` and `2.0` |
+| Next workflow | Production |
 
 ## Design Principles
 
 1. Workflow first, not table first.
-2. `product_order` is the main operational pivot.
-3. Each workspace should show list, detail, status, and next action in one place.
-4. Keep dense ERP information, but make it scannable.
-5. Use consistent page structure across modules.
-6. Keep master data and setup screens available, but out of the first-level daily workflow.
-7. Make backend integration easier by mapping each screen to a small set of APIs.
+2. Use table + selected detail + workflow status as the repeated workspace pattern.
+3. Keep ERP data dense, but make it scannable.
+4. Start with query/review/status before create/edit actions.
+5. Map each screen to a small set of backend APIs.
+6. Keep master data and setup screens outside the first-level daily workflow.
 
 ## Proposed Navigation
 
@@ -39,357 +54,92 @@ Master Data
 Settings
 ```
 
-## Workspace Model
-
-Each core workspace should use the same layout pattern:
+## Standard Workspace Pattern
 
 ```txt
-Top band:
-  Page title, date/filter/search, primary action
+Header:
+  Title, status badges, search, filters, primary action
 
 KPI strip:
-  3 to 5 compact metrics for this workspace
+  3 to 5 compact metrics
 
-Main area:
-  Left or center: primary data table
-  Right: selected record summary and workflow status
+Main split:
+  Left: primary table / mode tabs
+  Right: selected record detail and workflow timeline
 
-Lower area:
-  Related documents, timeline, exceptions, or detail tabs
+Lower panels:
+  Exceptions, related records, schedule, alerts, or trace links
 ```
 
-This gives repeated ergonomics:
+## Implemented Core Workspaces
 
-- Find a record.
-- Select it.
-- See status.
-- See related documents.
-- Take the next action.
+### Warehouse
 
-## Core Screens
+Purpose: management view for stock, batches, movement, expiry, and warehouse cost exposure.
 
-### 1. Dashboard
+Current first-version tabs:
 
-Purpose: daily operating overview.
+- 庫存總覽
+- 批號效期
+- 進出紀錄
+- 倉租帳款
 
-Shows:
+Primary data shape:
 
-- Today's sales orders.
-- Purchasing status.
-- Production status.
-- Warehouse and batch alerts.
-- Shipping/payment exceptions.
+- Batch number
+- Item number/name/category
+- Warehouse number/name
+- Source type/source document
+- Quantity/unit/amount
+- Expiry and storage charge status
+- Related workflow and documents
 
-Primary data:
+### Production
 
-- `product_order`
-- `purchase_request`
-- `purchase_order`
-- `goods_receipt_note`
-- `work_order`
-- `inventory_record`
-- `shipping_order`
+Purpose: management view for work orders, material readiness, quality handoff, and production line load.
 
-Recommended panels:
+Current first-version tabs:
 
-- Orders due soon.
-- Production in progress.
-- Low/aging inventory.
-- Receiving pending inspection.
-- Shipments pending.
-- Workflow exceptions.
+- 工單總覽
+- 備料狀態
+- 品檢入庫
+- 產線產能
 
-### 2. Orders
+Primary data shape:
 
-Purpose: manage customer demand and see the three downstream flows.
-
-Workflow center:
-
-```txt
-contract -> product_order
-product_order -> purchase_request
-product_order -> aps_quantity -> work_order
-product_order -> shipping_order
-```
-
-Main table:
-
-- Sales orders from `product_order`.
-
-Right detail:
-
-- Order summary.
-- Customer/company.
-- Item.
-- Quantity.
-- Expected date.
-- Contract reference.
-
-Workflow status:
-
-- Purchasing: request/order/receipt/batch/inventory.
-- Production: APS/work order/process/production data.
-- Shipping: shipping order/record/payment.
-
-Tabs:
-
-- Related purchasing.
-- Related production.
-- Related shipping.
-- Documents/history.
-
-### 3. Purchasing
-
-Purpose: handle material demand, purchase orders, receiving, and warehouse handoff.
-
-Workflow:
-
-```txt
-purchase_request -> purchase_order -> goods_receipt_note -> batch_number -> inventory_record -> warehouse_record -> warehouse_payment
-```
-
-Main table modes:
-
-- Purchase requests.
-- Purchase orders.
-- Goods receipt notes.
-
-Right detail:
-
-- Supplier.
-- Item.
-- Quantity.
-- Expected date.
-- Receiving status.
-- Batch status.
-
-Primary actions:
-
-- Create purchase order from request.
-- Record receiving.
-- Create or link batch number.
-- Send to inventory.
-
-### 4. Production
-
-Purpose: plan and execute production.
-
-Workflow:
-
-```txt
-product_order -> aps_quantity -> work_order -> batch_number -> process_order -> process_labor
-process_order -> inventory_record -> production_data
-```
-
-Main table modes:
-
-- APS demand.
-- Work orders.
-- Process orders.
-- Production data.
-
-Right detail:
-
-- Product order link.
-- Work order status.
-- Production line.
-- Batch.
-- Process progress.
-
-Detail tabs:
-
-- Inputs.
-- Outputs.
-- Reuse.
-- Machine.
-- Labor.
-
-Primary actions:
-
-- Create work order.
-- Start process.
-- Record production data.
-- Close work order.
-
-### 5. Warehouse
-
-Purpose: see stock, batches, warehouse records, and warehouse payments.
-
-Workflow:
-
-```txt
-batch_number -> inventory_record -> warehouse_record -> warehouse_payment
-```
-
-Main table modes:
-
-- Inventory by item.
-- Inventory by batch.
-- Warehouse records.
-- Warehouse aging/storage.
-
-Right detail:
-
-- Batch number.
-- Item.
-- Quantity.
-- Warehouse alias.
-- Expiry date.
-- Source reference.
-
-Primary actions:
-
-- Adjust inventory.
-- View batch trace.
-- Create warehouse record.
-- Review storage charges.
-
-### 6. Traceability
-
-Purpose: trace a batch through material, production, warehouse, and shipping.
-
-Search first:
-
-- Batch number.
-- Item number.
-- Product order number.
-- Work order number.
-
-Trace sections:
-
-- Source document.
-- Batch details.
-- Inventory records.
-- Production inputs and outputs.
-- Shipping records.
-
-Trace rules:
-
-- `batch_number.ref_no` is polymorphic and must be interpreted with source category/context.
-- Trace should support both material-to-product and product-to-material directions.
-
-### 7. Master Data
-
-Purpose: keep detailed setup data accessible without crowding daily workflows.
-
-Includes:
-
-- Company.
-- Payment/bank account.
-- Material.
-- Inproduct.
-- Product.
-- Goods.
-- Transaction items.
-- Quotation.
-- Contract.
-- Shipping warehouse.
-- Production line/process/station/equipment.
-
-Source mapping:
-
-- Most `1.0`, `2.0`, `11.0`, and `12.0` Excel screens belong here.
-
-### 8. Settings
-
-Purpose: system and configuration screens.
-
-Includes:
-
-- Users.
-- Groups.
-- Device.
-- Session.
-- Runtime/API settings.
-
-## User Review Decisions
-
-Recorded on 2026-05-22:
-
-| Question | Decision |
-| --- | --- |
-| First core page | Warehouse |
-| First-version user view | Manager / overall management |
-| First-version behavior | Query, review, and workflow status first |
-| Excel baseline | `11.0` and `12.0` should be treated as newer and preferred over `1.0` and `2.0` |
-| Next workflow | Production |
-
-## First Implementation Slice
-
-Recommended first slice:
-
-```txt
-Warehouse workspace
-```
-
-Reason:
-
-- It gives management an immediate operating view of stock, batches, expiry, movement, and warehouse cost exposure.
-- It touches purchasing, production, shipping, inventory, and traceability without requiring write actions in the first version.
-- It is a good read-only/status-first screen while backend review and DB alignment continue.
-
-Minimum Warehouse page:
-
-- KPI strip.
-- Inventory/batch table.
-- Selected stock or batch detail panel.
-- Workflow timeline showing purchasing/production/shipping source.
-- Related warehouse/payment records.
-- Empty/loading/error states.
+- Work order and product
+- Batch number
+- Production line and schedule window
+- Source sales order and BOM
+- Planned/completed quantity
+- Material and quality status
+- Related workflow and documents
 
 ## API Mapping Priorities
 
-| Priority | UI Need | Tables / Modules |
+| Priority | UI Need | Candidate Modules / Tables |
 | --- | --- | --- |
-| P0 | List and view sales orders | `product_order`, `sale` |
-| P0 | Show order workflow status | `purchase_request`, `purchase_order`, `goods_receipt_note`, `batch_number`, `aps_quantity`, `work_order`, `shipping_order` |
-| P1 | Purchasing drilldown | `purchase`, `inventory`, `batchnumber` |
-| P1 | Production drilldown | `aps`, `workorder`, `work`, `processorder` |
-| P1 | Shipping drilldown | `sale`, `shipwarehouse` |
-| P2 | Master-data maintenance | `company`, `material`, `product`, `transitems`, `contract`, `quotation` |
+| P0 | Warehouse inventory and batch list | `inventory_record`, `batch_number`, `warehouse_record` |
+| P0 | Production work order list | `work_order`, `process_order`, `production_data` |
+| P0 | Workflow status summary | `purchase_order`, `goods_receipt_note`, `aps_quantity`, `shipping_order` |
+| P1 | Material readiness | `bom`, `inventory_record`, `purchase_request` |
+| P1 | Quality and finished-goods handoff | `production_data`, `inventory_record`, `batch_number` |
+| P1 | Traceability | `batch_number`, purchase/production/shipping source refs |
+| P2 | Master-data maintenance | `company`, `material`, `product`, `trans_items`, `contract`, `quotation` |
 
-## Visual Direction
+## Relationship To Excel/HTML
 
-The UI should feel like a work-focused ERP, not a marketing page.
+The existing Excel/HTML remains the detailed UI inventory. The new frontend should:
 
-Recommended style:
-
-- Calm neutral background.
-- Dense but readable tables.
-- Clear status colors.
-- Compact KPI tiles.
-- Right-side detail panel.
-- Timeline/workflow chips.
-- Consistent icons for actions.
-- Avoid large decorative sections.
-
-Use cards only for repeated records, panels, and detail blocks. Do not nest cards inside cards.
-
-## Relationship To Existing Excel/HTML
-
-The existing Excel/HTML remains the detailed UI inventory.
-
-The new frontend should:
-
-- Preserve the field vocabulary.
-- Preserve operational concepts such as `內容`, `資訊`, `新增`, `刪除`.
+- Preserve field vocabulary.
+- Preserve operational concepts such as 內容, 資訊, 新增, 刪除.
 - Preserve important business notes marked with `**`.
-- Reduce first-level navigation complexity.
 - Convert tab-heavy screens into workflow workspaces.
-- Move detailed setup screens into Master Data.
+- Move setup-heavy screens into Master Data or Settings.
 
-## Questions For User Review
+## Next Suggested Work
 
-1. Should `Orders` be the first real page, or should `Dashboard` come first?
-2. In daily work, who uses the first version most: owner/manager, sales, purchasing, production, or warehouse?
-3. Should the first UI focus on read-only workflow visibility, or include create/edit actions immediately?
-4. Are `11.0` and `12.0` intended to replace `1.0` and `2.0`, or are they alternative experiments?
-5. Which workflow is most urgent after Orders: Purchasing, Production, Warehouse, or Traceability?
-
-## Proposed Next Steps
-
-1. User reviews this proposal and answers the questions above.
-2. Build a small frontend spec for the first page.
-3. Implement the first Next.js screen using mock/adapted data.
-4. Map the screen to restserver APIs.
-5. Replace mock data with real API calls once backend review fixes are ready.
+1. Map Warehouse mock data to restserver API response shape.
+2. Map Production mock data to restserver API response shape.
+3. Add Traceability as the cross-workflow search page.
+4. Add Orders or Purchasing after backend review confirms endpoint readiness.

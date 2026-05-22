@@ -86,3 +86,12 @@ backend\.venv\Scripts\python.exe -c "from package.dbwrapper.table import Base; p
 ```
 
 Database-backed API tests also require MariaDB settings from `restserver/package/config/.env.example`.
+
+Engineers with MariaDB available can run the shared verification script:
+
+```powershell
+cd C:\Users\andyy\Desktop\Codex-workspace\projects\ERP-2.0
+.\scripts\run_restserver_runtime_verification.ps1 -InstallRequirements -RequireDb
+```
+
+The script prints JSON and intentionally does not print the database password. Share the full JSON output for follow-up review.

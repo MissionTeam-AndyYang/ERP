@@ -53,17 +53,36 @@ The 20260522 workflow should be understood as a full factory transaction backbon
 6. Production data fans out to input, output, reuse, machine, and labor detail tables.
 7. Shipping moves from product order to shipping order, shipping record, and shipping payment.
 
-## Verification Limitation
+## Runtime Verification
 
-Runtime import and Flask smoke testing were not completed because the current local Python environment does not have `sqlalchemy` installed. Static checks were completed without installing dependencies.
+Runtime verification was run after installing `restserver/package/requirements.txt` into `backend/.venv`.
 
-To run runtime verification later:
+Completed checks:
+
+- ORM metadata import passed.
+- `Base.metadata.tables` reported 79 tables.
+- Flask app import passed.
+- Flask app registered 26 blueprints.
+- Flask route map reported 70 routes.
+- `GET //heartbeat` with Flask test client returned HTTP 200 and a success payload.
+
+Database connection check:
+
+- Environment values were loaded from `restserver/package/config/.env.example`.
+- Connection target resolved to `localhost:3306/ewdb`.
+- SQLAlchemy/MariaDB connection did not complete because TCP connection to `localhost:3306` was refused.
+- `Test-NetConnection localhost -Port 3306` returned `TcpTestSucceeded: False`.
+- No local MariaDB/MySQL Windows service or process was detected during this check.
+
+Conclusion: restserver runtime import and non-DB Flask smoke tests pass. Database-backed verification still requires starting or installing MariaDB/MySQL on `localhost:3306` with the configured `ewdb` database.
+
+To rerun runtime verification later:
 
 ```powershell
 cd C:\Users\andyy\Desktop\Codex-workspace\projects\ERP-2.0
-py -m pip install -r restserver\package\requirements.txt
+backend\.venv\Scripts\python.exe -m pip install -r restserver\package\requirements.txt
 $env:PYTHONPATH='restserver'
-py -c "from package.dbwrapper.table import Base; print(len(Base.metadata.tables))"
+backend\.venv\Scripts\python.exe -c "from package.dbwrapper.table import Base; print(len(Base.metadata.tables))"
 ```
 
 Database-backed API tests also require MariaDB settings from `restserver/package/config/.env.example`.

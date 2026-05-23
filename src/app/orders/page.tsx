@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CalendarClock,
+  CheckCircle2,
   ClipboardList,
   DollarSign,
   Filter,
@@ -17,6 +18,7 @@ import type { OrderRiskLevel, OrderWorkspaceTab, SalesOrder } from "@/types/orde
 
 const tabs: { id: OrderWorkspaceTab; label: string }[] = [
   { id: "overview", label: "訂單總覽" },
+  { id: "commitment", label: "接單承諾" },
   { id: "delivery-risk", label: "交期風險" },
   { id: "fulfillment", label: "履約進度" },
   { id: "margin-payment", label: "毛利與收款" }
@@ -24,6 +26,7 @@ const tabs: { id: OrderWorkspaceTab; label: string }[] = [
 
 const tabDescriptions: Record<OrderWorkspaceTab, string> = {
   overview: "以履約風險管理視角查看進行中訂單、交期、生產可行性與目前階段。",
+  commitment: "以 ATP/CTP 檢核接單後是否可承諾交期，包含庫存、物料、產能、人員與品質/出貨限制。",
   "delivery-risk": "優先檢視交期與生產是否做得出來，包含缺料、產能、品檢與出貨阻擋。",
   fulfillment: "查看每張訂單從備料、生產、品檢、出貨到收款的履約 workflow。",
   "margin-payment": "第二順位追蹤預估/實際毛利，第三順位查看收款狀態。"
@@ -49,7 +52,26 @@ function riskTone(risk: OrderRiskLevel) {
   return "success";
 }
 
+function commitmentTone(decision: SalesOrder["commitmentDecision"]) {
+  if (decision === "不可承諾") {
+    return "danger";
+  }
+
+  if (decision === "需協調") {
+    return "warning";
+  }
+
+  return "success";
+}
+
 function getVisibleOrders(activeTab: OrderWorkspaceTab) {
+  if (activeTab === "commitment") {
+    return [...salesOrders].sort((a, b) => {
+      const rank = { "不可承諾": 0, "需協調": 1, "可承諾": 2 };
+      return rank[a.commitmentDecision] - rank[b.commitmentDecision];
+    });
+  }
+
   if (activeTab === "delivery-risk") {
     return salesOrders.filter((order) => order.deliveryRisk !== "正常");
   }
@@ -109,6 +131,7 @@ function OrdersTable({
               <th className="px-4 py-3 text-right">數量</th>
               <th className="px-4 py-3 text-right">訂單金額</th>
               <th className="px-4 py-3">交期</th>
+              <th className="px-4 py-3">接單承諾</th>
               <th className="px-4 py-3">生產可行性</th>
               <th className="px-4 py-3">履約狀態</th>
               <th className="px-4 py-3">毛利</th>
@@ -145,6 +168,12 @@ function OrdersTable({
                     <p className="mt-1 text-xs text-textSecondary">{order.dueDate}</p>
                   </td>
                   <td className="px-4 py-3">
+                    <StatusBadge tone={commitmentTone(order.commitmentDecision)}>
+                      {order.commitmentDecision}
+                    </StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">可承諾 {order.committedDate}</p>
+                  </td>
+                  <td className="px-4 py-3">
                     <p className="font-medium text-textPrimary">{order.productionFeasibility}</p>
                     <p className="mt-1 line-clamp-2 text-xs text-textSecondary">{order.riskReason}</p>
                   </td>
@@ -165,6 +194,48 @@ function OrdersTable({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function CommitmentCards() {
+  return (
+    <div className="grid gap-3 lg:grid-cols-3">
+      {salesOrders.map((order) => (
+        <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <StatusBadge tone={commitmentTone(order.commitmentDecision)}>
+                {order.commitmentDecision}
+              </StatusBadge>
+              <h3 className="mt-3 font-semibold text-textPrimary">{order.id}</h3>
+              <p className="mt-1 text-sm text-textSecondary">{order.product}</p>
+            </div>
+            <CheckCircle2 className="h-5 w-5 text-textSecondary" aria-hidden="true" />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">客戶要求</p>
+              <p className="mt-1 font-semibold text-textPrimary">{order.dueDate}</p>
+            </div>
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">可承諾日</p>
+              <p className="mt-1 font-semibold text-textPrimary">{order.committedDate}</p>
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            {order.commitmentChecks.slice(0, 3).map((check) => (
+              <div className="flex items-start justify-between gap-3 text-sm" key={`${order.id}-${check.area}`}>
+                <div>
+                  <p className="font-medium text-textPrimary">{check.area}</p>
+                  <p className="mt-1 line-clamp-2 text-xs text-textSecondary">{check.note}</p>
+                </div>
+                <StatusBadge tone={check.tone}>{check.status}</StatusBadge>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -223,6 +294,11 @@ function DetailPanel({ order }: { order: SalesOrder }) {
           <p className="mt-1 font-semibold text-textPrimary">{order.productionFeasibility}</p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
+          <p className="text-xs text-textSecondary">接單承諾</p>
+          <p className="mt-1 font-semibold text-textPrimary">{order.commitmentDecision}</p>
+          <p className="mt-1 text-xs text-textSecondary">可承諾 {order.committedDate}</p>
+        </div>
+        <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">訂單金額</p>
           <p className="mt-1 font-semibold text-textPrimary">{formatMoney(order.orderAmount)}</p>
         </div>
@@ -233,6 +309,19 @@ function DetailPanel({ order }: { order: SalesOrder }) {
             實際 {order.actualMarginRate === null ? "未結算" : `${order.actualMarginRate}%`}
           </p>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-textPrimary">接單承諾檢核</p>
+        {order.commitmentChecks.map((item) => (
+          <div className="rounded-md border border-border px-3 py-2" key={`${item.area}-${item.status}`}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium text-textPrimary">{item.area}</p>
+              <StatusBadge tone={item.tone}>{item.status}</StatusBadge>
+            </div>
+            <p className="mt-1 text-xs text-textSecondary">{item.note}</p>
+          </div>
+        ))}
       </div>
 
       <div className="space-y-2">
@@ -291,6 +380,15 @@ function MainContent({
   selectedOrder: SalesOrder;
   onSelectOrder: (order: SalesOrder) => void;
 }) {
+  if (activeTab === "commitment") {
+    return (
+      <div className="space-y-4">
+        <CommitmentCards />
+        <OrdersTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />
+      </div>
+    );
+  }
+
   if (activeTab === "delivery-risk") {
     return (
       <div className="space-y-4">
@@ -315,11 +413,12 @@ export default function OrdersPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
-                <StatusBadge tone="neutral">交期 / 生產可行性 / 毛利 / 收款</StatusBadge>
+                <StatusBadge tone="neutral">接單承諾 / 交期 / 生產可行性 / 毛利 / 收款</StatusBadge>
               </div>
-              <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單履約風險總覽</h2>
+              <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單承諾與履約風險總覽</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
-                以交期與生產是否做得出來為第一順位，串接庫存、備料、生產、品檢與出貨狀態；
+                先以 ATP/CTP 判斷接單後是否可承諾交期，再以交期與生產是否做得出來為第一順位，
+                串接庫存、備料、生產、品檢與出貨狀態；
                 毛利為第二順位，收款為第三順位，先支援管理者掌握履約風險。
               </p>
             </div>

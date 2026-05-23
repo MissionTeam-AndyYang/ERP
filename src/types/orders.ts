@@ -1,6 +1,6 @@
 import type { StatusTone } from "@/types/dashboard";
 
-export type OrderWorkspaceTab = "overview" | "delivery-risk" | "fulfillment" | "margin-payment";
+export type OrderWorkspaceTab = "overview" | "commitment" | "delivery-risk" | "fulfillment" | "margin-payment";
 
 export type OrderStage = "待確認" | "已接單" | "備料中" | "已排產" | "生產中" | "品檢中" | "待出貨" | "已出貨";
 
@@ -22,6 +22,13 @@ export type OrderFulfillmentStep = {
 
 export type OrderDependency = {
   area: "庫存" | "採購" | "生產" | "品檢" | "出貨" | "收款";
+  status: string;
+  note: string;
+  tone: StatusTone;
+};
+
+export type OrderCommitmentCheck = {
+  area: "ATP 庫存" | "物料缺口" | "產能" | "人員" | "品質/出貨";
   status: string;
   note: string;
   tone: StatusTone;
@@ -53,6 +60,9 @@ export type SalesOrder = {
   paymentStatus: string;
   owner: string;
   priority: "高" | "中" | "低";
+  committedDate: string;
+  commitmentDecision: "可承諾" | "需協調" | "不可承諾";
+  commitmentChecks: OrderCommitmentCheck[];
   dependencies: OrderDependency[];
   workflow: OrderFulfillmentStep[];
 };

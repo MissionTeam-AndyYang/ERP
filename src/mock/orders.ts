@@ -2,7 +2,7 @@ import type { OrderStatusSummary, SalesOrder } from "@/types/orders";
 
 export const orderSummary: OrderStatusSummary[] = [
   {
-    label: "進行中訂單",
+    label: "可承諾訂單",
     value: "36",
     hint: "本週需交付 18 張",
     tone: "info"
@@ -54,6 +54,15 @@ export const salesOrders: SalesOrder[] = [
     paymentStatus: "月結",
     owner: "業務一組",
     priority: "高",
+    committedDate: "2026-05-24",
+    commitmentDecision: "可承諾",
+    commitmentChecks: [
+      { area: "ATP 庫存", status: "部分可用", note: "製成品可用 7,220 盒，剩餘由今日工單補足", tone: "success" },
+      { area: "物料缺口", status: "無缺口", note: "主要原料與包材已備齊", tone: "success" },
+      { area: "產能", status: "可排入", note: "A1 線今日 14:30 前可完成剩餘量", tone: "success" },
+      { area: "人員", status: "足夠", note: "A1 班表符合預排工單需求", tone: "success" },
+      { area: "品質/出貨", status: "可銜接", note: "首件已通過，冷鏈車次已預排", tone: "success" }
+    ],
     dependencies: [
       { area: "庫存", status: "可用", note: "製成品可用 7,220 盒", tone: "success" },
       { area: "生產", status: "進行中", note: "完成率 72%", tone: "info" },
@@ -95,6 +104,15 @@ export const salesOrders: SalesOrder[] = [
     paymentStatus: "待出貨後請款",
     owner: "業務二組",
     priority: "高",
+    committedDate: "2026-05-25",
+    commitmentDecision: "不可承諾",
+    commitmentChecks: [
+      { area: "ATP 庫存", status: "不足", note: "成品無可用量，需重新生產", tone: "danger" },
+      { area: "物料缺口", status: "缺料", note: "冷凍玉米粒可用量不足，且原料批號仍待品質放行", tone: "danger" },
+      { area: "產能", status: "需重排", note: "B2 線 13:00 工單受缺料影響", tone: "warning" },
+      { area: "人員", status: "需支援", note: "B2 線晚班需跨線支援 2 人", tone: "warning" },
+      { area: "品質/出貨", status: "未確定", note: "待原料文件補齊後才能確認可生產日期", tone: "warning" }
+    ],
     dependencies: [
       { area: "庫存", status: "不足", note: "冷凍玉米粒可用量不足", tone: "danger" },
       { area: "採購", status: "需確認", note: "需確認今日補料可能性", tone: "warning" },
@@ -136,6 +154,15 @@ export const salesOrders: SalesOrder[] = [
     paymentStatus: "待出貨後請款",
     owner: "業務三組",
     priority: "中",
+    committedDate: "2026-05-23",
+    commitmentDecision: "需協調",
+    commitmentChecks: [
+      { area: "ATP 庫存", status: "待放行", note: "成品已完成但尚未成為可出貨庫存", tone: "warning" },
+      { area: "物料缺口", status: "無缺口", note: "工單已完成生產", tone: "success" },
+      { area: "產能", status: "已完成", note: "不需新增產能", tone: "success" },
+      { area: "人員", status: "正常", note: "不需追加人力", tone: "success" },
+      { area: "品質/出貨", status: "阻擋", note: "微生物快篩待判，暫緩入庫與出貨", tone: "warning" }
+    ],
     dependencies: [
       { area: "生產", status: "完成", note: "待 QC 放行", tone: "success" },
       { area: "品檢", status: "待判", note: "暫緩入庫/出貨", tone: "info" },

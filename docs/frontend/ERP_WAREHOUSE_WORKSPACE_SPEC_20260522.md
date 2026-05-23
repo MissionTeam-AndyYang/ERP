@@ -14,6 +14,8 @@ Warehouse first-version direction confirmed with the user and updated in code.
 
 The first Warehouse page is a management-oriented warehouse dashboard, not a full warehouse CRUD screen.
 
+Department ownership clarified by the user: after Purchasing completes material purchasing, Warehouse owns arrival receiving / inbound storage. Quality then performs material inspection before materials become available for production.
+
 User-confirmed focus areas:
 
 1. Current inventory value by category: 原料、物料、膠捲、在製品、製成品.
@@ -23,6 +25,7 @@ User-confirmed focus areas:
    - Less than one-third shelf life remaining, excluding 物料 and 膠捲.
    - Below safety stock.
 4. Today's pending inbound/outbound warehouse work.
+5. Production material arrival receiving and warehouse handoff status.
 
 Additional first-version additions:
 
@@ -49,6 +52,12 @@ Help management answer five questions:
 | 風險警示 | Turnover over one month, less than one-third shelf life, below safety stock |
 | 待處理入出庫 | Today's pending inbound, outbound, transfer, and confirmation tasks |
 | 庫存明細 | Batch/item/warehouse/source table with current/reserved/available quantity and selected workflow panel |
+
+Post-order receiving workflow:
+
+```txt
+material purchasing -> arrival -> warehouse receiving -> quality material inspection -> available inventory / blocked inventory
+```
 
 ## Data Shape
 
@@ -97,6 +106,8 @@ Warehouse capacity records are shaped around:
 | Warehouse capacity | `shipwarehouse` |
 | Pending inbound/outbound tasks | `inventory`, `purchase`, `sale`, `workorder` |
 | Value trend | inventory ledger or daily snapshot API |
+| Purchase arrival receiving | `goods_receipt_note`, `purchase`, `inventory` |
+| Quality release/block after receiving | quality-related tables, `batchnumber`, `inventory` |
 
 ## Next Integration Steps
 

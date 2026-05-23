@@ -14,6 +14,8 @@ Production first-version direction confirmed with the user and updated in code.
 
 The first Production page is a management-oriented production planning and MES dashboard.
 
+Department ownership clarified by the user: Production / Manufacturing owns the actual production step after Sales order, Production Control scheduling, Purchasing, Warehouse receiving, and Quality material inspection are completed.
+
 User-confirmed focus areas:
 
 1. Work orders should be shown from date and production-line viewpoints.
@@ -41,6 +43,12 @@ Help management answer six questions:
 4. Can the next week of work orders run on time based on materials, staff, and changeover time?
 5. Which work orders are at delivery risk?
 6. Are today's production efficiency, material loss, labor cost, and quality results acceptable?
+
+Post-order upstream dependency:
+
+```txt
+order -> production material request / scheduling -> material purchasing -> arrival receiving -> material inspection -> production
+```
 
 ## First-Version Tabs
 
@@ -90,6 +98,7 @@ Weekly schedule records are shaped around:
 | Bottleneck and available capacity | `aps`, `productline`, `workorder`, process setup data |
 | Changeover/cleaning time | process/product-line setup or scheduling rules |
 | Material readiness | `bom`, `inventory`, `batchnumber` |
+| Material inspection readiness | quality-related tables, `batchnumber`, `inventory` |
 | Staffing readiness | `work`, `processorder`, workforce/personnel data if available |
 | Delivery risk | `sale`, `product_order`, `workorder`, shipping due dates |
 | MES production data | `processorder`, `work`, `production_data` |

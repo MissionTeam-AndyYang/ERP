@@ -24,6 +24,8 @@ Planning / APS answers the next execution question:
 How do we turn promised orders into material requests, capacity plans, and work-order suggestions?
 ```
 
+Department ownership: this workspace represents Production Control / 生管. After Sales creates a formal order, Production Control owns production material request and scheduling.
+
 ## First-Version Goal
 
 Help management and planners answer:
@@ -72,6 +74,7 @@ product_order
 -> ATP/CTP commitment result
 -> planning case
 -> BOM explosion
+-> production material request
 -> inventory and batch availability check
 -> purchase request / transfer / quality release suggestion
 -> capacity and staff check
@@ -82,7 +85,7 @@ product_order
 ## Boundary With Other Workspaces
 
 - Orders: owns customer promise, due date risk, margin, payment, and fulfillment risk.
-- Planning / APS: owns material demand explosion, capacity feasibility, and work-order suggestions.
+- Planning / APS / Production Control: owns production material request, material demand explosion, capacity feasibility, scheduling, and work-order suggestions.
 - Purchasing: owns actual purchase request approval, purchase order, delivery risk, and receiving.
 - Production: owns finalized schedule, MES execution, efficiency, loss, and production quality.
 - Warehouse: owns available stock, reservation, picking, location, and pallet capacity.
@@ -116,4 +119,3 @@ product_order
 - Scenario simulation.
 - Frozen schedule control.
 - Multi-plant balancing.
-

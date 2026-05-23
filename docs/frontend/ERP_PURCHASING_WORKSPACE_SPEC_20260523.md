@@ -12,7 +12,7 @@ Purchasing first-version workspace has been implemented in code.
 
 ## Purpose
 
-Purchasing should support both pre-order ODM development and post-order fulfillment readiness. It is not only a purchase order list. The first version should show which suppliers and materials are needed for R&D sampling, supplier quotation, supplier contract basis, formal production purchasing, receiving, QC documents, and warehouse availability.
+Purchasing should support both pre-order ODM development and mass-production purchasing. It is not only a purchase order list. The first version should show which suppliers and materials are needed for R&D sampling, supplier quotation, supplier contract basis, formal production material purchasing, receiving, QC documents, and warehouse availability.
 
 ## First-Version Goal
 
@@ -25,6 +25,7 @@ Help management answer:
 5. Which suppliers need follow-up or replacement decisions?
 6. Which supplier material candidates are being used by R&D projects?
 7. Which supplier quotes or supplier contracts are needed before costing and sales quotation?
+8. Which production material purchase orders are required by Planning / APS after a formal order is received?
 
 ## First-Version Tabs
 
@@ -74,11 +75,19 @@ Pre-order ODM workflow:
 R&D development request -> supplier material sourcing -> sample material -> supplier quote -> supplier contract basis -> costing -> sales quotation
 ```
 
+Post-order mass-production purchasing workflow:
+
+```txt
+formal order -> production material request / schedule from Production Control -> material purchasing -> arrival -> warehouse receiving -> quality material inspection -> available inventory for production
+```
+
 Purchasing should connect back to:
 
 - Orders: delivery risk and customer due date.
+- Planning / APS / Production Control: production material requests, schedule-driven demand, and required arrival dates.
 - Production: material readiness for scheduled work orders.
-- Warehouse: available stock, safety stock, and inbound receiving.
+- Warehouse: inbound receiving, available stock, safety stock, and handoff after quality release.
+- Quality: material inspection and release/blocking after receiving.
 - R&D / Costing: supplier material candidates, sample materials, supplier quote, supplier contract basis.
 - Orders: sales quotation and customer contract should use supplier quotation/contract assumptions when available.
 

@@ -35,16 +35,28 @@ ERP 2.0 前端第一版先以經營者與管理者視角建立完整營運工作
 
 ## 3. 核心流程
 
+### 接單前流程
+
 ```txt
-R&D development request
--> Supplier sourcing / sample materials
--> Trial recipe / sampling
--> Customer selection
--> Supplier quote / supplier contract
--> Costing
--> Sales quote / negotiation
--> Customer contract
--> Orders
+開發需求（研發）
+-> 配方選材（研發）
+-> 打樣（研發）
+-> 送樣（業務）
+-> 客戶確認樣品（業務）
+-> 供應商報價/合約（採購）
+-> 成本試算、營養標示（研發）
+-> 客戶報價/合約（業務）
+```
+
+### 接單後流程
+
+```txt
+訂單（業務）
+-> 生產材料請購/排程（生管）
+-> 材料採購（採購）
+-> 到貨入庫（倉庫）
+-> 材料檢驗（品保）
+-> 生產（製造）
 -> Planning / APS
 -> Purchasing / Warehouse / Workforce
 -> Production
@@ -61,14 +73,14 @@ Settings / Master Data / Permissions / i18n
 
 流程說明：
 
-1. `R&D / Costing` 承接開發需求，管理配方試作、送樣、客戶選品、BOM 版本與成本試算。
-2. `Purchasing` 在接單前支援供應商找料、樣品料、供應商報價與供應商合約；接單後支援正式請購與到貨。
-3. `Orders` 在接單前承接業務報價、議價與客戶合約；接單後判斷承諾交期與履約風險。
+1. `R&D / Costing` 承接開發需求、配方選材、打樣、成本試算與營養標示。
+2. `Purchasing` 在接單前支援供應商報價/合約；接單後支援材料採購。
+3. `Orders` 在接單前承接送樣、客戶確認樣品、客戶報價/合約；接單後承接正式訂單與履約風險。
 4. `Items / BOM` 承接已核准的品項與量產 BOM 主檔。
-5. `Planning / APS` 將正式訂單需求展開成物料、產能、人員與工單建議。
-6. `Purchasing / Warehouse / Workforce` 分別處理缺料、庫存與人力準備。
-7. `Production` 執行工單、MES 狀態、效率、損耗與生產品質。
-8. `Quality` 決定放行、隔離、返工、報廢與文件完整性。
+5. `Planning / APS` 由生管負責，將正式訂單需求展開成生產材料請購、產能、人員與排程/工單建議。
+6. `Purchasing / Warehouse / Workforce` 分別處理材料採購、到貨入庫與人力準備。
+7. `Quality` 由品保負責材料檢驗、製程/成品檢驗與放行阻擋。
+8. `Production` 由製造負責正式生產、MES 狀態、效率、損耗與生產品質。
 9. `Logistics` 處理出庫、派車、冷鏈、文件與簽收。
 10. `Finance` 追蹤預估/實際毛利、請款、應收與成本差異。
 11. `Settings / Master Data` 作為底層治理，維護主檔、權限、串接與語言。

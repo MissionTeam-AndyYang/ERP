@@ -22,6 +22,11 @@ Earlier planning deferred quotation and contract status from the first page impl
 
 Orders should first be a fulfillment-risk management workspace on screen, and secondarily a sales quotation / customer contract / sales-order entry page as the workflow deepens.
 
+Department ownership clarified by the user:
+
+- Before order: Sales owns sample submission, customer sample confirmation, customer quotation/negotiation, and customer contract.
+- After order: Sales owns the formal order and customer commitment; Production Control then owns production material request and scheduling.
+
 After the user raised the order-to-material-request and work-order scheduling question, the first layer of ATP/CTP commitment checking is now included in Orders. Full APS/MRP generation remains a later Planning / APS workspace.
 
 ## First-Version Goal
@@ -91,7 +96,7 @@ product_order -> ATP/CTP commitment check -> material readiness -> work_order ->
 Pre-order ODM workflow:
 
 ```txt
-R&D quotation basis -> supplier quote / contract assumptions -> sales quote -> negotiation -> customer contract -> formal order -> ATP/CTP commitment check
+R&D sample/costing basis -> sample submission -> customer sample confirmation -> supplier quote / contract assumptions -> sales quote / negotiation -> customer contract -> formal order -> ATP/CTP commitment check
 ```
 
 Quotation and customer contract are not yet fully implemented on the page, but they are now part of the Orders domain roadmap.

@@ -1,5 +1,5 @@
-import type { ProductionLine, StatusTone } from "@/types/dashboard";
 import { StatusBadge } from "@/components/ui/status-badge";
+import type { ProductionLine, StatusTone } from "@/types/dashboard";
 
 const progressStyles: Record<StatusTone, string> = {
   success: "bg-success",

@@ -52,3 +52,53 @@ export type AlertDistributionItem = {
   value: number;
   tone: StatusTone;
 };
+
+export type ManagerFocusItem = {
+  label: string;
+  value: string;
+  detail: string;
+  tone: StatusTone;
+  icon: LucideIcon;
+};
+
+export type ManagerDecisionItem = {
+  title: string;
+  owner: string;
+  due: string;
+  impact: string;
+  action: string;
+  tone: StatusTone;
+};
+
+export type DepartmentBlocker = {
+  department: string;
+  title: string;
+  detail: string;
+  owner: string;
+  relatedModule: string;
+  href: string;
+  tone: StatusTone;
+};
+
+export type TodayTask = {
+  time: string;
+  module: string;
+  title: string;
+  status: string;
+  tone: StatusTone;
+};
+
+export type PreOrderPipelineItem = {
+  stage: string;
+  count: number;
+  focus: string;
+  owner: string;
+  tone: StatusTone;
+};
+
+export type ManagerSnapshot = {
+  fulfillmentRisk: string;
+  deliveryCommitment: string;
+  marginSignal: string;
+  cashSignal: string;
+};

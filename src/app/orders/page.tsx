@@ -1,106 +1,388 @@
-import { CalendarClock, ClipboardList, Truck } from "lucide-react";
-import { CompactListPanel } from "@/components/common/compact-list-panel";
-import { DetailCard } from "@/components/common/detail-card";
-import { ModuleHero } from "@/components/common/module-hero";
-import { ModuleKpiCard } from "@/components/common/module-kpi-card";
-import { ProcessBoard } from "@/components/common/process-board";
+"use client";
+
+import {
+  AlertTriangle,
+  CalendarClock,
+  ClipboardList,
+  DollarSign,
+  Filter,
+  Search,
+  Truck
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { AppLayout } from "@/layouts/app-layout";
+import { orderSummary, salesOrders } from "@/mock/orders";
+import type { OrderRiskLevel, OrderWorkspaceTab, SalesOrder } from "@/types/orders";
 
-const kpis = [
-  { label: "本日訂單", value: "36", hint: "12 筆急單", tone: "info" as const },
-  { label: "待排產", value: "9", hint: "需生管確認", tone: "warning" as const },
-  { label: "待出貨", value: "14", hint: "今日配送", tone: "success" as const },
-  { label: "交期風險", value: "3", hint: "需主管決策", tone: "danger" as const }
+const tabs: { id: OrderWorkspaceTab; label: string }[] = [
+  { id: "overview", label: "訂單總覽" },
+  { id: "delivery-risk", label: "交期風險" },
+  { id: "fulfillment", label: "履約進度" },
+  { id: "margin-payment", label: "毛利與收款" }
 ];
 
-const orderCards = [
-  {
-    eyebrow: "SO-240512-018",
-    title: "全聯中區 DC 補貨訂單",
-    subtitle: "客戶：全聯 / 通路：冷凍食品 / 交期 2026-05-14",
-    status: "生產中",
-    tone: "success" as const,
-    rows: [
-      { label: "品項", value: "咖哩雞肉調理包" },
-      { label: "數量", value: "12,000 盒" },
-      { label: "關聯工單", value: "MO-240512-001" }
-    ]
-  },
-  {
-    eyebrow: "SO-240512-022",
-    title: "便利商店新品試賣訂單",
-    subtitle: "客戶：CVS 北區 / 通路：即食餐盒 / 交期 2026-05-16",
-    status: "待排產",
-    tone: "warning" as const,
-    rows: [
-      { label: "品項", value: "番茄牛肉燉飯" },
-      { label: "數量", value: "4,800 盒" },
-      { label: "BOM 版本", value: "BOM-FG-RICE-003" }
-    ]
+const tabDescriptions: Record<OrderWorkspaceTab, string> = {
+  overview: "以履約風險管理視角查看進行中訂單、交期、生產可行性與目前階段。",
+  "delivery-risk": "優先檢視交期與生產是否做得出來，包含缺料、產能、品檢與出貨阻擋。",
+  fulfillment: "查看每張訂單從備料、生產、品檢、出貨到收款的履約 workflow。",
+  "margin-payment": "第二順位追蹤預估/實際毛利，第三順位查看收款狀態。"
+};
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("zh-TW").format(value);
+}
+
+function formatMoney(value: number) {
+  return `$${new Intl.NumberFormat("zh-TW").format(value)}`;
+}
+
+function riskTone(risk: OrderRiskLevel) {
+  if (risk === "高風險") {
+    return "danger";
   }
-];
 
-const alerts = [
-  {
-    id: "ORD-AL-001",
-    title: "SO-240512-022 尚未排產",
-    detail: "交期剩 4 天，需確認 A2 產線與包材庫存。",
-    meta: "關聯品項 FG-RICE-003",
-    status: "待生管",
-    tone: "warning" as const
-  },
-  {
-    id: "ORD-AL-002",
-    title: "全聯訂單出貨需保留批號鏈路",
-    detail: "此訂單需完整出貨批號與品保放行紀錄。",
-    meta: "關聯批號 B240512-A101",
-    status: "追蹤中",
-    tone: "info" as const
+  if (risk === "注意") {
+    return "warning";
   }
-];
 
-const flow = [
-  {
-    title: "待確認",
-    items: [{ id: "SO-024", title: "餐飲通路急單", detail: "等待業務確認交期", tone: "warning" as const }]
-  },
-  {
-    title: "待排產",
-    items: [{ id: "SO-022", title: "番茄牛肉燉飯", detail: "需 A2 產線排程", tone: "warning" as const }]
-  },
-  {
-    title: "生產中",
-    items: [{ id: "SO-018", title: "咖哩雞肉調理包", detail: "MO-240512-001", tone: "success" as const }]
-  },
-  {
-    title: "待出貨",
-    items: [{ id: "SO-016", title: "玉米濃湯", detail: "等待冷鏈派車", tone: "info" as const }]
+  return "success";
+}
+
+function getVisibleOrders(activeTab: OrderWorkspaceTab) {
+  if (activeTab === "delivery-risk") {
+    return salesOrders.filter((order) => order.deliveryRisk !== "正常");
   }
-];
+
+  if (activeTab === "margin-payment") {
+    return [...salesOrders].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
+  }
+
+  return salesOrders;
+}
+
+function KpiStrip() {
+  const icons = [ClipboardList, CalendarClock, AlertTriangle, DollarSign];
+
+  return (
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {orderSummary.map((item, index) => {
+        const Icon = icons[index] ?? ClipboardList;
+        return (
+          <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-textSecondary">{item.label}</p>
+                <p className="mt-2 text-2xl font-semibold text-textPrimary">{item.value}</p>
+              </div>
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-textSecondary">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-textSecondary">{item.hint}</p>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function OrdersTable({
+  activeTab,
+  selectedId,
+  onSelect
+}: {
+  activeTab: OrderWorkspaceTab;
+  selectedId: string;
+  onSelect: (order: SalesOrder) => void;
+}) {
+  const rows = useMemo(() => getVisibleOrders(activeTab), [activeTab]);
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
+      <div className="overflow-x-auto">
+        <table className="min-w-[1180px] w-full border-collapse text-sm">
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
+            <tr>
+              <th className="px-4 py-3">訂單 / 客戶</th>
+              <th className="px-4 py-3">產品</th>
+              <th className="px-4 py-3 text-right">數量</th>
+              <th className="px-4 py-3 text-right">訂單金額</th>
+              <th className="px-4 py-3">交期</th>
+              <th className="px-4 py-3">生產可行性</th>
+              <th className="px-4 py-3">履約狀態</th>
+              <th className="px-4 py-3">毛利</th>
+              <th className="px-4 py-3">收款</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((order) => {
+              const isSelected = order.id === selectedId;
+              return (
+                <tr
+                  className={`cursor-pointer transition ${
+                    isSelected ? "bg-info/10" : "hover:bg-slate-50"
+                  }`}
+                  key={order.id}
+                  onClick={() => onSelect(order)}
+                >
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-textPrimary">{order.id}</p>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      {order.customer} · {order.channel}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-textPrimary">{order.product}</p>
+                    <p className="mt-1 text-xs text-textSecondary">{order.itemNo}</p>
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-textPrimary">
+                    {formatNumber(order.quantity)} {order.unit}
+                  </td>
+                  <td className="px-4 py-3 text-right text-textPrimary">{formatMoney(order.orderAmount)}</td>
+                  <td className="px-4 py-3">
+                    <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">{order.dueDate}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-textPrimary">{order.productionFeasibility}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-textSecondary">{order.riskReason}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge tone={order.tone}>{order.stage}</StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">{order.productionStatus}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-textPrimary">預估 {order.estimatedMarginRate}%</p>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      實際 {order.actualMarginRate === null ? "未結算" : `${order.actualMarginRate}%`}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3 text-textPrimary">{order.paymentStatus}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RiskCards() {
+  return (
+    <div className="grid gap-3 lg:grid-cols-3">
+      {salesOrders
+        .filter((order) => order.deliveryRisk !== "正常")
+        .map((order) => (
+          <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+                <h3 className="mt-3 font-semibold text-textPrimary">{order.id}</h3>
+                <p className="mt-1 text-sm text-textSecondary">{order.product}</p>
+              </div>
+              <CalendarClock className="h-5 w-5 text-textSecondary" aria-hidden="true" />
+            </div>
+            <p className="mt-3 text-sm leading-6 text-textSecondary">{order.riskReason}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-md bg-slate-50 p-3">
+                <p className="text-xs text-textSecondary">交期</p>
+                <p className="mt-1 font-semibold text-textPrimary">{order.dueDate}</p>
+              </div>
+              <div className="rounded-md bg-slate-50 p-3">
+                <p className="text-xs text-textSecondary">生產</p>
+                <p className="mt-1 font-semibold text-textPrimary">{order.productionFeasibility}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+function DetailPanel({ order }: { order: SalesOrder }) {
+  return (
+    <aside className="space-y-4 rounded-lg border border-border bg-white p-4 shadow-card xl:sticky xl:top-24">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">目前訂單</p>
+          <h2 className="mt-1 text-lg font-semibold text-textPrimary">{order.id}</h2>
+          <p className="mt-1 text-sm text-textSecondary">{order.customer}</p>
+        </div>
+        <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="rounded-md bg-slate-50 p-3">
+          <p className="text-xs text-textSecondary">交期</p>
+          <p className="mt-1 font-semibold text-textPrimary">{order.dueDate}</p>
+        </div>
+        <div className="rounded-md bg-slate-50 p-3">
+          <p className="text-xs text-textSecondary">生產可行性</p>
+          <p className="mt-1 font-semibold text-textPrimary">{order.productionFeasibility}</p>
+        </div>
+        <div className="rounded-md bg-slate-50 p-3">
+          <p className="text-xs text-textSecondary">訂單金額</p>
+          <p className="mt-1 font-semibold text-textPrimary">{formatMoney(order.orderAmount)}</p>
+        </div>
+        <div className="rounded-md bg-slate-50 p-3">
+          <p className="text-xs text-textSecondary">毛利率</p>
+          <p className="mt-1 font-semibold text-textPrimary">{order.estimatedMarginRate}% 預估</p>
+          <p className="mt-1 text-xs text-textSecondary">
+            實際 {order.actualMarginRate === null ? "未結算" : `${order.actualMarginRate}%`}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-textPrimary">履約依賴</p>
+        {order.dependencies.map((item) => (
+          <div className="rounded-md border border-border px-3 py-2" key={`${item.area}-${item.status}`}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium text-textPrimary">{item.area}</p>
+              <StatusBadge tone={item.tone}>{item.status}</StatusBadge>
+            </div>
+            <p className="mt-1 text-xs text-textSecondary">{item.note}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-textPrimary">履約流程</p>
+        {order.workflow.map((step, index) => (
+          <div className="flex gap-3" key={`${step.label}-${step.ref}`}>
+            <div className="flex flex-col items-center">
+              <span
+                className={`grid h-6 w-6 place-items-center rounded-full text-xs font-bold ${
+                  step.tone === "success"
+                    ? "bg-success text-white"
+                    : step.tone === "danger"
+                      ? "bg-danger text-white"
+                      : step.tone === "warning"
+                        ? "bg-warning text-white"
+                        : "bg-info text-white"
+                }`}
+              >
+                {index + 1}
+              </span>
+              {index < order.workflow.length - 1 ? <span className="h-7 w-px bg-border" /> : null}
+            </div>
+            <div className="min-w-0 pb-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium text-textPrimary">{step.label}</p>
+                <StatusBadge tone={step.tone}>{step.status}</StatusBadge>
+              </div>
+              <p className="mt-1 truncate text-xs text-textSecondary">{step.ref}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function MainContent({
+  activeTab,
+  selectedOrder,
+  onSelectOrder
+}: {
+  activeTab: OrderWorkspaceTab;
+  selectedOrder: SalesOrder;
+  onSelectOrder: (order: SalesOrder) => void;
+}) {
+  if (activeTab === "delivery-risk") {
+    return (
+      <div className="space-y-4">
+        <RiskCards />
+        <OrdersTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />
+      </div>
+    );
+  }
+
+  return <OrdersTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />;
+}
 
 export default function OrdersPage() {
+  const [activeTab, setActiveTab] = useState<OrderWorkspaceTab>("overview");
+  const [selectedOrder, setSelectedOrder] = useState<SalesOrder>(salesOrders[0]);
+
   return (
-    <AppLayout activePath="/orders" title="訂單中心 Order Module">
-      <div className="mx-auto max-w-[1440px] space-y-6">
-        <ModuleHero
-          badge="Phase 1.5 Orders"
-          title="客戶訂單、交期與排產連動中心"
-          description="從客戶需求出發，串接品項、BOM、工單、生產狀態、批號與物流出貨，讓訂單能一路追到交付。"
-          metrics={[
-            { label: "訂單", value: "36", icon: ClipboardList },
-            { label: "交期風險", value: "3", icon: CalendarClock },
-            { label: "待出貨", value: "14", icon: Truck }
-          ]}
-        />
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
-        </section>
-        <ProcessBoard eyebrow="Order Workflow" title="訂單流程看板" columns={flow} />
-        <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
-          <div className="grid gap-4">
-            {orderCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+    <AppLayout activePath="/orders" title="訂單履約 Orders Workspace">
+      <div className="mx-auto max-w-[1480px] space-y-5">
+        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone="neutral">交期 / 生產可行性 / 毛利 / 收款</StatusBadge>
+              </div>
+              <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單履約風險總覽</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
+                以交期與生產是否做得出來為第一順位，串接庫存、備料、生產、品檢與出貨狀態；
+                毛利為第二順位，收款為第三順位，先支援管理者掌握履約風險。
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto]">
+              <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
+                <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
+                <input
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                  placeholder="訂單 / 客戶 / 產品 / 交期"
+                />
+              </label>
+              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+                <Filter className="h-4 w-4" aria-hidden="true" />
+                篩選
+              </button>
+              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+                <Truck className="h-4 w-4" aria-hidden="true" />
+                履約
+              </button>
+            </div>
           </div>
-          <CompactListPanel eyebrow="Order Alerts" title="訂單風險與待辦" items={alerts} />
+        </section>
+
+        <KpiStrip />
+
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-border bg-white p-3 shadow-card">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">訂單視圖</p>
+                  <h3 className="mt-1 text-lg font-semibold text-textPrimary">
+                    {tabs.find((tab) => tab.id === activeTab)?.label}
+                  </h3>
+                  <p className="mt-1 text-sm text-textSecondary">{tabDescriptions[activeTab]}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {tabs.map((tab) => (
+                    <button
+                      className={`h-9 rounded-button px-3 text-sm font-medium transition ${
+                        activeTab === tab.id
+                          ? "bg-primary text-white"
+                          : "bg-slate-100 text-textSecondary hover:bg-slate-200"
+                      }`}
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      type="button"
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <MainContent
+              activeTab={activeTab}
+              selectedOrder={selectedOrder}
+              onSelectOrder={setSelectedOrder}
+            />
+          </div>
+
+          <DetailPanel order={selectedOrder} />
         </section>
       </div>
     </AppLayout>

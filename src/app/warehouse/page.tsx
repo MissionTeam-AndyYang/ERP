@@ -457,7 +457,7 @@ export default function WarehousePage() {
   const [selectedRecord, setSelectedRecord] = useState<WarehouseRecord>(warehouseRecords[0]);
 
   return (
-    <AppLayout activePath="/warehouse" title="倉庫管理 Warehouse Workspace">
+    <AppLayout activePath="/warehouse" titleKey="warehouse.layoutTitle">
       <div className="mx-auto max-w-[1480px] space-y-5">
         <section className="rounded-lg border border-border bg-white p-4 shadow-card">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">

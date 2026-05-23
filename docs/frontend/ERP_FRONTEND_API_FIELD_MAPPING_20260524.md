@@ -476,3 +476,19 @@ For the first API integration:
 ## 6. Decision
 
 The frontend V1 pages are ready for API mapping. The next practical engineering step is Warehouse read-only integration, followed by Orders, Production and Quality.
+
+## 7. 2026-05-24 API Development Specs
+
+Detailed frontend-driven API development specs have been added under:
+
+```txt
+docs/frontend/api/
+```
+
+Start from:
+
+```txt
+docs/frontend/api/ERP_API_DEVELOPMENT_SPECS_INDEX_20260524.md
+```
+
+These files define aggregation APIs, detail APIs, response datasets, field structures, calculation rules, existing restserver candidates and engineer confirmation items for each V1 workspace.

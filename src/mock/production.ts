@@ -53,9 +53,12 @@ export const productionOrders: WorkOrder[] = [
     priority: "高",
     sourceOrder: "SO-20260520-018",
     bomNo: "BOM-FG-CURRY-101",
+    customerDueDate: "2026-05-24",
+    deliveryRisk: "正常",
     scheduleDate: "2026-05-23",
     startTime: "08:00",
     endTime: "14:30",
+    changeoverMinutes: 30,
     materialStatus: "足夠",
     staffStatus: "足夠",
     requiredStaff: 9,
@@ -79,6 +82,8 @@ export const productionOrders: WorkOrder[] = [
       result: "首件與製程檢查正常",
       tone: "success"
     },
+    qualityBlocksInventory: false,
+    qualityBlocksShipment: false,
     materials: [
       {
         itemNo: "RM-CHICKEN-022",
@@ -132,9 +137,12 @@ export const productionOrders: WorkOrder[] = [
     priority: "高",
     sourceOrder: "SO-20260521-006",
     bomNo: "BOM-FG-VEG-207",
+    customerDueDate: "2026-05-24",
+    deliveryRisk: "高風險",
     scheduleDate: "2026-05-23",
     startTime: "13:00",
     endTime: "16:20",
+    changeoverMinutes: 45,
     materialStatus: "短缺",
     staffStatus: "需支援",
     requiredStaff: 7,
@@ -158,6 +166,8 @@ export const productionOrders: WorkOrder[] = [
       result: "等待備料完成後開線",
       tone: "warning"
     },
+    qualityBlocksInventory: true,
+    qualityBlocksShipment: true,
     materials: [
       {
         itemNo: "RM-CORN-001",
@@ -210,9 +220,12 @@ export const productionOrders: WorkOrder[] = [
     priority: "中",
     sourceOrder: "SO-20260519-011",
     bomNo: "BOM-FG-CHICKEN-315",
+    customerDueDate: "2026-05-23",
+    deliveryRisk: "注意",
     scheduleDate: "2026-05-23",
     startTime: "10:00",
     endTime: "15:10",
+    changeoverMinutes: 20,
     materialStatus: "足夠",
     staffStatus: "足夠",
     requiredStaff: 6,
@@ -236,6 +249,8 @@ export const productionOrders: WorkOrder[] = [
       result: "微生物快篩等待判定",
       tone: "info"
     },
+    qualityBlocksInventory: true,
+    qualityBlocksShipment: true,
     materials: [
       {
         itemNo: "RM-CHICKEN-022",
@@ -275,6 +290,8 @@ export const productionWeekSchedule: ProductionDaySchedule[] = [
         dailyCapacityHours: 10,
         usedHours: 7.5,
         availableHours: 2.5,
+        changeoverHours: 0.5,
+        bottleneckRank: 3,
         tone: "info",
         slots: [
           {
@@ -307,6 +324,8 @@ export const productionWeekSchedule: ProductionDaySchedule[] = [
         dailyCapacityHours: 10,
         usedHours: 6.5,
         availableHours: 3.5,
+        changeoverHours: 0.75,
+        bottleneckRank: 4,
         tone: "warning",
         slots: [
           {
@@ -328,6 +347,8 @@ export const productionWeekSchedule: ProductionDaySchedule[] = [
         dailyCapacityHours: 9,
         usedHours: 7.5,
         availableHours: 1.5,
+        changeoverHours: 0.33,
+        bottleneckRank: 2,
         tone: "info",
         slots: [
           {
@@ -355,6 +376,8 @@ export const productionWeekSchedule: ProductionDaySchedule[] = [
         dailyCapacityHours: 10,
         usedHours: 8,
         availableHours: 2,
+        changeoverHours: 0.5,
+        bottleneckRank: 3,
         tone: "warning",
         slots: [
           {
@@ -376,6 +399,8 @@ export const productionWeekSchedule: ProductionDaySchedule[] = [
         dailyCapacityHours: 10,
         usedHours: 4,
         availableHours: 6,
+        changeoverHours: 0.25,
+        bottleneckRank: 5,
         tone: "success",
         slots: [
           {
@@ -403,6 +428,8 @@ export const productionWeekSchedule: ProductionDaySchedule[] = [
         dailyCapacityHours: 8,
         usedHours: 7.5,
         availableHours: 0.5,
+        changeoverHours: 1,
+        bottleneckRank: 1,
         tone: "danger",
         slots: [
           {

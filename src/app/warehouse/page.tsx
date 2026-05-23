@@ -110,6 +110,9 @@ function ValueAndSpaceView() {
                 <th className="px-4 py-3 text-right">庫存價值</th>
                 <th className="px-4 py-3">價值佔比</th>
                 <th className="px-4 py-3 text-right">佔用板數</th>
+                <th className="px-4 py-3 text-right">預留價值</th>
+                <th className="px-4 py-3 text-right">可用價值</th>
+                <th className="px-4 py-3 text-right">7日趨勢</th>
                 <th className="px-4 py-3 text-right">品項數</th>
               </tr>
             </thead>
@@ -131,6 +134,18 @@ function ValueAndSpaceView() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right text-textPrimary">{formatNumber(item.palletCount)} 板</td>
+                  <td className="px-4 py-3 text-right text-textPrimary">{formatMoney(item.reservedAmount)}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-textPrimary">
+                    {formatMoney(item.availableAmount)}
+                  </td>
+                  <td
+                    className={`px-4 py-3 text-right font-medium ${
+                      item.trend7Days >= 0 ? "text-warning" : "text-success"
+                    }`}
+                  >
+                    {item.trend7Days >= 0 ? "+" : ""}
+                    {item.trend7Days}%
+                  </td>
                   <td className="px-4 py-3 text-right text-textPrimary">{formatNumber(item.itemCount)}</td>
                 </tr>
               ))}
@@ -213,7 +228,7 @@ function TaskView() {
               <th className="px-4 py-3">類型</th>
               <th className="px-4 py-3">品項 / 批號</th>
               <th className="px-4 py-3">來源單號</th>
-              <th className="px-4 py-3 text-right">數量</th>
+              <th className="px-4 py-3 text-right">現有 / 預留 / 可用</th>
               <th className="px-4 py-3 text-right">板數</th>
               <th className="px-4 py-3">負責</th>
               <th className="px-4 py-3">時間</th>
@@ -302,7 +317,8 @@ function WarehouseTable({
                     <p className="mt-1 text-xs text-textSecondary">{record.sourceNo}</p>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-textPrimary">
-                    {formatNumber(record.quantity)} {record.unit}
+                    {formatNumber(record.quantity)} / {formatNumber(record.reservedQuantity)} /{" "}
+                    {formatNumber(record.availableQuantity)} {record.unit}
                   </td>
                   <td className="px-4 py-3 text-right text-textPrimary">{formatMoney(record.amount)}</td>
                   <td className="px-4 py-3 text-right text-textPrimary">{record.palletCount} 板</td>
@@ -339,14 +355,18 @@ function DetailPanel({ record }: { record: WarehouseRecord }) {
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-xs text-textSecondary">目前數量</p>
+          <p className="text-xs text-textSecondary">現有 / 預留 / 可用</p>
           <p className="mt-1 font-semibold text-textPrimary">
-            {formatNumber(record.quantity)} {record.unit}
+            {formatNumber(record.quantity)} / {formatNumber(record.reservedQuantity)} /{" "}
+            {formatNumber(record.availableQuantity)} {record.unit}
           </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
-          <p className="text-xs text-textSecondary">庫存價值</p>
+          <p className="text-xs text-textSecondary">價值 / 預留 / 可用</p>
           <p className="mt-1 font-semibold text-textPrimary">{formatMoney(record.amount)}</p>
+          <p className="mt-1 text-xs text-textSecondary">
+            {formatMoney(record.reservedAmount)} / {formatMoney(record.availableAmount)}
+          </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">佔用板數</p>

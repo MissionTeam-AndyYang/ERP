@@ -60,9 +60,12 @@ export type WorkOrder = {
   priority: "高" | "中" | "低";
   sourceOrder: string;
   bomNo: string;
+  customerDueDate: string;
+  deliveryRisk: "正常" | "注意" | "高風險";
   scheduleDate: string;
   startTime: string;
   endTime: string;
+  changeoverMinutes: number;
   materialStatus: ProductionMaterialStatus;
   staffStatus: ProductionStaffStatus;
   requiredStaff: number;
@@ -78,6 +81,8 @@ export type WorkOrder = {
   laborCost: number;
   unitLaborCost: number;
   quality: QualitySnapshot;
+  qualityBlocksInventory: boolean;
+  qualityBlocksShipment: boolean;
   materials: ProductionMaterial[];
   workflow: ProductionWorkflowStep[];
   relatedDocuments: ProductionRelatedDocument[];
@@ -101,6 +106,8 @@ export type ProductionLineSchedule = {
   dailyCapacityHours: number;
   usedHours: number;
   availableHours: number;
+  changeoverHours: number;
+  bottleneckRank: number;
   slots: ProductionScheduleSlot[];
   tone: StatusTone;
 };

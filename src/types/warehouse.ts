@@ -24,8 +24,12 @@ export type WarehouseRecord = {
   sourceType: WarehouseSourceType;
   sourceNo: string;
   quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
   unit: string;
   amount: number;
+  reservedAmount: number;
+  availableAmount: number;
   palletCount: number;
   safetyStock: number;
   expiryDate: string;
@@ -42,8 +46,11 @@ export type WarehouseCategorySummary = {
   category: InventoryCategory;
   amount: number;
   amountRatio: number;
+  reservedAmount: number;
+  availableAmount: number;
   palletCount: number;
   itemCount: number;
+  trend7Days: number;
   tone: StatusTone;
 };
 

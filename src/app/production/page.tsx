@@ -45,6 +45,18 @@ function formatMoney(value: number) {
   return `$${new Intl.NumberFormat("zh-TW").format(value)}`;
 }
 
+function getRiskTone(risk: WorkOrder["deliveryRisk"]) {
+  if (risk === "高風險") {
+    return "danger";
+  }
+
+  if (risk === "注意") {
+    return "warning";
+  }
+
+  return "success";
+}
+
 function getVisibleOrders(activeTab: ProductionWorkspaceTab) {
   if (activeTab === "mes") {
     return productionOrders.filter((order) => order.scheduleDate === "2026-05-23");
@@ -108,10 +120,13 @@ function WeekScheduleView() {
                         {line.line} · {line.processType}
                       </p>
                       <p className="mt-1 text-xs text-textSecondary">
-                        已排 {line.usedHours} hr / 可用 {line.availableHours} hr
+                        已排 {line.usedHours} hr / 可用 {line.availableHours} hr / 換線 {line.changeoverHours} hr
                       </p>
                     </div>
-                    <StatusBadge tone={line.tone}>{usedRatio}%</StatusBadge>
+                    <div className="flex flex-col items-end gap-1">
+                      <StatusBadge tone={line.tone}>{usedRatio}%</StatusBadge>
+                      <span className="text-xs text-textSecondary">瓶頸 #{line.bottleneckRank}</span>
+                    </div>
                   </div>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
                     <div className="h-full rounded-full bg-primary" style={{ width: `${usedRatio}%` }} />
@@ -189,6 +204,15 @@ function AnalyticsView() {
               </p>
             </div>
           </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatusBadge tone={getRiskTone(order.deliveryRisk)}>交期 {order.deliveryRisk}</StatusBadge>
+            <StatusBadge tone={order.qualityBlocksInventory ? "warning" : "success"}>
+              {order.qualityBlocksInventory ? "暫緩入庫" : "可入庫"}
+            </StatusBadge>
+            <StatusBadge tone={order.qualityBlocksShipment ? "warning" : "success"}>
+              {order.qualityBlocksShipment ? "暫緩出貨" : "可出貨"}
+            </StatusBadge>
+          </div>
           <p className="mt-3 text-sm leading-6 text-textSecondary">{order.quality.result}</p>
         </div>
       ))}
@@ -220,6 +244,7 @@ function ProductionTable({
               <th className="px-4 py-3">進度</th>
               <th className="px-4 py-3">料品 / 人員</th>
               <th className="px-4 py-3">MES</th>
+              <th className="px-4 py-3">交期 / 換線</th>
               <th className="px-4 py-3">品檢</th>
               <th className="px-4 py-3">狀態</th>
             </tr>
@@ -266,6 +291,12 @@ function ProductionTable({
                   <td className="px-4 py-3">
                     <p className="text-textPrimary">{order.machineStatus}</p>
                     <p className="mt-1 text-xs text-textSecondary">效率 {order.efficiencyRate}%</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge tone={getRiskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      交期 {order.customerDueDate} · 換線 {order.changeoverMinutes} 分
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={order.quality.tone}>{order.quality.status}</StatusBadge>
@@ -318,6 +349,10 @@ function DetailPanel({ order }: { order: WorkOrder }) {
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">品檢狀態</p>
           <p className="mt-1 font-semibold text-textPrimary">{order.quality.status}</p>
+          <p className="mt-1 text-xs text-textSecondary">
+            {order.qualityBlocksInventory ? "暫緩入庫" : "可入庫"} /{" "}
+            {order.qualityBlocksShipment ? "暫緩出貨" : "可出貨"}
+          </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">損耗率</p>
@@ -326,6 +361,15 @@ function DetailPanel({ order }: { order: WorkOrder }) {
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">單品人工費</p>
           <p className="mt-1 font-semibold text-textPrimary">{formatMoney(order.unitLaborCost)}</p>
+        </div>
+        <div className="rounded-md bg-slate-50 p-3">
+          <p className="text-xs text-textSecondary">交期風險</p>
+          <p className="mt-1 font-semibold text-textPrimary">{order.deliveryRisk}</p>
+          <p className="mt-1 text-xs text-textSecondary">交期 {order.customerDueDate}</p>
+        </div>
+        <div className="rounded-md bg-slate-50 p-3">
+          <p className="text-xs text-textSecondary">換線時間</p>
+          <p className="mt-1 font-semibold text-textPrimary">{order.changeoverMinutes} 分</p>
         </div>
       </div>
 

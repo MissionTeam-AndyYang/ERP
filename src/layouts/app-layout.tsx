@@ -3,6 +3,7 @@
 import {
   Barcode,
   Bell,
+  CalendarRange,
   ClipboardList,
   DollarSign,
   Factory,
@@ -26,6 +27,7 @@ import { useLanguage } from "@/i18n/language-provider";
 const navItems: { labelKey: TranslationKey; icon: typeof Home; href: string }[] = [
   { labelKey: "nav.dashboard", icon: Home, href: "/" },
   { labelKey: "nav.orders", icon: ClipboardList, href: "/orders" },
+  { labelKey: "nav.planning", icon: CalendarRange, href: "/planning" },
   { labelKey: "nav.items", icon: PackageSearch, href: "/items" },
   { labelKey: "nav.batches", icon: Barcode, href: "/batches" },
   { labelKey: "nav.bom", icon: FlaskConical, href: "/bom" },

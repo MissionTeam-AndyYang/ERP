@@ -14,7 +14,7 @@ Warehouse first-version direction confirmed with the user and updated in code.
 
 The first Warehouse page is a management-oriented warehouse dashboard, not a full warehouse CRUD screen.
 
-Department ownership clarified by the user: after Purchasing completes material purchasing, Warehouse owns arrival receiving / inbound storage. Quality then performs material inspection before materials become available for production.
+Department ownership clarified by the user: Warehouse owns material/item inbound and outbound management, plus warehouse space dispatch and capacity management. Arrival receiving is only one workflow node. Quality then performs material/item inspection before inspected materials become available for production.
 
 User-confirmed focus areas:
 
@@ -26,6 +26,7 @@ User-confirmed focus areas:
    - Below safety stock.
 4. Today's pending inbound/outbound warehouse work.
 5. Production material arrival receiving and warehouse handoff status.
+6. Warehouse location, pallet, transfer, consignment, and available-space coordination.
 
 Additional first-version additions:
 

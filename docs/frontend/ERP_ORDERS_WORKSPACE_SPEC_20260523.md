@@ -18,9 +18,9 @@ Priority confirmed by the user:
 2. Estimated and actual margin.
 3. Payment/collection.
 
-The first version does not need quotation or contract status.
+Earlier planning deferred quotation and contract status from the first page implementation. After clarifying the ODM workflow, quotation and customer contract are now recognized as part of the pre-order flow. The implemented Orders page can still remain fulfillment-risk focused for the first screen, but the Orders domain should include sales quotation, negotiation, customer contract, and then formal order fulfillment.
 
-Orders should first be a fulfillment-risk management workspace, and only secondarily a sales-order entry or logistics management page.
+Orders should first be a fulfillment-risk management workspace on screen, and secondarily a sales quotation / customer contract / sales-order entry page as the workflow deepens.
 
 After the user raised the order-to-material-request and work-order scheduling question, the first layer of ATP/CTP commitment checking is now included in Orders. Full APS/MRP generation remains a later Planning / APS workspace.
 
@@ -30,12 +30,13 @@ Help management answer:
 
 1. Which orders are in progress?
 2. Which orders have delivery risk?
-3. After receiving the order, can the promised delivery date be committed?
-4. Are ATP inventory, material gaps, capacity, staff, QC, or shipping constraints blocking the commitment?
-5. Can production make the order on time?
-6. Are material, production, QC, and shipping dependencies blocking fulfillment?
-7. Which orders have margin risk?
-8. What is the payment status after fulfillment?
+3. Which sales quotations and customer contracts are ready to become formal orders?
+4. After receiving the order, can the promised delivery date be committed?
+5. Are ATP inventory, material gaps, capacity, staff, QC, or shipping constraints blocking the commitment?
+6. Can production make the order on time?
+7. Are material, production, QC, and shipping dependencies blocking fulfillment?
+8. Which orders have margin risk?
+9. What is the payment status after fulfillment?
 
 ## First-Version Tabs
 
@@ -46,6 +47,13 @@ Help management answer:
 | 交期風險 | Orders blocked by material, production capacity, QC, shipping, or urgent due dates |
 | 履約進度 | Fulfillment workflow from order to material, production, QC, shipping, and payment |
 | 毛利與收款 | Estimated margin, actual margin when available, and payment status |
+
+Future first-version refinement should include pre-order views:
+
+| View | Purpose |
+| --- | --- |
+| 業務報價 | Suggested quote, minimum quote, target margin, sales quote version, customer negotiation status |
+| 客戶合約 | Customer contract price, validity, payment terms, delivery terms, and conversion to formal order |
 
 ## Data Shape
 
@@ -80,7 +88,13 @@ First-version workflow:
 product_order -> ATP/CTP commitment check -> material readiness -> work_order -> production_data -> quality check -> shipping_order -> payment
 ```
 
-Quotation and contract are intentionally excluded from the first-version Orders workspace.
+Pre-order ODM workflow:
+
+```txt
+R&D quotation basis -> supplier quote / contract assumptions -> sales quote -> negotiation -> customer contract -> formal order -> ATP/CTP commitment check
+```
+
+Quotation and customer contract are not yet fully implemented on the page, but they are now part of the Orders domain roadmap.
 
 ## ATP/CTP Commitment Layer
 
@@ -111,6 +125,8 @@ Orders should show this result, but should not automatically create purchase req
 | Need | Candidate restserver Module |
 | --- | --- |
 | Order list/detail | `sale`, `product_order` |
+| Sales quotation | `sale`, quotation table if available |
+| Customer contract | `sale`, customer contract table if available |
 | Material readiness | `inventory`, `bom`, `purchase` |
 | Production feasibility | `aps`, `workorder`, `processorder` |
 | ATP/CTP commitment check | `inventory`, `bom`, `aps`, `workorder`, `employee`, `quality`, `shipwarehouse` |
@@ -122,7 +138,7 @@ Orders should show this result, but should not automatically create purchase req
 ## Deferred
 
 - Create/edit sales orders.
-- Quotation and contract workflow.
+- Full quotation and customer contract workflow.
 - Automatic purchasing generation.
 - Automatic production scheduling.
 - Full financial settlement.

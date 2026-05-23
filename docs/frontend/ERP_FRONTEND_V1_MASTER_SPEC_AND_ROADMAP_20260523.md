@@ -36,8 +36,14 @@ ERP 2.0 前端第一版先以經營者與管理者視角建立完整營運工作
 ## 3. 核心流程
 
 ```txt
-R&D / Costing
--> Items / BOM
+R&D development request
+-> Supplier sourcing / sample materials
+-> Trial recipe / sampling
+-> Customer selection
+-> Supplier quote / supplier contract
+-> Costing
+-> Sales quote / negotiation
+-> Customer contract
 -> Orders
 -> Planning / APS
 -> Purchasing / Warehouse / Workforce
@@ -45,21 +51,27 @@ R&D / Costing
 -> Quality
 -> Logistics
 -> Finance
--> Settings / Master Data
+```
+
+底層治理：
+
+```txt
+Settings / Master Data / Permissions / i18n
 ```
 
 流程說明：
 
-1. `R&D / Costing` 建立產品開發、BOM 版本、成本試算與報價基礎。
-2. `Items / BOM` 承接已核准的品項與量產 BOM 主檔。
-3. `Orders` 判斷接單承諾、交期與履約風險。
-4. `Planning / APS` 將訂單需求展開成物料、產能、人員與工單建議。
-5. `Purchasing / Warehouse / Workforce` 分別處理缺料、庫存與人力準備。
-6. `Production` 執行工單、MES 狀態、效率、損耗與生產品質。
-7. `Quality` 決定放行、隔離、返工、報廢與文件完整性。
-8. `Logistics` 處理出庫、派車、冷鏈、文件與簽收。
-9. `Finance` 追蹤預估/實際毛利、請款、應收與成本差異。
-10. `Settings / Master Data` 治理主檔、權限、串接與語言。
+1. `R&D / Costing` 承接開發需求，管理配方試作、送樣、客戶選品、BOM 版本與成本試算。
+2. `Purchasing` 在接單前支援供應商找料、樣品料、供應商報價與供應商合約；接單後支援正式請購與到貨。
+3. `Orders` 在接單前承接業務報價、議價與客戶合約；接單後判斷承諾交期與履約風險。
+4. `Items / BOM` 承接已核准的品項與量產 BOM 主檔。
+5. `Planning / APS` 將正式訂單需求展開成物料、產能、人員與工單建議。
+6. `Purchasing / Warehouse / Workforce` 分別處理缺料、庫存與人力準備。
+7. `Production` 執行工單、MES 狀態、效率、損耗與生產品質。
+8. `Quality` 決定放行、隔離、返工、報廢與文件完整性。
+9. `Logistics` 處理出庫、派車、冷鏈、文件與簽收。
+10. `Finance` 追蹤預估/實際毛利、請款、應收與成本差異。
+11. `Settings / Master Data` 作為底層治理，維護主檔、權限、串接與語言。
 
 ## 4. 第一版工作區清單
 
@@ -67,9 +79,9 @@ R&D / Costing
 | --- | --- | --- | --- |
 | Dashboard | `/` | 全廠總覽與跨模組摘要 | 待重新整理 |
 | R&D / Costing | `/rd` | 產品是否可報價？BOM 與成本依據是否成立？ | 已建立 |
-| Orders | `/orders` | 訂單能否承諾？交期與履約風險在哪？ | 已建立 |
+| Orders | `/orders` | 業務報價/客戶合約是否成立？正式訂單能否承諾？交期與履約風險在哪？ | 已建立 |
 | Planning / APS | `/planning` | 接單後如何轉成物料、產能與工單建議？ | 已建立 |
-| Purchasing | `/purchasing` | 哪些料需請購？哪些到貨會影響生產？ | 已建立 |
+| Purchasing | `/purchasing` | 接單前供應商找料/報價/合約是否成立？接單後哪些料需請購、哪些到貨會影響生產？ | 已建立 |
 | Warehouse | `/warehouse` | 庫存價值、倉位、週轉、效期與待處理出入庫 | 已建立 |
 | Workforce | `/workforce` | 人力、技能、加班、證照是否支援排程？ | 已建立 |
 | Production | `/production` | 工單排程、MES、效率、損耗與品質狀態 | 已建立 |
@@ -87,10 +99,24 @@ R&D / Costing
 
 ### R&D / Costing vs Items / BOM
 
-`R&D / Costing` 管開發案、試作 BOM、報價成本與量產移轉判斷。  
+`R&D / Costing` 管開發需求、配方調製、試作送樣、客戶選品、試作 BOM、報價成本與量產移轉判斷。  
 `Items / BOM` 管已核准後的正式主檔與量產 BOM。
 
 第一版整合時應避免 Planning 或 Orders 引用未核准的開發版 BOM。
+
+### R&D / Costing vs Purchasing
+
+`R&D / Costing` 管產品與配方是否成立。  
+`Purchasing` 管供應商料品搜尋、樣品料取得、供應商報價與供應商合約。
+
+食品 ODM 的接單前階段，Purchasing 會比正式接單更早參與。
+
+### Purchasing vs Orders
+
+`Purchasing` 管供應商端的報價與合約基礎。  
+`Orders` 管客戶端的業務報價、議價、客戶合約與正式接單。
+
+成本交給業務議價前，應先有配方/BOM、供應商報價與成本試算基礎。
 
 ### Orders vs Planning / APS
 
@@ -153,6 +179,8 @@ Orders 不應直接自動建立請購或工單。
 - 工單完成 -> Quality / Warehouse / Logistics 更新
 - POD 完成 -> Finance 可請款
 - R&D 報價版 BOM -> Orders 報價與毛利基準
+- Supplier quote / supplier contract -> R&D costing and Orders quotation basis
+- Customer contract -> Orders formal order and Planning / APS
 
 ### Phase 3：可控操作
 
@@ -168,6 +196,8 @@ Orders 不應直接自動建立請購或工單。
 6. Logistics 派車與 POD 回傳
 7. Finance 請款標記
 8. R&D 報價版 BOM 核准
+9. 供應商報價/合約標記
+10. 客戶報價/合約標記
 
 所有操作需先搭配權限與稽核策略。
 
@@ -191,8 +221,9 @@ Orders 不應直接自動建立請購或工單。
 3. 標記每個按鈕第一版是 `placeholder`、`read-only action` 還是 `real mutation`。
 4. 統一各工作區狀態用語，例如正常、注意、高風險、阻擋、待處理。
 5. 補齊多語 dictionary 結構，先處理導航與核心分頁，再逐步處理頁面文字。
-6. 與工程師依 main branch 對齊 API 串接優先順序。
-7. 盤點操作者場景，決定哪些需要 PDA/平板專用流程。
+6. 補一份 ODM 接單前流程資料需求表，釐清供應商報價、供應商合約、業務報價、客戶合約所需資料。
+7. 與工程師依 main branch 對齊 API 串接優先順序。
+8. 盤點操作者場景，決定哪些需要 PDA/平板專用流程。
 
 ## 9. 判斷結論
 
@@ -205,4 +236,3 @@ Dashboard 收斂
 -> 真實資料唯讀串接
 -> 高價值操作逐步開放
 ```
-

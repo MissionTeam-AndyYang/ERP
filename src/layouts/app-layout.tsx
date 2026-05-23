@@ -26,6 +26,7 @@ import { useLanguage } from "@/i18n/language-provider";
 
 const navItems: { labelKey: TranslationKey; icon: typeof Home; href: string }[] = [
   { labelKey: "nav.dashboard", icon: Home, href: "/" },
+  { labelKey: "nav.rd", icon: FlaskConical, href: "/rd" },
   { labelKey: "nav.orders", icon: ClipboardList, href: "/orders" },
   { labelKey: "nav.planning", icon: CalendarRange, href: "/planning" },
   { labelKey: "nav.items", icon: PackageSearch, href: "/items" },

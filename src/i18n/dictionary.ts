@@ -18,6 +18,7 @@ export type TranslationKey =
   | "language.label"
   | "nav.dashboard"
   | "nav.orders"
+  | "nav.rd"
   | "nav.planning"
   | "nav.items"
   | "nav.batches"
@@ -50,6 +51,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "language.label": "語言",
     "nav.dashboard": "Dashboard",
     "nav.orders": "訂單中心",
+    "nav.rd": "研發成本",
     "nav.planning": "計劃中心",
     "nav.items": "品項中心",
     "nav.batches": "批號中心",
@@ -77,6 +79,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "language.label": "Language",
     "nav.dashboard": "Dashboard",
     "nav.orders": "Orders",
+    "nav.rd": "R&D Costing",
     "nav.planning": "Planning",
     "nav.items": "Items",
     "nav.batches": "Batches",
@@ -104,6 +107,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "language.label": "言語",
     "nav.dashboard": "Dashboard",
     "nav.orders": "受注",
+    "nav.rd": "開発原価",
     "nav.planning": "計画",
     "nav.items": "品目",
     "nav.batches": "ロット",
@@ -131,6 +135,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "language.label": "Ngôn ngữ",
     "nav.dashboard": "Dashboard",
     "nav.orders": "Đơn hàng",
+    "nav.rd": "R&D chi phí",
     "nav.planning": "Kế hoạch",
     "nav.items": "Mặt hàng",
     "nav.batches": "Lô",

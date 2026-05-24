@@ -1,4 +1,4 @@
-import type { WorkforceCase, WorkforceSummary } from "@/types/workforce";
+import type { WorkforceCase, WorkforceDashboardData, WorkforceSummary } from "@/types/workforce";
 
 export const workforceSummary: WorkforceSummary[] = [
   { label: "今日出勤", value: "86", hint: "92% 到勤", tone: "success" },
@@ -79,3 +79,7 @@ export const workforceCases: WorkforceCase[] = [
   }
 ];
 
+export const workforceDashboardMock: WorkforceDashboardData = {
+  summary: workforceSummary,
+  cases: workforceCases
+};

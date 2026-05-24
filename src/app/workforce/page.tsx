@@ -3,9 +3,15 @@
 import { AlertTriangle, CalendarDays, Filter, IdCard, Search, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useWorkforceDashboard } from "@/hooks/use-workforce-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { workforceCases, workforceSummary } from "@/mock/workforce";
-import type { WorkforceCase, WorkforceRiskLevel, WorkforceWorkspaceTab } from "@/types/workforce";
+import type {
+  WorkforceCase,
+  WorkforceDashboardData,
+  WorkforceRiskLevel,
+  WorkforceSummary,
+  WorkforceWorkspaceTab
+} from "@/types/workforce";
 
 const tabs: { id: WorkforceWorkspaceTab; label: string }[] = [
   { id: "coverage", label: "班表覆蓋" },
@@ -27,25 +33,25 @@ function riskTone(risk: WorkforceRiskLevel) {
   return "success";
 }
 
-function getVisibleCases(activeTab: WorkforceWorkspaceTab) {
+function getVisibleCases(activeTab: WorkforceWorkspaceTab, cases: WorkforceCase[]) {
   if (activeTab === "skill-gap") {
-    return workforceCases.filter((item) => item.skillCoverage !== "完整");
+    return cases.filter((item) => item.skillCoverage !== "完整");
   }
   if (activeTab === "overtime") {
-    return workforceCases.filter((item) => item.overtimeHours > 0 || item.supportNeeded > 0);
+    return cases.filter((item) => item.overtimeHours > 0 || item.supportNeeded > 0);
   }
   if (activeTab === "certifications") {
-    return workforceCases.filter((item) => item.certificationIssue !== null);
+    return cases.filter((item) => item.certificationIssue !== null);
   }
-  return workforceCases;
+  return cases;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: WorkforceSummary[] }) {
   const icons = [UsersRound, AlertTriangle, IdCard, CalendarDays];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {workforceSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? UsersRound;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -68,14 +74,16 @@ function KpiStrip() {
 
 function WorkforceTable({
   activeTab,
+  cases,
   selectedId,
   onSelect
 }: {
   activeTab: WorkforceWorkspaceTab;
+  cases: WorkforceCase[];
   selectedId: string;
   onSelect: (item: WorkforceCase) => void;
 }) {
-  const rows = useMemo(() => getVisibleCases(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleCases(activeTab, cases), [activeTab, cases]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -137,10 +145,10 @@ function WorkforceTable({
   );
 }
 
-function RiskCards() {
+function RiskCards({ cases }: { cases: WorkforceCase[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {workforceCases
+      {cases
         .filter((item) => item.riskLevel !== "正常")
         .map((item) => (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
@@ -219,28 +227,32 @@ function DetailPanel({ item }: { item: WorkforceCase }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedCase,
   onSelectCase
 }: {
   activeTab: WorkforceWorkspaceTab;
+  data: WorkforceDashboardData;
   selectedCase: WorkforceCase;
   onSelectCase: (item: WorkforceCase) => void;
 }) {
   if (activeTab === "skill-gap" || activeTab === "overtime") {
     return (
       <div className="space-y-4">
-        <RiskCards />
-        <WorkforceTable activeTab={activeTab} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <RiskCards cases={data.cases} />
+        <WorkforceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
       </div>
     );
   }
 
-  return <WorkforceTable activeTab={activeTab} selectedId={selectedCase.id} onSelect={onSelectCase} />;
+  return <WorkforceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />;
 }
 
 export default function WorkforcePage() {
+  const { data: workforceData, error, isLoading, source } = useWorkforceDashboard();
   const [activeTab, setActiveTab] = useState<WorkforceWorkspaceTab>("coverage");
-  const [selectedCase, setSelectedCase] = useState<WorkforceCase>(workforceCases[0]);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(workforceData.cases[0].id);
+  const selectedCase = workforceData.cases.find((item) => item.id === selectedCaseId) ?? workforceData.cases[0];
 
   return (
     <AppLayout activePath="/workforce" title="人力班表 Workforce Workspace">
@@ -250,6 +262,10 @@ export default function WorkforcePage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">班表 / 技能 / 支援 / 證照</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">人力覆蓋與技能缺口總覽</h2>
@@ -278,7 +294,13 @@ export default function WorkforcePage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Workforce API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={workforceData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -310,8 +332,9 @@ export default function WorkforcePage() {
 
             <MainContent
               activeTab={activeTab}
+              data={workforceData}
               selectedCase={selectedCase}
-              onSelectCase={setSelectedCase}
+              onSelectCase={(item) => setSelectedCaseId(item.id)}
             />
           </div>
 
@@ -321,4 +344,3 @@ export default function WorkforcePage() {
     </AppLayout>
   );
 }
-

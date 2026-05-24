@@ -41,3 +41,9 @@ export type WorkforceCase = {
   requirements: WorkforceRequirement[];
 };
 
+export type WorkforceDashboardData = {
+  summary: WorkforceSummary[];
+  cases: WorkforceCase[];
+};
+
+export type WorkforceDataSource = "api" | "mock";

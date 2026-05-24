@@ -56,3 +56,9 @@ export type FinanceOrderCase = {
   workflow: FinanceWorkflowStep[];
 };
 
+export type FinanceDashboardData = {
+  summary: FinanceSummary[];
+  cases: FinanceOrderCase[];
+};
+
+export type FinanceDataSource = "api" | "mock";

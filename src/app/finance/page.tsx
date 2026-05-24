@@ -11,9 +11,15 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useFinanceDashboard } from "@/hooks/use-finance-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { financeOrderCases, financeSummary } from "@/mock/finance";
-import type { FinanceOrderCase, FinanceRiskLevel, FinanceWorkspaceTab } from "@/types/finance";
+import type {
+  FinanceDashboardData,
+  FinanceOrderCase,
+  FinanceRiskLevel,
+  FinanceSummary,
+  FinanceWorkspaceTab
+} from "@/types/finance";
 
 const tabs: { id: FinanceWorkspaceTab; label: string }[] = [
   { id: "margin", label: "毛利追蹤" },
@@ -45,28 +51,28 @@ function riskTone(risk: FinanceRiskLevel) {
   return "success";
 }
 
-function getVisibleCases(activeTab: FinanceWorkspaceTab) {
+function getVisibleCases(activeTab: FinanceWorkspaceTab, cases: FinanceOrderCase[]) {
   if (activeTab === "receivables") {
-    return financeOrderCases.filter((item) => item.arStatus !== "已請款" || item.collectedAmount < item.orderAmount);
+    return cases.filter((item) => item.arStatus !== "已請款" || item.collectedAmount < item.orderAmount);
   }
 
   if (activeTab === "payables") {
-    return [...financeOrderCases].sort((a, b) => b.payableImpact - a.payableImpact);
+    return [...cases].sort((a, b) => b.payableImpact - a.payableImpact);
   }
 
   if (activeTab === "cost-variance") {
-    return financeOrderCases.filter((item) => item.marginVarianceRate === null || item.marginVarianceRate < 0);
+    return cases.filter((item) => item.marginVarianceRate === null || item.marginVarianceRate < 0);
   }
 
-  return [...financeOrderCases].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
+  return [...cases].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: FinanceSummary[] }) {
   const icons = [CircleDollarSign, TrendingDown, ReceiptText, AlertTriangle];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {financeSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? CircleDollarSign;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -89,14 +95,16 @@ function KpiStrip() {
 
 function FinanceTable({
   activeTab,
+  cases,
   selectedId,
   onSelect
 }: {
   activeTab: FinanceWorkspaceTab;
+  cases: FinanceOrderCase[];
   selectedId: string;
   onSelect: (item: FinanceOrderCase) => void;
 }) {
-  const rows = useMemo(() => getVisibleCases(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleCases(activeTab, cases), [activeTab, cases]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -170,10 +178,10 @@ function FinanceTable({
   );
 }
 
-function MarginRiskCards() {
+function MarginRiskCards({ cases }: { cases: FinanceOrderCase[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {financeOrderCases
+      {cases
         .filter((item) => item.riskLevel !== "正常")
         .map((item) => (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
@@ -311,28 +319,32 @@ function DetailPanel({ item }: { item: FinanceOrderCase }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedCase,
   onSelectCase
 }: {
   activeTab: FinanceWorkspaceTab;
+  data: FinanceDashboardData;
   selectedCase: FinanceOrderCase;
   onSelectCase: (item: FinanceOrderCase) => void;
 }) {
   if (activeTab === "margin" || activeTab === "cost-variance") {
     return (
       <div className="space-y-4">
-        <MarginRiskCards />
-        <FinanceTable activeTab={activeTab} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <MarginRiskCards cases={data.cases} />
+        <FinanceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
       </div>
     );
   }
 
-  return <FinanceTable activeTab={activeTab} selectedId={selectedCase.id} onSelect={onSelectCase} />;
+  return <FinanceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />;
 }
 
 export default function FinancePage() {
+  const { data: financeData, error, isLoading, source } = useFinanceDashboard();
   const [activeTab, setActiveTab] = useState<FinanceWorkspaceTab>("margin");
-  const [selectedCase, setSelectedCase] = useState<FinanceOrderCase>(financeOrderCases[0]);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(financeData.cases[0].id);
+  const selectedCase = financeData.cases.find((item) => item.id === selectedCaseId) ?? financeData.cases[0];
 
   return (
     <AppLayout activePath="/finance" title="財務毛利 Finance Workspace">
@@ -342,6 +354,10 @@ export default function FinancePage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">毛利 / 成本 / 請款 / 收款</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單毛利與請款收款總覽</h2>
@@ -370,7 +386,13 @@ export default function FinancePage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Finance API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={financeData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -404,8 +426,9 @@ export default function FinancePage() {
 
             <MainContent
               activeTab={activeTab}
+              data={financeData}
               selectedCase={selectedCase}
-              onSelectCase={setSelectedCase}
+              onSelectCase={(item) => setSelectedCaseId(item.id)}
             />
           </div>
 

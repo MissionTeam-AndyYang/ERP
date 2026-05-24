@@ -1,4 +1,4 @@
-import type { FinanceOrderCase, FinanceSummary } from "@/types/finance";
+import type { FinanceDashboardData, FinanceOrderCase, FinanceSummary } from "@/types/finance";
 
 export const financeSummary: FinanceSummary[] = [
   {
@@ -147,3 +147,7 @@ export const financeOrderCases: FinanceOrderCase[] = [
   }
 ];
 
+export const financeDashboardMock: FinanceDashboardData = {
+  summary: financeSummary,
+  cases: financeOrderCases
+};

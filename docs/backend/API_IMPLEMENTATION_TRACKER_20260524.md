@@ -77,7 +77,7 @@ Completion criteria:
 
 - Warehouse endpoint path confirmed.
 - `GET /api/v1/warehouse/dashboard` or equivalent endpoint returns required datasets.
-- Required fields for `summary`, `inventoryValueByCategory`, `capacityByWarehouse`, `riskAlerts`, `pendingInbound`, `pendingOutbound` are present.
+- Required fields for `kpis`, `categorySummaries`, `capacities`, `records`, `risks`, `tasks` are present.
 - Verification script passes.
 - Frontend service layer can map response into `src/types/warehouse.ts`.
 
@@ -99,3 +99,5 @@ Completion criteria:
 - Frontend endpoint inventory and backend gap details are tracked in `docs/backend/FRONTEND_API_ENDPOINT_INVENTORY_AND_BACKEND_GAP_20260524.md`.
 - Frontend acceptance criteria are tracked in `docs/frontend/ERP_V1_FRONTEND_ACCEPTANCE_CHECKLIST_20260525.md`.
 - API and integration test procedure is tracked in `docs/backend/ERP_V1_API_AND_INTEGRATION_TEST_PLAN_20260525.md`.
+- Runtime API review template is tracked in `docs/backend/API_RUNTIME_RESULT_REVIEW_TEMPLATE_20260525.md`.
+- Frontend page review template is tracked in `docs/frontend/ERP_V1_FRONTEND_PAGE_REVIEW_TEMPLATE_20260525.md`.

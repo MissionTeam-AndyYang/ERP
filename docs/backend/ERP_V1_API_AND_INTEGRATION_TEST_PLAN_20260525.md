@@ -29,7 +29,7 @@ This plan does not replace backend unit tests owned by the engineer, but it defi
 
 | Priority | Module | Endpoint | Required top-level datasets |
 | --- | --- | --- | --- |
-| 1 | Warehouse | `GET /api/v1/warehouse/dashboard` | `summary`, `inventoryValueByCategory`, `capacityByWarehouse`, `riskAlerts`, `pendingInbound`, `pendingOutbound` |
+| 1 | Warehouse | `GET /api/v1/warehouse/dashboard` | `kpis`, `categorySummaries`, `capacities`, `records`, `risks`, `tasks` |
 | 2 | Orders | `GET /api/v1/orders/dashboard` | `summary`, `orders` |
 | 3 | Production | `GET /api/v1/production/dashboard` | `summary`, `orders`, `weekSchedule`, `alerts` |
 | 4 | Quality | `GET /api/v1/quality/dashboard` | `summary`, `inspections` |
@@ -52,6 +52,7 @@ For each implemented module:
 3. Save markdown output under `docs/backend/runtime-verification/`.
 4. Confirm the report contains no credentials, customer secrets or supplier secrets.
 5. Share or commit the report for Codex review.
+6. Review the result with `docs/backend/API_RUNTIME_RESULT_REVIEW_TEMPLATE_20260525.md`.
 
 Example:
 
@@ -63,7 +64,7 @@ Expected result:
 
 - HTTP status is 2xx.
 - Response is valid JSON.
-- Required top-level datasets are present.
+- Required top-level datasets match the current frontend service-layer contract.
 - Dataset field names match the frontend API spec or documented mapping.
 
 ## Frontend Integration Procedure
@@ -82,6 +83,7 @@ npm.cmd run build
 4. Confirm data source switches from mock fallback to API where supported.
 5. Check browser console for schema, hydration or rendering errors.
 6. Verify page-specific acceptance criteria from `docs/frontend/ERP_V1_FRONTEND_ACCEPTANCE_CHECKLIST_20260525.md`.
+7. Record the page decision with `docs/frontend/ERP_V1_FRONTEND_PAGE_REVIEW_TEMPLATE_20260525.md`.
 
 ## Functional Test Cases
 
@@ -219,6 +221,13 @@ Runtime/test evidence should be stored under:
 docs/backend/runtime-verification/
 ```
 
+Review templates:
+
+```txt
+docs/backend/API_RUNTIME_RESULT_REVIEW_TEMPLATE_20260525.md
+docs/frontend/ERP_V1_FRONTEND_PAGE_REVIEW_TEMPLATE_20260525.md
+```
+
 Before committing evidence:
 
 1. Remove DB credentials.
@@ -236,4 +245,3 @@ A module can be marked `frontend_integrated` in the tracker when:
 - Lint and build pass.
 - No blocking schema mismatch remains.
 - Any known business-data limitation is documented in the tracker.
-

@@ -31,12 +31,12 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         name="Warehouse dashboard",
         path="/api/v1/warehouse/dashboard",
         required_datasets=(
-            "summary",
-            "inventoryValueByCategory",
-            "capacityByWarehouse",
-            "riskAlerts",
-            "pendingInbound",
-            "pendingOutbound",
+            "kpis",
+            "categorySummaries",
+            "capacities",
+            "records",
+            "risks",
+            "tasks",
         ),
     ),
     "orders": EndpointContract(
@@ -45,11 +45,6 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         required_datasets=(
             "summary",
             "orders",
-            "commitmentChecks",
-            "deliveryRisks",
-            "marginSignals",
-            "paymentSignals",
-            "preOrderPipeline",
         ),
     ),
     "planning": EndpointContract(
@@ -57,12 +52,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/planning/dashboard",
         required_datasets=(
             "summary",
-            "planningCases",
-            "materialShortages",
-            "capacityChecks",
-            "staffChecks",
-            "suggestedPurchaseRequests",
-            "suggestedWorkOrders",
+            "cases",
         ),
     ),
     "purchasing": EndpointContract(
@@ -70,11 +60,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/purchasing/dashboard",
         required_datasets=(
             "summary",
-            "supplierQuotes",
-            "supplierContracts",
-            "purchaseOrders",
-            "arrivalRisks",
-            "priceVarianceSignals",
+            "items",
         ),
     ),
     "quality": EndpointContract(
@@ -82,11 +68,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/quality/dashboard",
         required_datasets=(
             "summary",
-            "inspectionQueue",
-            "releaseBlocks",
-            "processQualitySignals",
-            "finishedGoodsChecks",
-            "documentCompleteness",
+            "inspections",
         ),
     ),
     "production": EndpointContract(
@@ -94,12 +76,9 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/production/dashboard",
         required_datasets=(
             "summary",
-            "scheduleByLine",
-            "todayWorkOrders",
-            "mesSignals",
-            "efficiencyMetrics",
-            "qualitySignals",
-            "bottlenecks",
+            "orders",
+            "weekSchedule",
+            "alerts",
         ),
     ),
     "traceability": EndpointContract(
@@ -107,9 +86,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/traceability/dashboard",
         required_datasets=(
             "summary",
-            "recentTraceSearches",
-            "documentGaps",
-            "recallCandidates",
+            "records",
         ),
     ),
     "logistics": EndpointContract(
@@ -117,11 +94,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/logistics/dashboard",
         required_datasets=(
             "summary",
-            "todayShipments",
-            "dispatchRisks",
-            "coldChainSignals",
-            "documentStatus",
-            "podStatus",
+            "shipments",
         ),
     ),
     "finance": EndpointContract(
@@ -129,11 +102,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/finance/dashboard",
         required_datasets=(
             "summary",
-            "marginByOrder",
-            "costVariance",
-            "billingReadiness",
-            "arSignals",
-            "apSignals",
+            "cases",
         ),
     ),
     "rd": EndpointContract(
@@ -141,11 +110,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/rd/dashboard",
         required_datasets=(
             "summary",
-            "developmentProjects",
-            "sampleTasks",
-            "bomVersions",
-            "costingCases",
-            "nutritionLabelStatus",
+            "projects",
         ),
     ),
     "workforce": EndpointContract(
@@ -153,24 +118,26 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/workforce/dashboard",
         required_datasets=(
             "summary",
-            "shiftCoverage",
-            "skillGaps",
-            "certificationRisks",
-            "overtimePlans",
-            "lineStaffReadiness",
+            "cases",
         ),
     ),
     "dashboard": EndpointContract(
         name="Manager dashboard",
         path="/api/v1/dashboard/manager",
         required_datasets=(
-            "summary",
-            "focusKpis",
-            "decisionQueue",
-            "todayWorkQueue",
+            "managerSnapshot",
+            "managerFocusItems",
+            "managerDecisionItems",
             "departmentBlockers",
+            "todayTasks",
             "preOrderPipeline",
-            "operations",
+            "productionLines",
+            "alertItems",
+            "productionTrendData",
+            "oeeTrendData",
+            "qualityTrendData",
+            "alertDistributionData",
+            "moduleShortcuts",
         ),
     ),
     "settings": EndpointContract(
@@ -178,10 +145,7 @@ MODULE_CONTRACTS: dict[str, EndpointContract] = {
         path="/api/v1/settings/dashboard",
         required_datasets=(
             "summary",
-            "masterDataHealth",
-            "permissionRoles",
-            "integrationStatus",
-            "localizationStatus",
+            "items",
         ),
     ),
 }

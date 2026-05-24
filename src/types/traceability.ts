@@ -51,3 +51,10 @@ export type TraceRecord = {
   nodes: TraceNode[];
   documents: TraceDocument[];
 };
+
+export type TraceabilityDashboardData = {
+  summary: TraceSummary[];
+  records: TraceRecord[];
+};
+
+export type TraceabilityDataSource = "api" | "mock";

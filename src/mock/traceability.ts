@@ -1,4 +1,4 @@
-import type { TraceRecord, TraceSummary } from "@/types/traceability";
+import type { TraceabilityDashboardData, TraceRecord, TraceSummary } from "@/types/traceability";
 
 export const traceSummary: TraceSummary[] = [
   {
@@ -98,3 +98,8 @@ export const traceRecords: TraceRecord[] = [
     ]
   }
 ];
+
+export const traceabilityDashboardMock: TraceabilityDashboardData = {
+  summary: traceSummary,
+  records: traceRecords
+};

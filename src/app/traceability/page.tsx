@@ -11,9 +11,14 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useTraceabilityDashboard } from "@/hooks/use-traceability-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { traceRecords, traceSummary } from "@/mock/traceability";
-import type { TraceRecord, TraceabilityWorkspaceTab } from "@/types/traceability";
+import type {
+  TraceRecord,
+  TraceabilityDashboardData,
+  TraceabilityWorkspaceTab,
+  TraceSummary
+} from "@/types/traceability";
 
 const tabs: { id: TraceabilityWorkspaceTab; label: string }[] = [
   { id: "search", label: "溯源查詢" },
@@ -33,24 +38,24 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("zh-TW").format(value);
 }
 
-function getVisibleRecords(activeTab: TraceabilityWorkspaceTab) {
+function getVisibleRecords(activeTab: TraceabilityWorkspaceTab, records: TraceRecord[]) {
   if (activeTab === "documents") {
-    return traceRecords.filter((record) => record.documents.some((doc) => doc.status !== "完整"));
+    return records.filter((record) => record.documents.some((doc) => doc.status !== "完整"));
   }
 
   if (activeTab === "recall") {
-    return [...traceRecords].sort((a, b) => b.impactedQty - a.impactedQty);
+    return [...records].sort((a, b) => b.impactedQty - a.impactedQty);
   }
 
-  return traceRecords;
+  return records;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: TraceSummary[] }) {
   const icons = [Network, ShieldCheck, FileSearch, AlertTriangle];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {traceSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? Network;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -73,14 +78,16 @@ function KpiStrip() {
 
 function TraceTable({
   activeTab,
+  records,
   selectedId,
   onSelect
 }: {
   activeTab: TraceabilityWorkspaceTab;
+  records: TraceRecord[];
   selectedId: string;
   onSelect: (record: TraceRecord) => void;
 }) {
-  const rows = useMemo(() => getVisibleRecords(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleRecords(activeTab, records), [activeTab, records]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -241,10 +248,12 @@ function DetailPanel({ record }: { record: TraceRecord }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedRecord,
   onSelectRecord
 }: {
   activeTab: TraceabilityWorkspaceTab;
+  data: TraceabilityDashboardData;
   selectedRecord: TraceRecord;
   onSelectRecord: (record: TraceRecord) => void;
 }) {
@@ -252,17 +261,32 @@ function MainContent({
     return (
       <div className="space-y-4">
         <ChainView record={selectedRecord} />
-        <TraceTable activeTab={activeTab} selectedId={selectedRecord.id} onSelect={onSelectRecord} />
+        <TraceTable
+          activeTab={activeTab}
+          records={data.records}
+          selectedId={selectedRecord.id}
+          onSelect={onSelectRecord}
+        />
       </div>
     );
   }
 
-  return <TraceTable activeTab={activeTab} selectedId={selectedRecord.id} onSelect={onSelectRecord} />;
+  return (
+    <TraceTable
+      activeTab={activeTab}
+      records={data.records}
+      selectedId={selectedRecord.id}
+      onSelect={onSelectRecord}
+    />
+  );
 }
 
 export default function TraceabilityPage() {
+  const { data: traceabilityData, error, isLoading, source } = useTraceabilityDashboard();
   const [activeTab, setActiveTab] = useState<TraceabilityWorkspaceTab>("search");
-  const [selectedRecord, setSelectedRecord] = useState<TraceRecord>(traceRecords[0]);
+  const [selectedRecordId, setSelectedRecordId] = useState<string>(traceabilityData.records[0].id);
+  const selectedRecord =
+    traceabilityData.records.find((record) => record.id === selectedRecordId) ?? traceabilityData.records[0];
 
   return (
     <AppLayout activePath="/traceability" title="溯源中心 Traceability Workspace">
@@ -272,6 +296,10 @@ export default function TraceabilityPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">批號 / 品項 / 訂單 / 工單</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">批號溯源與召回範圍</h2>
@@ -300,7 +328,13 @@ export default function TraceabilityPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Traceability API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={traceabilityData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -334,8 +368,9 @@ export default function TraceabilityPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={traceabilityData}
               selectedRecord={selectedRecord}
-              onSelectRecord={setSelectedRecord}
+              onSelectRecord={(record) => setSelectedRecordId(record.id)}
             />
           </div>
 

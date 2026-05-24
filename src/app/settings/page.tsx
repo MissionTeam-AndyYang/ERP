@@ -3,9 +3,14 @@
 import { Filter, Globe2, KeyRound, Search, Settings, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useSettingsDashboard } from "@/hooks/use-settings-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { masterDataItems, settingsSummary } from "@/mock/settings";
-import type { GovernanceRiskLevel, MasterDataItem, SettingsWorkspaceTab } from "@/types/settings";
+import type {
+  GovernanceRiskLevel,
+  MasterDataItem,
+  SettingsSummary,
+  SettingsWorkspaceTab
+} from "@/types/settings";
 
 const tabs: { id: SettingsWorkspaceTab; label: string }[] = [
   { id: "master-data", label: "主檔治理" },
@@ -27,25 +32,25 @@ function riskTone(risk: GovernanceRiskLevel) {
   return "success";
 }
 
-function getVisibleItems(activeTab: SettingsWorkspaceTab) {
+function getVisibleItems(activeTab: SettingsWorkspaceTab, items: MasterDataItem[]) {
   if (activeTab === "permissions") {
-    return masterDataItems.filter((item) => item.domain === "權限");
+    return items.filter((item) => item.domain === "權限");
   }
   if (activeTab === "integrations") {
-    return masterDataItems.filter((item) => ["倉位", "產線"].includes(item.domain));
+    return items.filter((item) => ["倉位", "產線"].includes(item.domain));
   }
   if (activeTab === "localization") {
-    return masterDataItems.filter((item) => item.domain === "語言");
+    return items.filter((item) => item.domain === "語言");
   }
-  return masterDataItems;
+  return items;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: SettingsSummary[] }) {
   const icons = [Settings, ShieldCheck, KeyRound, Globe2];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {settingsSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? Settings;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -68,14 +73,16 @@ function KpiStrip() {
 
 function SettingsTable({
   activeTab,
+  items,
   selectedId,
   onSelect
 }: {
   activeTab: SettingsWorkspaceTab;
+  items: MasterDataItem[];
   selectedId: string;
   onSelect: (item: MasterDataItem) => void;
 }) {
-  const rows = useMemo(() => getVisibleItems(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleItems(activeTab, items), [activeTab, items]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -176,8 +183,10 @@ function DetailPanel({ item }: { item: MasterDataItem }) {
 }
 
 export default function SettingsPage() {
+  const { data: settingsData, error, isLoading, source } = useSettingsDashboard();
   const [activeTab, setActiveTab] = useState<SettingsWorkspaceTab>("master-data");
-  const [selectedItem, setSelectedItem] = useState<MasterDataItem>(masterDataItems[0]);
+  const [selectedItemId, setSelectedItemId] = useState<string>(settingsData.items[0].id);
+  const selectedItem = settingsData.items.find((item) => item.id === selectedItemId) ?? settingsData.items[0];
 
   return (
     <AppLayout activePath="/settings" title="主檔設定 Master Data / Settings">
@@ -187,6 +196,10 @@ export default function SettingsPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">主檔 / 權限 / 串接 / 語言</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">主檔治理與系統設定總覽</h2>
@@ -215,7 +228,13 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Settings API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={settingsData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -245,7 +264,12 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <SettingsTable activeTab={activeTab} selectedId={selectedItem.id} onSelect={setSelectedItem} />
+            <SettingsTable
+              activeTab={activeTab}
+              items={settingsData.items}
+              selectedId={selectedItem.id}
+              onSelect={(item) => setSelectedItemId(item.id)}
+            />
           </div>
 
           <DetailPanel item={selectedItem} />
@@ -254,4 +278,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-

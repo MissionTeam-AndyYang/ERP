@@ -1,4 +1,4 @@
-import type { MasterDataItem, SettingsSummary } from "@/types/settings";
+import type { MasterDataItem, SettingsDashboardData, SettingsSummary } from "@/types/settings";
 
 export const settingsSummary: SettingsSummary[] = [
   { label: "主檔項目", value: "8", hint: "第一版核心治理範圍", tone: "info" },
@@ -82,3 +82,7 @@ export const masterDataItems: MasterDataItem[] = [
   }
 ];
 
+export const settingsDashboardMock: SettingsDashboardData = {
+  summary: settingsSummary,
+  items: masterDataItems
+};

@@ -24,3 +24,9 @@ export type MasterDataItem = {
   tone: StatusTone;
 };
 
+export type SettingsDashboardData = {
+  summary: SettingsSummary[];
+  items: MasterDataItem[];
+};
+
+export type SettingsDataSource = "api" | "mock";

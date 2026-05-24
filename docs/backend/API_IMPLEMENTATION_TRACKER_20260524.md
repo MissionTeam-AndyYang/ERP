@@ -14,6 +14,7 @@ Purpose: Track backend implementation, runtime verification and frontend integra
 | `backend_implemented` | Backend endpoint implemented |
 | `runtime_verified` | API contract/runtime verification passed |
 | `frontend_integrated` | Frontend uses real API data |
+| `acceptance_ready` | Frontend acceptance checklist and integration test plan exist |
 | `blocked` | Waiting for DB/schema/workflow decision |
 
 ## Implementation Priority
@@ -96,3 +97,5 @@ Completion criteria:
 - This tracker should be updated after engineer confirmation, implementation and runtime verification.
 - Raw runtime output should be stored under `docs/backend/runtime-verification/` and reviewed before committing.
 - Frontend endpoint inventory and backend gap details are tracked in `docs/backend/FRONTEND_API_ENDPOINT_INVENTORY_AND_BACKEND_GAP_20260524.md`.
+- Frontend acceptance criteria are tracked in `docs/frontend/ERP_V1_FRONTEND_ACCEPTANCE_CHECKLIST_20260525.md`.
+- API and integration test procedure is tracked in `docs/backend/ERP_V1_API_AND_INTEGRATION_TEST_PLAN_20260525.md`.

@@ -12,9 +12,14 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useQualityDashboard } from "@/hooks/use-quality-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { qualityInspections, qualitySummary } from "@/mock/quality";
-import type { QualityInspection, QualityWorkspaceTab } from "@/types/quality";
+import type {
+  QualityDashboardData,
+  QualityInspection,
+  QualitySummary,
+  QualityWorkspaceTab
+} from "@/types/quality";
 
 const tabs: { id: QualityWorkspaceTab; label: string }[] = [
   { id: "inspection", label: "檢驗批次" },
@@ -34,30 +39,30 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("zh-TW").format(value);
 }
 
-function getVisibleInspections(activeTab: QualityWorkspaceTab) {
+function getVisibleInspections(activeTab: QualityWorkspaceTab, inspections: QualityInspection[]) {
   if (activeTab === "release-block") {
-    return qualityInspections.filter(
+    return inspections.filter(
       (item) => item.blocksInventory || item.blocksShipment || item.blocksProduction || item.decision === "放行"
     );
   }
 
   if (activeTab === "ncr") {
-    return qualityInspections.filter((item) => item.decision === "隔離" || item.decision === "返工" || item.defectRate > 0);
+    return inspections.filter((item) => item.decision === "隔離" || item.decision === "返工" || item.defectRate > 0);
   }
 
   if (activeTab === "documents") {
-    return qualityInspections.filter((item) => item.documents.some((doc) => doc.status !== "完整"));
+    return inspections.filter((item) => item.documents.some((doc) => doc.status !== "完整"));
   }
 
-  return qualityInspections;
+  return inspections;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: QualitySummary[] }) {
   const icons = [FlaskConical, BadgeCheck, ShieldAlert, FileCheck2];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {qualitySummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? FlaskConical;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -80,14 +85,16 @@ function KpiStrip() {
 
 function QualityTable({
   activeTab,
+  inspections,
   selectedId,
   onSelect
 }: {
   activeTab: QualityWorkspaceTab;
+  inspections: QualityInspection[];
   selectedId: string;
   onSelect: (inspection: QualityInspection) => void;
 }) {
-  const rows = useMemo(() => getVisibleInspections(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleInspections(activeTab, inspections), [activeTab, inspections]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -167,10 +174,10 @@ function QualityTable({
   );
 }
 
-function BlockCards() {
+function BlockCards({ inspections }: { inspections: QualityInspection[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {qualityInspections
+      {inspections
         .filter((item) => item.blocksInventory || item.blocksShipment || item.blocksProduction)
         .map((item) => (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
@@ -289,28 +296,45 @@ function DetailPanel({ item }: { item: QualityInspection }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedItem,
   onSelectItem
 }: {
   activeTab: QualityWorkspaceTab;
+  data: QualityDashboardData;
   selectedItem: QualityInspection;
   onSelectItem: (item: QualityInspection) => void;
 }) {
   if (activeTab === "release-block") {
     return (
       <div className="space-y-4">
-        <BlockCards />
-        <QualityTable activeTab={activeTab} selectedId={selectedItem.id} onSelect={onSelectItem} />
+        <BlockCards inspections={data.inspections} />
+        <QualityTable
+          activeTab={activeTab}
+          inspections={data.inspections}
+          selectedId={selectedItem.id}
+          onSelect={onSelectItem}
+        />
       </div>
     );
   }
 
-  return <QualityTable activeTab={activeTab} selectedId={selectedItem.id} onSelect={onSelectItem} />;
+  return (
+    <QualityTable
+      activeTab={activeTab}
+      inspections={data.inspections}
+      selectedId={selectedItem.id}
+      onSelect={onSelectItem}
+    />
+  );
 }
 
 export default function QualityPage() {
+  const { data: qualityData, error, isLoading, source } = useQualityDashboard();
   const [activeTab, setActiveTab] = useState<QualityWorkspaceTab>("inspection");
-  const [selectedItem, setSelectedItem] = useState<QualityInspection>(qualityInspections[0]);
+  const [selectedItemId, setSelectedItemId] = useState<string>(qualityData.inspections[0].id);
+  const selectedItem =
+    qualityData.inspections.find((item) => item.id === selectedItemId) ?? qualityData.inspections[0];
 
   return (
     <AppLayout activePath="/quality" title="品保中心 Quality Workspace">
@@ -320,6 +344,10 @@ export default function QualityPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">檢驗 / 放行 / 阻擋 / 文件</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">品檢放行與品質阻擋總覽</h2>
@@ -348,7 +376,13 @@ export default function QualityPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Quality API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={qualityData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -382,8 +416,9 @@ export default function QualityPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={qualityData}
               selectedItem={selectedItem}
-              onSelectItem={setSelectedItem}
+              onSelectItem={(item) => setSelectedItemId(item.id)}
             />
           </div>
 

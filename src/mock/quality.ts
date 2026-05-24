@@ -1,4 +1,4 @@
-import type { QualityInspection, QualitySummary } from "@/types/quality";
+import type { QualityDashboardData, QualityInspection, QualitySummary } from "@/types/quality";
 
 export const qualitySummary: QualitySummary[] = [
   {
@@ -140,3 +140,8 @@ export const qualityInspections: QualityInspection[] = [
     ]
   }
 ];
+
+export const qualityDashboardMock: QualityDashboardData = {
+  summary: qualitySummary,
+  inspections: qualityInspections
+};

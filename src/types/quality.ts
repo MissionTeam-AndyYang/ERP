@@ -56,3 +56,10 @@ export type QualityInspection = {
   documents: QualityDocument[];
   workflow: QualityWorkflowStep[];
 };
+
+export type QualityDashboardData = {
+  summary: QualitySummary[];
+  inspections: QualityInspection[];
+};
+
+export type QualityDataSource = "api" | "mock";

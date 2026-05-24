@@ -66,3 +66,10 @@ export type SalesOrder = {
   dependencies: OrderDependency[];
   workflow: OrderFulfillmentStep[];
 };
+
+export type OrdersDashboardData = {
+  summary: OrderStatusSummary[];
+  orders: SalesOrder[];
+};
+
+export type OrdersDataSource = "api" | "mock";

@@ -12,9 +12,15 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useOrdersDashboard } from "@/hooks/use-orders-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { orderSummary, salesOrders } from "@/mock/orders";
-import type { OrderRiskLevel, OrderWorkspaceTab, SalesOrder } from "@/types/orders";
+import type {
+  OrderRiskLevel,
+  OrdersDashboardData,
+  OrderStatusSummary,
+  OrderWorkspaceTab,
+  SalesOrder
+} from "@/types/orders";
 
 const tabs: { id: OrderWorkspaceTab; label: string }[] = [
   { id: "overview", label: "訂單總覽" },
@@ -64,31 +70,31 @@ function commitmentTone(decision: SalesOrder["commitmentDecision"]) {
   return "success";
 }
 
-function getVisibleOrders(activeTab: OrderWorkspaceTab) {
+function getVisibleOrders(activeTab: OrderWorkspaceTab, orders: SalesOrder[]) {
   if (activeTab === "commitment") {
-    return [...salesOrders].sort((a, b) => {
+    return [...orders].sort((a, b) => {
       const rank = { "不可承諾": 0, "需協調": 1, "可承諾": 2 };
       return rank[a.commitmentDecision] - rank[b.commitmentDecision];
     });
   }
 
   if (activeTab === "delivery-risk") {
-    return salesOrders.filter((order) => order.deliveryRisk !== "正常");
+    return orders.filter((order) => order.deliveryRisk !== "正常");
   }
 
   if (activeTab === "margin-payment") {
-    return [...salesOrders].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
+    return [...orders].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
   }
 
-  return salesOrders;
+  return orders;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: OrderStatusSummary[] }) {
   const icons = [ClipboardList, CalendarClock, AlertTriangle, DollarSign];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {orderSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? ClipboardList;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -111,14 +117,16 @@ function KpiStrip() {
 
 function OrdersTable({
   activeTab,
+  orders,
   selectedId,
   onSelect
 }: {
   activeTab: OrderWorkspaceTab;
+  orders: SalesOrder[];
   selectedId: string;
   onSelect: (order: SalesOrder) => void;
 }) {
-  const rows = useMemo(() => getVisibleOrders(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleOrders(activeTab, orders), [activeTab, orders]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -198,10 +206,10 @@ function OrdersTable({
   );
 }
 
-function CommitmentCards() {
+function CommitmentCards({ orders }: { orders: SalesOrder[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {salesOrders.map((order) => (
+      {orders.map((order) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -240,10 +248,10 @@ function CommitmentCards() {
   );
 }
 
-function RiskCards() {
+function RiskCards({ orders }: { orders: SalesOrder[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {salesOrders
+      {orders
         .filter((order) => order.deliveryRisk !== "正常")
         .map((order) => (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
@@ -373,18 +381,25 @@ function DetailPanel({ order }: { order: SalesOrder }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedOrder,
   onSelectOrder
 }: {
   activeTab: OrderWorkspaceTab;
+  data: OrdersDashboardData;
   selectedOrder: SalesOrder;
   onSelectOrder: (order: SalesOrder) => void;
 }) {
   if (activeTab === "commitment") {
     return (
       <div className="space-y-4">
-        <CommitmentCards />
-        <OrdersTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />
+        <CommitmentCards orders={data.orders} />
+        <OrdersTable
+          activeTab={activeTab}
+          orders={data.orders}
+          selectedId={selectedOrder.id}
+          onSelect={onSelectOrder}
+        />
       </div>
     );
   }
@@ -392,18 +407,33 @@ function MainContent({
   if (activeTab === "delivery-risk") {
     return (
       <div className="space-y-4">
-        <RiskCards />
-        <OrdersTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />
+        <RiskCards orders={data.orders} />
+        <OrdersTable
+          activeTab={activeTab}
+          orders={data.orders}
+          selectedId={selectedOrder.id}
+          onSelect={onSelectOrder}
+        />
       </div>
     );
   }
 
-  return <OrdersTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />;
+  return (
+    <OrdersTable
+      activeTab={activeTab}
+      orders={data.orders}
+      selectedId={selectedOrder.id}
+      onSelect={onSelectOrder}
+    />
+  );
 }
 
 export default function OrdersPage() {
+  const { data: ordersData, error, isLoading, source } = useOrdersDashboard();
   const [activeTab, setActiveTab] = useState<OrderWorkspaceTab>("overview");
-  const [selectedOrder, setSelectedOrder] = useState<SalesOrder>(salesOrders[0]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(ordersData.orders[0].id);
+  const selectedOrder =
+    ordersData.orders.find((order) => order.id === selectedOrderId) ?? ordersData.orders[0];
 
   return (
     <AppLayout activePath="/orders" title="訂單履約 Orders Workspace">
@@ -414,6 +444,10 @@ export default function OrdersPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
                 <StatusBadge tone="neutral">接單承諾 / 交期 / 生產可行性 / 毛利 / 收款</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單承諾與履約風險總覽</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
@@ -442,7 +476,13 @@ export default function OrdersPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Orders API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={ordersData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -476,8 +516,9 @@ export default function OrdersPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={ordersData}
               selectedOrder={selectedOrder}
-              onSelectOrder={setSelectedOrder}
+              onSelectOrder={(order) => setSelectedOrderId(order.id)}
             />
           </div>
 

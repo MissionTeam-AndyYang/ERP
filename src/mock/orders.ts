@@ -1,4 +1,4 @@
-import type { OrderStatusSummary, SalesOrder } from "@/types/orders";
+import type { OrderStatusSummary, OrdersDashboardData, SalesOrder } from "@/types/orders";
 
 export const orderSummary: OrderStatusSummary[] = [
   {
@@ -178,3 +178,8 @@ export const salesOrders: SalesOrder[] = [
     ]
   }
 ];
+
+export const ordersDashboardMock: OrdersDashboardData = {
+  summary: orderSummary,
+  orders: salesOrders
+};

@@ -1,6 +1,7 @@
 import type {
   WarehouseCapacity,
   WarehouseCategorySummary,
+  WarehouseDashboardData,
   WarehouseKpi,
   WarehouseRecord,
   WarehouseRisk,
@@ -418,3 +419,12 @@ export const warehouseTasks: WarehouseTask[] = [
     tone: "info"
   }
 ];
+
+export const warehouseDashboardMock: WarehouseDashboardData = {
+  kpis: warehouseKpis,
+  categorySummaries: warehouseCategorySummaries,
+  capacities: warehouseCapacities,
+  records: warehouseRecords,
+  risks: warehouseRisks,
+  tasks: warehouseTasks
+};

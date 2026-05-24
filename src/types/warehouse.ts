@@ -106,6 +106,17 @@ export type WarehouseRelatedDocument = {
   tone: StatusTone;
 };
 
+export type WarehouseDashboardData = {
+  kpis: WarehouseKpi[];
+  categorySummaries: WarehouseCategorySummary[];
+  capacities: WarehouseCapacity[];
+  records: WarehouseRecord[];
+  risks: WarehouseRisk[];
+  tasks: WarehouseTask[];
+};
+
+export type WarehouseDataSource = "api" | "mock";
+
 export type InventoryItem = {
   sku: string;
   name: string;

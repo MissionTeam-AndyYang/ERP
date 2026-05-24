@@ -12,16 +12,18 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useWarehouseDashboard } from "@/hooks/use-warehouse-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import {
-  warehouseCapacities,
-  warehouseCategorySummaries,
-  warehouseKpis,
-  warehouseRecords,
-  warehouseRisks,
-  warehouseTasks
-} from "@/mock/warehouse";
-import type { WarehouseRecord, WarehouseWorkspaceTab } from "@/types/warehouse";
+import type {
+  WarehouseCapacity,
+  WarehouseCategorySummary,
+  WarehouseDashboardData,
+  WarehouseKpi,
+  WarehouseRecord,
+  WarehouseRisk,
+  WarehouseTask,
+  WarehouseWorkspaceTab
+} from "@/types/warehouse";
 
 const tabs: { id: WarehouseWorkspaceTab; label: string }[] = [
   { id: "value-space", label: "價值與倉位" },
@@ -45,26 +47,26 @@ function formatMoney(value: number) {
   return `$${new Intl.NumberFormat("zh-TW").format(value)}`;
 }
 
-function getVisibleRows(activeTab: WarehouseWorkspaceTab) {
+function getVisibleRows(activeTab: WarehouseWorkspaceTab, data: WarehouseDashboardData) {
   if (activeTab === "risk") {
-    const riskBatches = new Set(warehouseRisks.map((risk) => risk.batchNo));
-    return warehouseRecords.filter((record) => riskBatches.has(record.batchNo));
+    const riskBatches = new Set(data.risks.map((risk) => risk.batchNo));
+    return data.records.filter((record) => riskBatches.has(record.batchNo));
   }
 
   if (activeTab === "tasks") {
-    const taskBatches = new Set(warehouseTasks.map((task) => task.batchNo));
-    return warehouseRecords.filter((record) => taskBatches.has(record.batchNo));
+    const taskBatches = new Set(data.tasks.map((task) => task.batchNo));
+    return data.records.filter((record) => taskBatches.has(record.batchNo));
   }
 
-  return warehouseRecords;
+  return data.records;
 }
 
-function KpiStrip() {
+function KpiStrip({ kpis }: { kpis: WarehouseKpi[] }) {
   const icons = [TrendingUp, Warehouse, AlertTriangle, ClipboardList];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {warehouseKpis.map((item, index) => {
+      {kpis.map((item, index) => {
         const Icon = icons[index] ?? Boxes;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -85,9 +87,15 @@ function KpiStrip() {
   );
 }
 
-function ValueAndSpaceView() {
-  const totalValue = warehouseCategorySummaries.reduce((sum, item) => sum + item.amount, 0);
-  const totalPallets = warehouseCategorySummaries.reduce((sum, item) => sum + item.palletCount, 0);
+function ValueAndSpaceView({
+  capacities,
+  categorySummaries
+}: {
+  capacities: WarehouseCapacity[];
+  categorySummaries: WarehouseCategorySummary[];
+}) {
+  const totalValue = categorySummaries.reduce((sum, item) => sum + item.amount, 0);
+  const totalPallets = categorySummaries.reduce((sum, item) => sum + item.palletCount, 0);
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -117,7 +125,7 @@ function ValueAndSpaceView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {warehouseCategorySummaries.map((item) => (
+              {categorySummaries.map((item) => (
                 <tr key={item.category}>
                   <td className="px-4 py-3">
                     <StatusBadge tone={item.tone}>{item.category}</StatusBadge>
@@ -155,7 +163,7 @@ function ValueAndSpaceView() {
       </div>
 
       <div className="space-y-3">
-        {warehouseCapacities.map((warehouseItem) => {
+        {capacities.map((warehouseItem) => {
           const usedRatio = Math.round((warehouseItem.usedPallets / warehouseItem.totalPallets) * 100);
           return (
             <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={warehouseItem.id}>
@@ -191,10 +199,10 @@ function ValueAndSpaceView() {
   );
 }
 
-function RiskView() {
+function RiskView({ risks }: { risks: WarehouseRisk[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {warehouseRisks.map((risk) => (
+      {risks.map((risk) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={risk.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -218,7 +226,7 @@ function RiskView() {
   );
 }
 
-function TaskView() {
+function TaskView({ tasks }: { tasks: WarehouseTask[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
       <div className="overflow-x-auto">
@@ -236,7 +244,7 @@ function TaskView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {warehouseTasks.map((task) => (
+            {tasks.map((task) => (
               <tr key={task.id}>
                 <td className="px-4 py-3">
                   <StatusBadge tone={task.tone}>{task.type}</StatusBadge>
@@ -264,14 +272,16 @@ function TaskView() {
 
 function WarehouseTable({
   activeTab,
+  data,
   selectedId,
   onSelect
 }: {
   activeTab: WarehouseWorkspaceTab;
+  data: WarehouseDashboardData;
   selectedId: string;
   onSelect: (record: WarehouseRecord) => void;
 }) {
-  const rows = useMemo(() => getVisibleRows(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleRows(activeTab, data), [activeTab, data]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -440,22 +450,34 @@ function DetailPanel({ record }: { record: WarehouseRecord }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedRecord,
   onSelectRecord
 }: {
   activeTab: WarehouseWorkspaceTab;
+  data: WarehouseDashboardData;
   selectedRecord: WarehouseRecord;
   onSelectRecord: (record: WarehouseRecord) => void;
 }) {
   if (activeTab === "value-space") {
-    return <ValueAndSpaceView />;
+    return (
+      <ValueAndSpaceView
+        capacities={data.capacities}
+        categorySummaries={data.categorySummaries}
+      />
+    );
   }
 
   if (activeTab === "risk") {
     return (
       <div className="space-y-4">
-        <RiskView />
-        <WarehouseTable activeTab={activeTab} selectedId={selectedRecord.id} onSelect={onSelectRecord} />
+        <RiskView risks={data.risks} />
+        <WarehouseTable
+          activeTab={activeTab}
+          data={data}
+          selectedId={selectedRecord.id}
+          onSelect={onSelectRecord}
+        />
       </div>
     );
   }
@@ -463,18 +485,33 @@ function MainContent({
   if (activeTab === "tasks") {
     return (
       <div className="space-y-4">
-        <TaskView />
-        <WarehouseTable activeTab={activeTab} selectedId={selectedRecord.id} onSelect={onSelectRecord} />
+        <TaskView tasks={data.tasks} />
+        <WarehouseTable
+          activeTab={activeTab}
+          data={data}
+          selectedId={selectedRecord.id}
+          onSelect={onSelectRecord}
+        />
       </div>
     );
   }
 
-  return <WarehouseTable activeTab={activeTab} selectedId={selectedRecord.id} onSelect={onSelectRecord} />;
+  return (
+    <WarehouseTable
+      activeTab={activeTab}
+      data={data}
+      selectedId={selectedRecord.id}
+      onSelect={onSelectRecord}
+    />
+  );
 }
 
 export default function WarehousePage() {
+  const { data: warehouseData, error, isLoading, source } = useWarehouseDashboard();
   const [activeTab, setActiveTab] = useState<WarehouseWorkspaceTab>("value-space");
-  const [selectedRecord, setSelectedRecord] = useState<WarehouseRecord>(warehouseRecords[0]);
+  const [selectedRecordId, setSelectedRecordId] = useState<string>(warehouseData.records[0].id);
+  const selectedRecord =
+    warehouseData.records.find((record) => record.id === selectedRecordId) ?? warehouseData.records[0];
 
   return (
     <AppLayout activePath="/warehouse" titleKey="warehouse.layoutTitle">
@@ -485,6 +522,10 @@ export default function WarehousePage() {
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
                 <StatusBadge tone="neutral">價值 / 倉位 / 風險 / 入出庫</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">倉庫經營總覽</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
@@ -512,7 +553,13 @@ export default function WarehousePage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Warehouse API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip kpis={warehouseData.kpis} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -546,8 +593,9 @@ export default function WarehousePage() {
 
             <MainContent
               activeTab={activeTab}
+              data={warehouseData}
               selectedRecord={selectedRecord}
-              onSelectRecord={setSelectedRecord}
+              onSelectRecord={(record) => setSelectedRecordId(record.id)}
             />
           </div>
 

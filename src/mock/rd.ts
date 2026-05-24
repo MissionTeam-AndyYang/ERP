@@ -1,4 +1,4 @@
-import type { RdProject, RdSummary } from "@/types/rd";
+import type { RdDashboardData, RdProject, RdSummary } from "@/types/rd";
 
 export const rdSummary: RdSummary[] = [
   { label: "開發案", value: "14", hint: "試作中 5、報價中 4", tone: "info" },
@@ -145,3 +145,7 @@ export const rdProjects: RdProject[] = [
   }
 ];
 
+export const rdDashboardMock: RdDashboardData = {
+  summary: rdSummary,
+  projects: rdProjects
+};

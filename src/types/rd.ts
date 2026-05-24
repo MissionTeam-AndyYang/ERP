@@ -65,3 +65,9 @@ export type RdProject = {
   workflow: RdWorkflowStep[];
 };
 
+export type RdDashboardData = {
+  summary: RdSummary[];
+  projects: RdProject[];
+};
+
+export type RdDataSource = "api" | "mock";

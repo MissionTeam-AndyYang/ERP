@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useRdDashboard } from "@/hooks/use-rd-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { rdProjects, rdSummary } from "@/mock/rd";
-import type { RdDecision, RdProject, RdWorkspaceTab } from "@/types/rd";
+import type { RdDashboardData, RdDecision, RdProject, RdSummary, RdWorkspaceTab } from "@/types/rd";
 
 const tabs: { id: RdWorkspaceTab; label: string }[] = [
   { id: "projects", label: "開發案" },
@@ -39,25 +39,25 @@ function decisionTone(decision: RdDecision) {
   return "success";
 }
 
-function getVisibleProjects(activeTab: RdWorkspaceTab) {
+function getVisibleProjects(activeTab: RdWorkspaceTab, projects: RdProject[]) {
   if (activeTab === "bom-versions") {
-    return [...rdProjects].sort((a, b) => a.bomStatus.localeCompare(b.bomStatus, "zh-TW"));
+    return [...projects].sort((a, b) => a.bomStatus.localeCompare(b.bomStatus, "zh-TW"));
   }
   if (activeTab === "costing") {
-    return [...rdProjects].sort((a, b) => b.totalUnitCost - a.totalUnitCost);
+    return [...projects].sort((a, b) => b.totalUnitCost - a.totalUnitCost);
   }
   if (activeTab === "quotation") {
-    return [...rdProjects].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
+    return [...projects].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
   }
-  return rdProjects;
+  return projects;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: RdSummary[] }) {
   const icons = [Beaker, GitBranch, Calculator, TrendingUp];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {rdSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? Beaker;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -80,14 +80,16 @@ function KpiStrip() {
 
 function RdTable({
   activeTab,
+  projects,
   selectedId,
   onSelect
 }: {
   activeTab: RdWorkspaceTab;
+  projects: RdProject[];
   selectedId: string;
   onSelect: (item: RdProject) => void;
 }) {
-  const rows = useMemo(() => getVisibleProjects(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleProjects(activeTab, projects), [activeTab, projects]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -154,10 +156,10 @@ function RdTable({
   );
 }
 
-function CostingCards() {
+function CostingCards({ projects }: { projects: RdProject[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {rdProjects.map((item) => (
+      {projects.map((item) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -271,28 +273,32 @@ function DetailPanel({ item }: { item: RdProject }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedProject,
   onSelectProject
 }: {
   activeTab: RdWorkspaceTab;
+  data: RdDashboardData;
   selectedProject: RdProject;
   onSelectProject: (item: RdProject) => void;
 }) {
   if (activeTab === "costing" || activeTab === "quotation") {
     return (
       <div className="space-y-4">
-        <CostingCards />
-        <RdTable activeTab={activeTab} selectedId={selectedProject.id} onSelect={onSelectProject} />
+        <CostingCards projects={data.projects} />
+        <RdTable activeTab={activeTab} projects={data.projects} selectedId={selectedProject.id} onSelect={onSelectProject} />
       </div>
     );
   }
 
-  return <RdTable activeTab={activeTab} selectedId={selectedProject.id} onSelect={onSelectProject} />;
+  return <RdTable activeTab={activeTab} projects={data.projects} selectedId={selectedProject.id} onSelect={onSelectProject} />;
 }
 
 export default function RdPage() {
+  const { data: rdData, error, isLoading, source } = useRdDashboard();
   const [activeTab, setActiveTab] = useState<RdWorkspaceTab>("projects");
-  const [selectedProject, setSelectedProject] = useState<RdProject>(rdProjects[0]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(rdData.projects[0].id);
+  const selectedProject = rdData.projects.find((item) => item.id === selectedProjectId) ?? rdData.projects[0];
 
   return (
     <AppLayout activePath="/rd" title="產品研發與成本試算 R&D / Costing">
@@ -302,6 +308,10 @@ export default function RdPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">ODM Food Manufacturing</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">研發 / BOM / 成本 / 報價</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">產品研發、BOM 版本與報價成本總覽</h2>
@@ -330,7 +340,13 @@ export default function RdPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            R&D API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={rdData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -362,8 +378,9 @@ export default function RdPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={rdData}
               selectedProject={selectedProject}
-              onSelectProject={setSelectedProject}
+              onSelectProject={(item) => setSelectedProjectId(item.id)}
             />
           </div>
 

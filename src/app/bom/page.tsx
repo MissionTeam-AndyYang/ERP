@@ -1,9 +1,13 @@
+"use client";
+
 import { Beaker, FlaskConical, GitBranch } from "lucide-react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { ProcessBoard } from "@/components/common/process-board";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useSupportDashboard } from "@/hooks/use-support-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
 
 const kpis = [
@@ -78,7 +82,20 @@ const lifecycle = [
   }
 ];
 
+const bomDashboardMock = {
+  kpis,
+  bomCards,
+  changeTasks,
+  lifecycle
+};
+
 export default function BomPage() {
+  const { data, error, isLoading, source } = useSupportDashboard(
+    "/api/v1/bom/dashboard",
+    bomDashboardMock,
+    "BOM API unavailable"
+  );
+
   return (
     <AppLayout activePath="/bom" title="研發 BOM / 配方中心">
       <div className="mx-auto max-w-[1440px] space-y-6">
@@ -92,15 +109,26 @@ export default function BomPage() {
             { label: "參數", value: "52", icon: FlaskConical }
           ]}
         />
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge tone={source === "api" ? "success" : "warning"}>
+            {source === "api" ? "API data" : "Mock fallback"}
+          </StatusBadge>
+          {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+        </div>
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            BOM API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
+          {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
-        <ProcessBoard eyebrow="BOM Lifecycle" title="研發 BOM 版本流程" columns={lifecycle} />
+        <ProcessBoard eyebrow="BOM Lifecycle" title="研發 BOM 版本流程" columns={data.lifecycle} />
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
-            {bomCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+            {data.bomCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
           </div>
-          <CompactListPanel eyebrow="Change Requests" title="配方變更與簽核" items={changeTasks} />
+          <CompactListPanel eyebrow="Change Requests" title="配方變更與簽核" items={data.changeTasks} />
         </section>
       </div>
     </AppLayout>

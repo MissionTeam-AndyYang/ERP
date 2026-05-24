@@ -1,9 +1,13 @@
+"use client";
+
 import { Boxes, PackageCheck, Tags } from "lucide-react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { ProcessBoard } from "@/components/common/process-board";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useSupportDashboard } from "@/hooks/use-support-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
 
 const kpis = [
@@ -90,7 +94,20 @@ const categories = [
   }
 ];
 
+const itemsDashboardMock = {
+  kpis,
+  itemCards,
+  masterTasks,
+  categories
+};
+
 export default function ItemsPage() {
+  const { data, error, isLoading, source } = useSupportDashboard(
+    "/api/v1/items/dashboard",
+    itemsDashboardMock,
+    "Items API unavailable"
+  );
+
   return (
     <AppLayout activePath="/items" title="品項中心 Item Master">
       <div className="mx-auto max-w-[1440px] space-y-6">
@@ -104,15 +121,26 @@ export default function ItemsPage() {
             { label: "物料", value: "342", icon: Boxes }
           ]}
         />
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge tone={source === "api" ? "success" : "warning"}>
+            {source === "api" ? "API data" : "Mock fallback"}
+          </StatusBadge>
+          {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+        </div>
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Items API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
+          {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
-        <ProcessBoard eyebrow="Item Categories" title="品項分類看板" columns={categories} />
+        <ProcessBoard eyebrow="Item Categories" title="品項分類看板" columns={data.categories} />
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
-            {itemCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+            {data.itemCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
           </div>
-          <CompactListPanel eyebrow="Master Data Tasks" title="主資料待辦" items={masterTasks} />
+          <CompactListPanel eyebrow="Master Data Tasks" title="主資料待辦" items={data.masterTasks} />
         </section>
       </div>
     </AppLayout>

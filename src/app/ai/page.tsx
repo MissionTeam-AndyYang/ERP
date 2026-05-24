@@ -1,9 +1,13 @@
+"use client";
+
 import { Bot, BrainCircuit, Sparkles } from "lucide-react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { ProcessBoard } from "@/components/common/process-board";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useSupportDashboard } from "@/hooks/use-support-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
 
 const kpis = [
@@ -78,7 +82,20 @@ const flow = [
   }
 ];
 
+const aiDashboardMock = {
+  kpis,
+  insights,
+  assistantTasks,
+  flow
+};
+
 export default function AiPage() {
+  const { data, error, isLoading, source } = useSupportDashboard(
+    "/api/v1/ai/dashboard",
+    aiDashboardMock,
+    "AI API unavailable"
+  );
+
   return (
     <AppLayout activePath="/ai" title="AI 中心 AI Insights Module">
       <div className="mx-auto max-w-[1440px] space-y-6">
@@ -92,15 +109,26 @@ export default function AiPage() {
             { label: "助手", value: "2", icon: Bot }
           ]}
         />
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge tone={source === "api" ? "success" : "warning"}>
+            {source === "api" ? "API data" : "Mock fallback"}
+          </StatusBadge>
+          {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+        </div>
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            AI API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
+          {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
-        <ProcessBoard eyebrow="AI Decision Flow" title="AI 預警與建議流程" columns={flow} />
+        <ProcessBoard eyebrow="AI Decision Flow" title="AI 預警與建議流程" columns={data.flow} />
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
-            {insights.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+            {data.insights.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
           </div>
-          <CompactListPanel eyebrow="Assistant Actions" title="AI Assistant 任務" items={assistantTasks} />
+          <CompactListPanel eyebrow="Assistant Actions" title="AI Assistant 任務" items={data.assistantTasks} />
         </section>
       </div>
     </AppLayout>

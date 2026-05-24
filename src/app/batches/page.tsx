@@ -1,9 +1,13 @@
+"use client";
+
 import { Barcode, CalendarClock, Network } from "lucide-react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { ProcessBoard } from "@/components/common/process-board";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { useSupportDashboard } from "@/hooks/use-support-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
 
 const kpis = [
@@ -78,7 +82,20 @@ const lifecycle = [
   }
 ];
 
+const batchesDashboardMock = {
+  kpis,
+  batchCards,
+  batchTasks,
+  lifecycle
+};
+
 export default function BatchesPage() {
+  const { data, error, isLoading, source } = useSupportDashboard(
+    "/api/v1/batches/dashboard",
+    batchesDashboardMock,
+    "Batches API unavailable"
+  );
+
   return (
     <AppLayout activePath="/batches" title="批號中心 Batch Module">
       <div className="mx-auto max-w-[1440px] space-y-6">
@@ -92,15 +109,26 @@ export default function BatchesPage() {
             { label: "鏈路", value: "99%", icon: Network }
           ]}
         />
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge tone={source === "api" ? "success" : "warning"}>
+            {source === "api" ? "API data" : "Mock fallback"}
+          </StatusBadge>
+          {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+        </div>
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Batches API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
+          {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
-        <ProcessBoard eyebrow="Batch Lifecycle" title="批號生命週期" columns={lifecycle} />
+        <ProcessBoard eyebrow="Batch Lifecycle" title="批號生命週期" columns={data.lifecycle} />
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
-            {batchCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+            {data.batchCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
           </div>
-          <CompactListPanel eyebrow="Batch Tasks" title="批號風險與待辦" items={batchTasks} />
+          <CompactListPanel eyebrow="Batch Tasks" title="批號風險與待辦" items={data.batchTasks} />
         </section>
       </div>
     </AppLayout>

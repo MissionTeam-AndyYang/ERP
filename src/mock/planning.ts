@@ -1,4 +1,4 @@
-import type { PlanningCase, PlanningSummary } from "@/types/planning";
+import type { PlanningCase, PlanningDashboardData, PlanningSummary } from "@/types/planning";
 
 export const planningSummary: PlanningSummary[] = [
   {
@@ -146,3 +146,7 @@ export const planningCases: PlanningCase[] = [
   }
 ];
 
+export const planningDashboardMock: PlanningDashboardData = {
+  summary: planningSummary,
+  cases: planningCases
+};

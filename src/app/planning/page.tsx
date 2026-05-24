@@ -12,9 +12,15 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { usePlanningDashboard } from "@/hooks/use-planning-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { planningCases, planningSummary } from "@/mock/planning";
-import type { PlanningCase, PlanningDecision, PlanningWorkspaceTab } from "@/types/planning";
+import type {
+  PlanningCase,
+  PlanningDashboardData,
+  PlanningDecision,
+  PlanningSummary,
+  PlanningWorkspaceTab
+} from "@/types/planning";
 
 const tabs: { id: PlanningWorkspaceTab; label: string }[] = [
   { id: "demand", label: "需求展開" },
@@ -50,28 +56,28 @@ function decisionTone(decision: PlanningDecision) {
   return "success";
 }
 
-function getVisibleCases(activeTab: PlanningWorkspaceTab) {
+function getVisibleCases(activeTab: PlanningWorkspaceTab, cases: PlanningCase[]) {
   if (activeTab === "materials") {
-    return planningCases.filter((item) => item.materials.some((material) => material.shortageQty > 0));
+    return cases.filter((item) => item.materials.some((material) => material.shortageQty > 0));
   }
 
   if (activeTab === "capacity") {
-    return planningCases.filter((item) => item.capacity.some((capacity) => capacity.requiredHours > capacity.availableHours));
+    return cases.filter((item) => item.capacity.some((capacity) => capacity.requiredHours > capacity.availableHours));
   }
 
   if (activeTab === "work-orders") {
-    return planningCases.filter((item) => item.suggestedWorkOrderCount > 0 || item.workOrders.length > 0);
+    return cases.filter((item) => item.suggestedWorkOrderCount > 0 || item.workOrders.length > 0);
   }
 
-  return planningCases;
+  return cases;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: PlanningSummary[] }) {
   const icons = [CalendarRange, ShoppingCart, AlertTriangle, ClipboardCheck];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {planningSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? CalendarRange;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -94,14 +100,16 @@ function KpiStrip() {
 
 function PlanningTable({
   activeTab,
+  cases,
   selectedId,
   onSelect
 }: {
   activeTab: PlanningWorkspaceTab;
+  cases: PlanningCase[];
   selectedId: string;
   onSelect: (item: PlanningCase) => void;
 }) {
-  const rows = useMemo(() => getVisibleCases(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleCases(activeTab, cases), [activeTab, cases]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -177,8 +185,8 @@ function PlanningTable({
   );
 }
 
-function MaterialCards() {
-  const shortageMaterials = planningCases.flatMap((item) =>
+function MaterialCards({ cases }: { cases: PlanningCase[] }) {
+  const shortageMaterials = cases.flatMap((item) =>
     item.materials
       .filter((material) => material.shortageQty > 0 || material.suggestedAction !== "直接備料")
       .map((material) => ({ ...material, planningId: item.id, sourceOrder: item.sourceOrder }))
@@ -216,8 +224,8 @@ function MaterialCards() {
   );
 }
 
-function CapacityCards() {
-  const capacityItems = planningCases.flatMap((item) =>
+function CapacityCards({ cases }: { cases: PlanningCase[] }) {
+  const capacityItems = cases.flatMap((item) =>
     item.capacity.map((capacity) => ({ ...capacity, planningId: item.id, sourceOrder: item.sourceOrder }))
   );
 
@@ -323,18 +331,20 @@ function DetailPanel({ item }: { item: PlanningCase }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedCase,
   onSelectCase
 }: {
   activeTab: PlanningWorkspaceTab;
+  data: PlanningDashboardData;
   selectedCase: PlanningCase;
   onSelectCase: (item: PlanningCase) => void;
 }) {
   if (activeTab === "materials") {
     return (
       <div className="space-y-4">
-        <MaterialCards />
-        <PlanningTable activeTab={activeTab} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <MaterialCards cases={data.cases} />
+        <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
       </div>
     );
   }
@@ -342,18 +352,20 @@ function MainContent({
   if (activeTab === "capacity") {
     return (
       <div className="space-y-4">
-        <CapacityCards />
-        <PlanningTable activeTab={activeTab} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <CapacityCards cases={data.cases} />
+        <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
       </div>
     );
   }
 
-  return <PlanningTable activeTab={activeTab} selectedId={selectedCase.id} onSelect={onSelectCase} />;
+  return <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />;
 }
 
 export default function PlanningPage() {
+  const { data: planningData, error, isLoading, source } = usePlanningDashboard();
   const [activeTab, setActiveTab] = useState<PlanningWorkspaceTab>("demand");
-  const [selectedCase, setSelectedCase] = useState<PlanningCase>(planningCases[0]);
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(planningData.cases[0].id);
+  const selectedCase = planningData.cases.find((item) => item.id === selectedCaseId) ?? planningData.cases[0];
 
   return (
     <AppLayout activePath="/planning" title="計劃中心 Planning / APS Workspace">
@@ -363,6 +375,10 @@ export default function PlanningPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">ATP/CTP → MRP → 工單建議</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單需求計劃與工單建議總覽</h2>
@@ -391,7 +407,13 @@ export default function PlanningPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Planning API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={planningData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -425,8 +447,9 @@ export default function PlanningPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={planningData}
               selectedCase={selectedCase}
-              onSelectCase={setSelectedCase}
+              onSelectCase={(item) => setSelectedCaseId(item.id)}
             />
           </div>
 

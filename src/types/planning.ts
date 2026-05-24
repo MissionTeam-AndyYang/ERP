@@ -80,3 +80,9 @@ export type PlanningCase = {
   workOrders: PlannedWorkOrder[];
 };
 
+export type PlanningDashboardData = {
+  summary: PlanningSummary[];
+  cases: PlanningCase[];
+};
+
+export type PlanningDataSource = "api" | "mock";

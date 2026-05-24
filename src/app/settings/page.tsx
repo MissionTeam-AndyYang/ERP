@@ -237,7 +237,7 @@ export default function SettingsPage() {
         <KpiStrip summary={settingsData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <div className="rounded-lg border border-border bg-white p-3 shadow-card">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>

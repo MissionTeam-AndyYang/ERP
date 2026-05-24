@@ -123,7 +123,7 @@ export function AppLayout({
             </div>
           </div>
         </header>
-        <nav className="flex gap-2 overflow-x-auto border-b border-border bg-white px-4 py-3 lg:hidden">
+        <nav className="flex w-full max-w-full gap-2 overflow-x-auto border-b border-border bg-white px-4 py-3 lg:hidden">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.href === activePath;

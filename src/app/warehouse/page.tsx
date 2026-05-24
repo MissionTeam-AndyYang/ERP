@@ -98,8 +98,8 @@ function ValueAndSpaceView({
   const totalPallets = categorySummaries.reduce((sum, item) => sum + item.palletCount, 0);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <div className="rounded-lg border border-border bg-white p-4 shadow-card">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="min-w-0 rounded-lg border border-border bg-white p-4 shadow-card">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-textSecondary">庫存價值與板數</p>
@@ -562,7 +562,7 @@ export default function WarehousePage() {
         <KpiStrip kpis={warehouseData.kpis} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <div className="rounded-lg border border-border bg-white p-3 shadow-card">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>

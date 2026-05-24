@@ -1,5 +1,6 @@
 import type {
   ProductionAlert,
+  ProductionDashboardData,
   ProductionDaySchedule,
   ProductionSummaryItem,
   WorkOrder,
@@ -481,3 +482,10 @@ export const productionAlerts: ProductionAlert[] = [
     tone: "warning"
   }
 ];
+
+export const productionDashboardMock: ProductionDashboardData = {
+  summary: productionSummary,
+  orders: productionOrders,
+  weekSchedule: productionWeekSchedule,
+  alerts: productionAlerts
+};

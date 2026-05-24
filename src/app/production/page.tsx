@@ -14,14 +14,16 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useProductionDashboard } from "@/hooks/use-production-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import {
-  productionAlerts,
-  productionOrders,
-  productionSummary,
-  productionWeekSchedule
-} from "@/mock/production";
-import type { ProductionWorkspaceTab, WorkOrder } from "@/types/production";
+import type {
+  ProductionAlert,
+  ProductionDashboardData,
+  ProductionDaySchedule,
+  ProductionSummaryItem,
+  ProductionWorkspaceTab,
+  WorkOrder
+} from "@/types/production";
 
 const tabs: { id: ProductionWorkspaceTab; label: string }[] = [
   { id: "schedule", label: "週排程與產能" },
@@ -57,24 +59,24 @@ function getRiskTone(risk: WorkOrder["deliveryRisk"]) {
   return "success";
 }
 
-function getVisibleOrders(activeTab: ProductionWorkspaceTab) {
+function getVisibleOrders(activeTab: ProductionWorkspaceTab, orders: WorkOrder[]) {
   if (activeTab === "mes") {
-    return productionOrders.filter((order) => order.scheduleDate === "2026-05-23");
+    return orders.filter((order) => order.scheduleDate === "2026-05-23");
   }
 
   if (activeTab === "analytics") {
-    return [...productionOrders].sort((a, b) => a.efficiencyRate - b.efficiencyRate);
+    return [...orders].sort((a, b) => a.efficiencyRate - b.efficiencyRate);
   }
 
-  return productionOrders;
+  return orders;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: ProductionSummaryItem[] }) {
   const icons = [CalendarDays, Factory, UsersRound, ShieldCheck];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {productionSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? ClipboardList;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -95,10 +97,10 @@ function KpiStrip() {
   );
 }
 
-function WeekScheduleView() {
+function WeekScheduleView({ weekSchedule }: { weekSchedule: ProductionDaySchedule[] }) {
   return (
     <div className="space-y-4">
-      {productionWeekSchedule.map((day) => (
+      {weekSchedule.map((day) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={day.date}>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -163,10 +165,10 @@ function WeekScheduleView() {
   );
 }
 
-function AnalyticsView() {
+function AnalyticsView({ orders }: { orders: WorkOrder[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {productionOrders.map((order) => (
+      {orders.map((order) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -222,14 +224,16 @@ function AnalyticsView() {
 
 function ProductionTable({
   activeTab,
+  orders,
   selectedId,
   onSelect
 }: {
   activeTab: ProductionWorkspaceTab;
+  orders: WorkOrder[];
   selectedId: string;
   onSelect: (order: WorkOrder) => void;
 }) {
-  const rows = useMemo(() => getVisibleOrders(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleOrders(activeTab, orders), [activeTab, orders]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -427,32 +431,49 @@ function DetailPanel({ order }: { order: WorkOrder }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedOrder,
   onSelectOrder
 }: {
   activeTab: ProductionWorkspaceTab;
+  data: ProductionDashboardData;
   selectedOrder: WorkOrder;
   onSelectOrder: (order: WorkOrder) => void;
 }) {
   if (activeTab === "schedule") {
-    return <WeekScheduleView />;
+    return <WeekScheduleView weekSchedule={data.weekSchedule} />;
   }
 
   if (activeTab === "analytics") {
     return (
       <div className="space-y-4">
-        <AnalyticsView />
-        <ProductionTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />
+        <AnalyticsView orders={data.orders} />
+        <ProductionTable
+          activeTab={activeTab}
+          orders={data.orders}
+          selectedId={selectedOrder.id}
+          onSelect={onSelectOrder}
+        />
       </div>
     );
   }
 
-  return <ProductionTable activeTab={activeTab} selectedId={selectedOrder.id} onSelect={onSelectOrder} />;
+  return (
+    <ProductionTable
+      activeTab={activeTab}
+      orders={data.orders}
+      selectedId={selectedOrder.id}
+      onSelect={onSelectOrder}
+    />
+  );
 }
 
 export default function ProductionPage() {
+  const { data: productionData, error, isLoading, source } = useProductionDashboard();
   const [activeTab, setActiveTab] = useState<ProductionWorkspaceTab>("schedule");
-  const [selectedOrder, setSelectedOrder] = useState<WorkOrder>(productionOrders[0]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(productionData.orders[0].id);
+  const selectedOrder =
+    productionData.orders.find((order) => order.id === selectedOrderId) ?? productionData.orders[0];
 
   return (
     <AppLayout activePath="/production" title="生產管理 Production Workspace">
@@ -463,6 +484,10 @@ export default function ProductionPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
                 <StatusBadge tone="neutral">排程 / MES / 效率 / 品質</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">生產計畫與現場品質總覽</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
@@ -490,7 +515,13 @@ export default function ProductionPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Production API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={productionData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -524,12 +555,13 @@ export default function ProductionPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={productionData}
               selectedOrder={selectedOrder}
-              onSelectOrder={setSelectedOrder}
+              onSelectOrder={(order) => setSelectedOrderId(order.id)}
             />
 
             <div className="grid gap-3 lg:grid-cols-3">
-              {productionAlerts.map((item) => {
+              {productionData.alerts.map((item: ProductionAlert) => {
                 const Icon = item.tone === "danger" ? AlertTriangle : item.tone === "info" ? ShieldCheck : BarChart3;
                 return (
                   <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>

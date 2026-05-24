@@ -143,3 +143,12 @@ export type ProductionAlert = {
   description: string;
   tone: StatusTone;
 };
+
+export type ProductionDashboardData = {
+  summary: ProductionSummaryItem[];
+  orders: WorkOrder[];
+  weekSchedule: ProductionDaySchedule[];
+  alerts: ProductionAlert[];
+};
+
+export type ProductionDataSource = "api" | "mock";

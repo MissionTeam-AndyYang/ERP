@@ -60,6 +60,19 @@ python scripts/verify_v1_api_contracts.py --base-url http://127.0.0.1:5000 --mod
 | `dashboard` | `/api/v1/dashboard/manager` |
 | `settings` | `/api/v1/settings/dashboard` |
 
+## Not Yet Covered Support Endpoints
+
+These frontend service endpoints exist with mock fallback, but they are not yet formal module keys in `scripts/verify_v1_api_contracts.py`:
+
+| Support page | Endpoint |
+| --- | --- |
+| Items / Item Master | `/api/v1/items/dashboard` |
+| BOM / Formula | `/api/v1/bom/dashboard` |
+| Batches | `/api/v1/batches/dashboard` |
+| AI Center | `/api/v1/ai/dashboard` |
+
+Add these to the verification script after their support-page API contracts are promoted into backend implementation scope.
+
 ## Expected Result During Development
 
 Before implementation, most new endpoints may fail with HTTP 404. That is expected.

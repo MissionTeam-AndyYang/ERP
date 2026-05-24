@@ -42,7 +42,7 @@ function normalizeDashboard(payload: DashboardResponse): DashboardData {
 
 export async function getDashboard(): Promise<DashboardResult> {
   try {
-    const payload = await apiGet<DashboardResponse>("/api/v1/dashboard");
+    const payload = await apiGet<DashboardResponse>("/api/v1/dashboard/manager");
     return { data: normalizeDashboard(payload), source: "api" };
   } catch (error) {
     return {

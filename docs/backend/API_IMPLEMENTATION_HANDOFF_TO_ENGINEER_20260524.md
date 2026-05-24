@@ -13,6 +13,7 @@ Start here:
 
 - `docs/frontend/api/ERP_API_DEVELOPMENT_SPECS_INDEX_20260524.md`
 - `docs/backend/API_IMPLEMENTATION_TRACKER_20260524.md`
+- `docs/backend/FRONTEND_API_ENDPOINT_INVENTORY_AND_BACKEND_GAP_20260524.md`
 - `docs/frontend/ERP_FRONTEND_API_FIELD_MAPPING_20260524.md`
 
 Core module specs:
@@ -23,6 +24,39 @@ Core module specs:
 - `docs/frontend/api/ERP_QUALITY_API_DEVELOPMENT_SPEC_20260524.md`
 - `docs/frontend/api/ERP_PLANNING_APS_API_DEVELOPMENT_SPEC_20260524.md`
 - `docs/frontend/api/ERP_PURCHASING_API_DEVELOPMENT_SPEC_20260524.md`
+
+## Frontend Service Layer Status
+
+All V1 first-version screens now have frontend API service-layer wiring with mock fallback. This means backend implementation can proceed endpoint by endpoint without blocking current frontend display.
+
+Current frontend aggregation endpoints:
+
+```txt
+GET /api/v1/warehouse/dashboard
+GET /api/v1/orders/dashboard
+GET /api/v1/production/dashboard
+GET /api/v1/quality/dashboard
+GET /api/v1/planning/dashboard
+GET /api/v1/purchasing/dashboard
+GET /api/v1/logistics/dashboard
+GET /api/v1/finance/dashboard
+GET /api/v1/rd/dashboard
+GET /api/v1/workforce/dashboard
+GET /api/v1/traceability/dashboard
+GET /api/v1/settings/dashboard
+GET /api/v1/dashboard/manager
+```
+
+Support-page service endpoints also exist with fallback:
+
+```txt
+GET /api/v1/items/dashboard
+GET /api/v1/bom/dashboard
+GET /api/v1/batches/dashboard
+GET /api/v1/ai/dashboard
+```
+
+Note: the manager dashboard frontend endpoint is aligned to `GET /api/v1/dashboard/manager`.
 
 ## Requested Engineer Response
 
@@ -90,6 +124,8 @@ Useful existing groups:
 - `bom`
 - `material`
 - `goods`
+
+See `docs/backend/FRONTEND_API_ENDPOINT_INVENTORY_AND_BACKEND_GAP_20260524.md` for module-by-module candidate source routes and gap classification.
 
 ## First Warehouse Confirmation Items
 

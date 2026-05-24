@@ -102,3 +102,27 @@ export type ManagerSnapshot = {
   marginSignal: string;
   cashSignal: string;
 };
+
+export type ModuleShortcut = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+};
+
+export type DashboardData = {
+  managerSnapshot: ManagerSnapshot;
+  managerFocusItems: ManagerFocusItem[];
+  managerDecisionItems: ManagerDecisionItem[];
+  departmentBlockers: DepartmentBlocker[];
+  todayTasks: TodayTask[];
+  preOrderPipeline: PreOrderPipelineItem[];
+  productionLines: ProductionLine[];
+  alertItems: AlertItem[];
+  productionTrendData: ProductionTrendPoint[];
+  oeeTrendData: OeeTrendPoint[];
+  qualityTrendData: QualityTrendPoint[];
+  alertDistributionData: AlertDistributionItem[];
+  moduleShortcuts: ModuleShortcut[];
+};
+
+export type DashboardDataSource = "api" | "mock";

@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ArrowRight,
@@ -15,23 +17,8 @@ import { AlertCard } from "@/components/dashboard/alert-card";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ProductionLineCard } from "@/components/dashboard/production-line-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useDashboard } from "@/hooks/use-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import {
-  alertDistributionData,
-  alertItems,
-  departmentBlockers,
-  kpiItems,
-  managerDecisionItems,
-  managerFocusItems,
-  managerSnapshot,
-  moduleShortcuts,
-  oeeTrendData,
-  preOrderPipeline,
-  productionLines,
-  productionTrendData,
-  qualityTrendData,
-  todayTasks
-} from "@/mock/dashboard";
 import type { StatusTone } from "@/types/dashboard";
 
 const tonePanelStyles: Record<StatusTone, string> = {
@@ -51,12 +38,20 @@ const toneDotStyles: Record<StatusTone, string> = {
 };
 
 export default function HomePage() {
+  const { data, error, isLoading, source } = useDashboard();
+
   return (
     <AppLayout title="管理者 Dashboard">
       <div className="mx-auto max-w-[1440px] space-y-6">
         <section className="grid gap-4 rounded-card bg-primaryDark p-6 text-white shadow-card xl:grid-cols-[1fr_420px]">
           <div>
-            <StatusBadge tone="info">Manager View</StatusBadge>
+            <div className="flex flex-wrap gap-2">
+              <StatusBadge tone="info">Manager View</StatusBadge>
+              <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                {source === "api" ? "API data" : "Mock fallback"}
+              </StatusBadge>
+              {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+            </div>
             <h2 className="mt-4 text-2xl font-semibold md:text-3xl">
               今日營運協調與履約風險
             </h2>
@@ -64,7 +59,7 @@ export default function HomePage() {
               以管理者每天需要處理的決策為中心，彙整接單承諾、開發報價、排程備料、倉位、品保、生產、物流與毛利訊號。
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              {moduleShortcuts.map((item) => {
+              {data.moduleShortcuts.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
@@ -83,25 +78,31 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-3 rounded-card bg-white/10 p-4">
             <div>
               <p className="text-xs text-slate-300">履約風險</p>
-              <p className="mt-1 text-3xl font-bold">{managerSnapshot.fulfillmentRisk}</p>
+              <p className="mt-1 text-3xl font-bold">{data.managerSnapshot.fulfillmentRisk}</p>
             </div>
             <div>
               <p className="text-xs text-slate-300">交付承諾率</p>
-              <p className="mt-1 text-3xl font-bold">{managerSnapshot.deliveryCommitment}</p>
+              <p className="mt-1 text-3xl font-bold">{data.managerSnapshot.deliveryCommitment}</p>
             </div>
             <div>
               <p className="text-xs text-slate-300">預估毛利</p>
-              <p className="mt-1 text-3xl font-bold">{managerSnapshot.marginSignal}</p>
+              <p className="mt-1 text-3xl font-bold">{data.managerSnapshot.marginSignal}</p>
             </div>
             <div>
               <p className="text-xs text-slate-300">待收款訊號</p>
-              <p className="mt-1 text-3xl font-bold">{managerSnapshot.cashSignal}</p>
+              <p className="mt-1 text-3xl font-bold">{data.managerSnapshot.cashSignal}</p>
             </div>
           </div>
         </section>
 
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Dashboard API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {managerFocusItems.map((item) => {
+          {data.managerFocusItems.map((item) => {
             const Icon = item.icon;
             return (
               <article
@@ -140,7 +141,7 @@ export default function HomePage() {
               <StatusBadge tone="danger">3 件會影響交期</StatusBadge>
             </div>
             <div className="mt-5 space-y-3">
-              {managerDecisionItems.map((item) => (
+              {data.managerDecisionItems.map((item) => (
                 <div
                   className="rounded-card border border-border bg-slate-50 p-4"
                   key={item.title}
@@ -176,7 +177,7 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold text-textPrimary">今日跨部門待辦</h2>
             </div>
             <div className="mt-5 space-y-3">
-              {todayTasks.map((task) => (
+              {data.todayTasks.map((task) => (
                 <div className="grid grid-cols-[68px_1fr] gap-3" key={`${task.time}-${task.title}`}>
                   <p className="pt-1 text-sm font-semibold text-textSecondary">{task.time}</p>
                   <div className="rounded-card border border-border bg-white p-3">
@@ -202,7 +203,7 @@ export default function HomePage() {
               <StatusBadge tone="warning">需主管協調</StatusBadge>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {departmentBlockers.map((item) => (
+              {data.departmentBlockers.map((item) => (
                 <Link
                   className="group rounded-card border border-border bg-slate-50 p-4 transition hover:border-primary/40 hover:bg-white"
                   href={item.href}
@@ -231,7 +232,7 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold text-textPrimary">接單前開發與報價</h2>
             </div>
             <div className="mt-5 space-y-3">
-              {preOrderPipeline.map((item) => (
+              {data.preOrderPipeline.map((item) => (
                 <div className="rounded-card border border-border bg-slate-50 p-4" key={item.stage}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -248,15 +249,15 @@ export default function HomePage() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-          <ProductionTrendChart data={productionTrendData} />
+          <ProductionTrendChart data={data.productionTrendData} />
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
-            <OeeTrendChart data={oeeTrendData} />
-            <AlertDistributionChart data={alertDistributionData} />
+            <OeeTrendChart data={data.oeeTrendData} />
+            <AlertDistributionChart data={data.alertDistributionData} />
           </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_380px]">
-          <QualityTrendChart data={qualityTrendData} />
+          <QualityTrendChart data={data.qualityTrendData} />
           <article className="rounded-card border border-border bg-white p-5 shadow-card">
             <p className="text-sm font-medium text-textSecondary">Manager Insight</p>
             <h3 className="text-lg font-semibold text-textPrimary">今日營運判讀</h3>
@@ -302,7 +303,7 @@ export default function HomePage() {
               <StatusBadge tone="success">6 條正常運轉</StatusBadge>
             </div>
             <div className="grid gap-4 lg:grid-cols-3">
-              {productionLines.map((line) => (
+              {data.productionLines.map((line) => (
                 <ProductionLineCard line={line} key={line.batchNo} />
               ))}
             </div>
@@ -314,7 +315,7 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold text-textPrimary">異常與提醒</h2>
             </div>
             <div className="space-y-3">
-              {alertItems.map((item) => (
+              {data.alertItems.map((item) => (
                 <AlertCard item={item} key={item.title} />
               ))}
             </div>

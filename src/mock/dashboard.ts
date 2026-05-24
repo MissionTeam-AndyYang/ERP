@@ -17,6 +17,7 @@ import {
 import type {
   AlertDistributionItem,
   AlertItem,
+  DashboardData,
   DepartmentBlocker,
   KpiItem,
   ManagerDecisionItem,
@@ -346,3 +347,19 @@ export const moduleShortcuts = [
   { label: "Logistics", href: "/logistics", icon: Truck },
   { label: "Finance", href: "/finance", icon: DollarSign }
 ];
+
+export const dashboardMock: DashboardData = {
+  managerSnapshot,
+  managerFocusItems,
+  managerDecisionItems,
+  departmentBlockers,
+  todayTasks,
+  preOrderPipeline,
+  productionLines,
+  alertItems,
+  productionTrendData,
+  oeeTrendData,
+  qualityTrendData,
+  alertDistributionData,
+  moduleShortcuts
+};

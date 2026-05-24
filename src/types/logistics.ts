@@ -59,3 +59,9 @@ export type Shipment = {
   workflow: LogisticsWorkflowStep[];
 };
 
+export type LogisticsDashboardData = {
+  summary: LogisticsSummary[];
+  shipments: Shipment[];
+};
+
+export type LogisticsDataSource = "api" | "mock";

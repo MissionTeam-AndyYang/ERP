@@ -10,9 +10,15 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useLogisticsDashboard } from "@/hooks/use-logistics-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { logisticsSummary, shipments } from "@/mock/logistics";
-import type { DeliveryRiskLevel, LogisticsWorkspaceTab, Shipment } from "@/types/logistics";
+import type {
+  DeliveryRiskLevel,
+  LogisticsDashboardData,
+  LogisticsSummary,
+  LogisticsWorkspaceTab,
+  Shipment
+} from "@/types/logistics";
 
 const tabs: { id: LogisticsWorkspaceTab; label: string }[] = [
   { id: "shipments", label: "今日出貨" },
@@ -44,7 +50,7 @@ function riskTone(risk: DeliveryRiskLevel) {
   return "success";
 }
 
-function getVisibleShipments(activeTab: LogisticsWorkspaceTab) {
+function getVisibleShipments(activeTab: LogisticsWorkspaceTab, shipments: Shipment[]) {
   if (activeTab === "dispatch-risk") {
     return shipments.filter((item) => item.deliveryRisk !== "正常");
   }
@@ -60,12 +66,12 @@ function getVisibleShipments(activeTab: LogisticsWorkspaceTab) {
   return shipments;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: LogisticsSummary[] }) {
   const icons = [Truck, AlertTriangle, ThermometerSnowflake, ClipboardCheck];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {logisticsSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? Truck;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -88,14 +94,16 @@ function KpiStrip() {
 
 function ShipmentsTable({
   activeTab,
+  shipments,
   selectedId,
   onSelect
 }: {
   activeTab: LogisticsWorkspaceTab;
+  shipments: Shipment[];
   selectedId: string;
   onSelect: (item: Shipment) => void;
 }) {
-  const rows = useMemo(() => getVisibleShipments(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleShipments(activeTab, shipments), [activeTab, shipments]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -171,7 +179,7 @@ function ShipmentsTable({
   );
 }
 
-function RiskCards() {
+function RiskCards({ shipments }: { shipments: Shipment[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
       {shipments
@@ -299,28 +307,45 @@ function DetailPanel({ item }: { item: Shipment }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedShipment,
   onSelectShipment
 }: {
   activeTab: LogisticsWorkspaceTab;
+  data: LogisticsDashboardData;
   selectedShipment: Shipment;
   onSelectShipment: (item: Shipment) => void;
 }) {
   if (activeTab === "dispatch-risk") {
     return (
       <div className="space-y-4">
-        <RiskCards />
-        <ShipmentsTable activeTab={activeTab} selectedId={selectedShipment.id} onSelect={onSelectShipment} />
+        <RiskCards shipments={data.shipments} />
+        <ShipmentsTable
+          activeTab={activeTab}
+          shipments={data.shipments}
+          selectedId={selectedShipment.id}
+          onSelect={onSelectShipment}
+        />
       </div>
     );
   }
 
-  return <ShipmentsTable activeTab={activeTab} selectedId={selectedShipment.id} onSelect={onSelectShipment} />;
+  return (
+    <ShipmentsTable
+      activeTab={activeTab}
+      shipments={data.shipments}
+      selectedId={selectedShipment.id}
+      onSelect={onSelectShipment}
+    />
+  );
 }
 
 export default function LogisticsPage() {
+  const { data: logisticsData, error, isLoading, source } = useLogisticsDashboard();
   const [activeTab, setActiveTab] = useState<LogisticsWorkspaceTab>("shipments");
-  const [selectedShipment, setSelectedShipment] = useState<Shipment>(shipments[0]);
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string>(logisticsData.shipments[0].id);
+  const selectedShipment =
+    logisticsData.shipments.find((item) => item.id === selectedShipmentId) ?? logisticsData.shipments[0];
 
   return (
     <AppLayout activePath="/logistics" title="物流出貨 Logistics Workspace">
@@ -330,6 +355,10 @@ export default function LogisticsPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">出庫 / 派車 / 冷鏈 / 簽收</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">出貨派車與冷鏈交付總覽</h2>
@@ -358,7 +387,13 @@ export default function LogisticsPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Logistics API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={logisticsData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -392,8 +427,9 @@ export default function LogisticsPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={logisticsData}
               selectedShipment={selectedShipment}
-              onSelectShipment={setSelectedShipment}
+              onSelectShipment={(item) => setSelectedShipmentId(item.id)}
             />
           </div>
 

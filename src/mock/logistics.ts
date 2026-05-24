@@ -1,4 +1,4 @@
-import type { LogisticsSummary, Shipment } from "@/types/logistics";
+import type { LogisticsDashboardData, LogisticsSummary, Shipment } from "@/types/logistics";
 
 export const logisticsSummary: LogisticsSummary[] = [
   {
@@ -150,3 +150,7 @@ export const shipments: Shipment[] = [
   }
 ];
 
+export const logisticsDashboardMock: LogisticsDashboardData = {
+  summary: logisticsSummary,
+  shipments
+};

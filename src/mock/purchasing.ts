@@ -1,4 +1,4 @@
-import type { PurchaseItem, PurchasingSummary } from "@/types/purchasing";
+import type { PurchaseItem, PurchasingDashboardData, PurchasingSummary } from "@/types/purchasing";
 
 export const purchasingSummary: PurchasingSummary[] = [
   {
@@ -154,3 +154,8 @@ export const purchaseItems: PurchaseItem[] = [
     ]
   }
 ];
+
+export const purchasingDashboardMock: PurchasingDashboardData = {
+  summary: purchasingSummary,
+  items: purchaseItems
+};

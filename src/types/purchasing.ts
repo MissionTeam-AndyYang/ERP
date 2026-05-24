@@ -59,3 +59,10 @@ export type PurchaseItem = {
   dependencies: PurchaseDependency[];
   workflow: PurchaseWorkflowStep[];
 };
+
+export type PurchasingDashboardData = {
+  summary: PurchasingSummary[];
+  items: PurchaseItem[];
+};
+
+export type PurchasingDataSource = "api" | "mock";

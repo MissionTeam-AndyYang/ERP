@@ -12,9 +12,15 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { usePurchasingDashboard } from "@/hooks/use-purchasing-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import { purchaseItems, purchasingSummary } from "@/mock/purchasing";
-import type { PurchaseItem, PurchaseRiskLevel, PurchasingWorkspaceTab } from "@/types/purchasing";
+import type {
+  PurchaseItem,
+  PurchaseRiskLevel,
+  PurchasingDashboardData,
+  PurchasingSummary,
+  PurchasingWorkspaceTab
+} from "@/types/purchasing";
 
 const tabs: { id: PurchasingWorkspaceTab; label: string }[] = [
   { id: "demand", label: "採購需求" },
@@ -50,28 +56,28 @@ function riskTone(risk: PurchaseRiskLevel) {
   return "success";
 }
 
-function getVisibleItems(activeTab: PurchasingWorkspaceTab) {
+function getVisibleItems(activeTab: PurchasingWorkspaceTab, items: PurchaseItem[]) {
   if (activeTab === "delivery-risk") {
-    return purchaseItems.filter((item) => item.riskLevel !== "正常");
+    return items.filter((item) => item.riskLevel !== "正常");
   }
 
   if (activeTab === "receiving") {
-    return purchaseItems.filter((item) => item.stage === "驗收中" || item.receivingStatus !== "待到貨");
+    return items.filter((item) => item.stage === "驗收中" || item.receivingStatus !== "待到貨");
   }
 
   if (activeTab === "suppliers") {
-    return [...purchaseItems].sort((a, b) => b.delayDays - a.delayDays);
+    return [...items].sort((a, b) => b.delayDays - a.delayDays);
   }
 
-  return purchaseItems;
+  return items;
 }
 
-function KpiStrip() {
+function KpiStrip({ summary }: { summary: PurchasingSummary[] }) {
   const icons = [ShoppingCart, AlertTriangle, Truck, FileCheck2];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {purchasingSummary.map((item, index) => {
+      {summary.map((item, index) => {
         const Icon = icons[index] ?? ShoppingCart;
         return (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.label}>
@@ -94,14 +100,16 @@ function KpiStrip() {
 
 function PurchasingTable({
   activeTab,
+  items,
   selectedId,
   onSelect
 }: {
   activeTab: PurchasingWorkspaceTab;
+  items: PurchaseItem[];
   selectedId: string;
   onSelect: (item: PurchaseItem) => void;
 }) {
-  const rows = useMemo(() => getVisibleItems(activeTab), [activeTab]);
+  const rows = useMemo(() => getVisibleItems(activeTab, items), [activeTab, items]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -178,10 +186,10 @@ function PurchasingTable({
   );
 }
 
-function RiskCards() {
+function RiskCards({ items }: { items: PurchaseItem[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {purchaseItems
+      {items
         .filter((item) => item.riskLevel !== "正常")
         .map((item) => (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
@@ -293,28 +301,32 @@ function DetailPanel({ item }: { item: PurchaseItem }) {
 
 function MainContent({
   activeTab,
+  data,
   selectedItem,
   onSelectItem
 }: {
   activeTab: PurchasingWorkspaceTab;
+  data: PurchasingDashboardData;
   selectedItem: PurchaseItem;
   onSelectItem: (item: PurchaseItem) => void;
 }) {
   if (activeTab === "delivery-risk") {
     return (
       <div className="space-y-4">
-        <RiskCards />
-        <PurchasingTable activeTab={activeTab} selectedId={selectedItem.id} onSelect={onSelectItem} />
+        <RiskCards items={data.items} />
+        <PurchasingTable activeTab={activeTab} items={data.items} selectedId={selectedItem.id} onSelect={onSelectItem} />
       </div>
     );
   }
 
-  return <PurchasingTable activeTab={activeTab} selectedId={selectedItem.id} onSelect={onSelectItem} />;
+  return <PurchasingTable activeTab={activeTab} items={data.items} selectedId={selectedItem.id} onSelect={onSelectItem} />;
 }
 
 export default function PurchasingPage() {
+  const { data: purchasingData, error, isLoading, source } = usePurchasingDashboard();
   const [activeTab, setActiveTab] = useState<PurchasingWorkspaceTab>("demand");
-  const [selectedItem, setSelectedItem] = useState<PurchaseItem>(purchaseItems[0]);
+  const [selectedItemId, setSelectedItemId] = useState<string>(purchasingData.items[0].id);
+  const selectedItem = purchasingData.items.find((item) => item.id === selectedItemId) ?? purchasingData.items[0];
 
   return (
     <AppLayout activePath="/purchasing" title="採購備料 Purchasing Workspace">
@@ -324,6 +336,10 @@ export default function PurchasingPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone={source === "api" ? "success" : "warning"}>
+                  {source === "api" ? "API data" : "Mock fallback"}
+                </StatusBadge>
+                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <StatusBadge tone="neutral">採購需求 / 交期 / 驗收 / 供應商</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">採購與備料風險總覽</h2>
@@ -352,7 +368,13 @@ export default function PurchasingPage() {
           </div>
         </section>
 
-        <KpiStrip />
+        {error ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Purchasing API 尚未可用，已使用 mock fallback。{error}
+          </p>
+        ) : null}
+
+        <KpiStrip summary={purchasingData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
@@ -386,8 +408,9 @@ export default function PurchasingPage() {
 
             <MainContent
               activeTab={activeTab}
+              data={purchasingData}
               selectedItem={selectedItem}
-              onSelectItem={setSelectedItem}
+              onSelectItem={(item) => setSelectedItemId(item.id)}
             />
           </div>
 

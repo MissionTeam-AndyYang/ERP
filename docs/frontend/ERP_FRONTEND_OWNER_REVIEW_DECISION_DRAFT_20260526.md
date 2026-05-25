@@ -18,7 +18,7 @@ Warehouse -> Orders -> Production -> Quality -> Planning -> Purchasing -> Logist
 Status:
 
 ```txt
-pending_owner_review
+accepted
 ```
 
 Reason:
@@ -44,7 +44,7 @@ Risk/view empty: "目前沒有需要優先處理的..."
 Status:
 
 ```txt
-pending_owner_review
+accepted
 ```
 
 Reason:
@@ -69,7 +69,7 @@ No create/update mutation is implied until an endpoint exists.
 Status:
 
 ```txt
-pending_owner_review
+accepted
 ```
 
 Reason:
@@ -94,7 +94,7 @@ Backend may return codes, but frontend maps codes to display labels and badge to
 Status:
 
 ```txt
-pending_owner_review
+accepted
 ```
 
 Recommended core labels:
@@ -130,7 +130,7 @@ Before production:
 Status:
 
 ```txt
-pending_owner_review
+accepted
 ```
 
 Reason:

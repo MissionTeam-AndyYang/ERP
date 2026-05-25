@@ -33,6 +33,36 @@ function formatMoney(value: number) {
   return `$${new Intl.NumberFormat("zh-TW", { maximumFractionDigits: 1 }).format(value)}`;
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function rdProjectMatchesSearch(item: RdProject, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.customer,
+    item.productName,
+    item.targetChannel,
+    item.stage,
+    item.decision,
+    item.priority,
+    item.owner,
+    item.bomNo,
+    item.bomVersion,
+    item.bomStatus,
+    item.quoteRiskReason,
+    item.transferReadiness
+  ].some((value) => includesSearch(value, query));
+}
+
 function decisionTone(decision: RdDecision) {
   if (decision === "暫緩") return "danger";
   if (decision === "需調整") return "warning";
@@ -50,6 +80,15 @@ function getVisibleProjects(activeTab: RdWorkspaceTab, projects: RdProject[]) {
     return [...projects].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
   }
   return projects;
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: RdSummary[] }) {
@@ -81,18 +120,24 @@ function KpiStrip({ summary }: { summary: RdSummary[] }) {
 function RdTable({
   activeTab,
   projects,
+  searchQuery,
   selectedId,
   onSelect
 }: {
   activeTab: RdWorkspaceTab;
   projects: RdProject[];
+  searchQuery: string;
   selectedId: string;
   onSelect: (item: RdProject) => void;
 }) {
-  const rows = useMemo(() => getVisibleProjects(activeTab, projects), [activeTab, projects]);
+  const rows = useMemo(
+    () => getVisibleProjects(activeTab, projects).filter((item) => rdProjectMatchesSearch(item, searchQuery)),
+    [activeTab, projects, searchQuery]
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
+      {rows.length > 0 ? (
       <div className="overflow-x-auto">
         <table className="min-w-[1180px] w-full border-collapse text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
@@ -152,14 +197,25 @@ function RdTable({
           </tbody>
         </table>
       </div>
+      ) : (
+        <div className="p-4">
+          <EmptyState title="沒有符合條件的研發案件" description="請調整搜尋關鍵字，或切回其他研發視圖檢查。" />
+        </div>
+      )}
     </div>
   );
 }
 
-function CostingCards({ projects }: { projects: RdProject[] }) {
+function CostingCards({ projects, searchQuery }: { projects: RdProject[]; searchQuery: string }) {
+  const rows = projects.filter((item) => rdProjectMatchesSearch(item, searchQuery));
+
+  if (rows.length === 0) {
+    return <EmptyState title="沒有符合條件的成本試算" description="目前搜尋條件下沒有可顯示的 BOM 或報價成本資料。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {projects.map((item) => (
+      {rows.map((item) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -274,31 +330,55 @@ function DetailPanel({ item }: { item: RdProject }) {
 function MainContent({
   activeTab,
   data,
+  searchQuery,
   selectedProject,
   onSelectProject
 }: {
   activeTab: RdWorkspaceTab;
   data: RdDashboardData;
+  searchQuery: string;
   selectedProject: RdProject;
   onSelectProject: (item: RdProject) => void;
 }) {
   if (activeTab === "costing" || activeTab === "quotation") {
     return (
       <div className="space-y-4">
-        <CostingCards projects={data.projects} />
-        <RdTable activeTab={activeTab} projects={data.projects} selectedId={selectedProject.id} onSelect={onSelectProject} />
+        <CostingCards projects={data.projects} searchQuery={searchQuery} />
+        <RdTable
+          activeTab={activeTab}
+          projects={data.projects}
+          searchQuery={searchQuery}
+          selectedId={selectedProject.id}
+          onSelect={onSelectProject}
+        />
       </div>
     );
   }
 
-  return <RdTable activeTab={activeTab} projects={data.projects} selectedId={selectedProject.id} onSelect={onSelectProject} />;
+  return (
+    <RdTable
+      activeTab={activeTab}
+      projects={data.projects}
+      searchQuery={searchQuery}
+      selectedId={selectedProject.id}
+      onSelect={onSelectProject}
+    />
+  );
 }
 
 export default function RdPage() {
   const { data: rdData, error, isLoading, source } = useRdDashboard();
   const [activeTab, setActiveTab] = useState<RdWorkspaceTab>("projects");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(rdData.projects[0].id);
-  const selectedProject = rdData.projects.find((item) => item.id === selectedProjectId) ?? rdData.projects[0];
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const visibleProjects = useMemo(
+    () => getVisibleProjects(activeTab, rdData.projects).filter((item) => rdProjectMatchesSearch(item, searchQuery)),
+    [activeTab, rdData.projects, searchQuery]
+  );
+  const selectedCandidate = rdData.projects.find((item) => item.id === selectedProjectId) ?? rdData.projects[0];
+  const selectedProject =
+    visibleProjects.find((item) => item.id === selectedCandidate.id) ?? visibleProjects[0] ?? selectedCandidate;
 
   return (
     <AppLayout activePath="/rd" title="產品研發與成本試算 R&D / Costing">
@@ -324,15 +404,27 @@ export default function RdPage() {
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
+                  aria-label="搜尋開發案、客戶、產品或 BOM"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
                   placeholder="開發案 / 客戶 / 產品 / BOM"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                title="切換到報價基礎視圖，檢視目標毛利、最低報價與建議報價。"
+                type="button"
+                onClick={() => setActiveTab("quotation")}
+              >
                 <FileText className="h-4 w-4" aria-hidden="true" />
                 報價
               </button>
@@ -379,6 +471,7 @@ export default function RdPage() {
             <MainContent
               activeTab={activeTab}
               data={rdData}
+              searchQuery={searchQuery}
               selectedProject={selectedProject}
               onSelectProject={(item) => setSelectedProjectId(item.id)}
             />

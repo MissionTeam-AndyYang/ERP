@@ -27,6 +27,35 @@ const tabDescriptions: Record<WorkforceWorkspaceTab, string> = {
   certifications: "追蹤證照、訓練與複訓到期，避免影響派工與派車。"
 };
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function workforceCaseMatchesSearch(item: WorkforceCase, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.department,
+    item.lineOrArea,
+    item.shift,
+    item.relatedPlan,
+    item.relatedWorkOrder,
+    item.skillRequired,
+    item.skillCoverage,
+    item.riskLevel,
+    item.riskReason,
+    item.certificationIssue,
+    item.owner
+  ].some((value) => includesSearch(value, query));
+}
+
 function riskTone(risk: WorkforceRiskLevel) {
   if (risk === "高風險") return "danger";
   if (risk === "注意") return "warning";
@@ -44,6 +73,15 @@ function getVisibleCases(activeTab: WorkforceWorkspaceTab, cases: WorkforceCase[
     return cases.filter((item) => item.certificationIssue !== null);
   }
   return cases;
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: WorkforceSummary[] }) {
@@ -75,19 +113,25 @@ function KpiStrip({ summary }: { summary: WorkforceSummary[] }) {
 function WorkforceTable({
   activeTab,
   cases,
+  searchQuery,
   selectedId,
   onSelect
 }: {
   activeTab: WorkforceWorkspaceTab;
   cases: WorkforceCase[];
+  searchQuery: string;
   selectedId: string;
   onSelect: (item: WorkforceCase) => void;
 }) {
-  const rows = useMemo(() => getVisibleCases(activeTab, cases), [activeTab, cases]);
+  const rows = useMemo(
+    () => getVisibleCases(activeTab, cases).filter((item) => workforceCaseMatchesSearch(item, searchQuery)),
+    [activeTab, cases, searchQuery]
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
-      <div className="overflow-x-auto">
+      {rows.length > 0 ? (
+        <div className="overflow-x-auto">
         <table className="min-w-[1080px] w-full border-collapse text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
             <tr>
@@ -140,33 +184,42 @@ function WorkforceTable({
             })}
           </tbody>
         </table>
-      </div>
+        </div>
+      ) : (
+        <div className="p-4">
+          <EmptyState title="沒有符合條件的人力案件" description="請調整搜尋關鍵字，或切回其他人力視圖檢查。" />
+        </div>
+      )}
     </div>
   );
 }
 
-function RiskCards({ cases }: { cases: WorkforceCase[] }) {
+function RiskCards({ cases, searchQuery }: { cases: WorkforceCase[]; searchQuery: string }) {
+  const rows = cases.filter((item) => item.riskLevel !== "正常" && workforceCaseMatchesSearch(item, searchQuery));
+
+  if (rows.length === 0) {
+    return <EmptyState title="沒有符合條件的人力風險" description="目前搜尋條件下沒有需要優先處理的人力缺口。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {cases
-        .filter((item) => item.riskLevel !== "正常")
-        .map((item) => (
-          <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
-            <StatusBadge tone={riskTone(item.riskLevel)}>{item.riskLevel}</StatusBadge>
-            <h3 className="mt-3 font-semibold text-textPrimary">{item.lineOrArea}</h3>
-            <p className="mt-1 text-sm text-textSecondary">{item.riskReason}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-xs text-textSecondary">人力</p>
-                <p className="mt-1 font-semibold text-textPrimary">{item.assignedStaff}/{item.requiredStaff}</p>
-              </div>
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-xs text-textSecondary">支援</p>
-                <p className="mt-1 font-semibold text-textPrimary">{item.supportNeeded} 人</p>
-              </div>
+      {rows.map((item) => (
+        <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
+          <StatusBadge tone={riskTone(item.riskLevel)}>{item.riskLevel}</StatusBadge>
+          <h3 className="mt-3 font-semibold text-textPrimary">{item.lineOrArea}</h3>
+          <p className="mt-1 text-sm text-textSecondary">{item.riskReason}</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">人力</p>
+              <p className="mt-1 font-semibold text-textPrimary">{item.assignedStaff}/{item.requiredStaff}</p>
+            </div>
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">支援</p>
+              <p className="mt-1 font-semibold text-textPrimary">{item.supportNeeded} 人</p>
             </div>
           </div>
-        ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -228,31 +281,54 @@ function DetailPanel({ item }: { item: WorkforceCase }) {
 function MainContent({
   activeTab,
   data,
+  searchQuery,
   selectedCase,
   onSelectCase
 }: {
   activeTab: WorkforceWorkspaceTab;
   data: WorkforceDashboardData;
+  searchQuery: string;
   selectedCase: WorkforceCase;
   onSelectCase: (item: WorkforceCase) => void;
 }) {
   if (activeTab === "skill-gap" || activeTab === "overtime") {
     return (
       <div className="space-y-4">
-        <RiskCards cases={data.cases} />
-        <WorkforceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <RiskCards cases={data.cases} searchQuery={searchQuery} />
+        <WorkforceTable
+          activeTab={activeTab}
+          cases={data.cases}
+          searchQuery={searchQuery}
+          selectedId={selectedCase.id}
+          onSelect={onSelectCase}
+        />
       </div>
     );
   }
 
-  return <WorkforceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />;
+  return (
+    <WorkforceTable
+      activeTab={activeTab}
+      cases={data.cases}
+      searchQuery={searchQuery}
+      selectedId={selectedCase.id}
+      onSelect={onSelectCase}
+    />
+  );
 }
 
 export default function WorkforcePage() {
   const { data: workforceData, error, isLoading, source } = useWorkforceDashboard();
   const [activeTab, setActiveTab] = useState<WorkforceWorkspaceTab>("coverage");
   const [selectedCaseId, setSelectedCaseId] = useState<string>(workforceData.cases[0].id);
-  const selectedCase = workforceData.cases.find((item) => item.id === selectedCaseId) ?? workforceData.cases[0];
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const visibleCases = useMemo(
+    () => getVisibleCases(activeTab, workforceData.cases).filter((item) => workforceCaseMatchesSearch(item, searchQuery)),
+    [activeTab, workforceData.cases, searchQuery]
+  );
+  const selectedCandidate = workforceData.cases.find((item) => item.id === selectedCaseId) ?? workforceData.cases[0];
+  const selectedCase = visibleCases.find((item) => item.id === selectedCandidate.id) ?? visibleCases[0] ?? selectedCandidate;
 
   return (
     <AppLayout activePath="/workforce" title="人力班表 Workforce Workspace">
@@ -278,15 +354,27 @@ export default function WorkforcePage() {
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
+                  aria-label="搜尋班別、產線、技能或人員"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
                   placeholder="班別 / 產線 / 技能 / 人員"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                title="切換到加班/支援視圖，檢視可重排的人力缺口。"
+                type="button"
+                onClick={() => setActiveTab("overtime")}
+              >
                 <CalendarDays className="h-4 w-4" aria-hidden="true" />
                 排班
               </button>
@@ -333,6 +421,7 @@ export default function WorkforcePage() {
             <MainContent
               activeTab={activeTab}
               data={workforceData}
+              searchQuery={searchQuery}
               selectedCase={selectedCase}
               onSelectCase={(item) => setSelectedCaseId(item.id)}
             />

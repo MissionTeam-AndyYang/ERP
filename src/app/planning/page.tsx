@@ -56,6 +56,44 @@ function decisionTone(decision: PlanningDecision) {
   return "success";
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function includesSearch(value: string | number, search: string) {
+  return String(value).toLocaleLowerCase().includes(search);
+}
+
+function caseMatchesSearch(item: PlanningCase, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.sourceOrder,
+    item.customer,
+    item.product,
+    item.itemNo,
+    item.dueDate,
+    item.promisedDate,
+    item.decision,
+    item.priority,
+    item.owner,
+    item.planningNote,
+    ...item.checks.flatMap((check) => [check.area, check.status, check.note]),
+    ...item.materials.flatMap((material) => [
+      material.itemNo,
+      material.itemName,
+      material.category,
+      material.requiredDate,
+      material.suggestedAction
+    ]),
+    ...item.capacity.flatMap((capacity) => [capacity.processType, capacity.line, capacity.status]),
+    ...item.workOrders.flatMap((workOrder) => [workOrder.workOrderNo, workOrder.line, workOrder.status])
+  ].some((value) => includesSearch(value, search));
+}
+
 function getVisibleCases(activeTab: PlanningWorkspaceTab, cases: PlanningCase[]) {
   if (activeTab === "materials") {
     return cases.filter((item) => item.materials.some((material) => material.shortageQty > 0));
@@ -70,6 +108,14 @@ function getVisibleCases(activeTab: PlanningWorkspaceTab, cases: PlanningCase[])
   }
 
   return cases;
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-textSecondary">
+      {message}
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: PlanningSummary[] }) {
@@ -102,14 +148,23 @@ function PlanningTable({
   activeTab,
   cases,
   selectedId,
+  searchQuery,
   onSelect
 }: {
   activeTab: PlanningWorkspaceTab;
   cases: PlanningCase[];
   selectedId: string;
+  searchQuery: string;
   onSelect: (item: PlanningCase) => void;
 }) {
-  const rows = useMemo(() => getVisibleCases(activeTab, cases), [activeTab, cases]);
+  const rows = useMemo(
+    () => getVisibleCases(activeTab, cases).filter((item) => caseMatchesSearch(item, searchQuery)),
+    [activeTab, cases, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的計劃案件。" />;
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -185,16 +240,35 @@ function PlanningTable({
   );
 }
 
-function MaterialCards({ cases }: { cases: PlanningCase[] }) {
+function MaterialCards({ cases, searchQuery }: { cases: PlanningCase[]; searchQuery: string }) {
   const shortageMaterials = cases.flatMap((item) =>
     item.materials
       .filter((material) => material.shortageQty > 0 || material.suggestedAction !== "直接備料")
       .map((material) => ({ ...material, planningId: item.id, sourceOrder: item.sourceOrder }))
   );
+  const visibleMaterials = shortageMaterials.filter((item) => {
+    if (!searchQuery) {
+      return true;
+    }
+
+    return [
+      item.planningId,
+      item.sourceOrder,
+      item.itemNo,
+      item.itemName,
+      item.category,
+      item.requiredDate,
+      item.suggestedAction
+    ].some((value) => includesSearch(value, searchQuery));
+  });
+
+  if (!visibleMaterials.length) {
+    return <EmptyState message="目前查無符合條件的物料或請購建議。" />;
+  }
 
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {shortageMaterials.map((item) => (
+      {visibleMaterials.map((item) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={`${item.planningId}-${item.itemNo}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -224,14 +298,31 @@ function MaterialCards({ cases }: { cases: PlanningCase[] }) {
   );
 }
 
-function CapacityCards({ cases }: { cases: PlanningCase[] }) {
+function CapacityCards({ cases, searchQuery }: { cases: PlanningCase[]; searchQuery: string }) {
   const capacityItems = cases.flatMap((item) =>
     item.capacity.map((capacity) => ({ ...capacity, planningId: item.id, sourceOrder: item.sourceOrder }))
   );
+  const visibleCapacity = capacityItems.filter((item) => {
+    if (!searchQuery) {
+      return true;
+    }
+
+    return [
+      item.planningId,
+      item.sourceOrder,
+      item.processType,
+      item.line,
+      item.status
+    ].some((value) => includesSearch(value, searchQuery));
+  });
+
+  if (!visibleCapacity.length) {
+    return <EmptyState message="目前查無符合條件的產能或人員檢核。" />;
+  }
 
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {capacityItems.map((item) => (
+      {visibleCapacity.map((item) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={`${item.planningId}-${item.line}-${item.processType}`}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -333,18 +424,20 @@ function MainContent({
   activeTab,
   data,
   selectedCase,
+  searchQuery,
   onSelectCase
 }: {
   activeTab: PlanningWorkspaceTab;
   data: PlanningDashboardData;
   selectedCase: PlanningCase;
+  searchQuery: string;
   onSelectCase: (item: PlanningCase) => void;
 }) {
   if (activeTab === "materials") {
     return (
       <div className="space-y-4">
-        <MaterialCards cases={data.cases} />
-        <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <MaterialCards cases={data.cases} searchQuery={searchQuery} />
+        <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} searchQuery={searchQuery} onSelect={onSelectCase} />
       </div>
     );
   }
@@ -352,20 +445,26 @@ function MainContent({
   if (activeTab === "capacity") {
     return (
       <div className="space-y-4">
-        <CapacityCards cases={data.cases} />
-        <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <CapacityCards cases={data.cases} searchQuery={searchQuery} />
+        <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} searchQuery={searchQuery} onSelect={onSelectCase} />
       </div>
     );
   }
 
-  return <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />;
+  return <PlanningTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} searchQuery={searchQuery} onSelect={onSelectCase} />;
 }
 
 export default function PlanningPage() {
   const { data: planningData, error, isLoading, source } = usePlanningDashboard();
   const [activeTab, setActiveTab] = useState<PlanningWorkspaceTab>("demand");
   const [selectedCaseId, setSelectedCaseId] = useState<string>(planningData.cases[0].id);
-  const selectedCase = planningData.cases.find((item) => item.id === selectedCaseId) ?? planningData.cases[0];
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const selectedCaseCandidate = planningData.cases.find((item) => item.id === selectedCaseId) ?? planningData.cases[0];
+  const selectedCase =
+    searchQuery && !caseMatchesSearch(selectedCaseCandidate, searchQuery)
+      ? planningData.cases.find((item) => caseMatchesSearch(item, searchQuery)) ?? selectedCaseCandidate
+      : selectedCaseCandidate;
 
   return (
     <AppLayout activePath="/planning" title="計劃中心 Planning / APS Workspace">
@@ -392,16 +491,28 @@ export default function PlanningPage() {
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                  aria-label="搜尋訂單、計劃、品項或產線"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="訂單 / 計劃 / 品項 / 產線"
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                onClick={() => setActiveTab("work-orders")}
+                title="切換到工單建議視圖，檢視可排入或需調整的建議工單。"
+                type="button"
+              >
                 <CalendarRange className="h-4 w-4" aria-hidden="true" />
-                排程
+                工單
               </button>
             </div>
           </div>
@@ -449,6 +560,7 @@ export default function PlanningPage() {
               activeTab={activeTab}
               data={planningData}
               selectedCase={selectedCase}
+              searchQuery={searchQuery}
               onSelectCase={(item) => setSelectedCaseId(item.id)}
             />
           </div>

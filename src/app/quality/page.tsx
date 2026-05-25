@@ -39,6 +39,48 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("zh-TW").format(value);
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function includesSearch(value: string | number | boolean | null, search: string) {
+  if (value === null) {
+    return false;
+  }
+
+  return String(value).toLocaleLowerCase().includes(search);
+}
+
+function inspectionMatchesSearch(item: QualityInspection, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.itemName,
+    item.itemNo,
+    item.batchNo,
+    item.sourceType,
+    item.sourceNo,
+    item.workOrder,
+    item.salesOrder,
+    item.supplier,
+    item.line,
+    item.inspectionType,
+    item.stage,
+    item.decision,
+    item.issueReason,
+    item.blocksInventory,
+    item.blocksShipment,
+    item.blocksProduction,
+    item.owner,
+    item.dueTime,
+    ...item.pendingTests,
+    ...item.documents.flatMap((doc) => [doc.type, doc.no, doc.status, doc.owner])
+  ].some((value) => includesSearch(value, search));
+}
+
 function getVisibleInspections(activeTab: QualityWorkspaceTab, inspections: QualityInspection[]) {
   if (activeTab === "release-block") {
     return inspections.filter(
@@ -55,6 +97,14 @@ function getVisibleInspections(activeTab: QualityWorkspaceTab, inspections: Qual
   }
 
   return inspections;
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-textSecondary">
+      {message}
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: QualitySummary[] }) {
@@ -87,14 +137,23 @@ function QualityTable({
   activeTab,
   inspections,
   selectedId,
+  searchQuery,
   onSelect
 }: {
   activeTab: QualityWorkspaceTab;
   inspections: QualityInspection[];
   selectedId: string;
+  searchQuery: string;
   onSelect: (inspection: QualityInspection) => void;
 }) {
-  const rows = useMemo(() => getVisibleInspections(activeTab, inspections), [activeTab, inspections]);
+  const rows = useMemo(
+    () => getVisibleInspections(activeTab, inspections).filter((item) => inspectionMatchesSearch(item, searchQuery)),
+    [activeTab, inspections, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的品檢批次。" />;
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -174,35 +233,41 @@ function QualityTable({
   );
 }
 
-function BlockCards({ inspections }: { inspections: QualityInspection[] }) {
+function BlockCards({ inspections, searchQuery }: { inspections: QualityInspection[]; searchQuery: string }) {
+  const visibleBlocks = inspections
+    .filter((item) => item.blocksInventory || item.blocksShipment || item.blocksProduction)
+    .filter((item) => inspectionMatchesSearch(item, searchQuery));
+
+  if (!visibleBlocks.length) {
+    return <EmptyState message="目前查無符合條件的放行或阻擋項目。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {inspections
-        .filter((item) => item.blocksInventory || item.blocksShipment || item.blocksProduction)
-        .map((item) => (
-          <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <StatusBadge tone={item.tone}>{item.decision}</StatusBadge>
-                <h3 className="mt-3 font-semibold text-textPrimary">{item.itemName}</h3>
-                <p className="mt-1 text-sm text-textSecondary">{item.batchNo}</p>
-              </div>
-              <AlertTriangle className="h-5 w-5 text-textSecondary" aria-hidden="true" />
+      {visibleBlocks.map((item) => (
+        <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <StatusBadge tone={item.tone}>{item.decision}</StatusBadge>
+              <h3 className="mt-3 font-semibold text-textPrimary">{item.itemName}</h3>
+              <p className="mt-1 text-sm text-textSecondary">{item.batchNo}</p>
             </div>
-            <p className="mt-3 text-sm leading-6 text-textSecondary">{item.issueReason}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <StatusBadge tone={item.blocksInventory ? "warning" : "success"}>
-                {item.blocksInventory ? "暫緩入庫" : "可入庫"}
-              </StatusBadge>
-              <StatusBadge tone={item.blocksShipment ? "warning" : "success"}>
-                {item.blocksShipment ? "暫緩出貨" : "可出貨"}
-              </StatusBadge>
-              <StatusBadge tone={item.blocksProduction ? "danger" : "success"}>
-                {item.blocksProduction ? "暫停生產" : "可生產"}
-              </StatusBadge>
-            </div>
+            <AlertTriangle className="h-5 w-5 text-textSecondary" aria-hidden="true" />
           </div>
-        ))}
+          <p className="mt-3 text-sm leading-6 text-textSecondary">{item.issueReason}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <StatusBadge tone={item.blocksInventory ? "warning" : "success"}>
+              {item.blocksInventory ? "暫緩入庫" : "可入庫"}
+            </StatusBadge>
+            <StatusBadge tone={item.blocksShipment ? "warning" : "success"}>
+              {item.blocksShipment ? "暫緩出貨" : "可出貨"}
+            </StatusBadge>
+            <StatusBadge tone={item.blocksProduction ? "danger" : "success"}>
+              {item.blocksProduction ? "暫停生產" : "可生產"}
+            </StatusBadge>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -215,6 +280,7 @@ function DetailPanel({ item }: { item: QualityInspection }) {
           <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">目前品檢</p>
           <h2 className="mt-1 text-lg font-semibold text-textPrimary">{item.id}</h2>
           <p className="mt-1 text-sm text-textSecondary">{item.itemName}</p>
+          <p className="mt-1 text-xs text-textSecondary">{item.batchNo}</p>
         </div>
         <StatusBadge tone={item.tone}>{item.decision}</StatusBadge>
       </div>
@@ -298,21 +364,24 @@ function MainContent({
   activeTab,
   data,
   selectedItem,
+  searchQuery,
   onSelectItem
 }: {
   activeTab: QualityWorkspaceTab;
   data: QualityDashboardData;
   selectedItem: QualityInspection;
+  searchQuery: string;
   onSelectItem: (item: QualityInspection) => void;
 }) {
   if (activeTab === "release-block") {
     return (
       <div className="space-y-4">
-        <BlockCards inspections={data.inspections} />
+        <BlockCards inspections={data.inspections} searchQuery={searchQuery} />
         <QualityTable
           activeTab={activeTab}
           inspections={data.inspections}
           selectedId={selectedItem.id}
+          searchQuery={searchQuery}
           onSelect={onSelectItem}
         />
       </div>
@@ -324,6 +393,7 @@ function MainContent({
       activeTab={activeTab}
       inspections={data.inspections}
       selectedId={selectedItem.id}
+      searchQuery={searchQuery}
       onSelect={onSelectItem}
     />
   );
@@ -333,8 +403,14 @@ export default function QualityPage() {
   const { data: qualityData, error, isLoading, source } = useQualityDashboard();
   const [activeTab, setActiveTab] = useState<QualityWorkspaceTab>("inspection");
   const [selectedItemId, setSelectedItemId] = useState<string>(qualityData.inspections[0].id);
-  const selectedItem =
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const selectedItemCandidate =
     qualityData.inspections.find((item) => item.id === selectedItemId) ?? qualityData.inspections[0];
+  const selectedItem =
+    searchQuery && !inspectionMatchesSearch(selectedItemCandidate, searchQuery)
+      ? qualityData.inspections.find((item) => inspectionMatchesSearch(item, searchQuery)) ?? selectedItemCandidate
+      : selectedItemCandidate;
 
   return (
     <AppLayout activePath="/quality" title="品保中心 Quality Workspace">
@@ -361,14 +437,26 @@ export default function QualityPage() {
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                  aria-label="搜尋品檢單、批號、品項或工單"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="品檢單 / 批號 / 品項 / 工單"
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                onClick={() => setActiveTab("release-block")}
+                title="切換到放行與阻擋視圖，檢視可入庫、可出貨與品質 hold 狀態。"
+                type="button"
+              >
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                 放行
               </button>
@@ -418,6 +506,7 @@ export default function QualityPage() {
               activeTab={activeTab}
               data={qualityData}
               selectedItem={selectedItem}
+              searchQuery={searchQuery}
               onSelectItem={(item) => setSelectedItemId(item.id)}
             />
           </div>

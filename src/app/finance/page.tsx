@@ -39,6 +39,36 @@ function formatMoney(value: number) {
   return `$${new Intl.NumberFormat("zh-TW").format(value)}`;
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function financeCaseMatchesSearch(item: FinanceOrderCase, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.salesOrder,
+    item.shipmentNo,
+    item.customer,
+    item.product,
+    item.riskLevel,
+    item.riskReason,
+    item.arStatus,
+    item.invoiceNo,
+    item.paymentTerm,
+    item.dueDate,
+    item.podStatus,
+    item.owner
+  ].some((value) => includesSearch(value, query));
+}
+
 function riskTone(risk: FinanceRiskLevel) {
   if (risk === "高風險") {
     return "danger";
@@ -65,6 +95,15 @@ function getVisibleCases(activeTab: FinanceWorkspaceTab, cases: FinanceOrderCase
   }
 
   return [...cases].sort((a, b) => a.estimatedMarginRate - b.estimatedMarginRate);
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: FinanceSummary[] }) {
@@ -96,118 +135,135 @@ function KpiStrip({ summary }: { summary: FinanceSummary[] }) {
 function FinanceTable({
   activeTab,
   cases,
+  searchQuery,
   selectedId,
   onSelect
 }: {
   activeTab: FinanceWorkspaceTab;
   cases: FinanceOrderCase[];
+  searchQuery: string;
   selectedId: string;
   onSelect: (item: FinanceOrderCase) => void;
 }) {
-  const rows = useMemo(() => getVisibleCases(activeTab, cases), [activeTab, cases]);
+  const rows = useMemo(
+    () => getVisibleCases(activeTab, cases).filter((item) => financeCaseMatchesSearch(item, searchQuery)),
+    [activeTab, cases, searchQuery]
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
-      <div className="overflow-x-auto">
-        <table className="min-w-[1180px] w-full border-collapse text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
-            <tr>
-              <th className="px-4 py-3">財務案件 / 訂單</th>
-              <th className="px-4 py-3">客戶 / 產品</th>
-              <th className="px-4 py-3 text-right">訂單金額</th>
-              <th className="px-4 py-3">毛利</th>
-              <th className="px-4 py-3 text-right">成本</th>
-              <th className="px-4 py-3">請款/收款</th>
-              <th className="px-4 py-3">POD</th>
-              <th className="px-4 py-3">風險</th>
-              <th className="px-4 py-3">負責</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((item) => {
-              const isSelected = item.id === selectedId;
-              return (
-                <tr
-                  className={`cursor-pointer transition ${
-                    isSelected ? "bg-info/10" : "hover:bg-slate-50"
-                  }`}
-                  key={item.id}
-                  onClick={() => onSelect(item)}
-                >
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-textPrimary">{item.id}</p>
-                    <p className="mt-1 text-xs text-textSecondary">{item.salesOrder}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-textPrimary">{item.customer}</p>
-                    <p className="mt-1 text-xs text-textSecondary">{item.product}</p>
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-textPrimary">{formatMoney(item.orderAmount)}</td>
-                  <td className="px-4 py-3">
-                    <p className="text-textPrimary">預估 {item.estimatedMarginRate}%</p>
-                    <p className="mt-1 text-xs text-textSecondary">
-                      實際 {item.actualMarginRate === null ? "未結算" : `${item.actualMarginRate}%`}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <p className="text-textPrimary">{formatMoney(item.estimatedCost)}</p>
-                    <p className="mt-1 text-xs text-textSecondary">
-                      實際 {item.actualCost === null ? "未結算" : formatMoney(item.actualCost)}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-textPrimary">{item.arStatus}</p>
-                    <p className="mt-1 text-xs text-textSecondary">{item.paymentTerm} · {item.dueDate}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge tone={item.podStatus === "已簽收" ? "success" : "info"}>{item.podStatus}</StatusBadge>
-                    <p className="mt-1 text-xs text-textSecondary">{item.shipmentNo ?? "尚未出貨"}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge tone={riskTone(item.riskLevel)}>{item.riskLevel}</StatusBadge>
-                    <p className="mt-1 line-clamp-2 text-xs text-textSecondary">{item.riskReason}</p>
-                  </td>
-                  <td className="px-4 py-3 text-textPrimary">{item.owner}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {rows.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-[1180px] w-full border-collapse text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
+              <tr>
+                <th className="px-4 py-3">財務案件 / 訂單</th>
+                <th className="px-4 py-3">客戶 / 產品</th>
+                <th className="px-4 py-3 text-right">訂單金額</th>
+                <th className="px-4 py-3">毛利</th>
+                <th className="px-4 py-3 text-right">成本</th>
+                <th className="px-4 py-3">請款/收款</th>
+                <th className="px-4 py-3">POD</th>
+                <th className="px-4 py-3">風險</th>
+                <th className="px-4 py-3">負責</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {rows.map((item) => {
+                const isSelected = item.id === selectedId;
+                return (
+                  <tr
+                    className={`cursor-pointer transition ${
+                      isSelected ? "bg-info/10" : "hover:bg-slate-50"
+                    }`}
+                    key={item.id}
+                    onClick={() => onSelect(item)}
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-textPrimary">{item.id}</p>
+                      <p className="mt-1 text-xs text-textSecondary">{item.salesOrder}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-textPrimary">{item.customer}</p>
+                      <p className="mt-1 text-xs text-textSecondary">{item.product}</p>
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-textPrimary">
+                      {formatMoney(item.orderAmount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-textPrimary">預估 {item.estimatedMarginRate}%</p>
+                      <p className="mt-1 text-xs text-textSecondary">
+                        實際 {item.actualMarginRate === null ? "未結算" : `${item.actualMarginRate}%`}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <p className="text-textPrimary">{formatMoney(item.estimatedCost)}</p>
+                      <p className="mt-1 text-xs text-textSecondary">
+                        實際 {item.actualCost === null ? "未結算" : formatMoney(item.actualCost)}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-textPrimary">{item.arStatus}</p>
+                      <p className="mt-1 text-xs text-textSecondary">{item.paymentTerm} · {item.dueDate}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge tone={item.podStatus === "已簽收" ? "success" : "info"}>{item.podStatus}</StatusBadge>
+                      <p className="mt-1 text-xs text-textSecondary">{item.shipmentNo ?? "尚未出貨"}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge tone={riskTone(item.riskLevel)}>{item.riskLevel}</StatusBadge>
+                      <p className="mt-1 line-clamp-2 text-xs text-textSecondary">{item.riskReason}</p>
+                    </td>
+                    <td className="px-4 py-3 text-textPrimary">{item.owner}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="p-4">
+          <EmptyState title="沒有符合條件的財務案件" description="請調整搜尋關鍵字，或切回其他財務視圖檢查。" />
+        </div>
+      )}
     </div>
   );
 }
 
-function MarginRiskCards({ cases }: { cases: FinanceOrderCase[] }) {
+function MarginRiskCards({ cases, searchQuery }: { cases: FinanceOrderCase[]; searchQuery: string }) {
+  const rows = cases.filter((item) => item.riskLevel !== "正常" && financeCaseMatchesSearch(item, searchQuery));
+
+  if (rows.length === 0) {
+    return <EmptyState title="沒有符合條件的毛利風險" description="目前搜尋條件下沒有需要優先追蹤的毛利或成本差異。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {cases
-        .filter((item) => item.riskLevel !== "正常")
-        .map((item) => (
-          <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <StatusBadge tone={riskTone(item.riskLevel)}>{item.riskLevel}</StatusBadge>
-                <h3 className="mt-3 font-semibold text-textPrimary">{item.salesOrder}</h3>
-                <p className="mt-1 text-sm text-textSecondary">{item.product}</p>
-              </div>
-              <TrendingDown className="h-5 w-5 text-textSecondary" aria-hidden="true" />
+      {rows.map((item) => (
+        <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <StatusBadge tone={riskTone(item.riskLevel)}>{item.riskLevel}</StatusBadge>
+              <h3 className="mt-3 font-semibold text-textPrimary">{item.salesOrder}</h3>
+              <p className="mt-1 text-sm text-textSecondary">{item.product}</p>
             </div>
-            <p className="mt-3 text-sm leading-6 text-textSecondary">{item.riskReason}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-xs text-textSecondary">預估毛利</p>
-                <p className="mt-1 font-semibold text-textPrimary">{item.estimatedMarginRate}%</p>
-              </div>
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-xs text-textSecondary">實際毛利</p>
-                <p className="mt-1 font-semibold text-textPrimary">
-                  {item.actualMarginRate === null ? "未結算" : `${item.actualMarginRate}%`}
-                </p>
-              </div>
+            <TrendingDown className="h-5 w-5 text-textSecondary" aria-hidden="true" />
+          </div>
+          <p className="mt-3 text-sm leading-6 text-textSecondary">{item.riskReason}</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">預估毛利</p>
+              <p className="mt-1 font-semibold text-textPrimary">{item.estimatedMarginRate}%</p>
+            </div>
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">實際毛利</p>
+              <p className="mt-1 font-semibold text-textPrimary">
+                {item.actualMarginRate === null ? "未結算" : `${item.actualMarginRate}%`}
+              </p>
             </div>
           </div>
-        ))}
+          </div>
+      ))}
     </div>
   );
 }
@@ -220,6 +276,7 @@ function DetailPanel({ item }: { item: FinanceOrderCase }) {
           <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">目前財務案件</p>
           <h2 className="mt-1 text-lg font-semibold text-textPrimary">{item.id}</h2>
           <p className="mt-1 text-sm text-textSecondary">{item.customer}</p>
+          <p className="mt-1 text-xs text-textSecondary">{item.salesOrder}</p>
         </div>
         <StatusBadge tone={riskTone(item.riskLevel)}>{item.riskLevel}</StatusBadge>
       </div>
@@ -320,31 +377,54 @@ function DetailPanel({ item }: { item: FinanceOrderCase }) {
 function MainContent({
   activeTab,
   data,
+  searchQuery,
   selectedCase,
   onSelectCase
 }: {
   activeTab: FinanceWorkspaceTab;
   data: FinanceDashboardData;
+  searchQuery: string;
   selectedCase: FinanceOrderCase;
   onSelectCase: (item: FinanceOrderCase) => void;
 }) {
   if (activeTab === "margin" || activeTab === "cost-variance") {
     return (
       <div className="space-y-4">
-        <MarginRiskCards cases={data.cases} />
-        <FinanceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />
+        <MarginRiskCards cases={data.cases} searchQuery={searchQuery} />
+        <FinanceTable
+          activeTab={activeTab}
+          cases={data.cases}
+          searchQuery={searchQuery}
+          selectedId={selectedCase.id}
+          onSelect={onSelectCase}
+        />
       </div>
     );
   }
 
-  return <FinanceTable activeTab={activeTab} cases={data.cases} selectedId={selectedCase.id} onSelect={onSelectCase} />;
+  return (
+    <FinanceTable
+      activeTab={activeTab}
+      cases={data.cases}
+      searchQuery={searchQuery}
+      selectedId={selectedCase.id}
+      onSelect={onSelectCase}
+    />
+  );
 }
 
 export default function FinancePage() {
   const { data: financeData, error, isLoading, source } = useFinanceDashboard();
   const [activeTab, setActiveTab] = useState<FinanceWorkspaceTab>("margin");
   const [selectedCaseId, setSelectedCaseId] = useState<string>(financeData.cases[0].id);
-  const selectedCase = financeData.cases.find((item) => item.id === selectedCaseId) ?? financeData.cases[0];
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const visibleCases = useMemo(
+    () => getVisibleCases(activeTab, financeData.cases).filter((item) => financeCaseMatchesSearch(item, searchQuery)),
+    [activeTab, financeData.cases, searchQuery]
+  );
+  const selectedCandidate = financeData.cases.find((item) => item.id === selectedCaseId) ?? financeData.cases[0];
+  const selectedCase = visibleCases.find((item) => item.id === selectedCandidate.id) ?? visibleCases[0] ?? selectedCandidate;
 
   return (
     <AppLayout activePath="/finance" title="財務毛利 Finance Workspace">
@@ -370,15 +450,27 @@ export default function FinancePage() {
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
+                  aria-label="搜尋訂單、客戶、發票或出貨單"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
                   placeholder="訂單 / 客戶 / 發票 / 出貨單"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                title="切換到應收/請款視圖，檢視 POD、請款與收款狀態。"
+                type="button"
+                onClick={() => setActiveTab("receivables")}
+              >
                 <FileText className="h-4 w-4" aria-hidden="true" />
                 請款
               </button>
@@ -427,6 +519,7 @@ export default function FinancePage() {
             <MainContent
               activeTab={activeTab}
               data={financeData}
+              searchQuery={searchQuery}
               selectedCase={selectedCase}
               onSelectCase={(item) => setSelectedCaseId(item.id)}
             />

@@ -38,6 +38,39 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("zh-TW").format(value);
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function traceRecordMatchesSearch(record: TraceRecord, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    record.id,
+    record.queryType,
+    record.queryValue,
+    record.direction,
+    record.itemName,
+    record.batchNo,
+    record.sourceType,
+    record.supplier,
+    record.customer,
+    record.sourceDocument,
+    record.workOrder,
+    record.salesOrder,
+    record.warehouseName,
+    record.shipTo,
+    record.traceStatus,
+    record.riskReason
+  ].some((value) => includesSearch(value, query));
+}
+
 function getVisibleRecords(activeTab: TraceabilityWorkspaceTab, records: TraceRecord[]) {
   if (activeTab === "documents") {
     return records.filter((record) => record.documents.some((doc) => doc.status !== "完整"));
@@ -48,6 +81,15 @@ function getVisibleRecords(activeTab: TraceabilityWorkspaceTab, records: TraceRe
   }
 
   return records;
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: TraceSummary[] }) {
@@ -79,19 +121,25 @@ function KpiStrip({ summary }: { summary: TraceSummary[] }) {
 function TraceTable({
   activeTab,
   records,
+  searchQuery,
   selectedId,
   onSelect
 }: {
   activeTab: TraceabilityWorkspaceTab;
   records: TraceRecord[];
+  searchQuery: string;
   selectedId: string;
   onSelect: (record: TraceRecord) => void;
 }) {
-  const rows = useMemo(() => getVisibleRecords(activeTab, records), [activeTab, records]);
+  const rows = useMemo(
+    () => getVisibleRecords(activeTab, records).filter((record) => traceRecordMatchesSearch(record, searchQuery)),
+    [activeTab, records, searchQuery]
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
-      <div className="overflow-x-auto">
+      {rows.length > 0 ? (
+        <div className="overflow-x-auto">
         <table className="min-w-[1080px] w-full border-collapse text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
             <tr>
@@ -154,7 +202,12 @@ function TraceTable({
             })}
           </tbody>
         </table>
-      </div>
+        </div>
+      ) : (
+        <div className="p-4">
+          <EmptyState title="沒有符合條件的溯源資料" description="請調整搜尋關鍵字，或切回其他溯源視圖檢查。" />
+        </div>
+      )}
     </div>
   );
 }
@@ -249,11 +302,13 @@ function DetailPanel({ record }: { record: TraceRecord }) {
 function MainContent({
   activeTab,
   data,
+  searchQuery,
   selectedRecord,
   onSelectRecord
 }: {
   activeTab: TraceabilityWorkspaceTab;
   data: TraceabilityDashboardData;
+  searchQuery: string;
   selectedRecord: TraceRecord;
   onSelectRecord: (record: TraceRecord) => void;
 }) {
@@ -264,6 +319,7 @@ function MainContent({
         <TraceTable
           activeTab={activeTab}
           records={data.records}
+          searchQuery={searchQuery}
           selectedId={selectedRecord.id}
           onSelect={onSelectRecord}
         />
@@ -275,6 +331,7 @@ function MainContent({
     <TraceTable
       activeTab={activeTab}
       records={data.records}
+      searchQuery={searchQuery}
       selectedId={selectedRecord.id}
       onSelect={onSelectRecord}
     />
@@ -285,8 +342,16 @@ export default function TraceabilityPage() {
   const { data: traceabilityData, error, isLoading, source } = useTraceabilityDashboard();
   const [activeTab, setActiveTab] = useState<TraceabilityWorkspaceTab>("search");
   const [selectedRecordId, setSelectedRecordId] = useState<string>(traceabilityData.records[0].id);
-  const selectedRecord =
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const visibleRecords = useMemo(
+    () => getVisibleRecords(activeTab, traceabilityData.records).filter((record) => traceRecordMatchesSearch(record, searchQuery)),
+    [activeTab, traceabilityData.records, searchQuery]
+  );
+  const selectedCandidate =
     traceabilityData.records.find((record) => record.id === selectedRecordId) ?? traceabilityData.records[0];
+  const selectedRecord =
+    visibleRecords.find((record) => record.id === selectedCandidate.id) ?? visibleRecords[0] ?? selectedCandidate;
 
   return (
     <AppLayout activePath="/traceability" title="溯源中心 Traceability Workspace">
@@ -312,15 +377,27 @@ export default function TraceabilityPage() {
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
+                  aria-label="搜尋批號、品項、訂單或工單"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
                   placeholder="批號 / 品項 / 訂單 / 工單"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                title="切換到批號鏈路視圖，檢視目前選取批號的來源與去向。"
+                type="button"
+                onClick={() => setActiveTab("chain")}
+              >
                 <FileSearch className="h-4 w-4" aria-hidden="true" />
                 查詢
               </button>
@@ -369,6 +446,7 @@ export default function TraceabilityPage() {
             <MainContent
               activeTab={activeTab}
               data={traceabilityData}
+              searchQuery={searchQuery}
               selectedRecord={selectedRecord}
               onSelectRecord={(record) => setSelectedRecordId(record.id)}
             />

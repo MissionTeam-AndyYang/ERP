@@ -56,6 +56,47 @@ function riskTone(risk: PurchaseRiskLevel) {
   return "success";
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function includesSearch(value: string | number | null, search: string) {
+  if (value === null) {
+    return false;
+  }
+
+  return String(value).toLocaleLowerCase().includes(search);
+}
+
+function itemMatchesSearch(item: PurchaseItem, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.requestNo,
+    item.purchaseOrderNo,
+    item.itemNo,
+    item.itemName,
+    item.category,
+    item.supplier,
+    item.requiredDate,
+    item.expectedArrivalDate,
+    item.stage,
+    item.riskLevel,
+    item.riskReason,
+    item.sourceOrder,
+    item.linkedWorkOrder,
+    item.qualityDocumentStatus,
+    item.receivingStatus,
+    item.warehouseStatus,
+    item.owner,
+    ...item.dependencies.flatMap((dependency) => [dependency.area, dependency.status, dependency.note]),
+    ...item.workflow.flatMap((step) => [step.label, step.ref, step.status])
+  ].some((value) => includesSearch(value, search));
+}
+
 function getVisibleItems(activeTab: PurchasingWorkspaceTab, items: PurchaseItem[]) {
   if (activeTab === "delivery-risk") {
     return items.filter((item) => item.riskLevel !== "正常");
@@ -70,6 +111,14 @@ function getVisibleItems(activeTab: PurchasingWorkspaceTab, items: PurchaseItem[
   }
 
   return items;
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-textSecondary">
+      {message}
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: PurchasingSummary[] }) {
@@ -102,14 +151,23 @@ function PurchasingTable({
   activeTab,
   items,
   selectedId,
+  searchQuery,
   onSelect
 }: {
   activeTab: PurchasingWorkspaceTab;
   items: PurchaseItem[];
   selectedId: string;
+  searchQuery: string;
   onSelect: (item: PurchaseItem) => void;
 }) {
-  const rows = useMemo(() => getVisibleItems(activeTab, items), [activeTab, items]);
+  const rows = useMemo(
+    () => getVisibleItems(activeTab, items).filter((item) => itemMatchesSearch(item, searchQuery)),
+    [activeTab, items, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的採購項目。" />;
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -186,12 +244,18 @@ function PurchasingTable({
   );
 }
 
-function RiskCards({ items }: { items: PurchaseItem[] }) {
+function RiskCards({ items, searchQuery }: { items: PurchaseItem[]; searchQuery: string }) {
+  const visibleRisks = items
+    .filter((item) => item.riskLevel !== "正常")
+    .filter((item) => itemMatchesSearch(item, searchQuery));
+
+  if (!visibleRisks.length) {
+    return <EmptyState message="目前查無符合條件的採購交期風險。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {items
-        .filter((item) => item.riskLevel !== "正常")
-        .map((item) => (
+      {visibleRisks.map((item) => (
           <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -213,7 +277,7 @@ function RiskCards({ items }: { items: PurchaseItem[] }) {
               </div>
             </div>
           </div>
-        ))}
+      ))}
     </div>
   );
 }
@@ -303,30 +367,38 @@ function MainContent({
   activeTab,
   data,
   selectedItem,
+  searchQuery,
   onSelectItem
 }: {
   activeTab: PurchasingWorkspaceTab;
   data: PurchasingDashboardData;
   selectedItem: PurchaseItem;
+  searchQuery: string;
   onSelectItem: (item: PurchaseItem) => void;
 }) {
   if (activeTab === "delivery-risk") {
     return (
       <div className="space-y-4">
-        <RiskCards items={data.items} />
-        <PurchasingTable activeTab={activeTab} items={data.items} selectedId={selectedItem.id} onSelect={onSelectItem} />
+        <RiskCards items={data.items} searchQuery={searchQuery} />
+        <PurchasingTable activeTab={activeTab} items={data.items} selectedId={selectedItem.id} searchQuery={searchQuery} onSelect={onSelectItem} />
       </div>
     );
   }
 
-  return <PurchasingTable activeTab={activeTab} items={data.items} selectedId={selectedItem.id} onSelect={onSelectItem} />;
+  return <PurchasingTable activeTab={activeTab} items={data.items} selectedId={selectedItem.id} searchQuery={searchQuery} onSelect={onSelectItem} />;
 }
 
 export default function PurchasingPage() {
   const { data: purchasingData, error, isLoading, source } = usePurchasingDashboard();
   const [activeTab, setActiveTab] = useState<PurchasingWorkspaceTab>("demand");
   const [selectedItemId, setSelectedItemId] = useState<string>(purchasingData.items[0].id);
-  const selectedItem = purchasingData.items.find((item) => item.id === selectedItemId) ?? purchasingData.items[0];
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const selectedItemCandidate = purchasingData.items.find((item) => item.id === selectedItemId) ?? purchasingData.items[0];
+  const selectedItem =
+    searchQuery && !itemMatchesSearch(selectedItemCandidate, searchQuery)
+      ? purchasingData.items.find((item) => itemMatchesSearch(item, searchQuery)) ?? selectedItemCandidate
+      : selectedItemCandidate;
 
   return (
     <AppLayout activePath="/purchasing" title="採購備料 Purchasing Workspace">
@@ -353,14 +425,26 @@ export default function PurchasingPage() {
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                  aria-label="搜尋料品、請購、採購單或供應商"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="料品 / 請購 / 採購單 / 供應商"
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                onClick={() => setActiveTab("receiving")}
+                title="切換到到貨驗收入庫視圖，檢視到貨、品檢文件與入庫狀態。"
+                type="button"
+              >
                 <PackageCheck className="h-4 w-4" aria-hidden="true" />
                 備料
               </button>
@@ -410,6 +494,7 @@ export default function PurchasingPage() {
               activeTab={activeTab}
               data={purchasingData}
               selectedItem={selectedItem}
+              searchQuery={searchQuery}
               onSelectItem={(item) => setSelectedItemId(item.id)}
             />
           </div>

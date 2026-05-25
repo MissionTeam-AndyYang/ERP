@@ -59,6 +59,46 @@ function getRiskTone(risk: WorkOrder["deliveryRisk"]) {
   return "success";
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function includesSearch(value: string | number | boolean, search: string) {
+  return String(value).toLocaleLowerCase().includes(search);
+}
+
+function orderMatchesSearch(order: WorkOrder, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    order.id,
+    order.product,
+    order.batchNo,
+    order.processType,
+    order.line,
+    order.stage,
+    order.owner,
+    order.eta,
+    order.priority,
+    order.sourceOrder,
+    order.bomNo,
+    order.customerDueDate,
+    order.deliveryRisk,
+    order.scheduleDate,
+    order.startTime,
+    order.endTime,
+    order.materialStatus,
+    order.staffStatus,
+    order.machineStatus,
+    order.quality.status,
+    order.quality.result,
+    order.qualityBlocksInventory,
+    order.qualityBlocksShipment
+  ].some((value) => includesSearch(value, search));
+}
+
 function getVisibleOrders(activeTab: ProductionWorkspaceTab, orders: WorkOrder[]) {
   if (activeTab === "mes") {
     return orders.filter((order) => order.scheduleDate === "2026-05-23");
@@ -69,6 +109,14 @@ function getVisibleOrders(activeTab: ProductionWorkspaceTab, orders: WorkOrder[]
   }
 
   return orders;
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-textSecondary">
+      {message}
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: ProductionSummaryItem[] }) {
@@ -97,10 +145,56 @@ function KpiStrip({ summary }: { summary: ProductionSummaryItem[] }) {
   );
 }
 
-function WeekScheduleView({ weekSchedule }: { weekSchedule: ProductionDaySchedule[] }) {
+function WeekScheduleView({
+  weekSchedule,
+  searchQuery
+}: {
+  weekSchedule: ProductionDaySchedule[];
+  searchQuery: string;
+}) {
+  const visibleSchedule = useMemo(
+    () =>
+      weekSchedule
+        .map((day) => ({
+          ...day,
+          lines: day.lines
+            .map((line) => ({
+              ...line,
+              slots: line.slots.filter((slot) => {
+                if (!searchQuery) {
+                  return true;
+                }
+
+                return [
+                  day.date,
+                  day.label,
+                  line.line,
+                  line.processType,
+                  line.bottleneckRank,
+                  slot.workOrderId,
+                  slot.product,
+                  slot.processType,
+                  slot.startTime,
+                  slot.endTime,
+                  slot.materialStatus,
+                  slot.staffStatus,
+                  slot.stage
+                ].some((value) => includesSearch(value, searchQuery));
+              })
+            }))
+            .filter((line) => line.slots.length > 0)
+        }))
+        .filter((day) => day.lines.length > 0),
+    [weekSchedule, searchQuery]
+  );
+
+  if (!visibleSchedule.length) {
+    return <EmptyState message="目前查無符合條件的週排程。" />;
+  }
+
   return (
     <div className="space-y-4">
-      {weekSchedule.map((day) => (
+      {visibleSchedule.map((day) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={day.date}>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -165,10 +259,16 @@ function WeekScheduleView({ weekSchedule }: { weekSchedule: ProductionDaySchedul
   );
 }
 
-function AnalyticsView({ orders }: { orders: WorkOrder[] }) {
+function AnalyticsView({ orders, searchQuery }: { orders: WorkOrder[]; searchQuery: string }) {
+  const visibleOrders = orders.filter((order) => orderMatchesSearch(order, searchQuery));
+
+  if (!visibleOrders.length) {
+    return <EmptyState message="目前查無符合條件的效率、損耗或品質資料。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {orders.map((order) => (
+      {visibleOrders.map((order) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -226,14 +326,23 @@ function ProductionTable({
   activeTab,
   orders,
   selectedId,
+  searchQuery,
   onSelect
 }: {
   activeTab: ProductionWorkspaceTab;
   orders: WorkOrder[];
   selectedId: string;
+  searchQuery: string;
   onSelect: (order: WorkOrder) => void;
 }) {
-  const rows = useMemo(() => getVisibleOrders(activeTab, orders), [activeTab, orders]);
+  const rows = useMemo(
+    () => getVisibleOrders(activeTab, orders).filter((order) => orderMatchesSearch(order, searchQuery)),
+    [activeTab, orders, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的生產工單。" />;
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -433,25 +542,28 @@ function MainContent({
   activeTab,
   data,
   selectedOrder,
+  searchQuery,
   onSelectOrder
 }: {
   activeTab: ProductionWorkspaceTab;
   data: ProductionDashboardData;
   selectedOrder: WorkOrder;
+  searchQuery: string;
   onSelectOrder: (order: WorkOrder) => void;
 }) {
   if (activeTab === "schedule") {
-    return <WeekScheduleView weekSchedule={data.weekSchedule} />;
+    return <WeekScheduleView weekSchedule={data.weekSchedule} searchQuery={searchQuery} />;
   }
 
   if (activeTab === "analytics") {
     return (
       <div className="space-y-4">
-        <AnalyticsView orders={data.orders} />
+        <AnalyticsView orders={data.orders} searchQuery={searchQuery} />
         <ProductionTable
           activeTab={activeTab}
           orders={data.orders}
           selectedId={selectedOrder.id}
+          searchQuery={searchQuery}
           onSelect={onSelectOrder}
         />
       </div>
@@ -463,6 +575,7 @@ function MainContent({
       activeTab={activeTab}
       orders={data.orders}
       selectedId={selectedOrder.id}
+      searchQuery={searchQuery}
       onSelect={onSelectOrder}
     />
   );
@@ -472,8 +585,14 @@ export default function ProductionPage() {
   const { data: productionData, error, isLoading, source } = useProductionDashboard();
   const [activeTab, setActiveTab] = useState<ProductionWorkspaceTab>("schedule");
   const [selectedOrderId, setSelectedOrderId] = useState<string>(productionData.orders[0].id);
-  const selectedOrder =
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const selectedOrderCandidate =
     productionData.orders.find((order) => order.id === selectedOrderId) ?? productionData.orders[0];
+  const selectedOrder =
+    searchQuery && !orderMatchesSearch(selectedOrderCandidate, searchQuery)
+      ? productionData.orders.find((order) => orderMatchesSearch(order, searchQuery)) ?? selectedOrderCandidate
+      : selectedOrderCandidate;
 
   return (
     <AppLayout activePath="/production" title="生產管理 Production Workspace">
@@ -500,14 +619,26 @@ export default function ProductionPage() {
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                  aria-label="搜尋日期、產線、工單、品項或批號"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="日期 / 產線 / 工單 / 品項 / 批號"
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                onClick={() => setActiveTab("schedule")}
+                title="切換到週排程與產能視圖。"
+                type="button"
+              >
                 <Factory className="h-4 w-4" aria-hidden="true" />
                 排程
               </button>
@@ -557,6 +688,7 @@ export default function ProductionPage() {
               activeTab={activeTab}
               data={productionData}
               selectedOrder={selectedOrder}
+              searchQuery={searchQuery}
               onSelectOrder={(order) => setSelectedOrderId(order.id)}
             />
 

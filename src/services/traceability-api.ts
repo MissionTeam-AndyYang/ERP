@@ -1,5 +1,5 @@
 import { traceabilityDashboardMock } from "@/mock/traceability";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { TraceabilityDashboardData, TraceabilityDataSource } from "@/types/traceability";
 
 type TraceabilityDashboardResponse = Partial<TraceabilityDashboardData>;
@@ -12,8 +12,8 @@ export type TraceabilityDashboardResult = {
 
 function normalizeTraceabilityDashboard(payload: TraceabilityDashboardResponse): TraceabilityDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : traceabilityDashboardMock.summary,
-    records: payload.records?.length ? payload.records : traceabilityDashboardMock.records
+    summary: withFallbackArray(payload.summary, traceabilityDashboardMock.summary),
+    records: withFallbackArray(payload.records, traceabilityDashboardMock.records)
   };
 }
 

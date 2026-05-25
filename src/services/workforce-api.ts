@@ -1,5 +1,5 @@
 import { workforceDashboardMock } from "@/mock/workforce";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { WorkforceDashboardData, WorkforceDataSource } from "@/types/workforce";
 
 type WorkforceDashboardResponse = Partial<WorkforceDashboardData>;
@@ -12,8 +12,8 @@ export type WorkforceDashboardResult = {
 
 function normalizeWorkforceDashboard(payload: WorkforceDashboardResponse): WorkforceDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : workforceDashboardMock.summary,
-    cases: payload.cases?.length ? payload.cases : workforceDashboardMock.cases
+    summary: withFallbackArray(payload.summary, workforceDashboardMock.summary),
+    cases: withFallbackArray(payload.cases, workforceDashboardMock.cases)
   };
 }
 

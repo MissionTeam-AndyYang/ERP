@@ -1,5 +1,5 @@
 import { dashboardMock } from "@/mock/dashboard";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { DashboardData, DashboardDataSource, ManagerFocusItem, ModuleShortcut } from "@/types/dashboard";
 
 type DashboardResponse = Partial<DashboardData>;
@@ -20,20 +20,16 @@ function normalizeDashboard(payload: DashboardResponse): DashboardData {
     managerFocusItems: hasIcons<ManagerFocusItem>(payload.managerFocusItems)
       ? payload.managerFocusItems
       : dashboardMock.managerFocusItems,
-    managerDecisionItems: payload.managerDecisionItems?.length
-      ? payload.managerDecisionItems
-      : dashboardMock.managerDecisionItems,
-    departmentBlockers: payload.departmentBlockers?.length ? payload.departmentBlockers : dashboardMock.departmentBlockers,
-    todayTasks: payload.todayTasks?.length ? payload.todayTasks : dashboardMock.todayTasks,
-    preOrderPipeline: payload.preOrderPipeline?.length ? payload.preOrderPipeline : dashboardMock.preOrderPipeline,
-    productionLines: payload.productionLines?.length ? payload.productionLines : dashboardMock.productionLines,
-    alertItems: payload.alertItems?.length ? payload.alertItems : dashboardMock.alertItems,
-    productionTrendData: payload.productionTrendData?.length ? payload.productionTrendData : dashboardMock.productionTrendData,
-    oeeTrendData: payload.oeeTrendData?.length ? payload.oeeTrendData : dashboardMock.oeeTrendData,
-    qualityTrendData: payload.qualityTrendData?.length ? payload.qualityTrendData : dashboardMock.qualityTrendData,
-    alertDistributionData: payload.alertDistributionData?.length
-      ? payload.alertDistributionData
-      : dashboardMock.alertDistributionData,
+    managerDecisionItems: withFallbackArray(payload.managerDecisionItems, dashboardMock.managerDecisionItems),
+    departmentBlockers: withFallbackArray(payload.departmentBlockers, dashboardMock.departmentBlockers),
+    todayTasks: withFallbackArray(payload.todayTasks, dashboardMock.todayTasks),
+    preOrderPipeline: withFallbackArray(payload.preOrderPipeline, dashboardMock.preOrderPipeline),
+    productionLines: withFallbackArray(payload.productionLines, dashboardMock.productionLines),
+    alertItems: withFallbackArray(payload.alertItems, dashboardMock.alertItems),
+    productionTrendData: withFallbackArray(payload.productionTrendData, dashboardMock.productionTrendData),
+    oeeTrendData: withFallbackArray(payload.oeeTrendData, dashboardMock.oeeTrendData),
+    qualityTrendData: withFallbackArray(payload.qualityTrendData, dashboardMock.qualityTrendData),
+    alertDistributionData: withFallbackArray(payload.alertDistributionData, dashboardMock.alertDistributionData),
     moduleShortcuts: hasIcons<ModuleShortcut>(payload.moduleShortcuts)
       ? payload.moduleShortcuts
       : dashboardMock.moduleShortcuts

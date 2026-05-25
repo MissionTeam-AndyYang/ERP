@@ -52,3 +52,7 @@ export async function apiGet<T>(
     window.clearTimeout(timeout);
   }
 }
+
+export function withFallbackArray<T>(value: unknown, fallback: T[]): T[] {
+  return Array.isArray(value) ? (value as T[]) : fallback;
+}

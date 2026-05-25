@@ -1,5 +1,5 @@
 import { warehouseDashboardMock } from "@/mock/warehouse";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { WarehouseDashboardData, WarehouseDataSource } from "@/types/warehouse";
 
 type WarehouseDashboardResponse = Partial<WarehouseDashboardData>;
@@ -12,14 +12,12 @@ export type WarehouseDashboardResult = {
 
 function normalizeWarehouseDashboard(payload: WarehouseDashboardResponse): WarehouseDashboardData {
   return {
-    kpis: payload.kpis?.length ? payload.kpis : warehouseDashboardMock.kpis,
-    categorySummaries: payload.categorySummaries?.length
-      ? payload.categorySummaries
-      : warehouseDashboardMock.categorySummaries,
-    capacities: payload.capacities?.length ? payload.capacities : warehouseDashboardMock.capacities,
-    records: payload.records?.length ? payload.records : warehouseDashboardMock.records,
-    risks: payload.risks?.length ? payload.risks : warehouseDashboardMock.risks,
-    tasks: payload.tasks?.length ? payload.tasks : warehouseDashboardMock.tasks
+    kpis: withFallbackArray(payload.kpis, warehouseDashboardMock.kpis),
+    categorySummaries: withFallbackArray(payload.categorySummaries, warehouseDashboardMock.categorySummaries),
+    capacities: withFallbackArray(payload.capacities, warehouseDashboardMock.capacities),
+    records: withFallbackArray(payload.records, warehouseDashboardMock.records),
+    risks: withFallbackArray(payload.risks, warehouseDashboardMock.risks),
+    tasks: withFallbackArray(payload.tasks, warehouseDashboardMock.tasks)
   };
 }
 

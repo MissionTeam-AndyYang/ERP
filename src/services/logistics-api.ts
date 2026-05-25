@@ -1,5 +1,5 @@
 import { logisticsDashboardMock } from "@/mock/logistics";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { LogisticsDashboardData, LogisticsDataSource } from "@/types/logistics";
 
 type LogisticsDashboardResponse = Partial<LogisticsDashboardData>;
@@ -12,8 +12,8 @@ export type LogisticsDashboardResult = {
 
 function normalizeLogisticsDashboard(payload: LogisticsDashboardResponse): LogisticsDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : logisticsDashboardMock.summary,
-    shipments: payload.shipments?.length ? payload.shipments : logisticsDashboardMock.shipments
+    summary: withFallbackArray(payload.summary, logisticsDashboardMock.summary),
+    shipments: withFallbackArray(payload.shipments, logisticsDashboardMock.shipments)
   };
 }
 

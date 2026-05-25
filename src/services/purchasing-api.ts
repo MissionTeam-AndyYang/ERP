@@ -1,5 +1,5 @@
 import { purchasingDashboardMock } from "@/mock/purchasing";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { PurchasingDashboardData, PurchasingDataSource } from "@/types/purchasing";
 
 type PurchasingDashboardResponse = Partial<PurchasingDashboardData>;
@@ -12,8 +12,8 @@ export type PurchasingDashboardResult = {
 
 function normalizePurchasingDashboard(payload: PurchasingDashboardResponse): PurchasingDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : purchasingDashboardMock.summary,
-    items: payload.items?.length ? payload.items : purchasingDashboardMock.items
+    summary: withFallbackArray(payload.summary, purchasingDashboardMock.summary),
+    items: withFallbackArray(payload.items, purchasingDashboardMock.items)
   };
 }
 

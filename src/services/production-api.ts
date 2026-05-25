@@ -1,5 +1,5 @@
 import { productionDashboardMock } from "@/mock/production";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { ProductionDashboardData, ProductionDataSource } from "@/types/production";
 
 type ProductionDashboardResponse = Partial<ProductionDashboardData>;
@@ -12,12 +12,10 @@ export type ProductionDashboardResult = {
 
 function normalizeProductionDashboard(payload: ProductionDashboardResponse): ProductionDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : productionDashboardMock.summary,
-    orders: payload.orders?.length ? payload.orders : productionDashboardMock.orders,
-    weekSchedule: payload.weekSchedule?.length
-      ? payload.weekSchedule
-      : productionDashboardMock.weekSchedule,
-    alerts: payload.alerts?.length ? payload.alerts : productionDashboardMock.alerts
+    summary: withFallbackArray(payload.summary, productionDashboardMock.summary),
+    orders: withFallbackArray(payload.orders, productionDashboardMock.orders),
+    weekSchedule: withFallbackArray(payload.weekSchedule, productionDashboardMock.weekSchedule),
+    alerts: withFallbackArray(payload.alerts, productionDashboardMock.alerts)
   };
 }
 

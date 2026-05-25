@@ -1,5 +1,5 @@
 import { rdDashboardMock } from "@/mock/rd";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { RdDashboardData, RdDataSource } from "@/types/rd";
 
 type RdDashboardResponse = Partial<RdDashboardData>;
@@ -12,8 +12,8 @@ export type RdDashboardResult = {
 
 function normalizeRdDashboard(payload: RdDashboardResponse): RdDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : rdDashboardMock.summary,
-    projects: payload.projects?.length ? payload.projects : rdDashboardMock.projects
+    summary: withFallbackArray(payload.summary, rdDashboardMock.summary),
+    projects: withFallbackArray(payload.projects, rdDashboardMock.projects)
   };
 }
 

@@ -1,5 +1,5 @@
 import { planningDashboardMock } from "@/mock/planning";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { PlanningDashboardData, PlanningDataSource } from "@/types/planning";
 
 type PlanningDashboardResponse = Partial<PlanningDashboardData>;
@@ -12,8 +12,8 @@ export type PlanningDashboardResult = {
 
 function normalizePlanningDashboard(payload: PlanningDashboardResponse): PlanningDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : planningDashboardMock.summary,
-    cases: payload.cases?.length ? payload.cases : planningDashboardMock.cases
+    summary: withFallbackArray(payload.summary, planningDashboardMock.summary),
+    cases: withFallbackArray(payload.cases, planningDashboardMock.cases)
   };
 }
 

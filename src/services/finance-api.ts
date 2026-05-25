@@ -1,5 +1,5 @@
 import { financeDashboardMock } from "@/mock/finance";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { FinanceDashboardData, FinanceDataSource } from "@/types/finance";
 
 type FinanceDashboardResponse = Partial<FinanceDashboardData>;
@@ -12,8 +12,8 @@ export type FinanceDashboardResult = {
 
 function normalizeFinanceDashboard(payload: FinanceDashboardResponse): FinanceDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : financeDashboardMock.summary,
-    cases: payload.cases?.length ? payload.cases : financeDashboardMock.cases
+    summary: withFallbackArray(payload.summary, financeDashboardMock.summary),
+    cases: withFallbackArray(payload.cases, financeDashboardMock.cases)
   };
 }
 

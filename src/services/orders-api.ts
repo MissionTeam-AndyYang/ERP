@@ -1,5 +1,5 @@
 import { ordersDashboardMock } from "@/mock/orders";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { OrdersDashboardData, OrdersDataSource } from "@/types/orders";
 
 type OrdersDashboardResponse = Partial<OrdersDashboardData>;
@@ -12,8 +12,8 @@ export type OrdersDashboardResult = {
 
 function normalizeOrdersDashboard(payload: OrdersDashboardResponse): OrdersDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : ordersDashboardMock.summary,
-    orders: payload.orders?.length ? payload.orders : ordersDashboardMock.orders
+    summary: withFallbackArray(payload.summary, ordersDashboardMock.summary),
+    orders: withFallbackArray(payload.orders, ordersDashboardMock.orders)
   };
 }
 

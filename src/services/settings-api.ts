@@ -1,5 +1,5 @@
 import { settingsDashboardMock } from "@/mock/settings";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { SettingsDashboardData, SettingsDataSource } from "@/types/settings";
 
 type SettingsDashboardResponse = Partial<SettingsDashboardData>;
@@ -12,8 +12,8 @@ export type SettingsDashboardResult = {
 
 function normalizeSettingsDashboard(payload: SettingsDashboardResponse): SettingsDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : settingsDashboardMock.summary,
-    items: payload.items?.length ? payload.items : settingsDashboardMock.items
+    summary: withFallbackArray(payload.summary, settingsDashboardMock.summary),
+    items: withFallbackArray(payload.items, settingsDashboardMock.items)
   };
 }
 

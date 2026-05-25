@@ -1,5 +1,5 @@
 import { qualityDashboardMock } from "@/mock/quality";
-import { apiGet } from "@/services/api-client";
+import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { QualityDashboardData, QualityDataSource } from "@/types/quality";
 
 type QualityDashboardResponse = Partial<QualityDashboardData>;
@@ -12,10 +12,8 @@ export type QualityDashboardResult = {
 
 function normalizeQualityDashboard(payload: QualityDashboardResponse): QualityDashboardData {
   return {
-    summary: payload.summary?.length ? payload.summary : qualityDashboardMock.summary,
-    inspections: payload.inspections?.length
-      ? payload.inspections
-      : qualityDashboardMock.inspections
+    summary: withFallbackArray(payload.summary, qualityDashboardMock.summary),
+    inspections: withFallbackArray(payload.inspections, qualityDashboardMock.inspections)
   };
 }
 

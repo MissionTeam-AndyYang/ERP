@@ -26,6 +26,32 @@ const tabDescriptions: Record<SettingsWorkspaceTab, string> = {
   localization: "管理多國語言、現場用詞與跨語系顯示一致性。"
 };
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function settingsItemMatchesSearch(item: MasterDataItem, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.name,
+    item.domain,
+    item.status,
+    item.riskLevel,
+    item.riskReason,
+    item.owner,
+    item.lastUpdated,
+    item.affectedWorkspaces.join(" ")
+  ].some((value) => includesSearch(value, query));
+}
+
 function riskTone(risk: GovernanceRiskLevel) {
   if (risk === "高風險") return "danger";
   if (risk === "注意") return "warning";
@@ -43,6 +69,15 @@ function getVisibleItems(activeTab: SettingsWorkspaceTab, items: MasterDataItem[
     return items.filter((item) => item.domain === "語言");
   }
   return items;
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: SettingsSummary[] }) {
@@ -74,19 +109,25 @@ function KpiStrip({ summary }: { summary: SettingsSummary[] }) {
 function SettingsTable({
   activeTab,
   items,
+  searchQuery,
   selectedId,
   onSelect
 }: {
   activeTab: SettingsWorkspaceTab;
   items: MasterDataItem[];
+  searchQuery: string;
   selectedId: string;
   onSelect: (item: MasterDataItem) => void;
 }) {
-  const rows = useMemo(() => getVisibleItems(activeTab, items), [activeTab, items]);
+  const rows = useMemo(
+    () => getVisibleItems(activeTab, items).filter((item) => settingsItemMatchesSearch(item, searchQuery)),
+    [activeTab, items, searchQuery]
+  );
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
-      <div className="overflow-x-auto">
+      {rows.length > 0 ? (
+        <div className="overflow-x-auto">
         <table className="min-w-[980px] w-full border-collapse text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
             <tr>
@@ -128,7 +169,12 @@ function SettingsTable({
             })}
           </tbody>
         </table>
-      </div>
+        </div>
+      ) : (
+        <div className="p-4">
+          <EmptyState title="沒有符合條件的設定項目" description="請調整搜尋關鍵字，或切回其他設定視圖檢查。" />
+        </div>
+      )}
     </div>
   );
 }
@@ -186,7 +232,14 @@ export default function SettingsPage() {
   const { data: settingsData, error, isLoading, source } = useSettingsDashboard();
   const [activeTab, setActiveTab] = useState<SettingsWorkspaceTab>("master-data");
   const [selectedItemId, setSelectedItemId] = useState<string>(settingsData.items[0].id);
-  const selectedItem = settingsData.items.find((item) => item.id === selectedItemId) ?? settingsData.items[0];
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const visibleItems = useMemo(
+    () => getVisibleItems(activeTab, settingsData.items).filter((item) => settingsItemMatchesSearch(item, searchQuery)),
+    [activeTab, settingsData.items, searchQuery]
+  );
+  const selectedCandidate = settingsData.items.find((item) => item.id === selectedItemId) ?? settingsData.items[0];
+  const selectedItem = visibleItems.find((item) => item.id === selectedCandidate.id) ?? visibleItems[0] ?? selectedCandidate;
 
   return (
     <AppLayout activePath="/settings" title="主檔設定 Master Data / Settings">
@@ -212,15 +265,27 @@ export default function SettingsPage() {
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
+                  aria-label="搜尋主檔、權限、工作區或負責人"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
                   placeholder="主檔 / 權限 / 工作區 / 負責人"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                title="切換到系統串接視圖，檢視 API、庫位、產線與外部系統設定基礎。"
+                type="button"
+                onClick={() => setActiveTab("integrations")}
+              >
                 <Settings className="h-4 w-4" aria-hidden="true" />
                 設定
               </button>
@@ -267,6 +332,7 @@ export default function SettingsPage() {
             <SettingsTable
               activeTab={activeTab}
               items={settingsData.items}
+              searchQuery={searchQuery}
               selectedId={selectedItem.id}
               onSelect={(item) => setSelectedItemId(item.id)}
             />

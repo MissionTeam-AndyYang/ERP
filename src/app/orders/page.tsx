@@ -70,6 +70,59 @@ function commitmentTone(decision: SalesOrder["commitmentDecision"]) {
   return "success";
 }
 
+function commitmentDateLabel(decision: SalesOrder["commitmentDecision"]) {
+  if (decision === "可承諾") {
+    return "可承諾";
+  }
+
+  if (decision === "需協調") {
+    return "建議協調日";
+  }
+
+  return "最早可行日";
+}
+
+function normalizeSearch(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function includesSearch(value: string | number | null, search: string) {
+  if (value === null) {
+    return false;
+  }
+
+  return String(value).toLocaleLowerCase().includes(search);
+}
+
+function orderMatchesSearch(order: SalesOrder, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    order.id,
+    order.customer,
+    order.channel,
+    order.product,
+    order.itemNo,
+    order.dueDate,
+    order.shipDate,
+    order.stage,
+    order.deliveryRisk,
+    order.productionFeasibility,
+    order.riskReason,
+    order.materialStatus,
+    order.productionStatus,
+    order.qualityStatus,
+    order.shippingStatus,
+    order.paymentStatus,
+    order.owner,
+    order.priority,
+    order.committedDate,
+    order.commitmentDecision
+  ].some((value) => includesSearch(value, search));
+}
+
 function getVisibleOrders(activeTab: OrderWorkspaceTab, orders: SalesOrder[]) {
   if (activeTab === "commitment") {
     return [...orders].sort((a, b) => {
@@ -87,6 +140,14 @@ function getVisibleOrders(activeTab: OrderWorkspaceTab, orders: SalesOrder[]) {
   }
 
   return orders;
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-textSecondary">
+      {message}
+    </div>
+  );
 }
 
 function KpiStrip({ summary }: { summary: OrderStatusSummary[] }) {
@@ -119,14 +180,23 @@ function OrdersTable({
   activeTab,
   orders,
   selectedId,
+  searchQuery,
   onSelect
 }: {
   activeTab: OrderWorkspaceTab;
   orders: SalesOrder[];
   selectedId: string;
+  searchQuery: string;
   onSelect: (order: SalesOrder) => void;
 }) {
-  const rows = useMemo(() => getVisibleOrders(activeTab, orders), [activeTab, orders]);
+  const rows = useMemo(
+    () => getVisibleOrders(activeTab, orders).filter((order) => orderMatchesSearch(order, searchQuery)),
+    [activeTab, orders, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的訂單。" />;
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -179,7 +249,9 @@ function OrdersTable({
                     <StatusBadge tone={commitmentTone(order.commitmentDecision)}>
                       {order.commitmentDecision}
                     </StatusBadge>
-                    <p className="mt-1 text-xs text-textSecondary">可承諾 {order.committedDate}</p>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      {commitmentDateLabel(order.commitmentDecision)} {order.committedDate}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-textPrimary">{order.productionFeasibility}</p>
@@ -206,10 +278,16 @@ function OrdersTable({
   );
 }
 
-function CommitmentCards({ orders }: { orders: SalesOrder[] }) {
+function CommitmentCards({ orders, searchQuery }: { orders: SalesOrder[]; searchQuery: string }) {
+  const visibleOrders = orders.filter((order) => orderMatchesSearch(order, searchQuery));
+
+  if (!visibleOrders.length) {
+    return <EmptyState message="目前查無符合條件的接單承諾檢核。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {orders.map((order) => (
+      {visibleOrders.map((order) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -248,34 +326,40 @@ function CommitmentCards({ orders }: { orders: SalesOrder[] }) {
   );
 }
 
-function RiskCards({ orders }: { orders: SalesOrder[] }) {
+function RiskCards({ orders, searchQuery }: { orders: SalesOrder[]; searchQuery: string }) {
+  const visibleOrders = orders
+    .filter((order) => order.deliveryRisk !== "正常")
+    .filter((order) => orderMatchesSearch(order, searchQuery));
+
+  if (!visibleOrders.length) {
+    return <EmptyState message="目前查無符合條件的交期風險。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {orders
-        .filter((order) => order.deliveryRisk !== "正常")
-        .map((order) => (
-          <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
-                <h3 className="mt-3 font-semibold text-textPrimary">{order.id}</h3>
-                <p className="mt-1 text-sm text-textSecondary">{order.product}</p>
-              </div>
-              <CalendarClock className="h-5 w-5 text-textSecondary" aria-hidden="true" />
+      {visibleOrders.map((order) => (
+        <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+              <h3 className="mt-3 font-semibold text-textPrimary">{order.id}</h3>
+              <p className="mt-1 text-sm text-textSecondary">{order.product}</p>
             </div>
-            <p className="mt-3 text-sm leading-6 text-textSecondary">{order.riskReason}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-xs text-textSecondary">交期</p>
-                <p className="mt-1 font-semibold text-textPrimary">{order.dueDate}</p>
-              </div>
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-xs text-textSecondary">生產</p>
-                <p className="mt-1 font-semibold text-textPrimary">{order.productionFeasibility}</p>
-              </div>
+            <CalendarClock className="h-5 w-5 text-textSecondary" aria-hidden="true" />
+          </div>
+          <p className="mt-3 text-sm leading-6 text-textSecondary">{order.riskReason}</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">交期</p>
+              <p className="mt-1 font-semibold text-textPrimary">{order.dueDate}</p>
+            </div>
+            <div className="rounded-md bg-slate-50 p-3">
+              <p className="text-xs text-textSecondary">生產</p>
+              <p className="mt-1 font-semibold text-textPrimary">{order.productionFeasibility}</p>
             </div>
           </div>
-        ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -304,7 +388,9 @@ function DetailPanel({ order }: { order: SalesOrder }) {
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">接單承諾</p>
           <p className="mt-1 font-semibold text-textPrimary">{order.commitmentDecision}</p>
-          <p className="mt-1 text-xs text-textSecondary">可承諾 {order.committedDate}</p>
+          <p className="mt-1 text-xs text-textSecondary">
+            {commitmentDateLabel(order.commitmentDecision)} {order.committedDate}
+          </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">訂單金額</p>
@@ -383,21 +469,24 @@ function MainContent({
   activeTab,
   data,
   selectedOrder,
+  searchQuery,
   onSelectOrder
 }: {
   activeTab: OrderWorkspaceTab;
   data: OrdersDashboardData;
   selectedOrder: SalesOrder;
+  searchQuery: string;
   onSelectOrder: (order: SalesOrder) => void;
 }) {
   if (activeTab === "commitment") {
     return (
       <div className="space-y-4">
-        <CommitmentCards orders={data.orders} />
+        <CommitmentCards orders={data.orders} searchQuery={searchQuery} />
         <OrdersTable
           activeTab={activeTab}
           orders={data.orders}
           selectedId={selectedOrder.id}
+          searchQuery={searchQuery}
           onSelect={onSelectOrder}
         />
       </div>
@@ -407,11 +496,12 @@ function MainContent({
   if (activeTab === "delivery-risk") {
     return (
       <div className="space-y-4">
-        <RiskCards orders={data.orders} />
+        <RiskCards orders={data.orders} searchQuery={searchQuery} />
         <OrdersTable
           activeTab={activeTab}
           orders={data.orders}
           selectedId={selectedOrder.id}
+          searchQuery={searchQuery}
           onSelect={onSelectOrder}
         />
       </div>
@@ -423,6 +513,7 @@ function MainContent({
       activeTab={activeTab}
       orders={data.orders}
       selectedId={selectedOrder.id}
+      searchQuery={searchQuery}
       onSelect={onSelectOrder}
     />
   );
@@ -432,6 +523,8 @@ export default function OrdersPage() {
   const { data: ordersData, error, isLoading, source } = useOrdersDashboard();
   const [activeTab, setActiveTab] = useState<OrderWorkspaceTab>("overview");
   const [selectedOrderId, setSelectedOrderId] = useState<string>(ordersData.orders[0].id);
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
   const selectedOrder =
     ordersData.orders.find((order) => order.id === selectedOrderId) ?? ordersData.orders[0];
 
@@ -461,14 +554,26 @@ export default function OrdersPage() {
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                  aria-label="搜尋訂單、客戶、產品或交期"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="訂單 / 客戶 / 產品 / 交期"
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                onClick={() => setActiveTab("fulfillment")}
+                title="切換到履約進度，檢視目前選取訂單的履約 workflow。"
+                type="button"
+              >
                 <Truck className="h-4 w-4" aria-hidden="true" />
                 履約
               </button>
@@ -518,6 +623,7 @@ export default function OrdersPage() {
               activeTab={activeTab}
               data={ordersData}
               selectedOrder={selectedOrder}
+              searchQuery={searchQuery}
               onSelectOrder={(order) => setSelectedOrderId(order.id)}
             />
           </div>

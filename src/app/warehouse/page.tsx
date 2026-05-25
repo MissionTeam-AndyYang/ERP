@@ -61,6 +61,65 @@ function getVisibleRows(activeTab: WarehouseWorkspaceTab, data: WarehouseDashboa
   return data.records;
 }
 
+function normalizeSearch(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function includesSearch(value: string | number, search: string) {
+  return String(value).toLocaleLowerCase().includes(search);
+}
+
+function recordMatchesSearch(record: WarehouseRecord, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    record.itemNo,
+    record.itemName,
+    record.category,
+    record.warehouseNo,
+    record.warehouseName,
+    record.batchNo,
+    record.sourceType,
+    record.sourceNo,
+    record.status
+  ].some((value) => includesSearch(value, search));
+}
+
+function riskMatchesSearch(risk: WarehouseRisk, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    risk.type,
+    risk.itemName,
+    risk.category,
+    risk.batchNo,
+    risk.warehouseName,
+    risk.metric,
+    risk.recommendation
+  ].some((value) => includesSearch(value, search));
+}
+
+function taskMatchesSearch(task: WarehouseTask, search: string) {
+  if (!search) {
+    return true;
+  }
+
+  return [
+    task.id,
+    task.type,
+    task.itemName,
+    task.batchNo,
+    task.sourceNo,
+    task.owner,
+    task.dueTime,
+    task.status
+  ].some((value) => includesSearch(value, search));
+}
+
 function KpiStrip({ kpis }: { kpis: WarehouseKpi[] }) {
   const icons = [TrendingUp, Warehouse, AlertTriangle, ClipboardList];
 
@@ -199,10 +258,24 @@ function ValueAndSpaceView({
   );
 }
 
-function RiskView({ risks }: { risks: WarehouseRisk[] }) {
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-white px-4 py-8 text-center text-sm text-textSecondary">
+      {message}
+    </div>
+  );
+}
+
+function RiskView({ risks, searchQuery }: { risks: WarehouseRisk[]; searchQuery: string }) {
+  const visibleRisks = risks.filter((risk) => riskMatchesSearch(risk, searchQuery));
+
+  if (!visibleRisks.length) {
+    return <EmptyState message="目前查無符合條件的風險警示。" />;
+  }
+
   return (
     <div className="grid gap-3 lg:grid-cols-3">
-      {risks.map((risk) => (
+      {visibleRisks.map((risk) => (
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={risk.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -226,7 +299,13 @@ function RiskView({ risks }: { risks: WarehouseRisk[] }) {
   );
 }
 
-function TaskView({ tasks }: { tasks: WarehouseTask[] }) {
+function TaskView({ tasks, searchQuery }: { tasks: WarehouseTask[]; searchQuery: string }) {
+  const visibleTasks = tasks.filter((task) => taskMatchesSearch(task, searchQuery));
+
+  if (!visibleTasks.length) {
+    return <EmptyState message="目前查無符合條件的待處理入出庫任務。" />;
+  }
+
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
       <div className="overflow-x-auto">
@@ -236,7 +315,7 @@ function TaskView({ tasks }: { tasks: WarehouseTask[] }) {
               <th className="px-4 py-3">類型</th>
               <th className="px-4 py-3">品項 / 批號</th>
               <th className="px-4 py-3">來源單號</th>
-              <th className="px-4 py-3 text-right">現有 / 預留 / 可用</th>
+              <th className="px-4 py-3 text-right">任務數量</th>
               <th className="px-4 py-3 text-right">板數</th>
               <th className="px-4 py-3">負責</th>
               <th className="px-4 py-3">時間</th>
@@ -244,7 +323,7 @@ function TaskView({ tasks }: { tasks: WarehouseTask[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {tasks.map((task) => (
+            {visibleTasks.map((task) => (
               <tr key={task.id}>
                 <td className="px-4 py-3">
                   <StatusBadge tone={task.tone}>{task.type}</StatusBadge>
@@ -274,14 +353,23 @@ function WarehouseTable({
   activeTab,
   data,
   selectedId,
+  searchQuery,
   onSelect
 }: {
   activeTab: WarehouseWorkspaceTab;
   data: WarehouseDashboardData;
   selectedId: string;
+  searchQuery: string;
   onSelect: (record: WarehouseRecord) => void;
 }) {
-  const rows = useMemo(() => getVisibleRows(activeTab, data), [activeTab, data]);
+  const rows = useMemo(
+    () => getVisibleRows(activeTab, data).filter((record) => recordMatchesSearch(record, searchQuery)),
+    [activeTab, data, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的庫存明細。" />;
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
@@ -452,11 +540,13 @@ function MainContent({
   activeTab,
   data,
   selectedRecord,
+  searchQuery,
   onSelectRecord
 }: {
   activeTab: WarehouseWorkspaceTab;
   data: WarehouseDashboardData;
   selectedRecord: WarehouseRecord;
+  searchQuery: string;
   onSelectRecord: (record: WarehouseRecord) => void;
 }) {
   if (activeTab === "value-space") {
@@ -471,11 +561,12 @@ function MainContent({
   if (activeTab === "risk") {
     return (
       <div className="space-y-4">
-        <RiskView risks={data.risks} />
+        <RiskView risks={data.risks} searchQuery={searchQuery} />
         <WarehouseTable
           activeTab={activeTab}
           data={data}
           selectedId={selectedRecord.id}
+          searchQuery={searchQuery}
           onSelect={onSelectRecord}
         />
       </div>
@@ -485,11 +576,12 @@ function MainContent({
   if (activeTab === "tasks") {
     return (
       <div className="space-y-4">
-        <TaskView tasks={data.tasks} />
+        <TaskView tasks={data.tasks} searchQuery={searchQuery} />
         <WarehouseTable
           activeTab={activeTab}
           data={data}
           selectedId={selectedRecord.id}
+          searchQuery={searchQuery}
           onSelect={onSelectRecord}
         />
       </div>
@@ -501,6 +593,7 @@ function MainContent({
       activeTab={activeTab}
       data={data}
       selectedId={selectedRecord.id}
+      searchQuery={searchQuery}
       onSelect={onSelectRecord}
     />
   );
@@ -510,6 +603,8 @@ export default function WarehousePage() {
   const { data: warehouseData, error, isLoading, source } = useWarehouseDashboard();
   const [activeTab, setActiveTab] = useState<WarehouseWorkspaceTab>("value-space");
   const [selectedRecordId, setSelectedRecordId] = useState<string>(warehouseData.records[0].id);
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
   const selectedRecord =
     warehouseData.records.find((record) => record.id === selectedRecordId) ?? warehouseData.records[0];
 
@@ -538,14 +633,26 @@ export default function WarehousePage() {
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
                   className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                  aria-label="搜尋批號、品項、倉庫或來源單號"
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
                   placeholder="批號 / 品項 / 倉庫 / 來源單號"
                 />
               </label>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                type="button"
+              >
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 篩選
               </button>
-              <button className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                onClick={() => setActiveTab("details")}
+                title="切換到庫存明細，檢視目前選取批號的流程與關聯單據。"
+                type="button"
+              >
                 <PackageSearch className="h-4 w-4" aria-hidden="true" />
                 追溯
               </button>
@@ -595,6 +702,7 @@ export default function WarehousePage() {
               activeTab={activeTab}
               data={warehouseData}
               selectedRecord={selectedRecord}
+              searchQuery={searchQuery}
               onSelectRecord={(record) => setSelectedRecordId(record.id)}
             />
           </div>

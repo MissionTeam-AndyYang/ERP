@@ -77,4 +77,4 @@ Backend integration must be able to prove true empty states. Replacing `[]` with
 | API unavailable should remain visibly marked | Yes | `accepted` |
 | CTA actions remain view navigation in V1 | Yes | `accepted` |
 | Use management-readable Chinese labels instead of raw backend codes | Yes | `accepted` |
-| Avoid mutation wording until endpoint exists | Yes | `pending_owner_review` |
+| Avoid mutation wording until endpoint exists | Yes | `accepted` |

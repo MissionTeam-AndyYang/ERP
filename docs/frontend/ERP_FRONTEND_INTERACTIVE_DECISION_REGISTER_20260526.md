@@ -31,7 +31,7 @@ This avoids mixing product judgment with implementation work while still letting
 | ID | Topic | Recommended default | Current status | Follow-up after decision |
 | --- | --- | --- | --- | --- |
 | D1 | Empty array behavior | Valid API empty arrays mean real empty data; do not refill mock rows. | `accepted` | Update fallback policy and service guard notes. |
-| D2 | API unavailable display | Keep `Mock fallback` badge and warning line visible during development/demo. | `pending_discussion` | Align fallback wording and verification checklist. |
+| D2 | API unavailable display | Keep `Mock fallback` badge and warning line visible during development/demo. | `accepted` | Align fallback wording and verification checklist. |
 | D3 | V1 CTA boundary | CTAs are view/navigation only until mutation endpoints, authorization and audit exist. | `pending_discussion` | Audit page CTAs and document any exceptions. |
 | D4 | Status display wording | Display management-readable Chinese labels; map backend raw codes in service/mapper layer. | `pending_discussion` | Update status policy from pending review to accepted and use in integration checklist. |
 | D5 | Mutation wording | Avoid action verbs that imply unsupported mutations, such as release, approve, allocate or invoice, unless endpoint exists. | `pending_discussion` | Review page copy for mutation-sounding labels. |
@@ -70,7 +70,7 @@ After related decisions are accepted, Codex can independently complete:
 Next question:
 
 ```txt
-D2: Should API unavailable remain visibly marked with a Mock fallback badge and warning line during development/demo?
+D3: Should V1 CTAs remain view/navigation only until mutation endpoints, authorization and audit rules exist?
 ```
 
 ## Decision Log
@@ -78,3 +78,4 @@ D2: Should API unavailable remain visibly marked with a Mock fallback badge and 
 | Date | ID | Decision | Owner response | Follow-up |
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | D1 | Valid API empty arrays mean true empty data and should not be replaced by mock fallback rows. | Accepted. | Fallback policy updated from pending review to accepted. |
+| 2026-05-26 | D2 | API unavailable should remain visibly marked with `Mock fallback` badge and warning line during development/demo. | Accepted. | Fallback policy updated from pending review to accepted. |

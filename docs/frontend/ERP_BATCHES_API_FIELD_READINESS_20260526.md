@@ -23,7 +23,7 @@ Current frontend hook:
 useSupportDashboard("/api/v1/batches/dashboard", batchesDashboardMock, "Batches API unavailable")
 ```
 
-The current page still uses Phase 1.5 lifecycle mock data. The accepted next contract should move toward the item-centered shape below.
+The current page has been refactored to use item-centered mock fallback data. The accepted backend contract should align with the item-centered shape below.
 
 ## V1 Response Shape
 
@@ -219,8 +219,8 @@ Not required for V1:
 
 ## Frontend Integration Notes
 
-- Current `/batches` UI still uses the old lifecycle overview shape.
-- The accepted next UI should refactor to `itemSummaries` and selected item distribution.
+- Current `/batches` UI uses `itemSummaries` and selected item distribution mock fallback data.
+- The accepted next integration step is to add a dedicated mapper/service once the backend payload is available.
 - A dedicated `batches-api` service/type file should be added when this endpoint is implemented.
 - Server-side filters can wait until `itemId`, `batchNo`, `warehouse`, `location`, `qaStatus` and `riskTags` are stable.
 - No mutation UI should be introduced until backend authorization and audit rules exist.

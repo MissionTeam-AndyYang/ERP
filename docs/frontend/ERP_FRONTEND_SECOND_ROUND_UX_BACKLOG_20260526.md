@@ -27,7 +27,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | P1 | Add shared runtime verification workflow to API integration process. | `can_do_now` | Docs/process | Template is already created; use it when backend endpoints are ready. |
 | P1 | Support page search and empty-state review for Items/BOM/Batches/AI. | `can_do_now` | UX review/code later | Review is complete; Items, BOM, Batches and AI search/empty-state polish are now implemented locally. |
 | P1 | Warehouse and Orders real-payload mapper planning. | `wait_for_api` | Service mapping | Mapping checklist is ready; wait for runtime response. |
-| P1 | Status code to display-label mapper inventory. | `can_do_now` | Service helper/design | Status vocabulary accepted; mapper code should wait until backend codes are known. |
+| P1 | Status code to display-label mapper inventory. | `can_do_now` | Service helper/design | Inventory is documented; mapper code should wait until backend codes are known. |
 | P2 | Shared empty state component. | `can_do_now` | Component | Consider only after reviewing current per-page empty states. |
 | P2 | i18n extraction for shared shell and stable workspace labels. | `can_do_now` | i18n | Start with empty states, tabs and CTA labels; defer table/detail labels until API fields settle. |
 | P2 | Support page dedicated types. | `wait_for_api` | Types/services | Items/BOM/Batches/AI currently use local shapes and `useSupportDashboard`; Items and BOM API readiness notes are now documented. |
@@ -65,8 +65,9 @@ Recommended sequence before backend is ready:
 
 1. Wait for the real Batches payload, then add a dedicated `/batches` mapper/service.
 2. Wait for Items/BOM endpoint priority, then add dedicated mapper/service files using the readiness notes.
-3. Re-run lint/build/route smoke after any mapper or payload-shape adjustment.
-4. Keep broader mutation workflows deferred until backend authorization and audit contracts exist.
+3. Use the status-display mapper inventory when Warehouse, Orders or support endpoints return real status codes.
+4. Re-run lint/build/route smoke after any mapper or payload-shape adjustment.
+5. Keep broader mutation workflows deferred until backend authorization and audit contracts exist.
 
 Recommended sequence after backend is ready:
 
@@ -128,6 +129,12 @@ BOM API field readiness:
 
 ```txt
 docs/frontend/ERP_BOM_API_FIELD_READINESS_20260526.md
+```
+
+Status display mapper inventory:
+
+```txt
+docs/frontend/ERP_STATUS_DISPLAY_MAPPER_INVENTORY_20260526.md
 ```
 
 Accepted AI direction:

@@ -75,6 +75,6 @@ Backend integration must be able to prove true empty states. Replacing `[]` with
 | --- | --- | --- |
 | Empty array should mean real empty data | Yes | `accepted` |
 | API unavailable should remain visibly marked | Yes | `accepted` |
-| CTA actions remain view navigation in V1 | Yes | `pending_owner_review` |
+| CTA actions remain view navigation in V1 | Yes | `accepted` |
 | Use management-readable Chinese labels instead of raw backend codes | Yes | `pending_owner_review` |
 | Avoid mutation wording until endpoint exists | Yes | `pending_owner_review` |

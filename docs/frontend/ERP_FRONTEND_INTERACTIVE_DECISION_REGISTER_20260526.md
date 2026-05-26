@@ -32,7 +32,7 @@ This avoids mixing product judgment with implementation work while still letting
 | --- | --- | --- | --- | --- |
 | D1 | Empty array behavior | Valid API empty arrays mean real empty data; do not refill mock rows. | `accepted` | Update fallback policy and service guard notes. |
 | D2 | API unavailable display | Keep `Mock fallback` badge and warning line visible during development/demo. | `accepted` | Align fallback wording and verification checklist. |
-| D3 | V1 CTA boundary | CTAs are view/navigation only until mutation endpoints, authorization and audit exist. | `pending_discussion` | Audit page CTAs and document any exceptions. |
+| D3 | V1 CTA boundary | CTAs are view/navigation only until mutation endpoints, authorization and audit exist. | `accepted` | Audit page CTAs and document any exceptions. |
 | D4 | Status display wording | Display management-readable Chinese labels; map backend raw codes in service/mapper layer. | `pending_discussion` | Update status policy from pending review to accepted and use in integration checklist. |
 | D5 | Mutation wording | Avoid action verbs that imply unsupported mutations, such as release, approve, allocate or invoice, unless endpoint exists. | `pending_discussion` | Review page copy for mutation-sounding labels. |
 | D6 | i18n extraction timing | Extract stable shared labels first; defer API-field labels until payloads settle. | `pending_discussion` | Prepare i18n extraction phase-1 checklist. |
@@ -70,7 +70,7 @@ After related decisions are accepted, Codex can independently complete:
 Next question:
 
 ```txt
-D3: Should V1 CTAs remain view/navigation only until mutation endpoints, authorization and audit rules exist?
+D4: Should frontend display management-readable Chinese labels while backend raw codes are mapped in service/mapper files?
 ```
 
 ## Decision Log
@@ -79,3 +79,4 @@ D3: Should V1 CTAs remain view/navigation only until mutation endpoints, authori
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | D1 | Valid API empty arrays mean true empty data and should not be replaced by mock fallback rows. | Accepted. | Fallback policy updated from pending review to accepted. |
 | 2026-05-26 | D2 | API unavailable should remain visibly marked with `Mock fallback` badge and warning line during development/demo. | Accepted. | Fallback policy updated from pending review to accepted. |
+| 2026-05-26 | D3 | V1 CTAs remain view/navigation/read-only only until mutation endpoints, authorization and audit rules exist. | Accepted. | CTA boundary updated from pending review to accepted. |

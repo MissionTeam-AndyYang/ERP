@@ -34,7 +34,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | P2 | Cross-page drill-down links. | `wait_for_api` | Navigation | Needs stable ids and route/detail policy. |
 | P2 | Advanced filters. | `wait_for_api` | UX/API | Placeholder tooltips already mark filters as pending API fields. |
 | P3 | Mobile density pass. | `can_do_now` | UX QA | Use browser smoke after more real data exists. |
-| P3 | Table column density and pinning. | `needs_owner_review` | UX | Needs user preference and data density from API. |
+| P3 | Table column density and pinning. | `wait_for_api` | UX | Owner accepted deferring until Warehouse/Orders real payload density is visible. |
 | P2 | AI today work status workspace. | `can_do_now` | AI/product/frontend | Owner accepted V1.1 direction and implementation is complete locally: today work status visibility and delayed item presentation first; recovery planning is deferred. |
 | P3 | AI recovery planning trust model. | `needs_owner_review` | AI/product | Deferred to V1.3; source, confidence, audit and action boundaries still need backend/product confirmation. |
 | P3 | Mutation workflows for dispatch, billing, scheduling, quote, approval. | `defer_v2` | UX/API | Outside accepted V1 CTA boundary. |

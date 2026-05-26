@@ -30,7 +30,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | P1 | Status code to display-label mapper inventory. | `can_do_now` | Service helper/design | Inventory is documented; mapper code should wait until backend codes are known. |
 | P2 | Shared empty state component. | `can_do_now` | Component | Consider only after reviewing current per-page empty states. |
 | P2 | i18n extraction for shared shell and stable workspace labels. | `can_do_now` | i18n | Owner accepted stable-shared-labels-first timing; phase-1 checklist is created. |
-| P2 | Support page dedicated types. | `wait_for_api` | Types/services | Items/BOM/Batches/AI currently use local shapes and `useSupportDashboard`; Items and BOM API readiness notes are now documented. |
+| P2 | Support page dedicated types. | `wait_for_api` | Types/services | Owner accepted creating dedicated support services/types only after backend endpoint priority and response shape are confirmed. |
 | P2 | Cross-page drill-down links. | `wait_for_api` | Navigation | Needs stable ids and route/detail policy. |
 | P2 | Advanced filters. | `wait_for_api` | UX/API | Placeholder tooltips already mark filters as pending API fields. |
 | P3 | Mobile density pass. | `can_do_now` | UX QA | Use browser smoke after more real data exists. |

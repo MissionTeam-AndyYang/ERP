@@ -1,15 +1,18 @@
 "use client";
 
-import { Barcode, CalendarClock, Network, Search } from "lucide-react";
+import { Barcode, CalendarClock, Network } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { ProcessBoard } from "@/components/common/process-board";
+import { SupportEmptyState } from "@/components/common/support-empty-state";
+import { SupportSearchPanel } from "@/components/common/support-search-panel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useSupportDashboard } from "@/hooks/use-support-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
+import { matchesSupportSearch, normalizeSupportSearch } from "@/utils/support-search";
 
 const kpis = [
   { label: "批號總數", value: "1,284", hint: "近 90 天", tone: "info" as const },
@@ -90,51 +93,22 @@ const batchesDashboardMock = {
   lifecycle
 };
 
-function normalizeSearch(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function includesSearch(value: string | number | null | undefined, query: string) {
-  return String(value ?? "").toLowerCase().includes(query);
-}
-
 function batchCardMatchesSearch(item: (typeof batchCards)[number], query: string) {
-  if (!query) {
-    return true;
-  }
-
-  return [
+  return matchesSupportSearch([
     item.eyebrow,
     item.title,
     item.subtitle,
     item.status,
     ...item.rows.flatMap((row) => [row.label, row.value])
-  ].some((value) => includesSearch(value, query));
+  ], query);
 }
 
 function batchTaskMatchesSearch(item: (typeof batchTasks)[number], query: string) {
-  if (!query) {
-    return true;
-  }
-
-  return [item.id, item.title, item.detail, item.meta, item.status].some((value) => includesSearch(value, query));
+  return matchesSupportSearch([item.id, item.title, item.detail, item.meta, item.status], query);
 }
 
 function lifecycleItemMatchesSearch(item: (typeof lifecycle)[number]["items"][number], query: string) {
-  if (!query) {
-    return true;
-  }
-
-  return [item.id, item.title, item.detail].some((value) => includesSearch(value, query));
-}
-
-function EmptyState({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
-      <p className="font-semibold text-textPrimary">{title}</p>
-      <p className="mt-2 text-sm text-textSecondary">{description}</p>
-    </div>
-  );
+  return matchesSupportSearch([item.id, item.title, item.detail], query);
 }
 
 export default function BatchesPage() {
@@ -144,7 +118,7 @@ export default function BatchesPage() {
     "Batches API unavailable"
   );
   const [searchValue, setSearchValue] = useState("");
-  const searchQuery = normalizeSearch(searchValue);
+  const searchQuery = normalizeSupportSearch(searchValue);
   const filteredBatchCards = useMemo(
     () => data.batchCards.filter((item) => batchCardMatchesSearch(item, searchQuery)),
     [data.batchCards, searchQuery]
@@ -188,38 +162,32 @@ export default function BatchesPage() {
             Batches API 尚未可用，已使用 mock fallback。{error}
           </p>
         ) : null}
-        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
-          <label className="flex h-10 max-w-xl items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
-            <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
-            <input
-              aria-label="搜尋批號、品項、工單、庫位或待辦"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
-              placeholder="批號 / 品項 / 工單 / 庫位 / 待辦"
-              value={searchValue}
-              onChange={(event) => setSearchValue(event.target.value)}
-            />
-          </label>
-        </section>
+        <SupportSearchPanel
+          ariaLabel="搜尋批號、品項、工單、庫位或待辦"
+          placeholder="批號 / 品項 / 工單 / 庫位 / 待辦"
+          value={searchValue}
+          onChange={setSearchValue}
+        />
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
         {filteredLifecycle.length > 0 ? (
           <ProcessBoard eyebrow="Batch Lifecycle" title="批號生命週期" columns={filteredLifecycle} />
         ) : (
-          <EmptyState title="沒有符合條件的批號流程" description="請調整搜尋關鍵字，或確認批號生命週期資料是否已建立。" />
+          <SupportEmptyState title="沒有符合條件的批號流程" description="請調整搜尋關鍵字，或確認批號生命週期資料是否已建立。" />
         )}
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
             {filteredBatchCards.length > 0 ? (
               filteredBatchCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)
             ) : (
-              <EmptyState title="沒有符合條件的批號" description="請調整搜尋關鍵字，或切回更寬的批號範圍檢查。" />
+              <SupportEmptyState title="沒有符合條件的批號" description="請調整搜尋關鍵字，或切回更寬的批號範圍檢查。" />
             )}
           </div>
           {filteredBatchTasks.length > 0 ? (
             <CompactListPanel eyebrow="Batch Tasks" title="批號風險與待辦" items={filteredBatchTasks} />
           ) : (
-            <EmptyState title="沒有符合條件的批號待辦" description="目前搜尋條件下沒有需要優先處理的批號風險項目。" />
+            <SupportEmptyState title="沒有符合條件的批號待辦" description="目前搜尋條件下沒有需要優先處理的批號風險項目。" />
           )}
         </section>
       </div>

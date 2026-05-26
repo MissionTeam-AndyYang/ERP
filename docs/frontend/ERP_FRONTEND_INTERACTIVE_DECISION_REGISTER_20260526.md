@@ -37,7 +37,7 @@ This avoids mixing product judgment with implementation work while still letting
 | D5 | Mutation wording | Avoid action verbs that imply unsupported mutations, such as release, approve, allocate or invoice, unless endpoint exists. | `accepted` | Review page copy for mutation-sounding labels. |
 | D6 | i18n extraction timing | Extract stable shared labels first; defer API-field labels until payloads settle. | `accepted` | Prepare i18n extraction phase-1 checklist. |
 | D7 | Table density and pinned columns | Defer until Warehouse/Orders real payload density is visible. | `deferred` | Record UX preference and revisit after API smoke. |
-| D8 | AI recovery planning trust model | Defer V1.3 details; keep V1.1/V1.2 read-only visibility and reason analysis first. | `pending_discussion` | Create V1.3 trust model checklist later. |
+| D8 | AI recovery planning trust model | Defer V1.3 details; keep V1.1/V1.2 read-only visibility and reason analysis first. | `deferred` | Create V1.3 trust model checklist later. |
 | D9 | Support page dedicated services/types | Create only when backend endpoint priority and response shape are confirmed. | `pending_discussion` | Prepare implementation rule, not code. |
 | D10 | Cross-page drill-down links | Wait for stable ids and route/detail policy. | `pending_discussion` | Define link policy after backend ids are confirmed. |
 
@@ -70,7 +70,7 @@ After related decisions are accepted, Codex can independently complete:
 Next question:
 
 ```txt
-D8: Should AI recovery planning trust model remain deferred while V1.1/V1.2 focus on read-only visibility and reason analysis?
+D9: Should support page dedicated services/types be created only after backend endpoint priority and response shapes are confirmed?
 ```
 
 ## Decision Log
@@ -84,3 +84,4 @@ D8: Should AI recovery planning trust model remain deferred while V1.1/V1.2 focu
 | 2026-05-26 | D5 | Frontend avoids mutation-sounding action labels until matching endpoints, permissions and audit rules exist. | Accepted. | Mutation wording updated from pending review to accepted. |
 | 2026-05-26 | D6 | i18n extraction starts with stable shared labels; API-field labels wait until payloads settle. | Accepted. | i18n phase-1 checklist created. |
 | 2026-05-26 | D7 | Table density and pinned columns are deferred until Warehouse/Orders real payload density is visible. | Accepted. | UX preference recorded; revisit after API smoke. |
+| 2026-05-26 | D8 | AI recovery planning trust model remains deferred while V1.1/V1.2 focus on read-only visibility and delayed reason analysis. | Accepted. | AI recovery planning remains V1.3 scope. |

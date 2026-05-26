@@ -36,7 +36,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | P3 | Mobile density pass. | `can_do_now` | UX QA | Use browser smoke after more real data exists. |
 | P3 | Table column density and pinning. | `wait_for_api` | UX | Owner accepted deferring until Warehouse/Orders real payload density is visible. |
 | P2 | AI today work status workspace. | `can_do_now` | AI/product/frontend | Owner accepted V1.1 direction and implementation is complete locally: today work status visibility and delayed item presentation first; recovery planning is deferred. |
-| P3 | AI recovery planning trust model. | `needs_owner_review` | AI/product | Deferred to V1.3; source, confidence, audit and action boundaries still need backend/product confirmation. |
+| P3 | AI recovery planning trust model. | `defer_v2` | AI/product | Owner accepted deferring to V1.3; V1.1/V1.2 stay focused on read-only visibility and delayed reason analysis. |
 | P3 | Mutation workflows for dispatch, billing, scheduling, quote, approval. | `defer_v2` | UX/API | Outside accepted V1 CTA boundary. |
 
 ## Support Pages Backlog

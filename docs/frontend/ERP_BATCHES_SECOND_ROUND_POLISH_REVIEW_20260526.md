@@ -56,7 +56,7 @@ docs/frontend/ERP_BATCHES_OPERATIONAL_WORKSPACE_SPEC_20260526.md
 | Item | Priority | Dependency |
 | --- | --- | --- |
 | Re-run browser smoke for search, empty states and mobile overflow. | High | Browser runtime restored. |
-| Create item-centered Batches API field readiness notes. | High | Accepted workspace spec and future backend payload planning. |
+| Create item-centered Batches API field readiness notes. | Done | `docs/frontend/ERP_BATCHES_API_FIELD_READINESS_20260526.md` |
 | Design the future item summary + batch distribution workspace. | High | Batch API fields for item aggregation, warehouse split, status, QA release, expiry, quarantine, location and quantity. |
 | Decide selected batch detail panel fields. | High | Batch detail API shape. |
 | Align batch status vocabulary with Warehouse and Quality. | Medium | Backend status codes and mapper rules. |

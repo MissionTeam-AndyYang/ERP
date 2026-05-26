@@ -45,7 +45,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | --- | --- | --- | --- |
 | Items | Add search, empty states and clearer item/category task grouping. | `can_do_now` | Done locally; browser smoke remains pending because the local Browser plugin runtime is unavailable. |
 | BOM | Add search and empty states now; wait on approved/development/trial filters. | `can_do_now` / `wait_for_api` | Search/empty states done locally; version filters should wait for BOM version/source rules. |
-| Batches | Shift to item-centered batch operations dashboard. | `can_do_now` / `wait_for_api` | Search/empty states done locally; workspace spec accepted. Next step is API field readiness before UI refactor. |
+| Batches | Shift to item-centered batch operations dashboard. | `can_do_now` / `wait_for_api` | Search/empty states done locally; workspace spec and API field readiness are complete. Next decision: UI refactor timing. |
 | AI | Shift from generic insights to today's work status and delayed item visibility. | `can_do_now` | V1.1 implementation is complete locally. Recovery planning is deferred to V1.3. |
 
 ## Core Pages Backlog
@@ -63,10 +63,10 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 
 Recommended sequence before backend is ready:
 
-1. Create Batches API field readiness notes for the item-centered batch operations workspace.
-2. Optionally refactor `/batches` mock data and UI from lifecycle overview to item summary + batch distribution.
+1. Decide whether Batches UI refactor should happen before backend API payloads are available.
+2. If accepted, refactor `/batches` mock data and UI from lifecycle overview to item summary + batch distribution.
 3. Optionally create API field readiness docs for Items and BOM if backend will implement those endpoints soon.
-4. Decide whether Batches UI refactor should happen before backend API payloads are available.
+4. Re-run lint/build/route smoke after any Batches UI refactor.
 
 Recommended sequence after backend is ready:
 
@@ -104,6 +104,12 @@ Batches operational workspace spec:
 
 ```txt
 docs/frontend/ERP_BATCHES_OPERATIONAL_WORKSPACE_SPEC_20260526.md
+```
+
+Batches API field readiness:
+
+```txt
+docs/frontend/ERP_BATCHES_API_FIELD_READINESS_20260526.md
 ```
 
 Accepted AI direction:

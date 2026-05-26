@@ -30,6 +30,7 @@ The goal is to keep the frontend session focused on:
 | 11 | R&D / Costing | `/rd` | `GET /api/v1/rd/dashboard` | Requires confirmation of development-project source, development BOM semantics and costing linkage. |
 | 12 | Workforce | `/workforce` | `GET /api/v1/workforce/dashboard` | Requires employee/skill/certification source confirmation; useful after Planning/Production shape stabilizes. |
 | 13 | AI V1.1 | `/ai` | `GET /api/v1/ai/dashboard` | Today work status and delayed-item visibility can integrate after core module sources are stable enough to aggregate. |
+| 14 | Batches | `/batches` | `GET /api/v1/batches/dashboard` | Item-centered batch operations can integrate after inventory, QA and warehouse/location source fields are stable. |
 
 ## Cross-Page API Gap Summary
 
@@ -48,6 +49,7 @@ The goal is to keep the frontend session focused on:
 | R&D / Costing | `summary`, `projects` | Confirm development-project source, development versus production BOM, nutrition/sample status and supplier quote linkage. | Ready with notes |
 | Workforce | `summary`, `cases` | Confirm employee/skill/certification tables, planned staff by line/date and staff-gap calculation rules. | Ready with notes |
 | AI V1.1 | `kpis`, `todayWorkItems` | Confirm whether AI dashboard aggregates from module endpoints or dedicated AI signals; confirm progress state, module names and source record ids. | Ready with notes |
+| Batches | `kpis`, `itemSummaries` | Confirm item-level aggregation, batch-location rows, quantity availability, QA hold/release, quarantine and expiry source rules. | Ready with notes |
 
 ## Backend Confirmation Packet
 
@@ -91,6 +93,7 @@ Use these as the first engineering alignment questions before implementing endpo
 | R&D / Costing | `docs/frontend/ERP_RD_API_FIELD_READINESS_20260525.md` |
 | Workforce | `docs/frontend/ERP_WORKFORCE_API_FIELD_READINESS_20260525.md` |
 | AI V1.1 | `docs/frontend/ERP_AI_V1_1_API_FIELD_READINESS_20260526.md` |
+| Batches | `docs/frontend/ERP_BATCHES_API_FIELD_READINESS_20260526.md` |
 
 ## Recommended Next Engineering Sequence
 

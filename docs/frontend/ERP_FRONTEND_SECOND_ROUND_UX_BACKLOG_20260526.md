@@ -29,7 +29,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | P1 | Warehouse and Orders real-payload mapper planning. | `wait_for_api` | Service mapping | Mapping checklist is ready; wait for runtime response. |
 | P1 | Status code to display-label mapper inventory. | `can_do_now` | Service helper/design | Inventory is documented; mapper code should wait until backend codes are known. |
 | P2 | Shared empty state component. | `can_do_now` | Component | Consider only after reviewing current per-page empty states. |
-| P2 | i18n extraction for shared shell and stable workspace labels. | `can_do_now` | i18n | Start with empty states, tabs and CTA labels; defer table/detail labels until API fields settle. |
+| P2 | i18n extraction for shared shell and stable workspace labels. | `can_do_now` | i18n | Owner accepted stable-shared-labels-first timing; phase-1 checklist is created. |
 | P2 | Support page dedicated types. | `wait_for_api` | Types/services | Items/BOM/Batches/AI currently use local shapes and `useSupportDashboard`; Items and BOM API readiness notes are now documented. |
 | P2 | Cross-page drill-down links. | `wait_for_api` | Navigation | Needs stable ids and route/detail policy. |
 | P2 | Advanced filters. | `wait_for_api` | UX/API | Placeholder tooltips already mark filters as pending API fields. |
@@ -135,6 +135,12 @@ Status display mapper inventory:
 
 ```txt
 docs/frontend/ERP_STATUS_DISPLAY_MAPPER_INVENTORY_20260526.md
+```
+
+i18n phase-1 extraction checklist:
+
+```txt
+docs/frontend/ERP_I18N_PHASE_1_EXTRACTION_CHECKLIST_20260526.md
 ```
 
 Accepted AI direction:

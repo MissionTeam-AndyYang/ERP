@@ -45,7 +45,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | --- | --- | --- | --- |
 | Items | Add search, empty states and clearer item/category task grouping. | `can_do_now` | Done locally; browser smoke remains pending because the local Browser plugin runtime is unavailable. |
 | BOM | Add search and empty states now; wait on approved/development/trial filters. | `can_do_now` / `wait_for_api` | Search/empty states done locally; version filters should wait for BOM version/source rules. |
-| Batches | Add search and empty states now; wait on selected batch detail pattern. | `can_do_now` / `wait_for_api` | Search/empty states done locally; selected detail should wait for batch detail fields. |
+| Batches | Shift to item-centered batch operations dashboard. | `can_do_now` / `wait_for_api` | Search/empty states done locally; workspace spec accepted. Next step is API field readiness before UI refactor. |
 | AI | Shift from generic insights to today's work status and delayed item visibility. | `can_do_now` | V1.1 implementation is complete locally. Recovery planning is deferred to V1.3. |
 
 ## Core Pages Backlog
@@ -63,10 +63,10 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 
 Recommended sequence before backend is ready:
 
-1. Review Batches versus Traceability boundary with owner.
-2. Create AI V1.1 API field readiness notes for `/api/v1/ai/dashboard` if backend will implement this endpoint soon.
-3. Optionally create API field readiness docs for Items, BOM and Batches if backend will implement those endpoints soon.
-4. Decide whether to commit/push the AI V1.1 frontend implementation now or after browser smoke can be restored.
+1. Create Batches API field readiness notes for the item-centered batch operations workspace.
+2. Optionally refactor `/batches` mock data and UI from lifecycle overview to item summary + batch distribution.
+3. Optionally create API field readiness docs for Items and BOM if backend will implement those endpoints soon.
+4. Decide whether Batches UI refactor should happen before backend API payloads are available.
 
 Recommended sequence after backend is ready:
 
@@ -80,7 +80,7 @@ Recommended sequence after backend is ready:
 
 | Topic | Question | Why it matters |
 | --- | --- | --- |
-| Batches vs Traceability | Should Batches be batch lifecycle management while Traceability remains chain/recall investigation? | Prevents duplicate pages. |
+| Batches vs Traceability | Accepted: Batches should be item-centered batch operations; Traceability remains chain/recall investigation. | Prevents duplicate pages. |
 | AI V1 boundary | Accepted: AI V1.1 should show today's work status and delayed items first. Recovery planning moves to V1.3. | Prevents unsupported action promises while making AI operationally useful. |
 | Support pages priority | Should Items/BOM/Batches/AI be polished before backend core API is ready? | Accepted: start with Items as the lowest-risk support page polish. |
 | i18n timing | Should stable labels move into dictionary before API integration? | Affects code churn during mapper work. |
@@ -94,11 +94,17 @@ backlog_created_with_batches_traceability_boundary_accepted
 Accepted page boundary:
 
 ```txt
-Batches = batch lifecycle and operational control workspace.
+Batches = item-centered batch operations dashboard.
 Traceability = trace chain, document completeness and recall-scope investigation workspace.
 ```
 
-Batches should become a dense operational table workspace focused on batch status, QA release, expiry, quarantine, location, quantity and batch tasks. Traceability should emphasize chain visualization, upstream/downstream investigation, document gaps and affected customers/shipments.
+Batches should become an item-centered operational workspace focused on item-level batch aggregation, multi-batch distribution, warehouse/location split, quantity availability, QA release/hold, expiry, quarantine and related work impact. Traceability should emphasize chain visualization, upstream/downstream investigation, document gaps and affected customers/shipments.
+
+Batches operational workspace spec:
+
+```txt
+docs/frontend/ERP_BATCHES_OPERATIONAL_WORKSPACE_SPEC_20260526.md
+```
 
 Accepted AI direction:
 

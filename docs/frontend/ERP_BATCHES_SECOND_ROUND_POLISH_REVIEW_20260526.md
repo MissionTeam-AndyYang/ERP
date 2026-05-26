@@ -29,11 +29,17 @@ Scope: Batches support page low-risk polish before backend API integration.
 Accepted page boundary:
 
 ```txt
-Batches = batch lifecycle and operational control workspace.
+Batches = item-centered batch operations dashboard.
 Traceability = trace chain, document completeness and recall-scope investigation workspace.
 ```
 
-This polish stays inside the Batches boundary by improving batch status/lifecycle findability only. It does not add trace-chain visualization, recall-scope investigation or customer/shipment impact analysis.
+This polish stays inside the Batches boundary by improving batch status/lifecycle findability only. The accepted next-stage workspace direction is item-centered because one item can have many batches distributed across different warehouses, locations and states. Batches should show item-level aggregation, batch distribution and operational detail. It should not add trace-chain visualization, recall-scope investigation or customer/shipment impact analysis.
+
+Workspace spec:
+
+```txt
+docs/frontend/ERP_BATCHES_OPERATIONAL_WORKSPACE_SPEC_20260526.md
+```
 
 ## Verification
 
@@ -50,7 +56,8 @@ This polish stays inside the Batches boundary by improving batch status/lifecycl
 | Item | Priority | Dependency |
 | --- | --- | --- |
 | Re-run browser smoke for search, empty states and mobile overflow. | High | Browser runtime restored. |
-| Design the future dense operational table workspace. | High | Batch API fields for status, QA release, expiry, quarantine, location and quantity. |
+| Create item-centered Batches API field readiness notes. | High | Accepted workspace spec and future backend payload planning. |
+| Design the future item summary + batch distribution workspace. | High | Batch API fields for item aggregation, warehouse split, status, QA release, expiry, quarantine, location and quantity. |
 | Decide selected batch detail panel fields. | High | Batch detail API shape. |
 | Align batch status vocabulary with Warehouse and Quality. | Medium | Backend status codes and mapper rules. |
 | Consider shared empty-state component after AI or another support page repeats the same pattern. | Low | At least three support pages using same pattern. |

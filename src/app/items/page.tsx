@@ -1,6 +1,7 @@
 "use client";
 
-import { Boxes, PackageCheck, Tags } from "lucide-react";
+import { Boxes, PackageCheck, Search, Tags } from "lucide-react";
+import { useMemo, useState } from "react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
@@ -101,11 +102,78 @@ const itemsDashboardMock = {
   categories
 };
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null | undefined, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function itemCardMatchesSearch(item: (typeof itemCards)[number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.eyebrow,
+    item.title,
+    item.subtitle,
+    item.status,
+    ...item.rows.flatMap((row) => [row.label, row.value])
+  ].some((value) => includesSearch(value, query));
+}
+
+function taskMatchesSearch(item: (typeof masterTasks)[number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [item.id, item.title, item.detail, item.meta, item.status].some((value) => includesSearch(value, query));
+}
+
+function categoryItemMatchesSearch(item: (typeof categories)[number]["items"][number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [item.id, item.title, item.detail].some((value) => includesSearch(value, query));
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
+}
+
 export default function ItemsPage() {
   const { data, error, isLoading, source } = useSupportDashboard(
     "/api/v1/items/dashboard",
     itemsDashboardMock,
     "Items API unavailable"
+  );
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const filteredItemCards = useMemo(
+    () => data.itemCards.filter((item) => itemCardMatchesSearch(item, searchQuery)),
+    [data.itemCards, searchQuery]
+  );
+  const filteredMasterTasks = useMemo(
+    () => data.masterTasks.filter((item) => taskMatchesSearch(item, searchQuery)),
+    [data.masterTasks, searchQuery]
+  );
+  const filteredCategories = useMemo(
+    () =>
+      data.categories
+        .map((category) => ({
+          ...category,
+          items: category.items.filter((item) => categoryItemMatchesSearch(item, searchQuery))
+        }))
+        .filter((category) => category.items.length > 0),
+    [data.categories, searchQuery]
   );
 
   return (
@@ -132,15 +200,39 @@ export default function ItemsPage() {
             Items API 尚未可用，已使用 mock fallback。{error}
           </p>
         ) : null}
+        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
+          <label className="flex h-10 max-w-xl items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
+            <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
+            <input
+              aria-label="搜尋品項、物料、BOM 或待辦"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+              placeholder="品項 / 物料 / BOM / 待辦"
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+            />
+          </label>
+        </section>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
-        <ProcessBoard eyebrow="Item Categories" title="品項分類看板" columns={data.categories} />
+        {filteredCategories.length > 0 ? (
+          <ProcessBoard eyebrow="Item Categories" title="品項分類看板" columns={filteredCategories} />
+        ) : (
+          <EmptyState title="沒有符合條件的品項分類" description="請調整搜尋關鍵字，或確認主檔分類資料是否已建立。" />
+        )}
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
-            {data.itemCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+            {filteredItemCards.length > 0 ? (
+              filteredItemCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)
+            ) : (
+              <EmptyState title="沒有符合條件的品項" description="請調整搜尋關鍵字，或切回更寬的品項範圍檢查。" />
+            )}
           </div>
-          <CompactListPanel eyebrow="Master Data Tasks" title="主資料待辦" items={data.masterTasks} />
+          {filteredMasterTasks.length > 0 ? (
+            <CompactListPanel eyebrow="Master Data Tasks" title="主資料待辦" items={filteredMasterTasks} />
+          ) : (
+            <EmptyState title="沒有符合條件的主檔待辦" description="目前搜尋條件下沒有需要優先處理的主檔項目。" />
+          )}
         </section>
       </div>
     </AppLayout>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Bot, BrainCircuit, Sparkles } from "lucide-react";
+import { Bot, BrainCircuit, Search, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
@@ -89,11 +90,78 @@ const aiDashboardMock = {
   flow
 };
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null | undefined, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function insightMatchesSearch(item: (typeof insights)[number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.eyebrow,
+    item.title,
+    item.subtitle,
+    item.status,
+    ...item.rows.flatMap((row) => [row.label, row.value])
+  ].some((value) => includesSearch(value, query));
+}
+
+function assistantTaskMatchesSearch(item: (typeof assistantTasks)[number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [item.id, item.title, item.detail, item.meta, item.status].some((value) => includesSearch(value, query));
+}
+
+function flowItemMatchesSearch(item: (typeof flow)[number]["items"][number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [item.id, item.title, item.detail].some((value) => includesSearch(value, query));
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
+}
+
 export default function AiPage() {
   const { data, error, isLoading, source } = useSupportDashboard(
     "/api/v1/ai/dashboard",
     aiDashboardMock,
     "AI API unavailable"
+  );
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const filteredInsights = useMemo(
+    () => data.insights.filter((item) => insightMatchesSearch(item, searchQuery)),
+    [data.insights, searchQuery]
+  );
+  const filteredAssistantTasks = useMemo(
+    () => data.assistantTasks.filter((item) => assistantTaskMatchesSearch(item, searchQuery)),
+    [data.assistantTasks, searchQuery]
+  );
+  const filteredFlow = useMemo(
+    () =>
+      data.flow
+        .map((stage) => ({
+          ...stage,
+          items: stage.items.filter((item) => flowItemMatchesSearch(item, searchQuery))
+        }))
+        .filter((stage) => stage.items.length > 0),
+    [data.flow, searchQuery]
   );
 
   return (
@@ -120,15 +188,39 @@ export default function AiPage() {
             AI API 尚未可用，已使用 mock fallback。{error}
           </p>
         ) : null}
+        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
+          <label className="flex h-10 max-w-xl items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
+            <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
+            <input
+              aria-label="搜尋 AI 洞察、風險、建議或來源紀錄"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+              placeholder="洞察 / 風險 / 建議 / 紀錄"
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+            />
+          </label>
+        </section>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
-        <ProcessBoard eyebrow="AI Decision Flow" title="AI 預警與建議流程" columns={data.flow} />
+        {filteredFlow.length > 0 ? (
+          <ProcessBoard eyebrow="AI Decision Flow" title="AI 預警與建議流程" columns={filteredFlow} />
+        ) : (
+          <EmptyState title="沒有符合條件的 AI 流程" description="請調整搜尋關鍵字，或確認 AI 預警與建議資料是否已建立。" />
+        )}
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
-            {data.insights.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+            {filteredInsights.length > 0 ? (
+              filteredInsights.map((item) => <DetailCard {...item} key={item.eyebrow} />)
+            ) : (
+              <EmptyState title="沒有符合條件的 AI 洞察" description="請調整搜尋關鍵字，或切回更寬的營運風險範圍檢查。" />
+            )}
           </div>
-          <CompactListPanel eyebrow="Assistant Actions" title="AI Assistant 任務" items={data.assistantTasks} />
+          {filteredAssistantTasks.length > 0 ? (
+            <CompactListPanel eyebrow="Assistant Actions" title="AI Assistant 任務" items={filteredAssistantTasks} />
+          ) : (
+            <EmptyState title="沒有符合條件的 AI 待辦" description="目前搜尋條件下沒有需要優先 review 的 AI 建議項目。" />
+          )}
         </section>
       </div>
     </AppLayout>

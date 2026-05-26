@@ -1,6 +1,7 @@
 "use client";
 
-import { Beaker, FlaskConical, GitBranch } from "lucide-react";
+import { Beaker, FlaskConical, GitBranch, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { CompactListPanel } from "@/components/common/compact-list-panel";
 import { DetailCard } from "@/components/common/detail-card";
 import { ModuleHero } from "@/components/common/module-hero";
@@ -89,11 +90,78 @@ const bomDashboardMock = {
   lifecycle
 };
 
+function normalizeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function includesSearch(value: string | number | null | undefined, query: string) {
+  return String(value ?? "").toLowerCase().includes(query);
+}
+
+function bomCardMatchesSearch(item: (typeof bomCards)[number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.eyebrow,
+    item.title,
+    item.subtitle,
+    item.status,
+    ...item.rows.flatMap((row) => [row.label, row.value])
+  ].some((value) => includesSearch(value, query));
+}
+
+function changeTaskMatchesSearch(item: (typeof changeTasks)[number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [item.id, item.title, item.detail, item.meta, item.status].some((value) => includesSearch(value, query));
+}
+
+function lifecycleItemMatchesSearch(item: (typeof lifecycle)[number]["items"][number], query: string) {
+  if (!query) {
+    return true;
+  }
+
+  return [item.id, item.title, item.detail].some((value) => includesSearch(value, query));
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-slate-50 px-4 py-10 text-center">
+      <p className="font-semibold text-textPrimary">{title}</p>
+      <p className="mt-2 text-sm text-textSecondary">{description}</p>
+    </div>
+  );
+}
+
 export default function BomPage() {
   const { data, error, isLoading, source } = useSupportDashboard(
     "/api/v1/bom/dashboard",
     bomDashboardMock,
     "BOM API unavailable"
+  );
+  const [searchValue, setSearchValue] = useState("");
+  const searchQuery = normalizeSearch(searchValue);
+  const filteredBomCards = useMemo(
+    () => data.bomCards.filter((item) => bomCardMatchesSearch(item, searchQuery)),
+    [data.bomCards, searchQuery]
+  );
+  const filteredChangeTasks = useMemo(
+    () => data.changeTasks.filter((item) => changeTaskMatchesSearch(item, searchQuery)),
+    [data.changeTasks, searchQuery]
+  );
+  const filteredLifecycle = useMemo(
+    () =>
+      data.lifecycle
+        .map((stage) => ({
+          ...stage,
+          items: stage.items.filter((item) => lifecycleItemMatchesSearch(item, searchQuery))
+        }))
+        .filter((stage) => stage.items.length > 0),
+    [data.lifecycle, searchQuery]
   );
 
   return (
@@ -120,15 +188,39 @@ export default function BomPage() {
             BOM API 尚未可用，已使用 mock fallback。{error}
           </p>
         ) : null}
+        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
+          <label className="flex h-10 max-w-xl items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
+            <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
+            <input
+              aria-label="搜尋 BOM、品項、版本或參數"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+              placeholder="BOM / 品項 / 版本 / 參數"
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+            />
+          </label>
+        </section>
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {data.kpis.map((item) => <ModuleKpiCard {...item} key={item.label} />)}
         </section>
-        <ProcessBoard eyebrow="BOM Lifecycle" title="研發 BOM 版本流程" columns={data.lifecycle} />
+        {filteredLifecycle.length > 0 ? (
+          <ProcessBoard eyebrow="BOM Lifecycle" title="研發 BOM 版本流程" columns={filteredLifecycle} />
+        ) : (
+          <EmptyState title="沒有符合條件的 BOM 流程" description="請調整搜尋關鍵字，或確認 BOM 版本資料是否已建立。" />
+        )}
         <section className="grid gap-6 xl:grid-cols-[1fr_420px]">
           <div className="grid gap-4">
-            {data.bomCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)}
+            {filteredBomCards.length > 0 ? (
+              filteredBomCards.map((item) => <DetailCard {...item} key={item.eyebrow} />)
+            ) : (
+              <EmptyState title="沒有符合條件的 BOM" description="請調整搜尋關鍵字，或切回更寬的 BOM 範圍檢查。" />
+            )}
           </div>
-          <CompactListPanel eyebrow="Change Requests" title="配方變更與簽核" items={data.changeTasks} />
+          {filteredChangeTasks.length > 0 ? (
+            <CompactListPanel eyebrow="Change Requests" title="配方變更與簽核" items={filteredChangeTasks} />
+          ) : (
+            <EmptyState title="沒有符合條件的變更待辦" description="目前搜尋條件下沒有需要優先處理的 BOM 變更項目。" />
+          )}
         </section>
       </div>
     </AppLayout>

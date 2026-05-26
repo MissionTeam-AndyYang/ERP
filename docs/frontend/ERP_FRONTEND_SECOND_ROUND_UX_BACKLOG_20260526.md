@@ -35,7 +35,8 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | P2 | Advanced filters. | `wait_for_api` | UX/API | Placeholder tooltips already mark filters as pending API fields. |
 | P3 | Mobile density pass. | `can_do_now` | UX QA | Use browser smoke after more real data exists. |
 | P3 | Table column density and pinning. | `needs_owner_review` | UX | Needs user preference and data density from API. |
-| P3 | AI insight trust model. | `needs_owner_review` | AI/product | Recovery-planning layout note is created; source, confidence, audit and action boundaries still need backend/product confirmation. |
+| P2 | AI today work status workspace. | `can_do_now` | AI/product/frontend | Owner accepted V1.1 direction and implementation is complete locally: today work status visibility and delayed item presentation first; recovery planning is deferred. |
+| P3 | AI recovery planning trust model. | `needs_owner_review` | AI/product | Deferred to V1.3; source, confidence, audit and action boundaries still need backend/product confirmation. |
 | P3 | Mutation workflows for dispatch, billing, scheduling, quote, approval. | `defer_v2` | UX/API | Outside accepted V1 CTA boundary. |
 
 ## Support Pages Backlog
@@ -45,7 +46,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | Items | Add search, empty states and clearer item/category task grouping. | `can_do_now` | Done locally; browser smoke remains pending because the local Browser plugin runtime is unavailable. |
 | BOM | Add search and empty states now; wait on approved/development/trial filters. | `can_do_now` / `wait_for_api` | Search/empty states done locally; version filters should wait for BOM version/source rules. |
 | Batches | Add search and empty states now; wait on selected batch detail pattern. | `can_do_now` / `wait_for_api` | Search/empty states done locally; selected detail should wait for batch detail fields. |
-| AI | Keep read-only, but expand from insight summary to recovery planning assist with late-progress detection and recommended recovery plans. | `needs_owner_review` | Search/empty states done locally; larger recovery-planning UI should wait for data-shape acceptance. |
+| AI | Shift from generic insights to today's work status and delayed item visibility. | `can_do_now` | V1.1 implementation is complete locally. Recovery planning is deferred to V1.3. |
 
 ## Core Pages Backlog
 
@@ -63,9 +64,9 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 Recommended sequence before backend is ready:
 
 1. Review Batches versus Traceability boundary with owner.
-2. Review AI V1 trust/action boundary with owner.
-3. Review whether a shared empty-state component is worth extracting after four support pages now use the same pattern.
-4. Optionally create API field readiness docs for Items, BOM, Batches and AI if backend will implement those endpoints soon.
+2. Create AI V1.1 API field readiness notes for `/api/v1/ai/dashboard` if backend will implement this endpoint soon.
+3. Optionally create API field readiness docs for Items, BOM and Batches if backend will implement those endpoints soon.
+4. Decide whether to commit/push the AI V1.1 frontend implementation now or after browser smoke can be restored.
 
 Recommended sequence after backend is ready:
 
@@ -80,7 +81,7 @@ Recommended sequence after backend is ready:
 | Topic | Question | Why it matters |
 | --- | --- | --- |
 | Batches vs Traceability | Should Batches be batch lifecycle management while Traceability remains chain/recall investigation? | Prevents duplicate pages. |
-| AI V1 boundary | Should AI remain read-only, while adding late-progress detection and recovery plan recommendations? | Prevents unsupported action promises while making AI operationally useful. |
+| AI V1 boundary | Accepted: AI V1.1 should show today's work status and delayed items first. Recovery planning moves to V1.3. | Prevents unsupported action promises while making AI operationally useful. |
 | Support pages priority | Should Items/BOM/Batches/AI be polished before backend core API is ready? | Accepted: start with Items as the lowest-risk support page polish. |
 | i18n timing | Should stable labels move into dictionary before API integration? | Affects code churn during mapper work. |
 
@@ -102,12 +103,26 @@ Batches should become a dense operational table workspace focused on batch statu
 Accepted AI direction:
 
 ```txt
-AI V1 = read-only insights + recovery planning assist.
+AI V1.1 = today work status visibility + delayed item presentation.
+AI V1.2 = delayed reason analysis.
+AI V1.3 = AI-assisted recovery planning.
 ```
 
-AI should identify late or at-risk progress across orders, production, purchasing, quality, logistics, workforce, documents and finance, then propose a recovery plan with reasons, affected modules, expected recovered time, risk reduction and confidence. AI must not directly execute ERP mutations in V1.
+AI should first help managers see today's work clearly: scheduled items, in-progress items, attention items and already-delayed items across orders, purchasing, warehouse, production, quality, logistics, documents and finance. Recovery plan generation is a later enhancement after the delay visibility model is stable. AI must not directly execute ERP mutations in V1.
 
-AI recovery-planning layout note:
+AI V1.1 work-status spec:
+
+```txt
+docs/frontend/ERP_AI_TODAY_WORK_STATUS_WORKSPACE_SPEC_20260526.md
+```
+
+AI V1.1 implementation review:
+
+```txt
+docs/frontend/ERP_AI_V1_1_WORK_STATUS_IMPLEMENTATION_REVIEW_20260526.md
+```
+
+AI planning boundary note:
 
 ```txt
 docs/frontend/ERP_AI_V1_RECOVERY_PLANNING_LAYOUT_NOTE_20260526.md

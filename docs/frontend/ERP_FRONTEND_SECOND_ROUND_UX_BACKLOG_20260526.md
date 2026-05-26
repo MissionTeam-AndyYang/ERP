@@ -24,11 +24,11 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 
 | Priority | Item | Tag | Scope | Notes |
 | --- | --- | --- | --- | --- |
-| P1 | Add shared runtime verification workflow to API integration process. | `can_do_now` | Docs/process | Template is already created; use it when backend endpoints are ready. |
+| P1 | Add shared runtime verification workflow to API integration process. | `can_do_now` | Docs/process | Template and API fallback/runtime playbook are created; use them when backend endpoints are ready. |
 | P1 | Support page search and empty-state review for Items/BOM/Batches/AI. | `can_do_now` | UX review/code later | Review is complete; Items, BOM, Batches and AI search/empty-state polish are now implemented locally. |
 | P1 | Warehouse and Orders real-payload mapper planning. | `wait_for_api` | Service mapping | Mapping checklist is ready; wait for runtime response. |
 | P1 | Status code to display-label mapper inventory. | `can_do_now` | Service helper/design | Inventory is documented; mapper code should wait until backend codes are known. |
-| P2 | Shared empty state component. | `can_do_now` | Component | Consider only after reviewing current per-page empty states. |
+| P2 | Shared empty state component. | `can_do_now` | Component | Policy is accepted; code extraction should wait until a component change has clear reuse value. |
 | P2 | i18n extraction for shared shell and stable workspace labels. | `can_do_now` | i18n | Owner accepted stable-shared-labels-first timing; phase-1 checklist is created. |
 | P2 | Support page dedicated types. | `wait_for_api` | Types/services | Owner accepted creating dedicated support services/types only after backend endpoint priority and response shape are confirmed. |
 | P2 | Cross-page drill-down links. | `wait_for_api` | Navigation | Owner accepted waiting for stable ids and route/detail policy before implementation. |
@@ -63,10 +63,10 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 
 Recommended sequence before backend is ready:
 
-1. Wait for the real Batches payload, then add a dedicated `/batches` mapper/service.
-2. Wait for Items/BOM endpoint priority, then add dedicated mapper/service files using the readiness notes.
-3. Use the status-display mapper inventory when Warehouse, Orders or support endpoints return real status codes.
-4. Re-run lint/build/route smoke after any mapper or payload-shape adjustment.
+1. Use the accepted decision summary as the current frontend policy baseline.
+2. Keep CTA/mutation wording aligned with the audit.
+3. Use the API fallback/runtime playbook when backend endpoints become available.
+4. Use the status-display mapper inventory when Warehouse, Orders or support endpoints return real status codes.
 5. Keep broader mutation workflows deferred until backend authorization and audit contracts exist.
 
 Recommended sequence after backend is ready:
@@ -135,6 +135,24 @@ Status display mapper inventory:
 
 ```txt
 docs/frontend/ERP_STATUS_DISPLAY_MAPPER_INVENTORY_20260526.md
+```
+
+Accepted decision summary:
+
+```txt
+docs/frontend/ERP_FRONTEND_ACCEPTED_DECISION_SUMMARY_20260526.md
+```
+
+CTA/mutation wording audit:
+
+```txt
+docs/frontend/ERP_CTA_MUTATION_WORDING_AUDIT_20260526.md
+```
+
+API fallback/runtime playbook:
+
+```txt
+docs/frontend/ERP_API_FALLBACK_AND_RUNTIME_PLAYBOOK_20260526.md
 ```
 
 i18n phase-1 extraction checklist:

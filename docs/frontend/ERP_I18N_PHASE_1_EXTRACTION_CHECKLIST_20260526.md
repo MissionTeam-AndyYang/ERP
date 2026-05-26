@@ -16,6 +16,40 @@ Move stable shared UI language toward dictionary ownership without creating chur
 
 Phase 1 should improve consistency for shell, fallback and empty-state wording while leaving API-driven table/detail labels in page or mapper code until backend contracts are stable.
 
+## Current i18n Structure Check
+
+Current i18n files:
+
+```txt
+src/i18n/dictionary.ts
+src/i18n/language-provider.tsx
+src/components/common/language-switcher.tsx
+src/layouts/app-layout.tsx
+src/app/layout.tsx
+```
+
+Already covered:
+
+- App meta/default title.
+- Site label.
+- Global search placeholder.
+- Notification accessible label.
+- User display labels.
+- Language switcher label.
+- Sidebar/mobile navigation labels.
+- Warehouse layout title.
+
+Recommended next extraction target:
+
+```txt
+API source badges and fallback wording first.
+Common empty-state wording second.
+```
+
+Reason:
+
+These labels are shared across many pages and already stabilized by D1/D2. They are safer than page-specific table or detail labels.
+
 ## Extract Now
 
 | Area | Examples | Risk |

@@ -40,7 +40,7 @@ Scope: Items support page low-risk polish before backend API integration.
 | --- | --- | --- |
 | Re-run browser smoke for search, empty states and mobile overflow. | High | Browser runtime restored. |
 | Decide whether Items deserves a dedicated `items-api.ts` and `types/items.ts`. | Medium | Backend API priority confirmation. |
-| Add API field readiness doc if backend will implement `/api/v1/items/dashboard`. | Medium | Backend endpoint priority. |
+| Add API field readiness doc if backend will implement `/api/v1/items/dashboard`. | Done | `docs/frontend/ERP_ITEMS_API_FIELD_READINESS_20260526.md` |
 | Consider shared empty-state component after BOM/Batches/AI polish repeats the same pattern. | Low | At least three support pages using same pattern. |
 
 ## Decision

@@ -42,6 +42,7 @@ Scope: BOM support page low-risk polish before backend API integration.
 | Confirm approved-production-only and development/trial filter rules. | High | BOM API fields and business rules. |
 | Guard Planning from using development BOM versions. | High | Backend validation and display status mapping. |
 | Decide whether BOM deserves a dedicated `bom-api.ts` and `types/bom.ts`. | Medium | Backend API priority confirmation. |
+| Add API field readiness doc if backend will implement `/api/v1/bom/dashboard`. | Done | `docs/frontend/ERP_BOM_API_FIELD_READINESS_20260526.md` |
 | Consider shared empty-state component after Batches or AI repeats the same pattern. | Low | At least three support pages using same pattern. |
 
 ## Decision

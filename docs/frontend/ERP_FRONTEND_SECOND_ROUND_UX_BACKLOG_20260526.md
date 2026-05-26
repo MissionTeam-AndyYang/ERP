@@ -30,7 +30,7 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 | P1 | Status code to display-label mapper inventory. | `can_do_now` | Service helper/design | Status vocabulary accepted; mapper code should wait until backend codes are known. |
 | P2 | Shared empty state component. | `can_do_now` | Component | Consider only after reviewing current per-page empty states. |
 | P2 | i18n extraction for shared shell and stable workspace labels. | `can_do_now` | i18n | Start with empty states, tabs and CTA labels; defer table/detail labels until API fields settle. |
-| P2 | Support page dedicated types. | `wait_for_api` | Types/services | Items/BOM/Batches/AI currently use local shapes and `useSupportDashboard`. |
+| P2 | Support page dedicated types. | `wait_for_api` | Types/services | Items/BOM/Batches/AI currently use local shapes and `useSupportDashboard`; Items and BOM API readiness notes are now documented. |
 | P2 | Cross-page drill-down links. | `wait_for_api` | Navigation | Needs stable ids and route/detail policy. |
 | P2 | Advanced filters. | `wait_for_api` | UX/API | Placeholder tooltips already mark filters as pending API fields. |
 | P3 | Mobile density pass. | `can_do_now` | UX QA | Use browser smoke after more real data exists. |
@@ -63,8 +63,8 @@ Scope: Proposed second-round UX backlog after first-round low-risk refinement an
 
 Recommended sequence before backend is ready:
 
-1. Optionally create API field readiness docs for Items and BOM if backend will implement those endpoints soon.
-2. Wait for the real Batches payload, then add a dedicated `/batches` mapper/service.
+1. Wait for the real Batches payload, then add a dedicated `/batches` mapper/service.
+2. Wait for Items/BOM endpoint priority, then add dedicated mapper/service files using the readiness notes.
 3. Re-run lint/build/route smoke after any mapper or payload-shape adjustment.
 4. Keep broader mutation workflows deferred until backend authorization and audit contracts exist.
 
@@ -116,6 +116,18 @@ Batches implementation review:
 
 ```txt
 docs/frontend/ERP_BATCHES_OPERATIONAL_WORKSPACE_IMPLEMENTATION_REVIEW_20260526.md
+```
+
+Items API field readiness:
+
+```txt
+docs/frontend/ERP_ITEMS_API_FIELD_READINESS_20260526.md
+```
+
+BOM API field readiness:
+
+```txt
+docs/frontend/ERP_BOM_API_FIELD_READINESS_20260526.md
 ```
 
 Accepted AI direction:

@@ -46,6 +46,9 @@ export async function apiGet<T>(
     if (payload && typeof payload === "object" && "data" in payload) {
       return (payload as { data: T }).data;
     }
+    if (payload && typeof payload === "object" && "payload" in payload) {
+      return (payload as { payload: T }).payload;
+    }
 
     return payload as T;
   } finally {

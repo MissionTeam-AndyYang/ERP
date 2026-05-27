@@ -158,6 +158,8 @@ Expected runtime verification file:
 | `docs/backend/API_RUNTIME_RESULT_REVIEW_RESTSERVER_EWDB_20260526_20260527.md` | Accepted runtime verification review. |
 | `docs/frontend/ERP_V1_FRONTEND_ACCEPTANCE_CHECKLIST_20260525.md` | Frontend acceptance criteria. |
 | `docs/frontend/ERP_FRONTEND_API_FIELD_MAPPING_20260524.md` | Frontend/API field mapping. |
+| `docs/engineering/RESTSERVER_API_DEVELOPMENT_GUIDE_20260527.md` | Restserver API development pattern and done criteria. |
+| `docs/engineering/WAREHOUSE_DASHBOARD_API_IMPLEMENTATION_SPEC_20260527.md` | First Warehouse API implementation spec. |
 
 ## Current Decision
 
@@ -167,4 +169,3 @@ Baseline code review/runtime verification status:
 Accepted for baseline restserver + DB readiness.
 Next step is V1 Warehouse read-only aggregation API implementation.
 ```
-

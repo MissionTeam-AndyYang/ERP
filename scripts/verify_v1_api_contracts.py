@@ -192,6 +192,8 @@ def fetch_json(url: str, timeout: float) -> tuple[int | None, Any | None, str | 
 def unwrap_data(payload: Any) -> Any:
     if isinstance(payload, dict) and "data" in payload:
         return payload["data"]
+    if isinstance(payload, dict) and "payload" in payload:
+        return payload["payload"]
     return payload
 
 

@@ -72,7 +72,7 @@ npm run build
 
 Confirm:
 
-- Changes are compatible with `docs/database/EWDB_20260517_3.sql`.
+- Changes are compatible with `docs/database/EWDB_20260526.sql`.
 - New FK-like relationships are reflected in services and tests.
 - Alembic migrations are included when schema changes are required.
 - No schema change is made only inside generated model files without a migration or source SQL update.

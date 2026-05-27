@@ -93,7 +93,7 @@ class CAPIBase(object):
             n_status_code = 400
             n_code = EErrorCode.ERROR_OTHER_ERROR
             str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[CAPIBase] throw excep+tion (error: %s)'
+            CLogger().log(CLogger.LOG_LEVELERROR, '[CAPIBase] throw exception (error: %s)'
                           % str(error))
         if self._is_customized_reponse():
             resp = Response(str_message)

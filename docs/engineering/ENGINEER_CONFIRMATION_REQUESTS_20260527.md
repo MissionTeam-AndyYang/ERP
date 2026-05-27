@@ -160,6 +160,8 @@ Expected runtime verification file:
 | `docs/frontend/ERP_FRONTEND_API_FIELD_MAPPING_20260524.md` | Frontend/API field mapping. |
 | `docs/engineering/RESTSERVER_API_DEVELOPMENT_GUIDE_20260527.md` | Restserver API development pattern and done criteria. |
 | `docs/engineering/WAREHOUSE_DASHBOARD_API_IMPLEMENTATION_SPEC_20260527.md` | First Warehouse API implementation spec. |
+| `docs/engineering/ERP_SHARED_DATA_CONTRACT_INDEX_20260527.md` | Shared DB/API/frontend contract index. |
+| `docs/engineering/ERP_SHARED_DATA_CONTRACT_WAREHOUSE_20260527.md` | Warehouse DB/API/frontend field meaning contract. |
 
 ## Current Decision
 

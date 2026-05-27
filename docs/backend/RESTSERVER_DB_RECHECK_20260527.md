@@ -33,6 +33,7 @@ The engineer update was fast-forwarded from GitHub `main`. The backend now uses 
 | Route count | Pass | 70 routes registered. |
 | Heartbeat smoke | Pass | `/heartbeat` returned HTTP 200. |
 | Local DB connection | Expected fail | No local DB server is installed on this machine; engineer-side DB runtime verification is still required. |
+| Engineer DB runtime verification | Pass | `RESTSERVER_RUNTIME_EWDB_20260526_20260527.json` confirms DB connection and schema counts in engineer environment. |
 
 ## Backend Architecture Change
 
@@ -69,6 +70,33 @@ heartbeat_status: 200
 database.ok: false
 database.error: Can't connect to server on 'localhost' (expected on this machine)
 ```
+
+## Engineer Runtime Verification
+
+Reviewed file:
+
+```txt
+docs/backend/runtime-verification/RESTSERVER_RUNTIME_EWDB_20260526_20260527.json
+```
+
+Result summary:
+
+```txt
+restserver.ok: true
+orm_table_count: 79
+orm_missing_required_tables: []
+blueprint_count: 26
+route_count: 70
+heartbeat_status: 200
+database.ok: true
+database: ewdb
+table_count: 79
+fk_count: 118
+unique_count: 73
+missing_required_tables: []
+```
+
+Decision: baseline restserver + EWDB 20260526 runtime verification passed.
 
 ## Follow-Up For Engineer
 

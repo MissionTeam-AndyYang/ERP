@@ -101,3 +101,4 @@ Completion criteria:
 - API and integration test procedure is tracked in `docs/backend/ERP_V1_API_AND_INTEGRATION_TEST_PLAN_20260525.md`.
 - Runtime API review template is tracked in `docs/backend/API_RUNTIME_RESULT_REVIEW_TEMPLATE_20260525.md`.
 - Frontend page review template is tracked in `docs/frontend/ERP_V1_FRONTEND_PAGE_REVIEW_TEMPLATE_20260525.md`.
+- Restserver baseline runtime with `EWDB_20260526.sql` passed engineer DB verification in `docs/backend/API_RUNTIME_RESULT_REVIEW_RESTSERVER_EWDB_20260526_20260527.md`.

@@ -5,13 +5,13 @@ Purpose: Provide a single engineering checklist that connects V1 frontend servic
 
 ## Source Baseline
 
-- Database baseline: `docs/database/EWDB_20260522.sql`
+- Database baseline: `docs/database/EWDB_20260526.sql`
 - Workflow baseline: `docs/database/EWDB_20260522_WORKFLOW.md`
 - Frontend API specs: `docs/frontend/api/`
 - Field mapping: `docs/frontend/ERP_FRONTEND_API_FIELD_MAPPING_20260524.md`
 - API tracker: `docs/backend/API_IMPLEMENTATION_TRACKER_20260524.md`
 - Verification script: `scripts/verify_v1_api_contracts.py`
-- Backend app registration: `restserver/package/restserver/restserver.py`
+- Backend app registration: `restserver/package/restserver/app.py`
 
 ## Gap Classification
 

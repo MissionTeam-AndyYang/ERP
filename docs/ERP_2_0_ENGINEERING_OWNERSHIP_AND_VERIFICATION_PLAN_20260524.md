@@ -13,7 +13,7 @@ Completed baselines:
 - V1 API development specs exist under `docs/frontend/api/`.
 - API implementation tracker exists at `docs/backend/API_IMPLEMENTATION_TRACKER_20260524.md`.
 - API contract verification script exists at `scripts/verify_v1_api_contracts.py`.
-- Latest DB/workflow baseline remains `EWDB_20260522.sql` and `EWDB_20260522_WORKFLOW.md`.
+- Latest DB baseline is `EWDB_20260526.sql`; latest workflow baseline remains `EWDB_20260522_WORKFLOW.md`.
 
 ## 2. Ownership Summary
 

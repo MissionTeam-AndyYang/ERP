@@ -8,7 +8,7 @@ These documents define the API datasets and response structures needed to replac
 ## Baseline
 
 - Frontend V1 screens: approved management-first workspaces.
-- Database baseline: `docs/database/EWDB_20260522.sql`.
+- Database baseline: `docs/database/EWDB_20260526.sql`.
 - Workflow baseline: `docs/database/EWDB_20260522_WORKFLOW.md`.
 - Current backend source: `restserver/package/restserver/api`.
 - Current backend prefix observed in code: `/api/v1`.

@@ -14,7 +14,7 @@ Purpose: Provide a repeatable review format for engineer-submitted runtime verif
 | Endpoint |  |
 | Commit / branch |  |
 | Backend base URL |  |
-| Database baseline | `EWDB_20260522.sql` |
+| Database baseline | `EWDB_20260526.sql` |
 | Workflow baseline | `EWDB_20260522_WORKFLOW.md` |
 
 ## Contract Check
@@ -70,4 +70,3 @@ Decision:
 | Owner | Item | Priority | Due / trigger |
 | --- | --- | --- | --- |
 |  |  |  |  |
-

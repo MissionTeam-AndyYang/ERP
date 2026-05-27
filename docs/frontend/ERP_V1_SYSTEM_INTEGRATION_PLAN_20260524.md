@@ -3,7 +3,7 @@
 Date: 2026-05-24
 Baseline:
 
-- Database: `docs/database/EWDB_20260522.sql`
+- Database: `docs/database/EWDB_20260526.sql`
 - Workflow: `docs/database/EWDB_20260522_WORKFLOW.md`
 - Frontend V1 pages: management-first ERP workspaces
 - Backend location: `restserver/package`
@@ -90,7 +90,7 @@ Required checks:
 
 - Runtime starts without import errors.
 - DB connection can be established using `.env.example`-based settings.
-- ORM/table count remains aligned with `EWDB_20260522.sql`.
+- ORM/table count remains aligned with `EWDB_20260526.sql`.
 - Required workflow tables are present.
 - Existing API route list is documented.
 

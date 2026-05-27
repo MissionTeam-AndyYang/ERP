@@ -63,9 +63,9 @@ def load_env_file(path: Path) -> None:
 
 def check_restserver() -> dict:
     from package.dbwrapper.table import Base
-    import package.restserver.restserver as restserver
+    from package.restserver.app import create_app
 
-    app = restserver.g_obj_flask
+    app = create_app()
     routes = sorted(str(rule) for rule in app.url_map.iter_rules())
     client = app.test_client()
     heartbeat = client.get("/heartbeat")

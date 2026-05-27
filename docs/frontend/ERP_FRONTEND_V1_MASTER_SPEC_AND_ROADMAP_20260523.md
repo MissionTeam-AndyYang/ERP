@@ -2,7 +2,7 @@
 
 日期：2026-05-23  
 適用範圍：ODM 食品加工廠 ERP 2.0 Web 前端第一版  
-資料基準：EWDB_20260522.sql、EWDB_20260522_WORKFLOW.md  
+資料基準：EWDB_20260526.sql、EWDB_20260522_WORKFLOW.md  
 設計基準：清晰、專業、簡潔、易操作、管理導向
 
 ## 1. 第一版定位
@@ -229,7 +229,7 @@ Orders 不應直接自動建立請購或工單。
 ## 8. 近期待辦建議
 
 1. 重新整理 Dashboard，使其成為經營者第一入口。
-2. 製作前端 API 欄位對照表，對應 EWDB_20260522 與 restserver module。
+2. 製作前端 API 欄位對照表，對應 EWDB_20260526 與 restserver module。
 3. 標記每個按鈕第一版是 `placeholder`、`read-only action` 還是 `real mutation`。
 4. 統一各工作區狀態用語，例如正常、注意、高風險、阻擋、待處理。
 5. 補齊多語 dictionary 結構，先處理導航與核心分頁，再逐步處理頁面文字。

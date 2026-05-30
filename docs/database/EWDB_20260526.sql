@@ -1534,6 +1534,7 @@ ALTER TABLE `batch_number` ADD CONSTRAINT `fk_batch_number_creator_no` FOREIGN K
 ALTER TABLE `batch_number` ADD CONSTRAINT `fk_batch_number_item_ref_no` FOREIGN KEY (`item_ref_no`) REFERENCES `company` (`no`);
 ALTER TABLE `inventory_order` ADD CONSTRAINT `fk_inventory_order_creator_no` FOREIGN KEY (`creator_no`) REFERENCES `employee` (`no`);
 ALTER TABLE `inventory_order` ADD CONSTRAINT `fk_inventory_order_item_ref_no` FOREIGN KEY (`item_ref_no`) REFERENCES `company` (`no`);
+ALTER TABLE `inventory_record` ADD CONSTRAINT `fk_inventory_record_creator_no` FOREIGN KEY (`creator_no`) REFERENCES `employee` (`no`);
 ALTER TABLE `inventory_record` ADD CONSTRAINT `fk_inventory_record_warehouse_no` FOREIGN KEY (`warehouse_no`) REFERENCES `ship_wh_alias` (`no`);
 ALTER TABLE `inventory_record` ADD CONSTRAINT `fk_inventory_record_item_ref_no` FOREIGN KEY (`item_ref_no`) REFERENCES `company` (`no`);
 ALTER TABLE `inventory_delta` ADD CONSTRAINT `fk_inventory_delta_warehouse_no` FOREIGN KEY (`warehouse_no`) REFERENCES `ship_wh_alias` (`no`);
@@ -1634,6 +1635,7 @@ ALTER TABLE `pl_man_capacity` ADD CONSTRAINT `fk_pl_man_capacity_pl_no` FOREIGN 
 ALTER TABLE `pl_item_capacity` ADD CONSTRAINT `fk_pl_item_capacity_pl_no` FOREIGN KEY (`pl_no`) REFERENCES `production_line` (`no`);
 ALTER TABLE `member` ADD CONSTRAINT `fk_member_user_no` FOREIGN KEY (`user_no`) REFERENCES `employee` (`no`);
 ALTER TABLE `session` ADD CONSTRAINT `fk_session_user_no` FOREIGN KEY (`user_no`) REFERENCES `employee` (`no`);
-
+ALTER TABLE `rw_items` ADD CONSTRAINT `fk_rw_items` FOREIGN KEY (`item_no`) REFERENCES `inproduct` (`no`);
+ALTER TABLE `batchno_serialno_group` ADD CONSTRAINT `fk_batchno_serialno_group_warehouse_no` FOREIGN KEY (`warehouse_no`) REFERENCES `ship_wh_alias` (`no`);
 SET FOREIGN_KEY_CHECKS = 1;
 

@@ -97,7 +97,7 @@
 
 ## aps_quantity
 
-<details>
+
 <summary>aps_quantity (製造所需總量時)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -116,11 +116,11 @@
 | laborCount | INT | Yes |  |  | 製造所需人力；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## aps_quantity_item
 
-<details>
+
 <summary>aps_quantity_item (製造所需料品品項)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -137,11 +137,11 @@
 | count | FLOAT | Yes |  |  | 投入重量、長度、數量(小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## bank_account
 
-<details>
+
 <summary>bank_account (恆旺食品銀行帳戶)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -156,11 +156,11 @@
 | number | VARCHAR(60) | No | UK(uq_bank_account_composite) |  | 銀行帳號；varchar(60)；UNIQUE KEY |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## batch_number
 
-<details>
+
 <summary>batch_number (批號)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -170,13 +170,13 @@
 | no | VARCHAR(60) | No | UK(uq_batch_number_composite) |  | 批號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creator_no | VARCHAR(60) | Yes |  | batch_number.creator_no -> employee.no | 製單人員no，關連至employee資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | ref_no | VARCHAR(60) | No | UK(uq_batch_number_composite) |  | 進貨單no / 銷貨單no / 領退餘廢產單 no，關連至goods_receipt_note/work_order/process_order資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| refCategory | INT | Yes |  |  | 單號類別；int數值如下其中之一 1: 採購 2: 製造 3: 銷貨退回 | 採購 2: 製造 3: 銷貨退回 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| refCategory | INT | Yes |  |  | 單號類別；int數值如下其中之一 1: 採購 2: 製造 3: 銷貨退回 | 採購(1)、 製造(2)、 銷貨退回(3) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_no | VARCHAR(60) | Yes |  |  | 品項no，關連至material/inproduct/product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_name | VARCHAR(60) | Yes |  |  | 品項名稱，關連至material/inproduct/product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_no | VARCHAR(60) | Yes |  | batch_number.item_ref_no -> company.no | 客戶/廠商no，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_displayName | VARCHAR(60) | Yes |  |  | 客戶/廠商公司簡稱，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | itemCategory | INT | Yes |  |  | 料品品項類別；int數值如下其中之一：原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) 、貨品 (6)、其他 (0) | 原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) 、貨品 (6)、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int 數值如下其中之一：料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int 數值如下其中之一：料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為<br>1.原料/物料/膠捲:參照material的「subCategory」定義<br>2. 在製品/製成品:參照inproduct/product的「category」定義<br>3. 貨品:參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | itemType | INT | Yes |  |  | 品項型態；int數值如下其中之一：新料 (1)、餘料 (2)、廢料 (3) 、其他 (0) | 新料 (1)、餘料 (2)、廢料 (3) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | unit | INT | Yes |  |  | 盤點單位；int | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | expectedCount | FLOAT | Yes |  |  | 預定數量；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -187,11 +187,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## batchno_serialno
 
-<details>
+
 <summary>batchno_serialno (批號流水號)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -199,39 +199,39 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | batch_number | VARCHAR(60) | No | UK(uq_batchno_serialno_composite) |  | 批號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | serialNo | VARCHAR(60) | No | UK(uq_batchno_serialno_composite) |  | 序號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| ref_order_no_category | INT | Yes |  |  | 單號類型；int數值如下其中之一 1: 採購2: 訂購 3: 產製 4: 其他 | 採購2: 訂購 3: 產製 4: 其他 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| ref_order_no_category | INT | Yes |  |  | 單號類型；int數值如下其中之一 1: 採購2: 訂購 3: 產製 4: 其他 | 採購 (1)、 訂購 (2)、產製 (3)、 其他 (4) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | ref_order_no | VARCHAR(60) | No | UK(uq_batchno_serialno_composite) |  | 進貨單no / 銷貨單no / 領退餘廢產單 no / 出入庫單no，關連至goods_receipt_note/work_order/process_orderr/inventory_order資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | warehouse_no | VARCHAR(60) | Yes |  |  | 倉庫no，關連至ship_wh_alias；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | time | INT | Yes |  |  | 分派時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | unit | INT | Yes |  |  | 單位；int | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | expectedCount | FLOAT | Yes |  |  | 排定數量；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | count | FLOAT | Yes |  |  | 檢定數量；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| validDate | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| validDate | INT | Yes |  |  |有效期限|  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | updatedTime | INT | Yes |  |  | 資料更新時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## batchno_serialno_group
 
-<details>
-<summary>batchno_serialno_group</summary>
+
+<summary>batchno_serialno_group (批號成板資料)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT primary identifier. |  | OK | AUTO_INCREMENT primary identifier. |
-| time | int(11) | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| warehouse_no | varchar(60) | Yes |  |  |  |  | Need Review | Likely identifier/reference field, but SQL FK or Word description is missing. |
-| group | varchar(60) | No | UK(uq_batchno_serialno_group_composite) |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| batch_number | varchar(60) | No | UK(uq_batchno_serialno_group_composite) |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| serialNo | varchar(60) | No | UK(uq_batchno_serialno_group_composite) |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| count | float | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| time | int(11) | Yes |  |  | 分派時間 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| warehouse_no | varchar(60) | Yes |  | batchno_serialno_group.warehouse_no -> ship_wh_alias.no | 倉儲別名no，關聯至ship_wh_alias資料表；varchar(60) |   | Need Review | Likely identifier/reference field, but SQL FK or Word description is missing. |
+| group | varchar(60) | No | UK(uq_batchno_serialno_group_composite) |  |  棧板編號 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| batch_number | varchar(60) | No | UK(uq_batchno_serialno_group_composite) |  | 相對應料品品項批號 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| serialNo | varchar(60) | No | UK(uq_batchno_serialno_group_composite) |  |  相對應料品品項批號流水號 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| count | float | Yes |  |  | 相對應料品品項數量或重量 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | comment | varchar(60) | Yes |  |  | Free-form remark field. |  | OK | Free-form remark field. |
 
-</details>
+
 
 ## bom
 
-<details>
+
 <summary>bom (商品配方)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -246,11 +246,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料更新時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## bom1
 
-<details>
+
 <summary>bom1 (原料BOM)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -265,15 +265,15 @@
 | weight | FLOAT | No | UK(uq_bom1_composite) |  | 淨重或單位數 (小數點4位) ；UNIQUE KEY；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | expectedLoss | FLOAT | Yes |  |  | 預估(配方)損耗率% (小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | actualLoss | FLOAT | Yes |  |  | 實際(量產)損耗率% (小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| processWeight | FLOAT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| processWeight | FLOAT | Yes |  |  | 實際(量產)重量 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## bom1_number
 
-<details>
+
 <summary>bom1_number (原料BOM編碼)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -288,11 +288,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## bom2
 
-<details>
+
 <summary>bom2 (物料BOM)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -310,15 +310,15 @@
 | count | INT | Yes |  |  | 個數數量；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | expectedLoss | FLOAT | Yes |  |  | 預估(配方)損耗率% (小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | actualLoss | FLOAT | Yes |  |  | 實際(量產)損耗率% (小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| processCount | FLOAT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| processCount | FLOAT | Yes |  |  | 實際(量產)個數數量 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## bom2_number
 
-<details>
+
 <summary>bom2_number (物料BOM編碼)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -333,11 +333,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## bom_item
 
-<details>
+
 <summary>bom_item (商品配方項目)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -350,11 +350,11 @@
 | weight | FLOAT | Yes |  |  | 重量；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## company
 
-<details>
+
 <summary>company (客戶/廠商)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -382,11 +382,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## contract
 
-<details>
+
 <summary>contract (合約)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -398,12 +398,12 @@
 | date | INT | No | UK(uq_contract_composite) |  | 生效日期；UNIQUE KEY；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | displayName | VARCHAR(60) | Yes |  |  | 簡稱；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | category | INT | Yes |  |  | 合約類別；int 數值如下其中之一：採購 (1)、訂購 (2) | 採購 (1)、訂購 (2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| type | INT | Yes |  |  | 合約樣式；int 數值如下其中之一：1.合約類別為採購採購 (1)、客供 (2)、採買 (3)、購置/保修 (4)2.合約類別為訂購產製 (1)、進銷 (2) | 1.合約類別為採購採購 (1)、客供 (2)、採買 (3)、購置/保修 (4)2.合約類別為訂購產製 (1)、進銷 (2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| type | INT | Yes |  |  | 合約樣式；int 數值如下其中之一：1.合約類別為採購採購 (1)、客供 (2)、採買 (3)、購置/保修 (4)2.合約類別為訂購產製 (1)、進銷 (2) | 合約類別為<br>1.採購: 採購 (1)、客供 (2)、採買 (3)、購置/保修 (4)<br>2.訂購: 產製 (1)、進銷 (2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | itemStyle | INT | Yes |  |  | 品項樣式；int 數值如下其中之一：貨品 (1) 、 產品 (2) 、材料 (3)、耗品(4) 、設備(5) | 貨品 (1) 、 產品 (2) 、材料 (3)、耗品(4) 、設備(5) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_no | VARCHAR(60) | Yes |  |  | 交易品項no，關連至trans_items / trans_items2 資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_name | VARCHAR(60) | Yes |  |  | 交易品項名稱，關連至trans_items / trans_items2資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | itemCategory | INT | Yes |  |  | 料品品項類別；int數值如下其中之一：原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) 、貨品 (6) | 原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) 、貨品 (6) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int數值如下其中之一：料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int數值如下其中之一：料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為<br>1.原料/物料/膠捲:參照material的「subCategory」定義<br>2. 在製品/製成品:參照inproduct/product的「category」定義<br>3. 貨品:參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_no | VARCHAR(60) | Yes |  | contract.item_ref_no -> company.no | 客戶/廠商no，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_displayName | VARCHAR(60) | Yes |  |  | 客戶/廠商公司簡稱，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | payment_id | BIGINT UNSIGNED | Yes |  | contract.payment_id -> payment.id | 帳款資料id，關連至payment資料表；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -414,44 +414,46 @@
 | comment | VARCHAR(128) | Yes |  |  | 規格；varchar(128)； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## device
 
-<details>
-<summary>device</summary>
+
+<summary>device (電子秤設備)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT primary identifier. |  | OK | AUTO_INCREMENT primary identifier. |
 | no | VARCHAR(60) | No | UK(uq_device_composite) |  | Business identifier/code field. |  | OK | Business identifier/code field. |
-| hardwareId | VARCHAR(128) | No | UK(uq_device_composite) |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| name | VARCHAR(60) | Yes |  |  | Name/display label field. |  | OK | Name/display label field. |
-| role | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| hardwareId | VARCHAR(128) | No | UK(uq_device_composite) |  | 電子秤設備ID |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| name | VARCHAR(60) | Yes |  |  | 電子秤設備名稱 |  | OK | Name/display label field. |
+| role | INT | Yes |  |  | 設備角色； | 倉庫(1)、前備1(2) 、前備2(3) 、加工(4) 、包裝(5) | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | comment | VARCHAR(128) | Yes |  |  | Free-form remark field. |  | OK | Free-form remark field. |
 | creationTime | INT | Yes |  |  | Creation timestamp field; confirm timestamp unit with backend convention. |  | OK | Creation timestamp field; confirm timestamp unit with backend convention. |
 
-</details>
+
 
 ## device_log
 
-<details>
-<summary>device_log</summary>
+
+<summary>device_log (電子秤設備紀錄)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT primary identifier. |  | OK | AUTO_INCREMENT primary identifier. |
-| hardwareId | VARCHAR(128) | No |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| role | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| action | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| data | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| creationTime | INT | Yes |  |  | Creation timestamp field; confirm timestamp unit with backend convention. |  | OK | Creation timestamp field; confirm timestamp unit with backend convention. |
+| hardwareId | VARCHAR(128) | No |  |  | 電子秤設備ID |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| role | INT | Yes |  |  | 設備角色  | 倉庫(1)、前備1(2) 、前備2(3)、加工(4) 、包裝(5) | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| action | INT | Yes |  |  | 行為 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| data | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 回傳資料 | 採購入庫-進貨(1)、產製入庫-餘/廢/產(2)、產製退回入庫-收料(3)、銷售退回入庫(4)、其他入庫(5)、採購退回出庫(11)、產製出庫-發料(12)、銷售出庫(13)、其他出庫(14)、產製入產-領料(21)、產製出產-餘/廢/產(22)、產製出產-退料(23) | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| creationTime | INT | Yes |  |  | 資料建立時間 |  | OK | Creation timestamp field; confirm timestamp unit with backend convention. |
 
-</details>
+
+
+
 
 ## employee
 
-<details>
+
 <summary>employee (員工)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -459,9 +461,9 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | no | VARCHAR(60) | No | UK(uq_employee_composite) |  | 編號；UNIQUE KEY；varchar(20) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | name | VARCHAR(60) | Yes |  |  | 員工名稱；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| sex | INT | Yes |  |  | 性別；int 數值如下其中之一 1: 男 (man)2: 女 (woman) | 男 (man)2: 女 (woman) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| department | INT | Yes |  |  | 部門；int數值如下其中之一1: 管理部2: 行政部3: 業務部4: 製造部5: 品保部6: 生管部7: 倉庫部8: 總務部9: 採購部10: 研發部11: 財務部 | 管理部2: 行政部3: 業務部4: 製造部5: 品保部6: 生管部7: 倉庫部8: 總務部9: 採購部10: 研發部11: 財務部 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| level | INT | Yes |  |  | 階級；int數值如下其中之一1: 主管2: | 主管2: | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| sex | INT | Yes |  |  | 性別；int 數值如下其中之一 1: 男 (man)2: 女 (woman) | 男(1)、 女(2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| department | INT | Yes |  |  | 部門；int數值如下其中之一1: 管理部2: 行政部3: 業務部4: 製造部5: 品保部6: 生管部7: 倉庫部8: 總務部9: 採購部10: 研發部11: 財務部 | 管理部(1)、 行政部(2)、業務部(3)、 製造部(4)、 品保部(5)、 生管部(6)、 倉庫部(7)、 總務部(8)、 採購部(9)、 研發部(10)、 財務部(11) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| level | INT | Yes |  |  | 階級；int數值如下其中之一1: 主管2: | 主管(1)、 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | jobTitle | VARCHAR(60) | Yes |  |  | 職稱；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | joinedDate | INT | Yes |  |  | 到職日期；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | leftDate | INT | Yes |  |  | 離職日；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -475,11 +477,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## enterprise
 
-<details>
+
 <summary>enterprise (企業)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -492,16 +494,16 @@
 | address | VARCHAR(100) | Yes |  |  | 公司地址；varchar(100) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | phone | VARCHAR(100) | Yes |  |  | 公司電話；varchar(100) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | fax | VARCHAR(100) | Yes |  |  | 公司傳真；varchar(100) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| department | INT | Yes |  |  | 部門數；int(11) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
-| lar | VARCHAR(100) | Yes |  |  | 法人代表；varchar(100) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| department | INT | Yes |  |  | 公司部門數目；int(11) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| lar | VARCHAR(100) | Yes |  |  | 公司法人代表；varchar(100) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int(11) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## equipment
 
-<details>
+
 <summary>equipment (機具)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -517,11 +519,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 說明；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## factory
 
-<details>
+
 <summary>factory (廠區)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -532,11 +534,11 @@
 | location | VARCHAR(60) | Yes |  |  | 地點；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | 說明；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## goods
 
-<details>
+
 <summary>goods (料品品項-貨品)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -552,11 +554,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## goods_receipt_note
 
-<details>
+
 <summary>goods_receipt_note (進貨單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -583,18 +585,18 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## inproduct
 
-<details>
+
 <summary>inproduct (料品品項-在製品)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | no | VARCHAR(60) | No | UK(uq_inproduct_composite) |  | 編號；UNIQUE KEY；varchar(20) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| category | INT | Yes |  |  | 主類型；int數值如下其中之一：在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4)、其他 (0)餘廢料數值如下其中之一：餅體 (1)、拌料 (2)、餡料 (3)、巧克力 (4)、膠捲(5)、在製品(6)、鐵桶罐 (7) 、製成品 (8) | 在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4)、其他 (0)餘廢料數值如下：餅體 (1)、拌料 (2)、餡料 (3)、巧克力 (4)、膠捲(5)、在製品(6)、鐵桶罐 (7) 、製成品 (8) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| category | INT | Yes |  |  | 主類型；int數值如下其中之一：在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4)、其他 (0)餘廢料數值如下其中之一：餅體 (1)、拌料 (2)、餡料 (3)、巧克力 (4)、膠捲(5)、在製品(6)、鐵桶罐 (7) 、製成品 (8) | 料品品項為<br>1.在製品: 在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4)、其他 (0)<br>2.餘廢料：餅體 (1)、拌料 (2)、餡料 (3)、巧克力 (4)、膠捲(5)、在製品(6)、鐵桶罐 (7) 、製成品 (8) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | name | VARCHAR(100) | Yes |  |  | 品項名稱；varchar(100) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | unitShipping | INT | Yes |  |  | 貨運單位；int數值如下其中之一： 式、包、支、個、片、條、捲 參照「Unit單位定義」 | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | unitWarehouse | INT | Yes |  |  | 倉儲單位；int數值如下其中之一： 式、包、支、個、片、條、捲 參照「Unit單位定義」 | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -602,11 +604,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## inproduct_bom_spec
 
-<details>
+
 <summary>inproduct_bom_spec (在製品bom規格)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -621,11 +623,11 @@
 | unit | INT | Yes |  |  | 重量的單位；int數值如下其中之一： 公克、其他 參照「Unit單位定義」 | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | weight | FLOAT | Yes |  |  | 原料淨重或物料淨重數值(小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## inventory_delta
 
-<details>
+
 <summary>inventory_delta (每日庫存Delta)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -634,7 +636,7 @@
 | warehouse_no | VARCHAR(60)NOT | No | UK(uq_inventory_delta_composite) | inventory_delta.warehouse_no -> ship_wh_alias.no | 倉儲別名no，關聯至ship_wh_alias資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | warehouse_displayName | VARCHAR(60) | No |  |  | 倉儲別名名稱，關聯至ship_wh_alias資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | DATE | No | UK(uq_inventory_delta_composite) |  | 日期；UNIQUE KEY；DATE； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| timezone | VARCHAR(60) | No | UK(uq_inventory_delta_composite) |  | 時區；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| timezone | VARCHAR(60) | No | UK(uq_inventory_delta_composite) |  | 用戶端時區；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | kind | INT | Yes |  |  | 類別；int數值如下其中之一 原物料(1)、在製品(2)、製成品(3)、批號(4) 、其他 (0) | 原物料(1)、在製品(2)、製成品(3)、批號(4) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | category | INT | Yes |  |  | 類型；int1.原物料；數值如下其中之一 原料 (1)、物料 (2)、膠捲 (3)、其他 (0)2.在製品；數值如下其中之一 (資料庫填0) 在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4) 、其他 (0)3.製成品；數值如下其中之一 (資料庫填0) 散裝品 (1)、組裝品 (2)、其他 (0)4.批號；數值如下其中之一 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5) 、貨品 (6)、其他 (0) | 原料 (1)、物料 (2)、膠捲 (3)、其他 (0)2.在製品；數值如下 (資料庫填0) 在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4) 、其他 (0)3.製成品；數值如下 (資料庫填0) 散裝品 (1)、組裝品 (2)、其他 (0)4.批號；數值如下 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5) 、貨品 (6)、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | specified_no | VARCHAR(60) | No | UK(uq_inventory_delta_composite) |  | 項目編號；UNIQUE KEY；varchar(60)1.原物料； 原物料no，關聯至material資料表2.在製品； 在製品no，關聯至inproduct資料表3.製成品； 製成品no，關聯至product資料表4.批號； 批號 no，關聯至batch_number資料表 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -651,11 +653,11 @@
 | outAmount | DOUBLE | Yes |  |  | 出庫累計庫存價值 (含稅價，小數點4位) ；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## inventory_item_month_statistic
 
-<details>
+
 <summary>inventory_item_month_statistic (每月庫存/庫存價值)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -664,9 +666,9 @@
 | warehouse_no | VARCHAR(60) | No | UK(uq_inventory_item_month_statistic_composite) | inventory_item_month_statistic.warehouse_no -> ship_wh_alias.no | 倉儲別名no，關聯至ship_wh_alias資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | warehouse_displayName | VARCHAR(60) | Yes |  |  | 倉儲別名名稱，關聯至ship_wh_alias資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | DATE | No | UK(uq_inventory_item_month_statistic_composite) |  | 日期；UNIQUE KEY；DATE； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| timezone | VARCHAR(60) | No | UK(uq_inventory_item_month_statistic_composite) |  | 時區；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| timezone | VARCHAR(60) | No | UK(uq_inventory_item_month_statistic_composite) |  | 用戶端時區；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | kind | INT | Yes |  |  | 類別；int數值如下其中之一 原物料(1)、在製品(2)、製成品(3)、批號(4) | 原物料(1)、在製品(2)、製成品(3)、批號(4) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| category | INT | Yes |  |  | 類型；int1.原物料；數值如下其中之一 原料 (1)、物料 (2)、膠捲 (3)、其他 (0)2.在製品；數值如下其中之一 (資料庫填0) 在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4) 、其他 (0)3.製成品；數值如下其中之一 (資料庫填0) 散裝品 (1)、組裝品 (2)、其他 (0)4.批號；數值如下其中之一 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5) 、貨品 (6)、其他 (0) | 原料 (1)、物料 (2)、膠捲 (3)、其他 (0)2.在製品；數值如下 (資料庫填0) 在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4) 、其他 (0)3.製成品；數值如下 (資料庫填0) 散裝品 (1)、組裝品 (2)、其他 (0)4.批號；數值如下 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5) 、貨品 (6)、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| category | INT | Yes |  |  | 類型 |類別為 1.原物料: 原料 (1)、物料 (2)、膠捲 (3)、其他 (0)<br>2.在製品: 在製品 (1)、混拌料 (2)、塞灌料 (3)、烘烤料(4) 、其他 (0)<br>3.製成品: 散裝品 (1)、組裝品 (2)、其他 (0)<br>4.批號: 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5) 、貨品 (6)、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | specified_no | VARCHAR(60) | No | UK(uq_inventory_item_month_statistic_composite) |  | 項目編號；UNIQUE KEY；varchar(60)1.原物料； 原物料no，關聯至material資料表2.在製品； 在製品no，關聯至inproduct資料表3.製成品； 製成品no，關聯至product資料表4.批號； 批號 no，關聯至batch_number資料表 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | specified_name | VARCHAR(60) | Yes |  |  | 1.原物料； 原物料名稱，關聯至material資料表2.在製品； 在製品名稱，關聯至inproduct資料表3.製成品； 製成品名稱，關聯至product資料表4.批號； 無 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | specified_ref_no | VARCHAR(60) | No | UK(uq_inventory_item_month_statistic_composite) |  | 項目編號；UNIQUE KEY；varchar(60)1.原物料2.在製品3.製成品 客戶/廠商no，關連至company資料表；varchar(60)4.批號 原物料/在製品/製成品 no，關連至material/inproduct/product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -680,11 +682,11 @@
 | endAmount | DOUBLE | Yes |  |  | 期末庫存價值 (含稅價，小數點4位) ；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## inventory_month_statistic
 
-<details>
+
 <summary>inventory_month_statistic (每月庫存/庫存價值)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -693,7 +695,7 @@
 | warehouse_no | VARCHAR(60)NOT | No | UK(uq_inventory_month_statistic_composite) | inventory_month_statistic.warehouse_no -> ship_wh_alias.no | 倉儲別名no，關聯至ship_wh_alias資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | warehouse_displayName | VARCHAR(60) | Yes |  |  | 倉儲別名名稱，關聯至ship_wh_alias資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | DATE | No | UK(uq_inventory_month_statistic_composite) |  | 日期；UNIQUE KEY；DATE； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| timezone | VARCHAR(60) | No | UK(uq_inventory_month_statistic_composite) |  | 時區；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| timezone | VARCHAR(60) | No | UK(uq_inventory_month_statistic_composite) |  | 用戶端時區；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | category | INT | No | UK(uq_inventory_month_statistic_composite) |  | 類別；int數值如下其中之一 原料 (1)、物料 (2)、膠捲 (3)、在製品(4)、製成品(5) 、貨品 (6) 、其他 (0) | 原料 (1)、物料 (2)、膠捲 (3)、在製品(4)、製成品(5) 、貨品 (6) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | startAmount | DOUBLE | Yes |  |  | 期初庫存價值 (含稅價，小數點4位) ；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | inAmount | DOUBLE | Yes |  |  | 本期入庫價值 (含稅價，小數點4位) ；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -702,11 +704,11 @@
 | endAmount | DOUBLE | Yes |  |  | 期末庫存價值 (含稅價，小數點4位) ；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## inventory_order
 
-<details>
+
 <summary>inventory_order (出入庫單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -715,8 +717,8 @@
 | no | VARCHAR(60) | No | UK(uq_inventory_order_composite) |  | 編號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creator_no | VARCHAR(60) | Yes |  | inventory_order.creator_no -> employee.no | 製單人員no，關連至employee資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | Yes |  |  | 日期；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| category | INT | Yes |  |  | 庫存型態；int數值如下其中之一1: 入庫2: 出庫 | 入庫2: 出庫 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| subCategory | INT | Yes |  |  | 庫存子型態；int數值如下其中之一庫存型態為入庫: 庫存型態為出庫: 1: 廢品料報廢 2: 公關贈品 3: 研發打樣 | 庫存型態為出庫: 1: 廢品料報廢 2: 公關贈品 3: 研發打樣 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| category | INT | Yes |  |  | 庫存型態；int數值如下其中之一1: 入庫2: 出庫 | 入庫(1) 、出庫(2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| subCategory | INT | Yes |  |  | 庫存子型態；int數值如下其中之一庫存型態為入庫: 庫存型態為出庫: 1: 廢品料報廢 2: 公關贈品 3: 研發打樣 | 庫存型態為 <br>1.出庫: 廢品料報廢(1) 、 公關贈品(2) 、研發打樣(3) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_no | VARCHAR(60) | Yes |  |  | 原物料/在製品/製成品no，關連至material/inproduct/product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_name | VARCHAR(60) | Yes |  |  | 原物料/在製品/製成品no名稱，關連至material/inproduct/product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_no | VARCHAR(60) | Yes |  | inventory_order.item_ref_no -> company.no | 客戶/廠商no，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -727,29 +729,29 @@
 | price | DOUBLE | Yes |  |  | 銷售單位價格 (含稅價，小數點4位)；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | expectedCount | FLOAT | Yes |  |  | 排定數量 (小數點2位)；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | checkedCount | FLOAT | Yes |  |  | 實際數量 (小數點2位)；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| amount | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| amount | INT | Yes |  |  | 實際數量之總金額 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## inventory_record
 
-<details>
+
 <summary>inventory_record (出入庫紀錄)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| creator_no | VARCHAR(60) | Yes |  |  |  |  | Need Review | Likely identifier/reference field, but SQL FK or Word description is missing. |
-| group | VARCHAR(60) | Yes |  |  | 群組編號；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
-| refCategory | INT | Yes |  |  | 關聯訂單類型；int數值如下其中之一進料單(採購) / 進貨退回出品單(銷售) / 銷貨退回領退餘廢產品單(製造)出入庫單(倉庫) | 進料單(採購) / 進貨退回出品單(銷售) / 銷貨退回領退餘廢產品單(製造)出入庫單(倉庫) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| creator_no | VARCHAR(60) | Yes |  | inventory_record.creator_no -> employee.no | 製單人員no，關連至employee資料表  |  | Need Review | Likely identifier/reference field, but SQL FK or Word description is missing. |
+| group | VARCHAR(60) | Yes |  |  | 群組編號,用於將同批出入庫但位於不同倉儲的紀錄群組化；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| refCategory | INT | Yes |  |  | 關聯訂單類型；int數值如下其中之一進料單(採購) / 進貨退回出品單(銷售) / 銷貨退回領退餘廢產品單(製造)出入庫單(倉庫) | 進料單-採購 / 進貨退回(1)、出品單-銷售 / 銷貨退回(2)、領退餘廢產品單-製造(3)、出入庫單-倉庫(4) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | ref_no | VARCHAR(60) | Yes |  |  | 進料/出品/領料/退料/餘料/廢料/產品/出入庫單no，關聯至goods_receipt_note/shipping_order/process_order/ inventory_order資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | warehouse_no | VARCHAR(60) | Yes |  | inventory_record.warehouse_no -> ship_wh_alias.no | 倉儲別名no，關聯至ship_wh_alias資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | warehouse_displayName | VARCHAR(60) | Yes |  |  | 倉儲別名名稱，關聯至ship_wh_alias資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | Yes |  |  | 出入庫時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| category | INT | Yes |  |  | 庫存型態；int數值如下其中之一1: 入庫2: 出庫 | 入庫2: 出庫 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| source | INT | Yes |  |  | 源由；int數值如下其中之一庫存型態為入庫:採購(1)、退料(2)、餘料(3)、廢料(4)、產品(5) 、銷售退回(6)、其他 (0)庫存型態為出庫:領料(1)、銷售(2)、採購退回(3) 、報廢(4) 、其他 (0) | 採購(1)、退料(2)、餘料(3)、廢料(4)、產品(5) 、銷售退回(6)、其他 (0)庫存型態為出庫:領料(1)、銷售(2)、採購退回(3) 、報廢(4) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| category | INT | Yes |  |  | 庫存型態；int數值如下其中之一1: 入庫2: 出庫 | 入庫(1)、 出庫(2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| source | INT | Yes |  |  | 源由；int數值如下其中之一庫存型態為入庫:採購(1)、退料(2)、餘料(3)、廢料(4)、產品(5) 、銷售退回(6)、其他 (0)庫存型態為出庫:領料(1)、銷售(2)、採購退回(3) 、報廢(4) 、其他 (0) |庫存型態為<br> 1.入庫: 採購(1)、退料(2)、餘料(3)、廢料(4)、產品(5) 、銷售退回(6)、其他 (0)<br>2.出庫: 領料(1)、銷售(2)、採購退回(3) 、報廢(4) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | batchNumber | VARCHAR(20) | Yes |  |  | 出入庫批號；varchar(20) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | serialNo | VARCHAR(20) | Yes |  |  | 批號相關聯之序號；varchar(20) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_no | VARCHAR(60) | Yes |  |  | 原物料/在製品/製成品id，關連至material/inproduct/product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -766,11 +768,11 @@
 | registerDevId | VARCHAR(60) | Yes |  |  | 註冊之設備ID；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## item_hours
 
-<details>
+
 <summary>item_hours (料品品項需時)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -784,11 +786,11 @@
 | value | DOUBLE | Yes |  |  | 實際時數；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## item_loss
 
-<details>
+
 <summary>item_loss (料品品項損耗)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -802,11 +804,11 @@
 | value | DOUBLE | Yes |  |  | 比率 (小數點2位) ；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## item_price
 
-<details>
+
 <summary>item_price (料品品項價格)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -834,27 +836,27 @@
 | laborCost | DOUBLE | Yes |  |  | 人工費；double；產製品才有 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## labor_wage
 
-<details>
-<summary>labor_wage</summary>
+
+<summary>labor_wage (人工時薪)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT primary identifier. |  | OK | AUTO_INCREMENT primary identifier. |
-| date | INT | No | UK(uq_labor_wage_composite) |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| type | INT | No | UK(uq_labor_wage_composite) |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| level | INT | No | UK(uq_labor_wage_composite) |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| hourly | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| date | INT | No | UK(uq_labor_wage_composite) |  | 生效日期 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| type | INT | No | UK(uq_labor_wage_composite) |  | 員工型態| 正職(1)、兼職(2) | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| level | INT | No | UK(uq_labor_wage_composite) |  | 員工階級 | 主管(1)、 | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| hourly | INT | Yes |  |  | 時薪 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | creationTime | INT | Yes |  |  | Creation timestamp field; confirm timestamp unit with backend convention. |  | OK | Creation timestamp field; confirm timestamp unit with backend convention. |
 
-</details>
+
 
 ## material
 
-<details>
+
 <summary>material (料品品項-原物料)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -870,11 +872,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## member
 
-<details>
+
 <summary>member (帳戶人員)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -884,18 +886,18 @@
 | account | VARCHAR(60) | Yes |  |  | 帳號；預設內建 guest 及 admin；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | password | VARCHAR(100) | Yes |  |  | 密碼；varchar(100) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## order_item_month_statistic
 
-<details>
+
 <summary>order_item_month_statistic (每月進銷貨金額/訂單帳款統計)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | DATE | No | UK(uq_order_item_month_statistic_composite) |  | 日期；UNIQUE KEY；DATE； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| timezone | VARCHAR(60) | Yes |  |  | 時區；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| timezone | VARCHAR(60) | Yes |  |  | 用戶端時區；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | kind | INT | No | UK(uq_order_item_month_statistic_composite) |  | 類別；int；UNIQUE KEY；數值如下其中之一 採購(1)、 訂購 (2) 、物流 (3) 、倉儲 (4)、費用 (5) | 採購(1)、 訂購 (2) 、物流 (3) 、倉儲 (4)、費用 (5) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | category | INT | No | UK(uq_order_item_month_statistic_composite) |  | 類型；int；UNIQUE KEY數值如下其中之一 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5)、貨品 (6) | 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5)、貨品 (6) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | subCategory | INT | No | UK(uq_order_item_month_statistic_composite) |  | 子類型；int；UNIQUE KEY在製品；數值如下其中之一 半成品 (0) 製成品；數值如下其中之一 散裝品 (1)、組裝品 (2)、其他 (0) | 半成品 (0) 製成品；數值如下 散裝品 (1)、組裝品 (2)、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -906,11 +908,11 @@
 | amount | INT | Yes |  |  | 進銷貨金額；採購/訂購；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## order_payment
 
-<details>
+
 <summary>order_payment (訂單帳款)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -919,14 +921,14 @@
 | no | VARCHAR(60) | No | UK(uq_order_payment_composite) |  | 帳款編號；varchar(60)每日一訂單(交易品項?)一組帳款編號，出入庫時產生帳款編號 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | group_no | VARCHAR(60) | Yes |  |  | 現結/月結帳款群組編號；varchar(60)現結的no與group_no相同；改成一個客戶每月一個帳款編號 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | No | UK(uq_order_payment_composite) |  | 日期；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| arapType | INT | Yes |  |  | 類型；int數值如下其中之一 1: 應收帳款 2: 應付帳款 | 應收帳款 2: 應付帳款 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| arapType | INT | Yes |  |  | 類型；int數值如下其中之一 1: 應收帳款 2: 應付帳款 | 應收帳款(1)、 應付帳款(2)、 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | refCategory | INT | Yes |  |  | 訂單類別；int數值如下其中之一 採購(1)、訂購 (2) 、費用(3) 、其他 (0) | 採購(1)、訂購 (2) 、費用(3) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | ref_no | VARCHAR(60) | Yes |  |  | 採購單 no/訂購單 no，關聯至product_order / purchase_order資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | ref_sub_no | VARCHAR(60) | Yes |  |  | 進貨單 no/ 銷貨單 no，關聯至goods_receipt_note / shipping_order資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_no | VARCHAR(60) | Yes |  | order_payment.item_ref_no -> company.no | 客戶/廠商no，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_displayName | VARCHAR(60) | Yes |  |  | 客戶/廠商公司簡稱，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | itemCategory | INT | Yes |  |  | 料品品項類型；int數值如下其中之一 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5)、貨品 (6) | 原料 (1)、物料 (2)、膠捲 (3)、在製品 (4)、製成品 (5)、貨品 (6) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| itemSubCategory | INT | Yes |  |  | 料品品項子類型；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| itemSubCategory | INT | Yes |  |  | 料品品項子類型；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為<br>1.原料/物料/膠捲:參照material的「subCategory」定義<br>2. 在製品/製成品:參照inproduct/product的「category」定義<br>3. 貨品:參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | paymentType | INT | Yes |  |  | 收款類別；int數值如下其中之一：現結 (0)、月結 (1) | 現結 (0)、月結 (1) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | month | DATE | Yes |  |  | 帳款年月；DATE |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | price | DOUBLE | Yes |  |  | 單位價格 (含稅價，小數點4位) ；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -934,14 +936,14 @@
 | amount | INT | Yes |  |  | 帳款金額 (含稅價) ；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | addDeleteAmount | INT | Yes |  |  | 加/扣款金額 (含稅價)；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | totalAmount | INT | Yes |  |  | 總金額 (加/扣款金額+帳款金額)；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| balance | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| balance | INT | Yes |  |  | 應收應付餘額  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## payment
 
-<details>
+
 <summary>payment (帳款資料)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -953,11 +955,11 @@
 | period | INT | No | UK(uq_payment_composite) |  | 收付款期；int；UNIQUE KEY若收付款類型為”現結 (0)”，收付款期為”0” |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## pl_item_capacity
 
-<details>
+
 <summary>pl_item_capacity (產線料品產能/成本)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -983,11 +985,11 @@
 | laborCost | DOUBLE | Yes |  |  | 人工費；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int；日期＋時間 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## pl_item_loss
 
-<details>
+
 <summary>pl_item_loss (產線料品損耗)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -998,16 +1000,16 @@
 | item_no | VARCHAR(60) | No | UK(uq_pl_item_loss_composite) |  | 投入料品品項no，關連至material/inproduct資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_name | VARCHAR(60) | Yes |  |  | 投入料品品項品項名稱，關連至material/inproduct資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | itemCategory | INT | Yes |  |  | 料品品項類別；int數值如下其中之一：原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) 、貨品 (6) | 原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) 、貨品 (6) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為<br>1.原料/物料/膠捲:參照material的「subCategory」定義<br>2. 在製品/製成品:參照inproduct/product的「category」定義<br>3. 貨品:參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | weightRatio | DOUBLE | Yes |  |  | 投入物之產重比；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | lossRate | DOUBLE | Yes |  |  | 投入物之損耗率；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int；日期＋時間 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## pl_man_capacity
 
-<details>
+
 <summary>pl_man_capacity (產線人時產能)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1022,11 +1024,11 @@
 | hourlyOutput | DOUBLE | Yes |  |  | 時產量；double |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int；日期＋時間 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## process
 
-<details>
+
 <summary>process (製程)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1034,15 +1036,15 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | no | VARCHAR(60) | No | UK(uq_process_composite) |  | 編號；UNIQUE KEY；varchar(20) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | oneProcess | INT | Yes |  |  | 主製程；int數值如下其中之一 前備 (1)、加工 (2)、包裝 (3) | 前備 (1)、加工 (2)、包裝 (3) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| secProcess | INT | Yes |  |  | 次製程；int前備；數值如下其中之一調拌 (1)、塞料 (2)、烘烤(3)、灌料(4) 、其他 (0)加工；數值如下其中之一披覆 (1)、封膜 (2) 、其他 (0) 包裝；數值如下其中之一成組 (1)、入箱 (2) 、其他 (0) | 調拌 (1)、塞料 (2)、烘烤(3)、灌料(4) 、其他 (0)加工；數值如下披覆 (1)、封膜 (2) 、其他 (0) 包裝；數值如下成組 (1)、入箱 (2) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| secProcess | INT | Yes |  |  | 次製程；int前備；數值如下其中之一調拌 (1)、塞料 (2)、烘烤(3)、灌料(4) 、其他 (0)加工；數值如下其中之一披覆 (1)、封膜 (2) 、其他 (0) 包裝；數值如下其中之一成組 (1)、入箱 (2) 、其他 (0) | 主製程為<br>1.前備:調拌 (1)、塞料 (2)、烘烤(3)、灌料(4) 、其他 (0)<br>2.加工: 披覆 (1)、封膜 (2) 、其他 (0) <br>3.包裝: 成組 (1)、入箱 (2) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | 說明；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## process_capacity
 
-<details>
+
 <summary>process_capacity (工序人時產能)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1057,11 +1059,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## process_flow
 
-<details>
+
 <summary>process_flow (工序流程)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1069,15 +1071,15 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK>； |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | no | VARCHAR(60) | No | UK(uq_process_flow_composite) |  | 編號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | product_process_no | VARCHAR(60) | No | UK(uq_process_flow_composite) | process_flow.product_process_no -> product_process.no | 工序no，關連至product_process資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| order | INT | No | UK(uq_process_flow_composite) |  | 順序；UNIQUE KEY；int |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| order | INT | No | UK(uq_process_flow_composite) |  | 執行優先順序；UNIQUE KEY；int |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | oneProcess | INT | Yes |  |  | 主製程；int數值如下其中之一 前備 (1)、加工 (2)、包裝 (3) 、其他 (0) | 前備 (1)、加工 (2)、包裝 (3) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | secProcess | INT | Yes |  |  | 次製程；int前備；數值如下其中之一調拌 (1)、塞料 (2)、烘烤(3)、灌料(4) 、其他 (0)加工；數值如下其中之一披覆 (1)、封膜 (2) 、其他 (0) 包裝；數值如下其中之一成組 (1)、入箱 (2) 、其他 (0) | 調拌 (1)、塞料 (2)、烘烤(3)、灌料(4) 、其他 (0)加工；數值如下披覆 (1)、封膜 (2) 、其他 (0) 包裝；數值如下成組 (1)、入箱 (2) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## process_labor
 
-<details>
+
 <summary>process_labor (人員部署)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1090,11 +1092,11 @@
 | production_line_no | VARCHAR(60) | Yes |  | process_labor.production_line_no -> production_line.no | 產線 no，關連至production_line資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | station_no | VARCHAR(60) | Yes |  | process_labor.station_no -> station.no | 站點 no，關連至station資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## process_order
 
-<details>
+
 <summary>process_order (領退餘廢產單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1109,7 +1111,7 @@
 | item_no | VARCHAR(60) | Yes |  |  | 料品品項no，關連至material / inproduct / product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_name | VARCHAR(60) | Yes |  |  | 料品品項名稱，關連至material / inproduct / product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | itemCategory | INT | Yes |  |  | 料品品項類別；int數值如下其中之一：原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) | 原料 (1)、物料 (2)、膠捲 (3) 、在製品 (4) 、製成品 (5) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| itemSubCategory | INT | Yes |  |  | 料品品項子類別；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 1料品品項類別為<br>1.原料/物料/膠捲:參照material的「subCategory」定義<br>2. 在製品/製成品:參照inproduct/product的「category」定義<br>3. 貨品:參照goods的「subCategory」定義| OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_no | VARCHAR(60) | Yes |  | process_order.item_ref_no -> company.no | 客戶/廠商no，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_displayName | VARCHAR(60) | Yes |  |  | 客戶/廠商公司簡稱，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | unit | INT | Yes |  |  | 單位；int數值如下其中之一： 公斤 (1)、公尺 (2)、個 (3) 、其他 (0) | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -1118,11 +1120,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## product
 
-<details>
+
 <summary>product (料品品項-製成品)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1138,11 +1140,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## product_bom_spec
 
-<details>
+
 <summary>product_bom_spec (製成品規格_物料)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1156,11 +1158,11 @@
 | unit | INT | Yes |  |  | 物料重量的單位；int | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | weight | FLOAT | Yes |  |  | 物料重量；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## product_order
 
-<details>
+
 <summary>product_order (訂購單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1188,11 +1190,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## product_process
 
-<details>
+
 <summary>product_process (工序)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1203,11 +1205,11 @@
 | version | INT | No | UK(uq_product_process_composite) |  | 版本；UNIQUE KEY；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | Yes |  |  | 生效日；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## product_spec
 
-<details>
+
 <summary>product_spec (製成品規格_在製品/製成品)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1223,14 +1225,14 @@
 | count | INT | Yes |  |  | 規格份數；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | unit | INT | Yes |  |  | 內含物重量的單位；int | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | weight | FLOAT | Yes |  |  | 內含物重量；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| expectedLoss | FLOAT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| actualLoss | FLOAT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| expectedLoss | FLOAT | Yes |  |  | 預期損耗 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| actualLoss | FLOAT | Yes |  |  | 實際損耗 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 
-</details>
+
 
 ## product_ver
 
-<details>
+
 <summary>product_ver (製成品歷史版本)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1241,11 +1243,11 @@
 | version | INT | No | UK(uq_product_ver_composite) |  | 版本號；int；UNIQUE KEY |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | Yes |  |  | 生效日；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## production_data
 
-<details>
+
 <summary>production_data (生產數據)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1267,11 +1269,11 @@
 | materialLoss | FLOAT | Yes |  |  | 損耗 (產出物重量-投入物重量-餘料重量-廢料重量；小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## production_data_input
 
-<details>
+
 <summary>production_data_input (投入物數據)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1279,24 +1281,24 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | work_order_no | VARCHAR(60) | No | UK(uq_production_data_input_composite) | production_data_input.work_order_no -> work_order.no | 派工單no，關連至work_order資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | process_order_no | VARCHAR(60) | Yes |  | production_data_input.process_order_no -> process_order.no | 餘廢退產單no，關連至process_order資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| group | VARCHAR(60) | No | UK(uq_production_data_input_composite) |  | 批號群組編號；UNIQUE KEY；varchar(60)，對應產出物批號 |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| group | VARCHAR(60) | No | UK(uq_production_data_input_composite) |  | 批號群組編號, 用於將同一批號產出物之投入物群組化 |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | time | INT | Yes |  |  | 日期；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | action | INT | No | UK(uq_production_data_input_composite) |  | 狀態；UNIQUE KEY；int數值如下其中之一領料(1)、退料(2)、其他(0) | 領料(1)、退料(2)、其他(0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_no | VARCHAR(60) | No | UK(uq_production_data_input_composite) |  | 投入的料品品項no，關連至 material/ product資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_name | VARCHAR(60) | Yes |  |  | 投入的料品品項名稱，關連至 material/ product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | category | INT | Yes |  |  | 料品品項類型；int數值如下其中之一原料 (1)、物料(2) 、膠捲(3) 、在製品(4)、其他(0) | 原料 (1)、物料(2) 、膠捲(3) 、在製品(4)、其他(0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| itemSubCategory | INT | Yes |  |  | 料品品項子類型；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| itemSubCategory | INT | Yes |  |  | 料品品項子類型；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為<br>1.原料/物料/膠捲:參照material的「subCategory」定義<br>2. 在製品/製成品:參照inproduct/product的「category」定義<br>3. 貨品:參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | batch_number | VARCHAR(60) | No | UK(uq_production_data_input_composite) |  | 投入的料品品項批號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | serial_no | VARCHAR(60) | No | UK(uq_production_data_input_composite) |  | 投入的料品品項序號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | unit | INT | Yes |  |  | 投入的料品品項單位；int數值如下其中之一： 公斤、公尺、個 、其他 參照「Unit單位定義」 | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | count | FLOAT | Yes |  |  | 領退料重量、長度、數量(小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## production_data_labor
 
-<details>
+
 <summary>production_data_labor (人員數據)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1315,11 +1317,11 @@
 | endTime | INT | No | UK(uq_production_data_labor_composite) |  | 結束時間；UNIQUE KEY；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | hours | FLOAT | Yes |  |  | 總時數(小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## production_data_machine
 
-<details>
+
 <summary>production_data_machine (機具數據)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1334,11 +1336,11 @@
 | temperature | FLOAT | Yes |  |  | 溫度；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## production_data_output
 
-<details>
+
 <summary>production_data_output (產出物數據)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1346,13 +1348,13 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | work_order_no | VARCHAR(60) | No | UK(uq_production_data_output_composite) | production_data_output.work_order_no -> work_order.no | 派工單no，關連至work_order資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | process_order_no | VARCHAR(60) | Yes |  | production_data_output.process_order_no -> process_order.no | 餘廢退產單no，關連至process_order資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| group | VARCHAR(60) | No | UK(uq_production_data_output_composite) |  | 批號群組編號；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| group | VARCHAR(60) | No | UK(uq_production_data_output_composite) |  | 批號群組編號, 用於將同一批號之產出物群組化； |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | time | INT | Yes |  |  | 日期；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | action | INT | No | UK(uq_production_data_output_composite) |  | 狀態；UNIQUE KEY；int數值如下其中之一產製(1)、其他(0) | 產製(1)、其他(0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_no | VARCHAR(60) | No | UK(uq_production_data_output_composite) |  | 產出的料品品項no，關連至 inproduct / product資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_name | VARCHAR(60) | Yes |  |  | 產出的料品品項名稱，關連至 inproduct / product資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | category | INT | Yes |  |  | 類型；int數值如下其中之一在製品(1)、製成品 (2)、其他(0) | 在製品(1)、製成品 (2)、其他(0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| itemSubCategory | INT | Yes |  |  | 品項子類別子類型；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| itemSubCategory | INT | Yes |  |  | 品項子類別子類型；int數值如下其中之一：1. 料品品項類別為原料/物料/膠捲參照material的「subCategory」定義2. 料品品項類別為在製品/製成品參照inproduct/product的「category」定義3. 料品品項類別為貨品 參照goods的「subCategory」定義 | 料品品項類別為<br>1.原料/物料/膠捲:參照material的「subCategory」定義<br>2. 在製品/製成品:參照inproduct/product的「category」定義<br>3. 貨品:參照goods的「subCategory」定義 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | batch_number | VARCHAR(60) | No | UK(uq_production_data_output_composite) |  | 產出的料品品項批號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | serial_no | VARCHAR(60) | No | UK(uq_production_data_output_composite) |  | 產出的料品品項序號；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | valid_date | INT | Yes |  |  | 有效期限；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -1361,11 +1363,11 @@
 | count | FLOAT | Yes |  |  | 產出的重量 (小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## production_data_reuse
 
-<details>
+
 <summary>production_data_reuse (餘廢料數據)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1373,7 +1375,7 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | work_order_no | VARCHAR(60) | No | UK(uq_production_data_reuse_composite) | production_data_reuse.work_order_no -> work_order.no | 派工單no，關連至work_order資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | process_order_no | VARCHAR(60) | Yes |  | production_data_reuse.process_order_no -> process_order.no | 餘廢退產單no，關連至process_order資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| group | VARCHAR(60) | No | UK(uq_production_data_reuse_composite) |  | 批號群組編號；UNIQUE KEY；varchar(60) |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
+| group | VARCHAR(60) | No | UK(uq_production_data_reuse_composite) |  | 批號群組編號, 用於將同一批號產出物之餘廢料群組化 |  | Need Review | Word description exists, but this field name is abstract. Confirm business value domain and usage. |
 | time | INT | Yes |  |  | 日期；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | action | INT | No | UK(uq_production_data_reuse_composite) |  | 型態；UNIQUE KEY；int數值如下其中之一：產製 (1)、其他 (0) | 產製 (1)、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_no | VARCHAR(60) | No | UK(uq_production_data_reuse_composite) | production_data_reuse.item_no -> inproduct.no | 餘廢料品項no，關連至 inproduct資料表；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -1386,11 +1388,11 @@
 | count | FLOAT | Yes |  |  | 產出的重量 (小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## production_line
 
-<details>
+
 <summary>production_line (產線)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1410,11 +1412,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 說明；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## purchase_order
 
-<details>
+
 <summary>purchase_order (採購單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1442,11 +1444,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## purchase_request
 
-<details>
+
 <summary>purchase_request (請購單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1456,18 +1458,18 @@
 | creator_no | VARCHAR(60) | Yes |  | purchase_request.creator_no -> employee.no | 製單人員no，關連至employee資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | product_order_no | VARCHAR(60) | Yes | UK(uq_purchase_request_composite) | purchase_request.product_order_no -> product_order.no | 訂購單no，關連至product_order資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | Yes |  |  | 請購日期；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| item_no | VARCHAR(60) | Yes | UK(uq_purchase_request_composite) | purchase_request.item_no -> material.no |  |  | OK | SQL FK defines relation to material.no. |
-| unit | INT | Yes |  |  |  | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| count | FLOAT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
-| expectedDate | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| item_no | VARCHAR(60) | Yes | UK(uq_purchase_request_composite) | purchase_request.item_no -> material.no | 料品品項編號 |  | OK | SQL FK defines relation to material.no. |
+| unit | INT | Yes |  |  | 料品品項單位 | 其他 (0)、公克 (1)、公斤 (2)、台斤 (3)、公分 (51)、公尺 (52)、個 (101)、條 (102)、片 (103)、張 (104)、罐 (105)、包 (106)、捲 (107)、桶 (108)、盒 (109)、組 (110)、箱 (111)、支 (112)、式 (113)、入 (114)、袋 (115)、顆 (116)、瓶 (117)、板 (201)、件 (202)、車 (203)、次 (204) | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| count | FLOAT | Yes |  |  | 請購數量 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| expectedDate | INT | Yes |  |  | 預期到貨日期 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## quotation
 
-<details>
+
 <summary>quotation (報價單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1489,23 +1491,23 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## rw_items
 
-<details>
-<summary>rw_items</summary>
+
+<summary>rw_items (餘廢料料品品項)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT primary identifier. |  | OK | AUTO_INCREMENT primary identifier. |
-| item_no | varchar(60) | No | UK(uq_rw_items_composite) |  |  |  | Need Review | Likely identifier/reference field, but SQL FK or Word description is missing. |
+| item_no | varchar(60) | No | UK(uq_rw_items_composite) | rw_items.item_no -> inproduct.no |  餘廢料料品品項  |  | Need Review | Likely identifier/reference field, but SQL FK or Word description is missing. |
 
-</details>
+
 
 ## sample_price
 
-<details>
+
 <summary>sample_price (樣品品項價格)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1526,11 +1528,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## session
 
-<details>
+
 <summary>session (連線交談)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1540,11 +1542,11 @@
 | token | VARCHAR(60) | Yes |  |  | 存取金鑰；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | expiredTime | INT | Yes |  |  | 過期時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## ship_wh
 
-<details>
+
 <summary>ship_wh (交易品項-物流倉儲)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1561,11 +1563,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## ship_wh_alias
 
-<details>
+
 <summary>ship_wh_alias (物流倉儲別名)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1577,11 +1579,11 @@
 | type | INT | Yes |  |  | 樣式；int數值如下其中之一： 自有 (1)、合約 (2) 、客供 (3) 、其他 (0) | 自有 (1)、合約 (2) 、客供 (3) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## ship_wh_contract
 
-<details>
+
 <summary>ship_wh_contract (物流倉儲合約)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1606,11 +1608,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## ship_wh_quotation
 
-<details>
+
 <summary>ship_wh_quotation (物流倉儲議價)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1632,11 +1634,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## shipping_order
 
-<details>
+
 <summary>shipping_order (銷貨單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1663,11 +1665,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## shipping_payment
 
-<details>
+
 <summary>shipping_payment (物流帳款)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1676,7 +1678,7 @@
 | no | VARCHAR(60) | No | UK(uq_shipping_payment_composite) |  | 帳款編號；UNIQUE KEY；varchar(60)每日一組ship_wh一組帳款編號 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | group_no | VARCHAR(60) | Yes |  |  | 現結/月結帳款群組編號；varchar(60)現結的no與group_no相同；改成一個客戶每月一個帳款編號 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | No | UK(uq_shipping_payment_composite) |  | 日期；UNIQUE KEY；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| arapType | INT | Yes |  |  | 類型；數值如下其中之一 1: 應收帳款 2: 應付帳款 | 應收帳款 2: 應付帳款 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| arapType | INT | Yes |  |  | 類型；數值如下其中之一 1: 應收帳款 2: 應付帳款 | 應收帳款(1)、 應付帳款(2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | record_no | BIGINT UNSIGNED | Yes |  | shipping_payment.record_no -> shipping_record.id | 物流紀錄，關聯至shipping_record資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | refCategory | INT | Yes |  |  | 訂單類別；數值如下其中之一 採購(1)、訂購 (2)、其他 (0) | 採購(1)、訂購 (2)、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | ref_no | VARCHAR(60) | Yes |  |  | 採購單 no/訂購單 no，關聯至product_order / purchase_order資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -1690,14 +1692,14 @@
 | amount | INT | Yes |  |  | 帳款金額 (含稅價) ；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | addDeleteAmount | INT | Yes |  |  | 加/扣款金額 (含稅價)；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | totalAmount | INT | Yes |  |  | 總金額 (加/扣款金額+帳款金額) ；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| balance | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| balance | INT | Yes |  |  | 應收應付餘額 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## shipping_record
 
-<details>
+
 <summary>shipping_record (運輸班次)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1721,11 +1723,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 地點；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## station
 
-<details>
+
 <summary>station (站點)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1738,11 +1740,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 說明；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## trans_items
 
-<details>
+
 <summary>trans_items (交易品項-貨品/材料/產品)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1759,11 +1761,11 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## trans_items2
 
-<details>
+
 <summary>trans_items2 (交易品項-耗品/設備/工程/其他)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1771,33 +1773,33 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | no | VARCHAR(60) | No | UK(uq_trans_items2_composite) |  | 編號；UNIQUE KEY；varchar(20) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | name | VARCHAR(100) | Yes |  |  | 品項名稱；varchar(100) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| category | INT | Yes |  |  | 樣式；int數值如下其中之一： 耗品 (1) 、設備 (2) 、工程 (3) 、其他 (4)、雜項 (5) 、其他 (0) | 耗品 (1) 、設備 (2) 、工程 (3) 、其他 (4)、雜項 (5) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| category | INT | Yes |  |  | 樣式；int數值如下其中之一： 耗品 (1) 、設備 (2) 、工程 (3) 、其他 (4)、雜項 (5) | 耗品 (1) 、設備 (2) 、工程 (3) 、其他 (4)、雜項 (5) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | attribute | INT | Yes |  |  | 屬性；int數值如下其中之一： 一般 (1)、生產 (2) 、檢測 (3) 、機具 (4) 、其他 (0) | 一般 (1)、生產 (2) 、檢測 (3) 、機具 (4) 、其他 (0) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | company_no | VARCHAR(60) | Yes |  | trans_items2.company_no -> company.no | 客戶資料no，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | company_displayName | VARCHAR(60) | Yes |  |  | 客戶公司簡稱，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128)；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## user_group
 
-<details>
+
 <summary>user_group (使用者群組)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
 |----------|----------|------|-----|------|----------|----------------|------|------|
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | name | VARCHAR(60) | No | UK(uq_user_group_composite) |  | 使用組名稱；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| role | INT | Yes |  |  | 角色；int數值如下其中之一1. 管理者2. 執行者(一般使用者)3. 經營者 | 1. 管理者2. 執行者(一般使用者)3. 經營者 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| role | INT | Yes |  |  | 角色；int數值如下其中之一1. 管理者2. 執行者(一般使用者)3. 經營者 | 管理者(1)、 一般使用者(2)、 經營者(3) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | users | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 員工no，關聯至employee資料表；longtext |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| privileges | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| privileges | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 權限清單 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 
-</details>
+
 
 ## warehouse_payment
 
-<details>
+
 <summary>warehouse_payment (倉儲帳款)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1806,7 +1808,7 @@
 | no | VARCHAR(60) | No | UK(uq_warehouse_payment_composite) |  | 帳款編號；UNIQUE KEY；varchar(60)每日一組帳款編號，出庫時產生帳款編號 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | group_no | VARCHAR(60) | Yes |  |  | 現結/月結帳款群組編號；varchar(60)現結的no與group_no相同；一個客戶每月一個帳款編號 |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | date | INT | No | UK(uq_warehouse_payment_composite) |  | 日期；UNIQUE KEY；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| arapType | INT | Yes |  |  | 類型；int數值如下其中之一 1: 應收帳款 2: 應付帳款 | 應收帳款 2: 應付帳款 | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+| arapType | INT | Yes |  |  | 類型；int數值如下其中之一 1: 應收帳款 2: 應付帳款 | 應收帳款(1)、 應付帳款(2) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | batch_no | VARCHAR(60) | Yes |  | warehouse_payment.batch_no -> batch_number.no | 批號no，關聯至batch_number資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | record_no | BIGINT UNSIGNED | Yes |  | warehouse_payment.record_no -> warehouse_record.id | 倉儲紀錄id，關聯至warehouse_record資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | item_ref_no | VARCHAR(60) | Yes |  | warehouse_payment.item_ref_no -> company.no | 客戶/廠商no，關連至company資料表；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
@@ -1818,14 +1820,14 @@
 | amount | INT | Yes |  |  | 帳款金額 (含稅價) ；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | addDeleteAmount | INT | Yes |  |  | 加/扣款金額 (含稅價)；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | totalAmount | INT | Yes |  |  | 總金額 (加/扣款金額+帳款金額) ；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| balance | INT | Yes |  |  |  |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
+| balance | INT | Yes |  |  | 應收應付餘額 |  | Need Review | Word description is missing; schema alone is not enough to confirm business meaning. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## warehouse_record
 
-<details>
+
 <summary>warehouse_record (倉租紀錄)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1849,11 +1851,10 @@
 | comment | VARCHAR(128) | Yes |  |  | Free-form remark field. |  | OK | Free-form remark field. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>
+
 
 ## work_order
 
-<details>
 <summary>work_order (派工單)</summary>
 
 | 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
@@ -1883,4 +1884,3 @@
 | comment | VARCHAR(128) | Yes |  |  | 備註；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 
-</details>

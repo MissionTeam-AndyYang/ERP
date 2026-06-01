@@ -1,4 +1,5 @@
 import ast
+import json
 from collections import defaultdict
 from pathlib import Path
 
@@ -6,29 +7,42 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 API_DIR = ROOT / "restserver/package/restserver/api"
 TABLE_PY = ROOT / "restserver/package/dbwrapper/table.py"
-OUT = ROOT / "docs/spec/api/index.md"
+API_OUT_DIR = ROOT / "docs/spec/api"
+API_INDEX = API_OUT_DIR / "index.md"
+
+
+COMMON_HEADERS = [
+    ("code", "Integer", "API result code", ""),
+    ("message", "String", "API result message", ""),
+    ("payload", "Object", "Response payload object", ""),
+]
+
+
+def rel(path):
+    return str(path.relative_to(ROOT)).replace("\\", "/")
+
+
+def md(value):
+    return str(value or "").replace("|", "\\|").replace("\n", "<br>")
 
 
 def load_table_map():
-    table_class_to_name = {}
     tree = ast.parse(TABLE_PY.read_text(encoding="utf-8"))
+    table_map = {}
     for node in tree.body:
         if not isinstance(node, ast.ClassDef):
             continue
-        table_name = None
         for stmt in node.body:
             if not isinstance(stmt, ast.Assign):
                 continue
             for target in stmt.targets:
                 if isinstance(target, ast.Name) and target.id == "__tablename__":
                     if isinstance(stmt.value, ast.Constant):
-                        table_name = stmt.value.value
-        if table_name:
-            table_class_to_name[node.name] = table_name
-    return table_class_to_name
+                        table_map[node.name] = stmt.value.value
+    return table_map
 
 
-def constants_from_file(path):
+def constants_from_uri(path):
     constants = {
         "URL_PATH": "/api/v1",
         "URL_PATH_V0": "/api/v0",
@@ -56,10 +70,26 @@ def eval_expr(node, constants):
         return str(eval_expr(node.left, constants)) + str(eval_expr(node.right, constants))
     if isinstance(node, (ast.List, ast.Tuple)):
         return [eval_expr(item, constants) for item in node.elts]
-    return ast.unparse(node) if hasattr(ast, "unparse") else "?"
+    return ast.unparse(node) if hasattr(ast, "unparse") else "Need Review"
 
 
-def get_executor(class_node):
+def class_docstrings(tree):
+    docs = {}
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            docs[node.name] = ast.get_docstring(node) or ""
+    return docs
+
+
+def function_docstrings(tree):
+    docs = {}
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef):
+            docs[node.name] = ast.get_docstring(node) or ""
+    return docs
+
+
+def uri_executor(class_node):
     for stmt in class_node.body:
         if isinstance(stmt, ast.FunctionDef) and stmt.name == "_get_executor":
             for sub in ast.walk(stmt):
@@ -72,16 +102,16 @@ def get_executor(class_node):
     return ""
 
 
-def method_override(class_node, name):
+def method_override_text(class_node, method_name):
     for stmt in class_node.body:
-        if isinstance(stmt, ast.FunctionDef) and stmt.name == name:
-            try:
-                first = stmt.body[0]
-                if isinstance(first, ast.Return):
-                    return ast.unparse(first.value)
-                return ast.unparse(first)
-            except Exception:
-                return "overridden"
+        if isinstance(stmt, ast.FunctionDef) and stmt.name == method_name:
+            for sub in stmt.body:
+                if isinstance(sub, ast.Return):
+                    try:
+                        return ast.unparse(sub.value)
+                    except Exception:
+                        return "overridden"
+            return "overridden"
     return ""
 
 
@@ -92,23 +122,45 @@ def instantiated_uri(function_node):
     return ""
 
 
-def extract_routes():
-    routes = []
-    uri_executor = {}
-    uri_overrides = {}
-    for path in sorted(API_DIR.glob("*_uri.py")):
+def is_request_args_get(call_node):
+    if not isinstance(call_node, ast.Call):
+        return False
+    if not isinstance(call_node.func, ast.Attribute) or call_node.func.attr != "get":
+        return False
+    value = call_node.func.value
+    return (
+        isinstance(value, ast.Attribute)
+        and value.attr == "args"
+        and isinstance(value.value, ast.Name)
+        and value.value.id == "request"
+    )
+
+
+def extract_uri_modules():
+    modules = []
+    for path in sorted(API_DIR.glob("*_uri.py"), key=lambda p: p.name.lower()):
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        constants = constants_from_file(path)
+        constants = constants_from_uri(path)
+        uri_to_executor = {}
+        uri_overrides = {}
+        c_docs = class_docstrings(tree)
+        f_docs = function_docstrings(tree)
+
         for node in tree.body:
-            if isinstance(node, ast.ClassDef):
-                executor = get_executor(node)
-                if executor:
-                    uri_executor[node.name] = executor
-                    uri_overrides[node.name] = {
-                        "validate_token": method_override(node, "_is_vaildate_token"),
-                        "validate_param": method_override(node, "_is_vaildate_param"),
-                        "custom_response": method_override(node, "_is_customized_reponse"),
-                    }
+            if not isinstance(node, ast.ClassDef):
+                continue
+            executor = uri_executor(node)
+            if executor:
+                uri_to_executor[node.name] = executor
+                uri_overrides[node.name] = {
+                    "validate_token": method_override_text(node, "_is_vaildate_token"),
+                    "validate_param": method_override_text(node, "_is_vaildate_param"),
+                    "reset_alive_time": method_override_text(node, "_is_reset_alive_time"),
+                    "custom_response": method_override_text(node, "_is_customized_reponse"),
+                    "docstring": c_docs.get(node.name, ""),
+                }
+
+        routes = []
         for node in tree.body:
             if not isinstance(node, ast.FunctionDef):
                 continue
@@ -126,260 +178,371 @@ def extract_routes():
                     uri_class = instantiated_uri(node)
                     routes.append(
                         {
-                            "blueprint": path.stem.replace("_uri", ""),
-                            "uri_file": str(path.relative_to(ROOT)).replace("\\", "/"),
-                            "handler": node.name,
                             "path": route_path,
                             "methods": methods or ["GET"],
+                            "handler": node.name,
+                            "handler_docstring": f_docs.get(node.name, ""),
                             "uri_class": uri_class,
-                            "executor": uri_executor.get(uri_class, ""),
+                            "executor": uri_to_executor.get(uri_class, ""),
                             "overrides": uri_overrides.get(uri_class, {}),
+                            "uri_file": rel(path),
                         }
                     )
-    return routes
+        modules.append(
+            {
+                "name": path.stem.replace("_uri", ""),
+                "uri_file": rel(path),
+                "module_file": API_OUT_DIR / (path.stem.replace("_uri", "") + ".md"),
+                "routes": routes,
+            }
+        )
+    return modules
 
 
-def extract_executors(table_class_to_name):
-    executor_info = {}
+def literal_dict(node):
+    try:
+        value = ast.literal_eval(node)
+        return value if isinstance(value, dict) else None
+    except Exception:
+        return None
+
+
+def schema_to_fields(schema):
+    if not schema:
+        return [], {}
+    props = schema.get("properties", {}) if isinstance(schema, dict) else {}
+    required = set(schema.get("required", [])) if isinstance(schema, dict) else set()
+    fields = []
+    structure = {}
+    for name, spec in props.items():
+        typ = "Object"
+        if isinstance(spec, dict):
+            raw_type = spec.get("type", "Object")
+            typ = {
+                "string": "String",
+                "integer": "Integer",
+                "number": "Number",
+                "boolean": "Boolean",
+                "array": "Array",
+                "object": "Object",
+            }.get(raw_type, str(raw_type))
+        structure[name] = typ
+        fields.append(
+            {
+                "path": name,
+                "type": typ,
+                "required": "YES" if name in required else "Need Review",
+                "description": "Derived from JSON schema field name; semantic description requires review.",
+                "enum": "",
+            }
+        )
+    return fields, structure
+
+
+def collect_method_info(class_node, table_map):
+    methods = {}
+    for stmt in class_node.body:
+        if not isinstance(stmt, ast.FunctionDef) or stmt.name not in {"get", "post", "put", "delete"}:
+            continue
+        tables = set()
+        params = {}
+        required_params = set()
+        schemas = []
+        payload_fields = set()
+        returns_tuple = False
+
+        for sub in ast.walk(stmt):
+            if isinstance(sub, ast.Name) and sub.id in table_map:
+                tables.add(table_map[sub.id])
+            if is_request_args_get(sub):
+                if sub.args and isinstance(sub.args[0], ast.Constant) and isinstance(sub.args[0].value, str):
+                    name = sub.args[0].value
+                    typ = "String"
+                    if len(sub.args) > 1 and isinstance(sub.args[1], ast.Constant):
+                        if isinstance(sub.args[1].value, int):
+                            typ = "Integer"
+                        elif isinstance(sub.args[1].value, float):
+                            typ = "Float"
+                    for keyword in sub.keywords:
+                        if keyword.arg == "type" and isinstance(keyword.value, ast.Name):
+                            if keyword.value.id == "int":
+                                typ = "Integer"
+                            elif keyword.value.id == "float":
+                                typ = "Float"
+                    params.setdefault(name, typ)
+            if isinstance(sub, ast.UnaryOp) and isinstance(sub.op, ast.Not):
+                call = sub.operand
+                if is_request_args_get(call):
+                    if call.args and isinstance(call.args[0], ast.Constant) and isinstance(call.args[0].value, str):
+                        required_params.add(call.args[0].value)
+            if isinstance(sub, ast.Assign):
+                for target in sub.targets:
+                    if isinstance(target, ast.Name) and target.id in {"dict_schema", "schema"}:
+                        schema = literal_dict(sub.value)
+                        if schema:
+                            schemas.append(schema)
+                    if isinstance(target, ast.Name) and target.id == "dict_extra_data":
+                        if isinstance(sub.value, ast.Dict):
+                            for key in sub.value.keys:
+                                if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                                    payload_fields.add(key.value)
+                        else:
+                            payload = literal_dict(sub.value)
+                            if payload:
+                                payload_fields.update(payload.keys())
+                    if (
+                        isinstance(target, ast.Subscript)
+                        and isinstance(target.value, ast.Name)
+                        and target.value.id == "dict_extra_data"
+                    ):
+                        slice_node = target.slice
+                        if isinstance(slice_node, ast.Constant) and isinstance(slice_node.value, str):
+                            payload_fields.add(slice_node.value)
+            if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Tuple):
+                returns_tuple = True
+
+        query_fields = [
+            {
+                "name": name,
+                "type": typ,
+                "required": "YES" if name in required_params else "Need Review",
+                "description": "Derived from request.args.get usage; semantic description requires review.",
+            }
+            for name, typ in sorted(params.items())
+        ]
+        body_schema = schemas[0] if schemas else None
+        body_fields, body_structure = schema_to_fields(body_schema)
+        methods[stmt.name] = {
+            "docstring": ast.get_docstring(stmt) or "",
+            "tables": sorted(tables),
+            "query_fields": query_fields,
+            "body_fields": body_fields,
+            "body_structure": body_structure,
+            "payload_fields": sorted(payload_fields),
+            "returns_tuple": returns_tuple,
+        }
+    return methods
+
+
+def extract_executor_info(table_map):
+    info = {}
     for path in sorted(API_DIR.glob("*.py")):
         if path.name.endswith("_uri.py") or path.name in {"apibase.py", "common.py", "util.py", "__init__.py"}:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in tree.body:
-            if not isinstance(node, ast.ClassDef):
-                continue
-            methods = [
-                stmt.name
-                for stmt in node.body
-                if isinstance(stmt, ast.FunctionDef) and stmt.name in {"get", "post", "put", "delete"}
-            ]
-            refs = set()
-            params = set()
-            for sub in ast.walk(node):
-                if isinstance(sub, ast.Name) and sub.id in table_class_to_name:
-                    refs.add(table_class_to_name[sub.id])
-                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == "get":
-                    if sub.args and isinstance(sub.args[0], ast.Constant) and isinstance(sub.args[0].value, str):
-                        params.add(sub.args[0].value)
-            if methods or refs:
-                executor_info[node.name] = {
-                    "file": str(path.relative_to(ROOT)).replace("\\", "/"),
-                    "methods": methods,
-                    "tables": sorted(refs),
-                    "param_names": sorted(params),
-                }
-    return executor_info
+            if isinstance(node, ast.ClassDef):
+                methods = collect_method_info(node, table_map)
+                if methods:
+                    info[node.name] = {
+                        "file": rel(path),
+                        "docstring": ast.get_docstring(node) or "",
+                        "methods": methods,
+                    }
+    return info
 
 
-def md_cell(value):
-    return str(value or "").replace("|", "\\|").replace("\n", "<br>")
+def route_description(route, method, executor_info):
+    if route.get("handler_docstring"):
+        return route["handler_docstring"]
+    if route.get("overrides", {}).get("docstring"):
+        return route["overrides"]["docstring"]
+    if executor_info.get("docstring"):
+        return executor_info["docstring"]
+    method_info = executor_info.get("methods", {}).get(method.lower(), {})
+    if method_info.get("docstring"):
+        return method_info["docstring"]
+    return "Need Review"
+
+
+def route_status(route, method, executor_info, description):
+    method_info = executor_info.get("methods", {}).get(method.lower(), {})
+    reasons = []
+    if description == "Need Review":
+        reasons.append("description cannot be determined from docstring or explicit schema semantics")
+    if not route["path"] or method not in route["methods"]:
+        reasons.append("route/method not fully resolved")
+    if method in {"POST", "PUT"} and not method_info.get("body_fields"):
+        reasons.append("request body schema not explicitly parsed")
+    if method_info and not method_info.get("returns_tuple"):
+        reasons.append("executor return tuple not confirmed")
+    if not method_info:
+        reasons.append("executor method not found")
+    payload = method_info.get("payload_fields", [])
+    if method == "GET" and route["executor"] != "CHeartbeat" and not payload:
+        reasons.append("success payload is dynamic or not statically explicit")
+    if reasons:
+        return "Need Review", "; ".join(reasons)
+    return "OK", "OK"
+
+
+def json_block(structure):
+    return "```json\n" + json.dumps(structure, ensure_ascii=False, indent=2) + "\n```"
+
+
+def write_api_index(modules):
+    lines = [
+        "# ERP 2.0 REST API Index",
+        "",
+        "> Navigation only. Detailed request/response specifications are stored in each API module file.",
+        "",
+        "## API Groups",
+        "",
+    ]
+    for module in modules:
+        lines.append(f"- [{module['name']}](./{module['name']}.md)")
+    lines.append("")
+    API_INDEX.write_text("\n".join(lines), encoding="utf-8")
+
+
+def header_rows(route, method):
+    rows = []
+    if method in {"POST", "PUT"}:
+        rows.append(("Content-Type", "application/json or multipart/form-data, enforced by CAPIBase"))
+    token_rule = route.get("overrides", {}).get("validate_token", "")
+    if token_rule == "False" or (method == "POST" and "False if self._is_post_method()" in token_rule):
+        rows.append(("X_AUTH_TOKEN", "Not required by URI override for this method"))
+    else:
+        rows.append(("X_AUTH_TOKEN", "Required by CAPIBase unless URI override disables token validation"))
+    if rows:
+        return rows
+    return [("None", "No request header requirement identified from code")]
+
+
+def write_module_doc(module, executor_info):
+    lines = [
+        f"# {module['name']} API Group",
+        "",
+        f"> Source: `{module['uri_file']}`",
+        "",
+        "## API Summary",
+        "",
+        "| URL | Method | Description | Status | Review Note |",
+        "|----------|----------|----------------|------|------|",
+    ]
+
+    if not module["routes"]:
+        lines.append("| None | None | No active route decorator found in this module | Need Review | Blueprint may be registered without active API routes. |")
+    summary_rows = []
+    specs = []
+    for route in module["routes"]:
+        ex_info = executor_info.get(route["executor"], {})
+        for method in route["methods"]:
+            desc = route_description(route, method, ex_info)
+            status, note = route_status(route, method, ex_info, desc)
+            anchor = f"{method.lower()}-{route['path'].strip('/').replace('/', '-').replace('_', '-') or 'root'}"
+            summary_rows.append((route["path"], method, desc, status, note, anchor, route, ex_info))
+            lines.append(f"| [{md(route['path'])}](#{anchor}) | {method} | {md(desc)} | {status} | {md(note)} |")
+
+    for path, method, desc, status, note, anchor, route, ex_info in summary_rows:
+        method_info = ex_info.get("methods", {}).get(method.lower(), {})
+        specs += [
+            "",
+            f"## {method} {route['path']}",
+            "",
+            f'<a id="{anchor}"></a>',
+            "",
+            "### Basic Information",
+            "",
+            "| URL | Method | Description |",
+            "|----------|----------|----------------|",
+            f"| {md(route['path'])} | {method} | {md(desc)} |",
+            "",
+            "### Request Header",
+            "",
+            "| Header | Description |",
+            "|----------|----------|",
+        ]
+        for name, description in header_rows(route, method):
+            specs.append(f"| {name} | {md(description)} |")
+
+        specs += ["", "### Query Parameters", ""]
+        query_fields = method_info.get("query_fields", [])
+        if query_fields:
+            specs += ["| Parameter | Type | Required | Description |", "|----------|----------|------|-----|"]
+            for item in query_fields:
+                specs.append(f"| {md(item['name'])} | {item['type']} | {item['required']} | {md(item['description'])} |")
+        else:
+            specs.append("None")
+
+        specs += ["", "### Request Body", ""]
+        body_structure = method_info.get("body_structure", {})
+        body_fields = method_info.get("body_fields", [])
+        if method in {"POST", "PUT"}:
+            if body_structure:
+                specs.append(json_block(body_structure))
+                specs += ["", "| Field Path | Type | Required | Description | Enum |", "|----------|----------|------|-----|---|"]
+                for field in body_fields:
+                    specs.append(
+                        f"| {md(field['path'])} | {field['type']} | {field['required']} | {md(field['description'])} | {md(field['enum'])} |"
+                    )
+            else:
+                specs.append("Need Review")
+        else:
+            specs.append("None")
+
+        specs += [
+            "",
+            "### Success Response Data",
+            "",
+            json_block({"code": "Integer", "message": "String", "payload": "Object"}),
+            "",
+            "| Field Path | Type | Description | Enum |",
+            "|----------|----------|------|---|",
+        ]
+        for field, typ, description, enum in COMMON_HEADERS:
+            specs.append(f"| {field} | {typ} | {description} | {enum} |")
+        for field in method_info.get("payload_fields", []):
+            specs.append(f"| payload.{md(field)} | Need Review | Derived from dict_extra_data key; exact type requires runtime/code review. |  |")
+        if not method_info.get("payload_fields"):
+            specs.append("| payload | Object | Payload structure is empty or dynamic in code; confirm with runtime sample if frontend uses it. |  |")
+
+        specs += [
+            "",
+            "### Failed Response Data",
+            "",
+            "| Field Path | Type | Description | Enum |",
+            "|----------|----------|------|---|",
+            "| code | Integer | Error code returned by CAPIBase or executor |  |",
+            "| message | String | Error message returned by CAPIBase or executor |  |",
+            "| payload | Object | Error payload; usually empty unless executor returns extra data |  |",
+            "",
+            "### Processing Flow",
+            "",
+            "```",
+            "1. Flask route handler instantiates the URI class.",
+            "2. URI class delegates request handling to CAPIBase.run().",
+            "3. CAPIBase performs content-type, body, token, and alive-time checks according to URI overrides.",
+            f"4. CAPIBase calls executor `{route['executor']}.{method.lower()}(str_timezone, str_id)` when supported.",
+            "5. Executor returns `(http_status, code, message, payload_dict)`.",
+            "6. CAPIBase wraps the result as JSON unless the URI uses a customized response.",
+            "```",
+            "",
+            "### Database Tables Used",
+            "",
+        ]
+        tables = method_info.get("tables", [])
+        if tables:
+            specs += ["| Table | Purpose |", "|----------|------|"]
+            for table in tables:
+                specs.append(f"| {table} | Referenced by executor source through ORM model. See `docs/spec/database/index.md#{table}`. |")
+        else:
+            specs.append("None")
+
+    lines += specs
+    module["module_file"].write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main():
+    API_OUT_DIR.mkdir(parents=True, exist_ok=True)
     table_map = load_table_map()
-    routes = extract_routes()
-    executors = extract_executors(table_map)
-    for route in routes:
-        executor = executors.get(route["executor"], {})
-        route["executor_file"] = executor.get("file", "")
-        route["executor_methods"] = executor.get("methods", [])
-        route["tables"] = executor.get("tables", [])
-        route["params"] = executor.get("param_names", [])
-
-    routes = sorted(routes, key=lambda item: (item["path"], ",".join(item["methods"])))
-    by_blueprint = defaultdict(list)
-    for route in routes:
-        by_blueprint[route["blueprint"]].append(route)
-
-    lines = [
-        "# ERP 2.0 Restserver API Development Index",
-        "",
-        "> Baseline code: `restserver/package/restserver` on `main`  ",
-        "> Database baseline: `docs/database/EWDB_20260526.sql`  ",
-        "> Database field reference: `docs/spec/database/index.md`  ",
-        "> Runtime baseline: `docs/backend/runtime-verification/RESTSERVER_RUNTIME_EWDB_20260526_20260527.json`  ",
-        "> Generated: 2026-05-28",
-        "",
-        "## Purpose",
-        "",
-        "This document is the shared API development reference for Codex and the backend engineer. It documents what is confirmed from the current `restserver` source code and explicitly marks items that still require engineer confirmation before frontend/API contract integration.",
-        "",
-        "## Baseline Status",
-        "",
-        "| Item | Confirmed Value | Status |",
-        "| --- | --- | --- |",
-        "| Framework | Flask application factory | Confirmed from `app.py` |",
-        "| API prefix | `/api/v1` | Confirmed from `api/common.py` |",
-        "| Registered blueprints | 26 | Confirmed by runtime verification |",
-        "| Flask URL rules | 70 | Confirmed by runtime verification; includes Flask/app-level rules |",
-        "| Documented active API routes | 69 | Confirmed from active `@blueprint.route(...)` decorators in `*_uri.py` |",
-        "| ORM tables | 79 | Confirmed by runtime verification |",
-        "| DB tables | 79 | Confirmed by runtime verification |",
-        "| Response envelope | `{ code, message, payload }` | Confirmed from `CAPIBase.run()` |",
-        "| Baseline code review | Pass for runtime/schema/app registration scope | Confirmed from runtime review |",
-        "",
-        "## Coding Style Confirmed From Restserver",
-        "",
-        "| Concern | Current Pattern | Status |",
-        "| --- | --- | --- |",
-        "| App composition | `create_app()` imports and registers Blueprint objects | Confirmed |",
-        "| Route files | `restserver/package/restserver/api/*_uri.py` define Flask routes | Confirmed |",
-        "| Business executors | Paired `restserver/package/restserver/api/*.py` files contain executor classes | Confirmed |",
-        "| Shared runner | URI classes subclass `CAPIBase` and call `.run()` | Confirmed |",
-        "| Executor return contract | `(http_status, code, message, payload_dict)` | Confirmed |",
-        "| GET inputs | `request.args.get(...)` | Confirmed |",
-        "| POST/PUT inputs | JSON body via `request.get_json()`; content type must be `application/json` or `multipart/form-data` | Confirmed |",
-        "| DELETE inputs | mixed by endpoint; some use query params and some use JSON/body conventions | Need Engineer Confirmation |",
-        "| Auth token behavior | `X_AUTH_TOKEN` required by `CAPIBase` unless URI overrides validation; behavior also depends on `TOKEN_ENABLED` | Need Engineer Confirmation |",
-        "| Timezone header | `X_TIMEZONE` is passed into executor methods as `str_timezone` | Confirmed |",
-        "",
-        "## Standard Response Contract",
-        "",
-        "All non-customized `CAPIBase` responses are wrapped as:",
-        "",
-        "```json",
-        "{",
-        '  "code": 0,',
-        '  "message": "success",',
-        '  "payload": {}',
-        "}",
-        "```",
-        "",
-        "Need Engineer Confirmation:",
-        "",
-        "- Confirm whether all frontend-facing APIs should always use this envelope, including future dashboard aggregation APIs.",
-        "- Confirm canonical success/error `code` values from `package.common.common.EErrorCode` that frontend should handle.",
-        "- Confirm whether `message` should remain English strings or move toward i18n-ready message codes.",
-        "",
-        "## Request Convention",
-        "",
-        "| Method | Current Source Pattern | Frontend Contract Guidance | Status |",
-        "| --- | --- | --- | --- |",
-        "| GET | Query string through `request.args` | Use query params; unwrap `{ payload }` | Confirmed |",
-        "| POST | JSON body through `request.get_json()` | Send `Content-Type: application/json` | Confirmed |",
-        '| PUT | JSON body through `request.get_json()` in many executors; `CAPIBase` logs `request.form.get("param")` | Confirm exact per endpoint before write integration | Need Engineer Confirmation |',
-        "| DELETE | Route supports DELETE where declared, but body/query convention varies | Confirm exact per endpoint before write integration | Need Engineer Confirmation |",
-        "",
-        "## Route Inventory",
-        "",
-        "The table below is generated from active Flask decorators in `*_uri.py`. `Tables Referenced` is inferred from executor source code references to `CTable*` ORM classes; it is a source-code hint, not a complete SQL trace.",
-        "",
-        "Note: `auth` is registered as a blueprint in `app.py` but currently has no active route decorators. Runtime route count is 70 while the documented API decorator count is 69; the remaining URL rule is app/framework-level and should be confirmed if the engineer expects another API endpoint.",
-        "",
-        "| Path | Methods | Blueprint | URI Class | Executor | Executor Methods | Tables Referenced | Query/Body Parameter Hints | Status | Review Note |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-    ]
-
-    for route in routes:
-        methods = ", ".join(route["methods"])
-        executor_methods = ", ".join(route["executor_methods"])
-        tables = ", ".join(route["tables"])
-        params = ", ".join(route["params"][:18])
-        if len(route["params"]) > 18:
-            params += " ..."
-        status = "Confirmed"
-        note = "Route and executor mapping confirmed from source."
-        if not route["executor"]:
-            status = "Need Engineer Confirmation"
-            note = "Route handler did not map cleanly to a CAPIBase URI executor in static analysis."
-        elif not route["tables"] and route["blueprint"] not in {"heartbeat", "user", "auth", "device"}:
-            status = "Need Engineer Confirmation"
-            note = "No ORM table reference inferred; confirm payload source and business behavior."
-        if any(method in {"POST", "PUT", "DELETE"} for method in route["methods"]):
-            if status == "Confirmed":
-                status = "Need Engineer Confirmation"
-                note = "Route exists, but write request body/set dataset requires endpoint-level confirmation before frontend mutation integration."
-        values = [
-            route["path"],
-            methods,
-            route["blueprint"],
-            route["uri_class"],
-            route["executor"],
-            executor_methods,
-            tables,
-            params,
-            status,
-            note,
-        ]
-        lines.append("| " + " | ".join(md_cell(value) for value in values) + " |")
-
-    lines += [
-        "",
-        "## Blueprint Summary",
-        "",
-        "| Blueprint | Route Count | Main Paths | Primary Tables Inferred | Confirmation Status |",
-        "| --- | ---: | --- | --- | --- |",
-    ]
-    for blueprint in sorted(by_blueprint):
-        routes_for_blueprint = by_blueprint[blueprint]
-        paths = ", ".join(route["path"] for route in routes_for_blueprint[:6])
-        if len(routes_for_blueprint) > 6:
-            paths += " ..."
-        tables = sorted({table for route in routes_for_blueprint for table in route["tables"]})
-        status = "Confirmed" if tables or blueprint in {"heartbeat", "user", "auth", "device"} else "Need Engineer Confirmation"
-        lines.append(
-            "| "
-            + " | ".join(
-                [
-                    md_cell(blueprint),
-                    str(len(routes_for_blueprint)),
-                    md_cell(paths),
-                    md_cell(", ".join(tables)),
-                    status,
-                ]
-            )
-            + " |"
-        )
-
-    lines += [
-        "",
-        "## Get/Set Dataset Documentation Status",
-        "",
-        "| Dataset Layer | Current Understanding | Status | Next Action |",
-        "| --- | --- | --- | --- |",
-        "| DB field meaning | Centralized in `docs/spec/database/index.md` | Partially confirmed | Engineer should resolve `Need Review` DB fields. |",
-        "| Existing GET payloads | Payload keys are implemented inside executor `get()` methods and wrapped under `{ payload }` | Partially inferred | Need runtime samples or engineer confirmation for each endpoint used by frontend. |",
-        "| Existing POST/PUT/DELETE bodies | Often map closely to ORM/table fields, but exact required/optional fields are not documented in source comments | Need Engineer Confirmation | Confirm per endpoint before frontend write integration. |",
-        "| Future dashboard GET datasets | Defined separately in frontend/API specs and should be implemented as read-only aggregation APIs | Planned | Start with Warehouse dashboard API. |",
-        "| Error dataset | `code` and `message` are common; detailed validation errors are not standardized | Need Engineer Confirmation | Define frontend-safe error handling contract. |",
-        "",
-        "## Engineer Confirmation Items",
-        "",
-        "Use this section as the working checklist with the backend engineer.",
-        "",
-        "| Priority | Item | Why It Matters | Suggested Owner | Status |",
-        "| --- | --- | --- | --- | --- |",
-        "| P0 | Confirm canonical auth behavior for local/dev/prod: `TOKEN_ENABLED`, `X_AUTH_TOKEN`, login/logout flow | Frontend API client and runtime tests need a stable auth rule | Engineer | Need Confirmation |",
-        "| P0 | Confirm exact request body convention for PUT and DELETE endpoints | Avoid frontend write integration mismatches | Engineer | Need Confirmation |",
-        "| P0 | Confirm `EErrorCode` values and frontend handling rules | Needed for shared error UI and tests | Engineer + Codex | Need Confirmation |",
-        "| P1 | Provide runtime sample responses for core read endpoints: warehouse, inventory, sale, purchase, workorder, batchtrace | Converts route inventory into precise API contract | Engineer | Need Confirmation |",
-        "| P1 | Confirm whether future V1 dashboard APIs should be new aggregation endpoints or composed from existing CRUD endpoints | Determines backend/frontend integration strategy | Engineer + Codex | Need Confirmation |",
-        "| P1 | Confirm date/time unit convention for `creationTime`, `start_time`, `end_time`, `date`, `month` | Prevents dashboard calculation errors | Engineer + User | Need Confirmation |",
-        "| P1 | Confirm enum/status values that are only visible as integers in API payloads | Needed for multilingual labels and visual status tones | Engineer + User | Need Confirmation |",
-        "| P2 | Add endpoint-level examples after runtime samples are available | Improves handoff and lowers future regression risk | Codex | Planned |",
-        "",
-        "## Recommended Backend Development Flow",
-        "",
-        "1. Keep existing CRUD route behavior stable unless a breaking change is explicitly agreed.",
-        "2. Add V1 read-only dashboard aggregation endpoints incrementally, beginning with Warehouse.",
-        "3. For each new endpoint, document the dataset before or alongside implementation.",
-        "4. Run runtime verification and store output under `docs/backend/runtime-verification/`.",
-        "5. Update this API index and the module-specific API spec when route behavior changes.",
-        "",
-        "## Done Criteria For API Documentation",
-        "",
-        "- Route exists in source and appears in this index.",
-        "- Request query/body fields are documented.",
-        "- Response `payload` fields are documented.",
-        "- Source DB tables and major fields are linked to `docs/spec/database/index.md`.",
-        "- Runtime sample exists for frontend-facing endpoints.",
-        "- Any ambiguous item is marked `Need Engineer Confirmation` rather than silently assumed.",
-    ]
-
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"wrote {OUT.relative_to(ROOT)}")
-    print(f"routes={len(routes)} blueprints={len(by_blueprint)} table_classes={len(table_map)}")
+    modules = extract_uri_modules()
+    executors = extract_executor_info(table_map)
+    write_api_index(modules)
+    for module in modules:
+        write_module_doc(module, executors)
+    route_count = sum(len(module["routes"]) for module in modules)
+    print(f"modules={len(modules)} routes={route_count} output={rel(API_OUT_DIR)}")
 
 
 if __name__ == "__main__":

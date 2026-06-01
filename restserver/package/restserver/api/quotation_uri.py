@@ -17,8 +17,7 @@ class CQuotationURI(CAPIBase):
         return True if not self._is_get_method() else False
 
 
-
-@quotation.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@quotation.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CQuotationURI()
     return obj_uri.run()

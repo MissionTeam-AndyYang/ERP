@@ -57,32 +57,6 @@ class CAPIQuotation(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
     def __fill_query_params(self):
         dict_where = {}
         if request.args.get('start_time') and request.args.get('end_time'):

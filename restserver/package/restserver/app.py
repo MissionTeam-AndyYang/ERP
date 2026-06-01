@@ -6,7 +6,6 @@ from flask import Flask
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 
 from package.log.log import CLogger
-from package.restserver.api.auth_uri import auth
 from package.restserver.api.enterprise_uri import enterprise
 from package.restserver.api.company_uri import company
 from package.restserver.api.sale_uri import sale
@@ -41,7 +40,6 @@ def create_app():
     app = Flask(__name__)
 
     lst_blueprints = [
-        auth,
         enterprise,
         sale,
         purchase,

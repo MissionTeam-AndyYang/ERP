@@ -13,9 +13,9 @@ SYSTEM_ID = "999999999999"
 class EUnit():
     NONE = 0        # 無單位
     GRAM = 1        # 公克
-    TAIJIN = 2      # 台斤
-    KILOGRAM = 3    # 公斤
-
+    KILOGRAM = 2    # 公斤
+    TAIJIN = 3      # 台斤
+    
     CM = 51          # 公分 50
     METER = 52       # 公尺 51
 

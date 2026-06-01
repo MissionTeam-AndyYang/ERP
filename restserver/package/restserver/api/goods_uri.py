@@ -17,7 +17,7 @@ class CGoodsURI(CAPIBase):
         return True if not self._is_get_method() else False
 
 
-@goods.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@goods.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CGoodsURI()
     return obj_uri.run()

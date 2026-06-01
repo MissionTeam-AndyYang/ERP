@@ -17,7 +17,7 @@ class CProductURI(CAPIBase):
         return True if not self._is_get_method() else False
 
 
-@product.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@product.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CProductURI()
     return obj_uri.run()

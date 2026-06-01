@@ -48,7 +48,7 @@ def assignment():
     return obj_uri.run()
 
 
-@work.route(URL_PATH+'/'+SUBKEY+'/process', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@work.route(URL_PATH+'/'+SUBKEY+'/process', methods=['GET', 'POST'])
 def process_order():
     obj_uri = CProcessOrderURI()
     return obj_uri.run()

@@ -17,7 +17,7 @@ class CCompanyURI(CAPIBase):
         return True if self._is_post_method() or self._is_put_method() else False
 
 
-@company.route(URL_PATH + '/' + SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@company.route(URL_PATH + '/' + SUBKEY, methods=['GET'])
 def index():
     obj_uri = CCompanyURI()
     return obj_uri.run()

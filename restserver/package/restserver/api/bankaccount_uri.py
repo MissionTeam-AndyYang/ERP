@@ -17,7 +17,7 @@ class CBankAccountURI(CAPIBase):
         return True if not self._is_get_method() else False
 
 
-@bankaccount.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@bankaccount.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CBankAccountURI()
     return obj_uri.run()

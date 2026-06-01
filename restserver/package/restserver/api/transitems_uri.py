@@ -25,7 +25,7 @@ class CTransItemsItemURI(CAPIBase):
         return True if not self._is_get_method() else False
 
 
-@transitems.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@transitems.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CTransItemsURI()
     return obj_uri.run()

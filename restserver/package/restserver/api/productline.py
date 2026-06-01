@@ -72,32 +72,6 @@ class CProcess(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
 
     def __fill_query_params(self):
         lst_where = []
@@ -166,33 +140,6 @@ class CProductLine(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-
     def __fill_query_params(self):
         lst_where = []
         if request.args.get('oneProcess'):
@@ -245,33 +192,6 @@ class CStation(CPrivilegeControl):
             CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
-
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
 
     def __fill_query_params(self):
         lst_where = []
@@ -334,32 +254,6 @@ class CEquipment(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='', str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
     def __fill_query_params(self):
         lst_where = []
         return lst_where
@@ -403,32 +297,6 @@ class CFactory(CPrivilegeControl):
             str_message = 'throw exception (error: %s)' % str(error)
             CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
                           % (self.__class__.__name__, str(error)))
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='', str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
         return n_status_code, n_code, str_message, dict_extra_data
 
     def __fill_query_params(self):

@@ -77,39 +77,6 @@ class CShipWarehouse(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        try:
-            pass
-        except Exception as error:
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                          % (self.__class__.__name__, str(error)))
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_param = request.get_json()
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-
     def __fill_query_params(self):
         lst_where = []
         if request.args.get('category'):
@@ -189,32 +156,7 @@ class CShipWarehouseContract(CPrivilegeControl):
 
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
 
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='', str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
 
     def __fill_query_params(self):
         lst_where = []
@@ -347,53 +289,6 @@ class CShippingRec(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {
-                                        "company_no": {'type': 'string'},
-                                        "company_displayName": {'type': 'string'},
-                                        "displayName": {'type': 'string'},
-                                        "region": {'type': 'integer'},
-                                        "category": {'type': 'integer'},
-                                        "subCategory": {'type': 'integer'},
-                                        "unit": {'type': 'integer'},
-                                        "validDate": {'type': 'integer'},
-                                        "maxCapacity": {'type': 'number'},
-                                        "price": {'type': 'number'},
-                                        "comment": {'type': 'string', 'blank': True}
-                                    }
-                        }
-        try:
-            pass
-        except Exception as error:
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                          % (self.__class__.__name__, str(error)))
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_param = request.get_json()
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
 
     def __fill_query_params(self):
         lst_where = []
@@ -492,32 +387,6 @@ class CShipPayment(CPrivilegeControl):
             n_code = EErrorCode.ERROR_OTHER_ERROR
             str_message = f'throw exception (error: {error})'
             CLogger().log(CLogger.LOG_LEVELERROR, f'[{self.__class__.__name__}] {str_message}')
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='', str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
 
         return n_status_code, n_code, str_message, dict_extra_data
 
@@ -673,58 +542,10 @@ class CWarehouseRec(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {
-                                        "company_no": {'type': 'string'},
-                                        "company_displayName": {'type': 'string'},
-                                        "displayName": {'type': 'string'},
-                                        "region": {'type': 'integer'},
-                                        "category": {'type': 'integer'},
-                                        "subCategory": {'type': 'integer'},
-                                        "unit": {'type': 'integer'},
-                                        "validDate": {'type': 'integer'},
-                                        "maxCapacity": {'type': 'number'},
-                                        "price": {'type': 'number'},
-                                        "comment": {'type': 'string', 'blank': True}
-                                    }
-                        }
-        try:
-            pass
-        except Exception as error:
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                          % (self.__class__.__name__, str(error)))
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_param = request.get_json()
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
 
 
     def __fill_query_params(self):
         lst_where = []
-
-
         return lst_where
 
 
@@ -817,32 +638,6 @@ class CWarehousePayment(CPrivilegeControl):
             n_code = EErrorCode.ERROR_OTHER_ERROR
             str_message = f'throw exception (error: {error})'
             CLogger().log(CLogger.LOG_LEVELERROR, f'[{self.__class__.__name__}] {str_message}')
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='', str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
 
         return n_status_code, n_code, str_message, dict_extra_data
 

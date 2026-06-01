@@ -123,36 +123,6 @@ class CBatchNumber(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-
-    def put(self, str_timezone='', str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-
     def __fill_query_params(self):
         lst_where = []
         if request.args.get('item_ref_no'):
@@ -167,7 +137,6 @@ class CBatchNumber(CPrivilegeControl):
             #lst_where.append(CTableBatchNumber.refCategory == int(request.args.get('category')))
             lst_where.append(CTableBatchNumber.refCategory.in_(lst_category))
         return lst_where
-
     def __get_stock_type(self, n_validDays, n_validDate):
         n_type = self.TYPE_STOCK
         n_now = util_retrieve_now_time()

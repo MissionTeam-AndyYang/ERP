@@ -41,11 +41,10 @@ class CProductProcessURI(CAPIBase):
     def _is_vaildate_param(self):
         return True if self._is_post_method() or self._is_put_method() else False
 
-@bom.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@bom.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CBomURI()
     return obj_uri.run()
-
 
 
 @bom.route(URL_PATH+'/'+SUBKEY+'/tree', methods=['GET'])

@@ -48,22 +48,14 @@ class CMonthsURI(CAPIBase):
     def _is_vaildate_param(self):
         return True if self._is_post_method() or self._is_put_method() else False
 
-class CInventoryTempURI(CAPIBase):
 
-    def _get_executor(self):
-        return CInventoryTemp()
-
-    def _is_vaildate_param(self):
-        return True if self._is_post_method() or self._is_put_method() else False
-
-
-@inventory.route(URL_PATH + '/' + SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@inventory.route(URL_PATH + '/' + SUBKEY, methods=['GET'])
 def index():
     obj_uri = CInventoryURI()
     return obj_uri.run()
 
 
-@inventory.route(URL_PATH + '/' + SUBKEY+ '/price', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@inventory.route(URL_PATH + '/' + SUBKEY+ '/price', methods=['GET'])
 def price():
     obj_uri = CPriceURI()
     return obj_uri.run()
@@ -81,10 +73,6 @@ def items():
     return obj_uri.run()
 
 
-@inventory.route(URL_PATH + '/' + SUBKEY+ '/record', methods=['POST'])
-def temp():
-    obj_uri = CInventoryTempURI()
-    return obj_uri.run()
 
 @inventory.route(URL_PATH + '/' + SUBKEY+ '/months', methods=['GET'])
 def months():

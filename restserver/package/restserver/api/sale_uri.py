@@ -57,13 +57,13 @@ class CContractURI(CAPIBase):
         return True if not self._is_get_method() else False
 
 
-@sale.route(URL_PATH+'/'+SUBKEY+'/productorder', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@sale.route(URL_PATH+'/'+SUBKEY+'/productorder', methods=['GET'])
 def order():
     obj_uri = CProductOrderURI()
     return obj_uri.run()
 
 
-@sale.route(URL_PATH+'/'+SUBKEY+'/shippingorder', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@sale.route(URL_PATH+'/'+SUBKEY+'/shippingorder', methods=['GET'])
 def shippingOrder():
     obj_uri = CShippingOrderURI()
     return obj_uri.run()
@@ -73,12 +73,12 @@ def statistic():
     obj_uri = CStatisticURI()
     return obj_uri.run()
 
-@sale.route(URL_PATH+'/'+SUBKEY+'/payment', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@sale.route(URL_PATH+'/'+SUBKEY+'/payment', methods=['GET'])
 def payment():
     obj_uri = CPaymentURI()
     return obj_uri.run()
 
-@sale.route(URL_PATH+'/'+SUBKEY+'/contract', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@sale.route(URL_PATH+'/'+SUBKEY+'/contract', methods=['GET'])
 def contract():
     obj_uri = CContractURI()
     return obj_uri.run()

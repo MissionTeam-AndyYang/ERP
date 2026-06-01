@@ -214,6 +214,7 @@ class CMixItem(CPrivilegeControl):
             CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
                           % (self.__class__.__name__, str(error)))
         return dict_bom
+
 class CItemPrice(CPrivilegeControl):
 
     def get(self, str_timezone='', str_id=''):

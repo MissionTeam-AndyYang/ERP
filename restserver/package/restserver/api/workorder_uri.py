@@ -42,7 +42,7 @@ class CStatisticURI(CAPIBase):
         return True if self._is_post_method() or self._is_put_method() else False
 
 
-@workorder.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@workorder.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CWorkOrderURI()
     return obj_uri.run()

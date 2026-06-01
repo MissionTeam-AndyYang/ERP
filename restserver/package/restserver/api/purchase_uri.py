@@ -56,13 +56,13 @@ class CContractURI(CAPIBase):
     def _is_vaildate_param(self):
         return True if not self._is_get_method() else False
 
-@purchase.route(URL_PATH+'/'+SUBKEY+'/purchaseorder', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@purchase.route(URL_PATH+'/'+SUBKEY+'/purchaseorder', methods=['GET'])
 def order():
     obj_uri = CPurchaseOrderURI()
     return obj_uri.run()
 
 
-@purchase.route(URL_PATH+'/'+SUBKEY+'/goodsreceiptnote', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@purchase.route(URL_PATH+'/'+SUBKEY+'/goodsreceiptnote', methods=['GET'])
 def goodsreceiptnote():
     obj_uri = CGoodsReceiptNoteURI()
     return obj_uri.run()
@@ -72,12 +72,12 @@ def statistic():
     obj_uri = CStatisticURI()
     return obj_uri.run()
 
-@purchase.route(URL_PATH+'/'+SUBKEY+'/payment', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@purchase.route(URL_PATH+'/'+SUBKEY+'/payment', methods=['GET'])
 def payment():
     obj_uri = CPaymentURI()
     return obj_uri.run()
 
-@purchase.route(URL_PATH+'/'+SUBKEY+'/contract', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@purchase.route(URL_PATH+'/'+SUBKEY+'/contract', methods=['GET'])
 def contract():
     obj_uri = CContractURI()
     return obj_uri.run()

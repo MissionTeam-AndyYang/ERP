@@ -153,31 +153,6 @@ class CPrice(CPrivilegeControl):
                               % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
 
 class CItems(CPrivilegeControl):
     def get(self, str_timezone='', str_id=''):
@@ -394,35 +369,6 @@ class CInventory(CPrivilegeControl):
 
         return lst_result
 
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-
-    def put(self, str_timezone='', str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
 
     def __fill_query_params(self):
         lst_where = []
@@ -522,65 +468,3 @@ class CStatistics(CPrivilegeControl):
         return n_status_code, n_code, str_message, dict_extra_data
 
 
-
-
-class CInventoryTemp(CPrivilegeControl):
-    def post(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {
-                           "batch_number": {'type': 'string'},
-                           "count": {'type': 'number'}
-                       }}
-        try:
-            dict_param = request.get_json()
-            validictory.validate(dict_param, dict_schema)
-            with CDBMgr() as obj_dbmgr:
-                obj_session = obj_dbmgr.get_session()
-                self.__insert_inventoryRec(obj_session,  dict_param.get("batch_number", ""),  dict_param.get("count", 0))
-        except Exception as error:
-            n_code = EErrorCode.ERROR_OTHER_ERROR
-            str_message = 'throw exception (error: %s)' % str(error)
-            CLogger().log(CLogger.LOG_LEVELERROR, '[%s] throw exception (error: %s)'
-                          % (self.__class__.__name__, str(error)))
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def __insert_inventoryRec(self, obj_session, str_batch_no, f_count):
-        n_date = util_retrieve_now_time()  # client 提供
-        str_group = str(uuid.uuid4()).replace("-", "")
-
-        obj_batch = (
-            obj_session.query(CTableBatchNumber)
-            .filter(CTableBatchNumber.no == str_batch_no)
-            .first()
-        )
-
-        if obj_batch:
-            n_unit, f_price = CPrice().get(obj_batch.item_no, obj_batch.itemCategory)
-            dict_inventory = {
-                "creator_id": "",
-                "group": str_group,
-                "ref_no": "",
-                "warehouse_no": "WH4250218PDL",
-                "warehouse_displayName": "恆旺_台中",
-                "date": n_date,
-                "category": 2,  # 出入庫
-                "source": 2,  # 緣由
-                "batchNumber": str_batch_no,
-                "item_no": obj_batch.item_no if obj_batch else "",
-                "item_name": obj_batch.item_name if obj_batch else "",
-                "item_ref_no": obj_batch.item_ref_no if obj_batch else "",
-                "item_ref_displayName": obj_batch.item_ref_displayName if obj_batch else "",
-                "itemCategory": obj_batch.itemCategory if obj_batch else 0,
-                "itemType": obj_batch.itemType if obj_batch else 0,
-                "unit": obj_batch.unit,
-                "price": f_price,
-                "count": f_count,
-                "amount": round(f_count * f_price, 0),
-                "comment": ""
-            }
-            CCInventroyRec().add(str_group, dict_inventory)

@@ -18,7 +18,7 @@ class CContractURI(CAPIBase):
 
 
 
-@contract.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@contract.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CContractURI()
     return obj_uri.run()

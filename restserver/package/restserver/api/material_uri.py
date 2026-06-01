@@ -27,7 +27,7 @@ class CItemPriceURI(CAPIBase):
 
 
 
-@material.route(URL_PATH+'/'+SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@material.route(URL_PATH+'/'+SUBKEY, methods=['GET'])
 def index():
     obj_uri = CMaterialURI()
     return obj_uri.run()

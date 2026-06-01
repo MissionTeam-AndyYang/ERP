@@ -118,35 +118,6 @@ class CMaterial(CPrivilegeControl):
                           % (self.__class__.__name__, str(error)))
         return n_status_code, n_code, str_message, dict_extra_data
 
-
-    def post(self, str_timezone='' , str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def put(self, str_timezone='' , str_id=''):
-        dict_param = {}
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-        dict_schema = {'type': 'object',
-                       'properties': {}}
-
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
-    def delete(self, str_timezone='', str_id=''):
-        str_message = 'success'
-        n_status_code = 200
-        n_code = EErrorCode.ERROR_SUCCESS
-        dict_extra_data = {}
-
-        return n_status_code, n_code, str_message, dict_extra_data
-
     def __fill_query_params(self):
         lst_where = []
 
@@ -165,26 +136,6 @@ class CMaterial(CPrivilegeControl):
 
         return lst_where
 
-    def __retrieve_supplier_displayName(self, obj_session, str_supplier_no):
-
-        lst_result = (
-            obj_session.query(CTableCompany.displayName)
-            .filter(CTableCompany.no == str_supplier_no)
-            .all()
-        )
-        return lst_result[0][0] if lst_result else ""
-
-
-    def __gen_no(self, n_category, n_subCategory):
-        str_type = ''
-        if n_category == EMaterialType.PM:
-            str_type = 'PM'
-        elif n_category == EMaterialType.MA:
-            str_type = 'MA'
-        elif n_category == EMaterialType.AF:
-            str_type = 'AF'
-        str_no = "%s%02d" %(str_type, n_subCategory) + util_random_code(5)
-        return str_no
 
 class CItemPrice(CPrivilegeControl):
 

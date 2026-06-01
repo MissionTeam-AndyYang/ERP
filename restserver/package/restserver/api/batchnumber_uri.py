@@ -18,8 +18,7 @@ class CBatchNumberURI(CAPIBase):
 
 
 
-
-@batchnumber.route(URL_PATH + '/' + SUBKEY, methods=['GET', 'POST', 'PUT', 'DELETE'])
+@batchnumber.route(URL_PATH + '/' + SUBKEY, methods=['GET'])
 def index():
     obj_uri = CBatchNumberURI()
     return obj_uri.run()

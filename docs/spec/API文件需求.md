@@ -7,14 +7,13 @@
 
 ## 1. 輸出位置
 docs/spec/api/index.md
-若已存在 index.md, 改名為 index_YYYYMMDD.md
 
 
 ## 2. 文件架構
 
 使用 Markdown（.md），需符合以下結構：
 
-### (1) 單一入口文件（index.md）
+### 2.1 單一入口文件（index.md）
 
 用途：
 
@@ -28,7 +27,7 @@ docs/spec/api/index.md
 
 ---
 
-### (2) API Module 分組規則
+### 2.2 API Module 分組規則
 
 API 必須依照以下規則分類：
 
@@ -42,7 +41,7 @@ API 必須依照以下規則分類：
 
 ---
 
-### (3) 排序規則
+### 2.3 排序規則
 
 所有 API module 必須依：
 
@@ -58,7 +57,7 @@ API 必須依照以下規則分類：
 
 
 ---
-### (4) Module 文件結構
+## 4. Module 文件結構
 
 每個 Module 文件（{module}.md）必須包含：
 
@@ -68,7 +67,7 @@ API 必須依照以下規則分類：
 API Summary 不得獨立成檔案。
 
 
-## 3. API Summary
+## 5. API Summary
    規則
 
    - API Summary 僅作「索引」，不得描述細節。
@@ -86,30 +85,20 @@ API Summary 不得獨立成檔案。
    |/user/login|POST|使用帳號密碼登入| OK | OK |
 
 
-   #### (1) Description欄位
-      產生規則優先順序：
-      1. Python class/docstring
-      2. Python function/docstring
-      3. validate schema欄位名稱與程式流程推導
-      4. 若無法明確判斷 → Need Review
+   ### 5.1 Description欄位 和 狀態欄位 和 Review Note欄位
+      規則：
+      1. route 名稱
+      2. class 名稱
+      3. function 名稱
+      4. validate schema
+      5. Processing Flow
+      6. Database Tables Used
 
-   #### (2) 狀態欄位 和 Review Note欄位
+      若以上資訊可合理推導 API 目的，
+      應產生 Description。
 
-   請依據以下規則判定欄位狀態：
-
-   - OK（必須同時符合）
-      - route 存在於 *_uri.py
-      - HTTP method 可從 decorator 明確取得
-      - Request schema（若有 validate / schema）可明確解析
-      - Response 結構可從 code 推導或明確 return
-
-   - Need Review  （任一符合）
-      - 無法從 code 明確找到 request schema
-      - response 結構為 dynamic / dict 拼接
-      - business logic 需推測
-      - database relation 不明確
-      - 欄位語意不足
-
+      僅在無法合理推導 API 目的時，
+      狀態欄位才標示 Need Review。
 
    範例：
 
@@ -119,7 +108,7 @@ API Summary 不得獨立成檔案。
    | /user/login | Need Review | 無法確認用途 | 
 
 
-## 4. Individual API Specification
+## 6. Individual API Specification
    - URL
    - HTTP Method
    - Description
@@ -135,7 +124,7 @@ API Summary 不得獨立成檔案。
 
       ---
 
-      ### (1) 基本資訊
+      ### 6.1 基本資訊
       
       需列出：
       - URL
@@ -147,20 +136,20 @@ API Summary 不得獨立成檔案。
       |----------|----------|----------------|
       |/user/login|POST|使用帳號密碼登入|
       
-         Description欄位產生規則優先順序：
-         1. Python class/docstring
-         2. Python function/docstring
-         3. validate schema欄位名稱與程式流程推導
-         4. 若無法明確判斷 → Need Review
+      Description欄位產生規則：
+      同 5.1
 
       ---
 
 
-      ### (2) Request Header
-
-      需列出：
-      - Content-Type
-      - token（若有）
+      ### 6.2 Request Header
+      規則
+      1. 需列出：
+         - Content-Type
+         - x-auth-token 被 disable, 必須標示 "Not required", 不得保留原始技術描述
+      2. 必須轉換 framework override 為「業務語意」
+      3. 不得輸出 framework 描述語句（如 override / base class / required by system）
+     
 
       範例:
       | Header | Description 
@@ -170,14 +159,30 @@ API Summary 不得獨立成檔案。
 
       ---
 
-      ### (3) Query Parameters
+      ### 6.3 Query Parameters
       若無 → 明確標示 None
+      若有 → 依據以下規則
+      1. 需列出：
+         - Parameter 
+         - Type
+         - Required
+         - Description
 
-      需列出：
-      - Parameter 
-      - Type
-      - Required
-      - Description
+      2. 推導規則
+         -  參數在 if/where/filter 使用語境
+         -  ORM filter condition
+         -  service function usage
+         -  variable naming semantics
+         -  API route context
+         如果可推導，必須輸出具體語意
+         
+         只有在以下情況才允許標記 unknown：
+         - parameter 未被任何 code 使用
+         - request.args.get 後未進入任何 logic
+
+         不得輸出以下內容：
+         - Derived from request.args.get usage
+         - semantic description requires review
 
       範例:
       | Parameter | Type | Required | Description 
@@ -187,7 +192,7 @@ API Summary 不得獨立成檔案。
 
       ---
 
-      ### (4) Request Body
+      ### 6.4 Request Body
 
       Request Body 規則：
 
@@ -210,6 +215,28 @@ API Summary 不得獨立成檔案。
       3. 當 Object 超過 3 層巢狀時：
          - 保留完整 JSON Structure。
          - 表格僅列出實際欄位，不列出中繼 Object。
+
+      4. 推導規則
+
+         允許從以下來源取得：
+
+          - validate(schema)
+          - jsonschema
+          - request.get_json()
+         -  request.json
+         -  request.form
+
+         Required 判定規則：
+
+         若符合以下任一條件：
+          - required = true
+          - required=[]
+          - minLength > 0
+
+         程式碼明確檢查欄位存在
+         則標示：YES
+         否則標示：NO
+         若無法判定：Need Review
 
       範例:
 
@@ -244,7 +271,7 @@ API Summary 不得獨立成檔案。
 
       ---
 
-      ### (5) Success Response Data
+      ### 6.5 Success Response Data
       規則：
 
       1. Response Data Structure
@@ -265,6 +292,69 @@ API Summary 不得獨立成檔案。
          - 保留完整 JSON Structure。
          - 表格僅列出實際欄位，不列出中繼 Object。
 
+      4. 推導規則
+         Response Data 不得僅依據 return statement 判定。
+
+         允許沿著程式碼路徑進行追蹤：
+
+          - function call
+          - class method call
+          - helper function
+          - service layer
+          - response wrapper
+          - inheritance
+
+         可追蹤：
+          - dict
+          - list
+          - object
+          - ORM model
+         
+         ### Response Wrapper 分析規則
+         若 API 最終回傳經過共用封裝：
+
+         例如：
+         return obj_uri.run()
+         必須向上追蹤至實際 Response Builder。
+
+         允許分析：
+          - Base URI
+          - Common Response Class
+          - Response Utility
+          - Framework Wrapper
+
+         ### Dict 組裝規則
+
+         若程式碼出現：
+
+         dict_extra_data = {
+            "token": str_token,
+            "user": dict_user
+         }
+
+         或：
+
+         payload = {}
+         payload["token"] = str_token
+
+         應視為可解析 Response。
+
+         必須展開實際欄位。
+
+         不得因以下命名而標示 Need Review：
+          - dict_data
+          - dict_extra_data
+          - payload
+          - response_data
+          - result_data
+
+
+         若可解析最終 Response Structure：
+         應產出完整 Success Response Data。
+
+         僅在無法找到最終 Response 格式時：
+         標示 Need Review。
+
          範例:
          ```json
             {
@@ -280,7 +370,7 @@ API Summary 不得獨立成檔案。
          |----------|----------|------|---|
          |data.token|string|存取金鑰||
 
-      ###  (6)  Failed Response Data
+      ###  6.6  Failed Response Data
       規則：
       - 使用表格說明欄位, 需列出：
          - Field Path 
@@ -295,42 +385,147 @@ API Summary 不得獨立成檔案。
 
 
 
-      ###  (7) Processing Flow
-      規則：
+      ###  6.7 Processing Flow
 
-      - 必須依據 Python code execution path
-      - 不可推測未出現在 code 的步驟
+      #### 禁止
 
-      範例：
-      ```
-         1.驗證 request body schema
-         2.查詢 member 資料表
-         3.使用 Argon2 驗證密碼
-         4.產生 UUID token
-         5.新增 session 資料
-         6.回傳 token 與 user 資訊
-      ```
+      Processing Flow 不可包含以下內容：
 
-      ###  (8) Database Tables Used
+      - Flask routing process
+      - CAPIBase.run()
+      - executor lifecycle
+      - framework wrapper flow
+      - request lifecycle generic steps
+
+      ---
+
+      #### 必須
+
+      必須描述：
+
+      「此 API 實際業務邏輯執行流程」
+
+      來源必須來自：
+
+      - controller logic
+      - service logic
+      - ORM query
+      - validation logic
+      - response construction
+
+      ---
+
+      #### 範例（login API）
+
+      1. 驗證 username / password
+      2. 查詢 member table
+      3. 使用 Argon2 驗證密碼
+      4. 查詢 employee 資料
+      5. 建立 session token
+      6. 寫入 session table
+      7. 回傳 token + user info
+
+      ---
+
+      ###  6.8 Database Tables Used
       規則：
       - 使用表格說明, 需列出：  
          - Table
          - Purpose          
-      
-      - 必須從 ORM / SQLAlchemy / query 推導
-      - 不可猜測
-      - 不可補充不存在關聯
+      - 必須進行跨函式追蹤
+         允許：
+
+         API Layer
+         → Service Layer
+         → Business Layer
+         → 從 ORM / SQLAlchemy / query 推導
+
+         只要可由程式碼路徑追溯，即列入文件。
+     
 
       範例：
       | Table | Purpose| 
       |----------|------|
       |member|驗證帳號|
-         
-## 5. 文件處理規則
 
-1. 所有內容必須來自程式碼或資料庫文件。
-2. 不得推測、補完或自行設計 API。
-3. 無法確認之內容必須標示 Need Review。
-4. Need Review 優先於推測。
-5. 文件內容必須可追溯至實際程式碼。
-6. 若程式碼與資料庫文件衝突，以程式碼為主，並標示 Need Review。
+      範例：
+
+      API
+      → CAuth.login()
+      → query(CTableMember)
+      → insert(CTableSession)
+
+      應列出：
+      | Table | Purpose| 
+      |----------|------|
+      |member|驗證登入帳號|
+      |session|建立登入 Session|
+
+
+   不得因資料表出現在其他 function 而忽略。
+## 7. 保留 Need Review 條件
+
+      僅在以下情況允許保留 Need Review：
+
+      - Response Key 動態產生
+      - Runtime Reflection
+      - eval()
+      - 動態 ORM Mapping
+      - 無法找到實際 Response Wrapper
+      - API 用途無法合理推導
+
+      必須於 Review Note 說明原因。
+
+      不得使用：
+
+      "Cannot determine"
+
+      作為唯一說明。
+
+      必須具體指出：
+
+      - 哪個欄位無法確認
+      - 哪個 function 無法追蹤
+      - 哪個 response 無法解析
+
+## 8. 文件處理規則
+1. 允許：
+   允許分析範圍：
+   - route decorator (*_uri.py)
+   - controller class
+   - service / business layer
+   - helper function
+   - ORM model
+   - SQLAlchemy query
+   - response wrapper / base response
+   - dict / DTO / object mapping
+   - 跨檔案分析
+   - 跨 class 分析
+   - 跨 function 分析
+
+   必須允許跨 function / class 追蹤，不得只看單一函式。
+  
+
+2. 所有內容必須來自程式碼或資料庫文件。
+3. 不得推測不存在的 API。
+4. 不得自行設計 Response。
+5. 文件內容必須可追溯至程式碼。
+6. Code Review 優先於 Need Review。
+7. 若程式碼與資料庫文件衝突，以程式碼為主，並於 Review Note 說明。
+
+## 9. Documentation Quality Rules
+
+   產生文件前，
+
+   必須完成：
+
+    - Request Schema Analysis
+    - Query Parameter Analysis
+    - Response Analysis
+    - ORM Analysis
+    - Processing Flow Analysis
+    - Database Usage Analysis
+
+   完成上述分析後才允許輸出文件。
+
+   

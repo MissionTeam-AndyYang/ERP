@@ -35,6 +35,7 @@ from package.restserver.api.heartbeat_uri import heartbeat
 from package.restserver.api.goods_uri import goods
 from package.restserver.api.quotation_uri import quotation
 from package.restserver.api.plstatistics_uri import plstatistics
+from package.restserver.api.item_uri import item
 
 def create_app():
     app = Flask(__name__)
@@ -64,7 +65,8 @@ def create_app():
         heartbeat,
         goods,
         quotation,
-        plstatistics
+        plstatistics,
+        item
     ]
 
     for obj_bp in lst_blueprints:

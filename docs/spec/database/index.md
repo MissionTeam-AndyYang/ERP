@@ -443,8 +443,8 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT primary identifier. |  | OK | AUTO_INCREMENT primary identifier. |
 | hardwareId | VARCHAR(128) | No |  |  | 電子秤設備ID |  | OK | Description, FK, enum, or index context is now sufficient to identify field purpose. |
 | role | INT | Yes |  |  | 設備角色 | 倉庫(1)、前備1(2) 、前備2(3)、加工(4) 、包裝(5) | OK | Description, FK, enum, or index context is now sufficient to identify field purpose. |
-| action | INT | Yes |  |  | 行為 | 採購入庫-進貨(1)、產製入庫-餘/廢/產(2)、產製退回入庫-收料(3)、銷售退回入庫(4)、其他入庫(5)、採購退回出庫(11)、產製出庫-發料(12)、銷售出庫(13)、其他出庫(14)、產製入產-領料(21)、產製出產-餘/廢/產(22)、產製出產-退料(23) | Need Review | Field description only says action/behavior; code value domain is not defined in SQL or database document. |
-| data | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 回傳資料 |  | Need Review | Column type is longtext payload, but value definition lists inventory/action-like codes. Confirm actual JSON/text structure and value meaning. |
+| action | INT | Yes |  |  | 行為 | 採購入庫-進貨(1)、產製入庫-餘/廢/產(2)、產製退回入庫-收料(3)、銷售退回入庫(4)、其他入庫(5)、採購退回出庫(11)、產製出庫-發料(12)、銷售出庫(13)、其他出庫(14)、產製入產-領料(21)、產製出產-餘/廢/產(22)、產製出產-退料(23) | OK | Enum definition and field description identify this as the device log action code. |
+| data | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 回傳資料 |  | Need Review | Field is documented as returned data, but longtext payload structure is not defined in SQL or database document. |
 | creationTime | INT | Yes |  |  | 資料建立時間 |  | OK | Creation timestamp field; confirm timestamp unit with backend convention. |
 
 
@@ -848,7 +848,7 @@
 | id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT primary identifier. |  | OK | AUTO_INCREMENT primary identifier. |
 | date | INT | No | UK(uq_labor_wage_composite) |  | 生效日期 |  | OK | Description, FK, enum, or index context is now sufficient to identify field purpose. |
 | type | INT | No | UK(uq_labor_wage_composite) |  | 員工型態 | 正職(1)、兼職(2) | OK | Description, FK, enum, or index context is now sufficient to identify field purpose. |
-| level | INT | No | UK(uq_labor_wage_composite) |  | 員工階級 | 主管(1) | Need Review | Enum definition appears incomplete; only one visible value is documented. Confirm complete employee level values. |
+| level | INT | No | UK(uq_labor_wage_composite) |  | 員工階級 | 主管(1) | OK | Field description and enum identify this as employee wage level; current enum contains `??(1)` only, extend if additional levels are added. |
 | hourly | INT | Yes |  |  | 時薪 |  | OK | Description, FK, enum, or index context is now sufficient to identify field purpose. |
 | creationTime | INT | Yes |  |  | Creation timestamp field; confirm timestamp unit with backend convention. |  | OK | Creation timestamp field; confirm timestamp unit with backend convention. |
 
@@ -1793,7 +1793,7 @@
 | name | VARCHAR(60) | No | UK(uq_user_group_composite) |  | 使用組名稱；UNIQUE KEY；varchar(60) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | role | INT | Yes |  |  | 角色；int數值如下其中之一1. 管理者2. 執行者(一般使用者)3. 經營者 | 管理者(1)、 一般使用者(2)、 經營者(3) | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | users | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 員工no，關聯至employee資料表；longtext |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
-| privileges | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 權限清單 | 此欄位為預先保留，尚未定義或確認具體數值 | Need Review | Privilege list structure is not defined. Confirm JSON/text schema and allowed privilege codes. |
+| privileges | longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin | Yes |  |  | 權限清單 | 此欄位為預先保留，尚未定義或確認具體數值 | Need Review | Database document marks this as reserved/undefined; privilege list JSON/text schema and allowed codes are not defined. |
 
 
 

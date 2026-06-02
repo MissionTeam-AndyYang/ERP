@@ -164,15 +164,17 @@ def type_from_ast(node):
         if node.value is None:
             return "Null"
     if isinstance(node, ast.List):
-        return "Array"
+        return "Need Review"
     if isinstance(node, ast.Dict):
-        return "Object"
+        return "Need Review"
     if isinstance(node, ast.Call):
         if isinstance(node.func, ast.Name) and node.func.id in {"util_retrieve_now_time", "int"}:
             return "Integer"
         if isinstance(node.func, ast.Name) and node.func.id in {"get_server_id", "str"}:
             return "String"
-        return "Object"
+        if isinstance(node.func, ast.Name) and node.func.id in {"len"}:
+            return "Integer"
+        return "Need Review"
     if isinstance(node, ast.Name):
         return {
             "str_token": "String",
@@ -180,8 +182,8 @@ def type_from_ast(node):
             "n_code": "Integer",
             "n_status_code": "Integer",
             "n_total": "Integer",
-        }.get(node.id, "Object")
-    return "Object"
+        }.get(node.id, "Need Review")
+    return "Need Review"
 
 
 def load_db_fields():
@@ -451,9 +453,15 @@ def flatten_structure(prefix, obj):
         for key, value in obj.items():
             path = f"{prefix}.{key}" if prefix else key
             if isinstance(value, dict):
-                rows.extend(flatten_structure(path, value))
+                if value:
+                    rows.extend(flatten_structure(path, value))
+                else:
+                    rows.append((path, "Need Review"))
             elif isinstance(value, list):
-                rows.append((path, "Array"))
+                if value and isinstance(value[0], dict):
+                    rows.extend(flatten_structure(path + "[]", value[0]))
+                else:
+                    rows.append((path, "Need Review"))
             else:
                 rows.append((path, value))
     else:
@@ -500,6 +508,8 @@ def extract_method_info(class_node, table_map, db_fields, service_tables):
                     elif name:
                         if isinstance(sub.value, ast.Dict):
                             local_structures[name] = dict_structure_from_ast(sub.value, local_structures)
+                        elif isinstance(sub.value, ast.List):
+                            local_structures[name] = []
                     if name == "dict_extra_data":
                         if isinstance(sub.value, ast.Dict):
                             payload.update(dict_structure_from_ast(sub.value, local_structures))
@@ -518,6 +528,19 @@ def extract_method_info(class_node, table_map, db_fields, service_tables):
                                 payload[key.value] = []
                             else:
                                 payload[key.value] = type_from_ast(sub.value)
+            if (
+                isinstance(sub, ast.Call)
+                and isinstance(sub.func, ast.Attribute)
+                and sub.func.attr == "append"
+                and isinstance(sub.func.value, ast.Name)
+                and sub.args
+            ):
+                list_name = sub.func.value.id
+                arg = sub.args[0]
+                if isinstance(arg, ast.Name) and arg.id in local_structures:
+                    local_structures[list_name] = [local_structures[arg.id]]
+                elif isinstance(arg, ast.Dict):
+                    local_structures[list_name] = [dict_structure_from_ast(arg, local_structures)]
             if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Tuple):
                 returns_tuple = True
 
@@ -547,10 +570,15 @@ def extract_method_info(class_node, table_map, db_fields, service_tables):
             steps.append("驗證 request body 欄位：" + "、".join(field["path"] for field in fields))
         if query_fields:
             steps.append("讀取查詢條件：" + "、".join(field["name"] for field in query_fields))
-        if service_calls:
-            steps.append("呼叫服務：" + "、".join(sorted(set(service_calls))))
+        service_actions = []
+        for call in sorted(set(service_calls)):
+            if call == "CAuth.login":
+                service_actions.append("驗證登入帳號密碼並建立 session token")
+            elif call == "CAuth.logout":
+                service_actions.append("使登入 token 失效")
+        steps.extend(service_actions)
         if tables:
-            steps.append("查詢或使用資料表：" + "、".join(sorted(tables)))
+            steps.append("查詢資料表並套用條件：" + "、".join(sorted(tables)))
         if payload:
             steps.append("組裝回傳 payload 欄位：" + "、".join(flatten_payload_names(payload)))
 
@@ -643,7 +671,21 @@ def header_rows(route, method):
 
 
 def response_structure(payload):
-    return {"code": "Integer", "message": "String", "payload": payload or {}}
+    return {"code": "Integer", "message": "String", "payload": normalize_response_value(payload or {})}
+
+
+def normalize_response_value(value):
+    if isinstance(value, dict):
+        if not value:
+            return "Need Review"
+        return {key: normalize_response_value(child) for key, child in value.items()}
+    if isinstance(value, list):
+        if not value:
+            return "Need Review"
+        return [normalize_response_value(value[0])]
+    if value in {"Object", "Array", "List", "Dict"}:
+        return "Need Review"
+    return value
 
 
 def response_rows(payload):
@@ -655,7 +697,7 @@ def response_rows(payload):
         for path, typ in flatten_structure("payload", payload):
             rows.append((path, typ if isinstance(typ, str) else "Object", response_desc(path), ""))
     else:
-        rows.append(("payload", "Object", "空物件或無資料 payload", ""))
+        rows.append(("payload", "Need Review", "程式回傳空 payload 物件，無子欄位可展開", ""))
     return rows
 
 
@@ -676,6 +718,32 @@ def response_desc(path):
         "work": "生產來源追蹤資料",
     }
     return mapping.get(last, PARAM_LABELS.get(last, f"{last} 回傳欄位"))
+
+
+def table_purpose(module_name, route_path, table):
+    subject = MODULE_LABELS.get(module_name, module_name)
+    if module_name == "user":
+        if table == "member":
+            return "驗證登入帳號"
+        if table == "session":
+            return "建立或失效登入 Session"
+        if table == "employee":
+            return "取得登入人員資料與部門權限"
+        if table == "device":
+            return "確認設備註冊編號與設備角色"
+        if table == "user_group":
+            return "取得使用者群組與角色"
+    if "batchtrace" in route_path:
+        return "追蹤批號來源、庫存、生產與出入庫關聯"
+    if module_name in {"inventory", "shipwarehouse"}:
+        return f"提供{subject}查詢、統計或紀錄資料"
+    if module_name in {"sale", "purchase", "contract", "quotation"}:
+        return f"提供{subject}單據、合約、帳款或統計資料"
+    if module_name in {"work", "workorder", "aps", "plstatistics", "productline"}:
+        return f"提供{subject}排程、生產或產能資料"
+    if module_name in {"material", "product", "goods", "transitems", "mix", "bom"}:
+        return f"提供{subject}主檔、配方或價格資料"
+    return f"提供{subject}相關資料"
 
 
 def write_index(modules):
@@ -809,7 +877,7 @@ def module_doc(module, executors):
                 "|----------|----------|------|---|",
                 "| code | Integer | API 錯誤代碼 |  |",
                 "| message | String | API 錯誤訊息 |  |",
-                "| payload | Object | 錯誤 payload；目前程式通常回傳空物件 |  |",
+                "| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |",
                 "",
                 "### Processing Flow",
                 "",
@@ -827,7 +895,7 @@ def module_doc(module, executors):
         if tables:
             lines.extend(["| Table | Purpose |", "|----------|------|"])
             for table in tables:
-                lines.append(f"| {table} | 程式碼路徑中透過 ORM/服務邏輯使用此資料表 |")
+                lines.append(f"| {table} | {md(table_purpose(module['name'], route['path'], table))} |")
         else:
             lines.append("None")
 

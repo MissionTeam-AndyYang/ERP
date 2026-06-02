@@ -69,7 +69,16 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "name": "String",
+        "category": "Integer",
+        "type": "Integer",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -80,7 +89,12 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].name | String | 名稱 |  |
+| payload.results[].category | Integer | 類別篩選 |  |
+| payload.results[].type | Integer | 類型篩選 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -94,7 +108,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：ship_wh_alias
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].name、payload.results[].category、payload.results[].type、payload.results[].creationTime
 
 ### Database Tables Used
 
@@ -133,7 +147,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -141,7 +155,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -190,7 +203,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -198,7 +211,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -246,7 +258,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -254,7 +266,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -306,9 +317,34 @@ None
   "code": "Integer",
   "message": "String",
   "payload": {
-    "total": "Need Review",
+    "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "businessNo": "String",
+        "displayName": "String",
+        "name": "String",
+        "address": "String",
+        "phone": "String",
+        "fax": "String",
+        "contactName": "String",
+        "contactPhone": "String",
+        "contactTitle": "String",
+        "contactEmail": "String",
+        "received_id": "Integer",
+        "paid_id": "Integer",
+        "bankDisplayName": "String",
+        "bankName": "String",
+        "bankCurrency": "Integer",
+        "bankBranch": "String",
+        "bankAccount": "String",
+        "bankNo": "String",
+        "comment": "String",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -317,9 +353,30 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload.total | Need Review | 符合條件的總筆數 |  |
+| payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].businessNo | String | businessNo 回傳欄位 |  |
+| payload.results[].displayName | String | 顯示名稱 |  |
+| payload.results[].name | String | 名稱 |  |
+| payload.results[].address | String | address 回傳欄位 |  |
+| payload.results[].phone | String | phone 回傳欄位 |  |
+| payload.results[].fax | String | fax 回傳欄位 |  |
+| payload.results[].contactName | String | contactName 回傳欄位 |  |
+| payload.results[].contactPhone | String | contactPhone 回傳欄位 |  |
+| payload.results[].contactTitle | String | contactTitle 回傳欄位 |  |
+| payload.results[].contactEmail | String | contactEmail 回傳欄位 |  |
+| payload.results[].received_id | Integer | received_id 回傳欄位 |  |
+| payload.results[].paid_id | Integer | paid_id 回傳欄位 |  |
+| payload.results[].bankDisplayName | String | bankDisplayName 回傳欄位 |  |
+| payload.results[].bankName | String | bankName 回傳欄位 |  |
+| payload.results[].bankCurrency | Integer | bankCurrency 回傳欄位 |  |
+| payload.results[].bankBranch | String | bankBranch 回傳欄位 |  |
+| payload.results[].bankAccount | String | bankAccount 回傳欄位 |  |
+| payload.results[].bankNo | String | bankNo 回傳欄位 |  |
+| payload.results[].comment | String | comment 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -333,7 +390,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：company、payment、ship_wh、ship_wh_contract
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].businessNo、payload.results[].displayName、payload.results[].name、payload.results[].address、payload.results[].phone、payload.results[].fax、payload.results[].contactName、payload.results[].contactPhone、payload.results[].contactTitle、payload.results[].contactEmail、payload.results[].received_id、payload.results[].paid_id、payload.results[].bankDisplayName、payload.results[].bankName、payload.results[].bankCurrency、payload.results[].bankBranch、payload.results[].bankAccount、payload.results[].bankNo、payload.results[].comment、payload.results[].creationTime
 
 ### Database Tables Used
 
@@ -375,7 +432,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -383,7 +440,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -432,7 +488,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -440,7 +496,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -488,7 +543,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -496,7 +551,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -548,7 +602,32 @@ None
   "message": "String",
   "payload": {
     "total": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "businessNo": "String",
+        "displayName": "String",
+        "name": "String",
+        "address": "String",
+        "phone": "String",
+        "fax": "String",
+        "contactName": "String",
+        "contactPhone": "String",
+        "contactTitle": "String",
+        "contactEmail": "String",
+        "received_id": "Integer",
+        "paid_id": "Integer",
+        "bankDisplayName": "String",
+        "bankName": "String",
+        "bankCurrency": "Integer",
+        "bankBranch": "String",
+        "bankAccount": "String",
+        "bankNo": "String",
+        "comment": "String",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -558,7 +637,28 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].businessNo | String | businessNo 回傳欄位 |  |
+| payload.results[].displayName | String | 顯示名稱 |  |
+| payload.results[].name | String | 名稱 |  |
+| payload.results[].address | String | address 回傳欄位 |  |
+| payload.results[].phone | String | phone 回傳欄位 |  |
+| payload.results[].fax | String | fax 回傳欄位 |  |
+| payload.results[].contactName | String | contactName 回傳欄位 |  |
+| payload.results[].contactPhone | String | contactPhone 回傳欄位 |  |
+| payload.results[].contactTitle | String | contactTitle 回傳欄位 |  |
+| payload.results[].contactEmail | String | contactEmail 回傳欄位 |  |
+| payload.results[].received_id | Integer | received_id 回傳欄位 |  |
+| payload.results[].paid_id | Integer | paid_id 回傳欄位 |  |
+| payload.results[].bankDisplayName | String | bankDisplayName 回傳欄位 |  |
+| payload.results[].bankName | String | bankName 回傳欄位 |  |
+| payload.results[].bankCurrency | Integer | bankCurrency 回傳欄位 |  |
+| payload.results[].bankBranch | String | bankBranch 回傳欄位 |  |
+| payload.results[].bankAccount | String | bankAccount 回傳欄位 |  |
+| payload.results[].bankNo | String | bankNo 回傳欄位 |  |
+| payload.results[].comment | String | comment 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -571,14 +671,17 @@ None
 ### Processing Flow
 
 1. 讀取查詢條件：order_no
-2. 查詢資料表並套用條件：ship_wh_contract、shipping_record
-3. 組裝回傳 payload 欄位：payload.total、payload.results
+2. 查詢資料表並套用條件：company、payment、ship_wh_contract、shipping_payment、shipping_record
+3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].no、payload.results[].businessNo、payload.results[].displayName、payload.results[].name、payload.results[].address、payload.results[].phone、payload.results[].fax、payload.results[].contactName、payload.results[].contactPhone、payload.results[].contactTitle、payload.results[].contactEmail、payload.results[].received_id、payload.results[].paid_id、payload.results[].bankDisplayName、payload.results[].bankName、payload.results[].bankCurrency、payload.results[].bankBranch、payload.results[].bankAccount、payload.results[].bankNo、payload.results[].comment、payload.results[].creationTime
 
 ### Database Tables Used
 
 | Table | Purpose |
 |----------|------|
+| company | 提供物流倉儲查詢、統計或紀錄資料 |
+| payment | 提供物流倉儲查詢、統計或紀錄資料 |
 | ship_wh_contract | 提供物流倉儲查詢、統計或紀錄資料 |
+| shipping_payment | 提供物流倉儲查詢、統計或紀錄資料 |
 | shipping_record | 提供物流倉儲查詢、統計或紀錄資料 |
 
 ## GET /api/v1/shipwarehouse/shippayment
@@ -617,7 +720,29 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "date": "Integer",
+        "ref_no": "String",
+        "sw_alias_no": "String",
+        "displayName": "String",
+        "item_no": "String",
+        "item_name": "String",
+        "item_ref_no": "String",
+        "item_ref_displayName": "String",
+        "category": "Integer",
+        "type": "Integer",
+        "itemStyle": "Integer",
+        "region": "Integer",
+        "unit": "Integer",
+        "price": "Float",
+        "fee": "Float",
+        "comment": "String",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -628,7 +753,25 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].date | Integer | 日期 |  |
+| payload.results[].ref_no | String | ref_no 回傳欄位 |  |
+| payload.results[].sw_alias_no | String | sw_alias_no 回傳欄位 |  |
+| payload.results[].displayName | String | 顯示名稱 |  |
+| payload.results[].item_no | String | 料品/品項編號 |  |
+| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].item_ref_no | String | 交易對象編號 |  |
+| payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
+| payload.results[].category | Integer | 類別篩選 |  |
+| payload.results[].type | Integer | 類型篩選 |  |
+| payload.results[].itemStyle | Integer | 品項樣式 |  |
+| payload.results[].region | Integer | region 回傳欄位 |  |
+| payload.results[].unit | Integer | unit 回傳欄位 |  |
+| payload.results[].price | Float | price 回傳欄位 |  |
+| payload.results[].fee | Float | fee 回傳欄位 |  |
+| payload.results[].comment | String | comment 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -642,7 +785,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：ship_wh_contract、shipping_payment、shipping_record
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].date、payload.results[].ref_no、payload.results[].sw_alias_no、payload.results[].displayName、payload.results[].item_no、payload.results[].item_name、payload.results[].item_ref_no、payload.results[].item_ref_displayName、payload.results[].category、payload.results[].type、payload.results[].itemStyle、payload.results[].region、payload.results[].unit、payload.results[].price、payload.results[].fee、payload.results[].comment、payload.results[].creationTime
 
 ### Database Tables Used
 
@@ -683,7 +826,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -691,7 +834,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -740,7 +882,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -748,7 +890,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -796,7 +937,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -804,7 +945,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -858,7 +998,32 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "String",
+        "date": "String",
+        "count": "Integer",
+        "alias": {
+          "name": "String",
+          "type": "String"
+        },
+        "contract": {
+          "category": "String",
+          "type": "String",
+          "region": "String",
+          "unit": "String",
+          "price": "String"
+        },
+        "order": {
+          "date": "String",
+          "item_name": "String",
+          "item_ref_displayName": "String",
+          "unit": "String",
+          "price": "String",
+          "contractPrice": "String"
+        }
+      }
+    ]
   }
 }
 ```
@@ -869,7 +1034,22 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | String | 資料 ID |  |
+| payload.results[].date | String | 日期 |  |
+| payload.results[].count | Integer | 本次回傳筆數 |  |
+| payload.results[].alias.name | String | 名稱 |  |
+| payload.results[].alias.type | String | 類型篩選 |  |
+| payload.results[].contract.category | String | 類別篩選 |  |
+| payload.results[].contract.type | String | 類型篩選 |  |
+| payload.results[].contract.region | String | region 回傳欄位 |  |
+| payload.results[].contract.unit | String | unit 回傳欄位 |  |
+| payload.results[].contract.price | String | price 回傳欄位 |  |
+| payload.results[].order.date | String | 日期 |  |
+| payload.results[].order.item_name | String | item_name 回傳欄位 |  |
+| payload.results[].order.item_ref_displayName | String | 交易對象顯示名稱 |  |
+| payload.results[].order.unit | String | unit 回傳欄位 |  |
+| payload.results[].order.price | String | price 回傳欄位 |  |
+| payload.results[].order.contractPrice | String | contractPrice 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -883,7 +1063,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：goods_receipt_note、payment、product_order、purchase_order、ship_wh_alias、ship_wh_contract、shipping_order、shipping_record
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].date、payload.results[].count、payload.results[].alias.name、payload.results[].alias.type、payload.results[].contract.category、payload.results[].contract.type、payload.results[].contract.region、payload.results[].contract.unit、payload.results[].contract.price、payload.results[].order.date、payload.results[].order.item_name、payload.results[].order.item_ref_displayName、payload.results[].order.unit、payload.results[].order.price、payload.results[].order.contractPrice
 
 ### Database Tables Used
 
@@ -929,7 +1109,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -937,7 +1117,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -986,7 +1165,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -994,7 +1173,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -1042,7 +1220,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -1050,7 +1228,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -1103,7 +1280,32 @@ None
   "message": "String",
   "payload": {
     "total": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "businessNo": "String",
+        "displayName": "String",
+        "name": "String",
+        "address": "String",
+        "phone": "String",
+        "fax": "String",
+        "contactName": "String",
+        "contactPhone": "String",
+        "contactTitle": "String",
+        "contactEmail": "String",
+        "received_id": "Integer",
+        "paid_id": "Integer",
+        "bankDisplayName": "String",
+        "bankName": "String",
+        "bankCurrency": "Integer",
+        "bankBranch": "String",
+        "bankAccount": "String",
+        "bankNo": "String",
+        "comment": "String",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -1113,7 +1315,28 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].businessNo | String | businessNo 回傳欄位 |  |
+| payload.results[].displayName | String | 顯示名稱 |  |
+| payload.results[].name | String | 名稱 |  |
+| payload.results[].address | String | address 回傳欄位 |  |
+| payload.results[].phone | String | phone 回傳欄位 |  |
+| payload.results[].fax | String | fax 回傳欄位 |  |
+| payload.results[].contactName | String | contactName 回傳欄位 |  |
+| payload.results[].contactPhone | String | contactPhone 回傳欄位 |  |
+| payload.results[].contactTitle | String | contactTitle 回傳欄位 |  |
+| payload.results[].contactEmail | String | contactEmail 回傳欄位 |  |
+| payload.results[].received_id | Integer | received_id 回傳欄位 |  |
+| payload.results[].paid_id | Integer | paid_id 回傳欄位 |  |
+| payload.results[].bankDisplayName | String | bankDisplayName 回傳欄位 |  |
+| payload.results[].bankName | String | bankName 回傳欄位 |  |
+| payload.results[].bankCurrency | Integer | bankCurrency 回傳欄位 |  |
+| payload.results[].bankBranch | String | bankBranch 回傳欄位 |  |
+| payload.results[].bankAccount | String | bankAccount 回傳欄位 |  |
+| payload.results[].bankNo | String | bankNo 回傳欄位 |  |
+| payload.results[].comment | String | comment 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -1126,14 +1349,17 @@ None
 ### Processing Flow
 
 1. 讀取查詢條件：order_category、order_no
-2. 查詢資料表並套用條件：ship_wh_contract、warehouse_record
-3. 組裝回傳 payload 欄位：payload.total、payload.results
+2. 查詢資料表並套用條件：company、payment、ship_wh_contract、warehouse_payment、warehouse_record
+3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].no、payload.results[].businessNo、payload.results[].displayName、payload.results[].name、payload.results[].address、payload.results[].phone、payload.results[].fax、payload.results[].contactName、payload.results[].contactPhone、payload.results[].contactTitle、payload.results[].contactEmail、payload.results[].received_id、payload.results[].paid_id、payload.results[].bankDisplayName、payload.results[].bankName、payload.results[].bankCurrency、payload.results[].bankBranch、payload.results[].bankAccount、payload.results[].bankNo、payload.results[].comment、payload.results[].creationTime
 
 ### Database Tables Used
 
 | Table | Purpose |
 |----------|------|
+| company | 提供物流倉儲查詢、統計或紀錄資料 |
+| payment | 提供物流倉儲查詢、統計或紀錄資料 |
 | ship_wh_contract | 提供物流倉儲查詢、統計或紀錄資料 |
+| warehouse_payment | 提供物流倉儲查詢、統計或紀錄資料 |
 | warehouse_record | 提供物流倉儲查詢、統計或紀錄資料 |
 
 ## GET /api/v1/shipwarehouse/warehousepayment
@@ -1172,7 +1398,29 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "date": "Integer",
+        "ref_no": "String",
+        "sw_alias_no": "String",
+        "displayName": "String",
+        "item_no": "String",
+        "item_name": "String",
+        "item_ref_no": "String",
+        "item_ref_displayName": "String",
+        "category": "Integer",
+        "type": "Integer",
+        "itemStyle": "Integer",
+        "region": "Integer",
+        "unit": "Integer",
+        "price": "Float",
+        "fee": "Float",
+        "comment": "String",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -1183,7 +1431,25 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].date | Integer | 日期 |  |
+| payload.results[].ref_no | String | ref_no 回傳欄位 |  |
+| payload.results[].sw_alias_no | String | sw_alias_no 回傳欄位 |  |
+| payload.results[].displayName | String | 顯示名稱 |  |
+| payload.results[].item_no | String | 料品/品項編號 |  |
+| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].item_ref_no | String | 交易對象編號 |  |
+| payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
+| payload.results[].category | Integer | 類別篩選 |  |
+| payload.results[].type | Integer | 類型篩選 |  |
+| payload.results[].itemStyle | Integer | 品項樣式 |  |
+| payload.results[].region | Integer | region 回傳欄位 |  |
+| payload.results[].unit | Integer | unit 回傳欄位 |  |
+| payload.results[].price | Float | price 回傳欄位 |  |
+| payload.results[].fee | Float | fee 回傳欄位 |  |
+| payload.results[].comment | String | comment 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -1197,7 +1463,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：ship_wh_contract、warehouse_payment、warehouse_record
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].date、payload.results[].ref_no、payload.results[].sw_alias_no、payload.results[].displayName、payload.results[].item_no、payload.results[].item_name、payload.results[].item_ref_no、payload.results[].item_ref_displayName、payload.results[].category、payload.results[].type、payload.results[].itemStyle、payload.results[].region、payload.results[].unit、payload.results[].price、payload.results[].fee、payload.results[].comment、payload.results[].creationTime
 
 ### Database Tables Used
 
@@ -1238,7 +1504,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -1246,7 +1512,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -1295,7 +1560,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -1303,7 +1568,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -1351,7 +1615,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -1359,7 +1623,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -1413,7 +1676,31 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "String",
+        "date": "String",
+        "count": "Integer",
+        "days": "String",
+        "alias": {
+          "name": "String",
+          "type": "String"
+        },
+        "contract": {
+          "category": "String",
+          "type": "String",
+          "unit": "String",
+          "price": "String"
+        },
+        "batch": {
+          "no": "String",
+          "item_name": "String",
+          "itemCategory": "String",
+          "itemSubCategory": "String",
+          "validDate": "String"
+        }
+      }
+    ]
   }
 }
 ```
@@ -1424,7 +1711,21 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | String | 資料 ID |  |
+| payload.results[].date | String | 日期 |  |
+| payload.results[].count | Integer | 本次回傳筆數 |  |
+| payload.results[].days | String | days 回傳欄位 |  |
+| payload.results[].alias.name | String | 名稱 |  |
+| payload.results[].alias.type | String | 類型篩選 |  |
+| payload.results[].contract.category | String | 類別篩選 |  |
+| payload.results[].contract.type | String | 類型篩選 |  |
+| payload.results[].contract.unit | String | unit 回傳欄位 |  |
+| payload.results[].contract.price | String | price 回傳欄位 |  |
+| payload.results[].batch.no | String | 編號篩選 |  |
+| payload.results[].batch.item_name | String | item_name 回傳欄位 |  |
+| payload.results[].batch.itemCategory | String | 料品類別 |  |
+| payload.results[].batch.itemSubCategory | String | itemSubCategory 回傳欄位 |  |
+| payload.results[].batch.validDate | String | validDate 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -1438,7 +1739,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：batch_number、ship_wh_alias、ship_wh_contract、warehouse_record
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].date、payload.results[].count、payload.results[].days、payload.results[].alias.name、payload.results[].alias.type、payload.results[].contract.category、payload.results[].contract.type、payload.results[].contract.unit、payload.results[].contract.price、payload.results[].batch.no、payload.results[].batch.item_name、payload.results[].batch.itemCategory、payload.results[].batch.itemSubCategory、payload.results[].batch.validDate
 
 ### Database Tables Used
 
@@ -1480,7 +1781,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -1488,7 +1789,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -1537,7 +1837,7 @@ Need Review: request body is read in code, but no explicit schema or field check
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -1545,7 +1845,6 @@ Need Review: request body is read in code, but no explicit schema or field check
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -1593,7 +1892,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -1601,7 +1900,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 

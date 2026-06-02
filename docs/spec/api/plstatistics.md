@@ -47,7 +47,22 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "month": "String",
+        "pl_no": "String",
+        "pl_name": "String",
+        "productCount": "String",
+        "item_no": "String",
+        "item_name": "String",
+        "assembly_no": "String",
+        "assemblyVer": "String",
+        "bomWeight": "String",
+        "bomUnit": "String",
+        "unit": "String",
+        "hourlyOutput": "String"
+      }
+    ]
   }
 }
 ```
@@ -58,7 +73,18 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].month | String | month 回傳欄位 |  |
+| payload.results[].pl_no | String | pl_no 回傳欄位 |  |
+| payload.results[].pl_name | String | pl_name 回傳欄位 |  |
+| payload.results[].productCount | String | productCount 回傳欄位 |  |
+| payload.results[].item_no | String | 料品/品項編號 |  |
+| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].assembly_no | String | assembly_no 回傳欄位 |  |
+| payload.results[].assemblyVer | String | assemblyVer 回傳欄位 |  |
+| payload.results[].bomWeight | String | bomWeight 回傳欄位 |  |
+| payload.results[].bomUnit | String | bomUnit 回傳欄位 |  |
+| payload.results[].unit | String | unit 回傳欄位 |  |
+| payload.results[].hourlyOutput | String | hourlyOutput 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -72,7 +98,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：pl_item_capacity
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].month、payload.results[].pl_no、payload.results[].pl_name、payload.results[].productCount、payload.results[].item_no、payload.results[].item_name、payload.results[].assembly_no、payload.results[].assemblyVer、payload.results[].bomWeight、payload.results[].bomUnit、payload.results[].unit、payload.results[].hourlyOutput
 
 ### Database Tables Used
 
@@ -116,7 +142,22 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "month": "String",
+        "pl_no": "String",
+        "pl_name": "String",
+        "productCount": "String",
+        "item_no": "String",
+        "item_name": "String",
+        "assembly_no": "String",
+        "assemblyVer": "String",
+        "price": "String",
+        "rawMaterialCost": "String",
+        "materialCost": "String",
+        "laborCost": "String"
+      }
+    ]
   }
 }
 ```
@@ -127,7 +168,18 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].month | String | month 回傳欄位 |  |
+| payload.results[].pl_no | String | pl_no 回傳欄位 |  |
+| payload.results[].pl_name | String | pl_name 回傳欄位 |  |
+| payload.results[].productCount | String | productCount 回傳欄位 |  |
+| payload.results[].item_no | String | 料品/品項編號 |  |
+| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].assembly_no | String | assembly_no 回傳欄位 |  |
+| payload.results[].assemblyVer | String | assemblyVer 回傳欄位 |  |
+| payload.results[].price | String | price 回傳欄位 |  |
+| payload.results[].rawMaterialCost | String | rawMaterialCost 回傳欄位 |  |
+| payload.results[].materialCost | String | materialCost 回傳欄位 |  |
+| payload.results[].laborCost | String | laborCost 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -141,7 +193,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：pl_item_capacity
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].month、payload.results[].pl_no、payload.results[].pl_name、payload.results[].productCount、payload.results[].item_no、payload.results[].item_name、payload.results[].assembly_no、payload.results[].assemblyVer、payload.results[].price、payload.results[].rawMaterialCost、payload.results[].materialCost、payload.results[].laborCost
 
 ### Database Tables Used
 
@@ -185,7 +237,21 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "month": "String",
+        "pl_item_capacity_no": "String",
+        "item_no": "String",
+        "item_name": "String",
+        "itemCategory": "Integer",
+        "itemSubCategory": "Integer",
+        "weightRatio": "Float",
+        "lossRate": "Float",
+        "creationTime": "Integer",
+        "output": {}
+      }
+    ]
   }
 }
 ```
@@ -196,7 +262,16 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].month | String | month 回傳欄位 |  |
+| payload.results[].pl_item_capacity_no | String | pl_item_capacity_no 回傳欄位 |  |
+| payload.results[].item_no | String | 料品/品項編號 |  |
+| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].itemCategory | Integer | 料品類別 |  |
+| payload.results[].itemSubCategory | Integer | itemSubCategory 回傳欄位 |  |
+| payload.results[].weightRatio | Float | weightRatio 回傳欄位 |  |
+| payload.results[].lossRate | Float | lossRate 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -210,7 +285,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：pl_item_capacity、pl_item_loss
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].month、payload.results[].pl_item_capacity_no、payload.results[].item_no、payload.results[].item_name、payload.results[].itemCategory、payload.results[].itemSubCategory、payload.results[].weightRatio、payload.results[].lossRate、payload.results[].creationTime
 
 ### Database Tables Used
 
@@ -255,7 +330,19 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "month": "String",
+        "pl_no": "String",
+        "pl_name": "String",
+        "productCount": "Integer",
+        "laborCount": "Integer",
+        "unit": "Integer",
+        "hourlyOutput": "Float",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -266,7 +353,15 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].month | String | month 回傳欄位 |  |
+| payload.results[].pl_no | String | pl_no 回傳欄位 |  |
+| payload.results[].pl_name | String | pl_name 回傳欄位 |  |
+| payload.results[].productCount | Integer | productCount 回傳欄位 |  |
+| payload.results[].laborCount | Integer | laborCount 回傳欄位 |  |
+| payload.results[].unit | Integer | unit 回傳欄位 |  |
+| payload.results[].hourlyOutput | Float | hourlyOutput 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -280,7 +375,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：pl_man_capacity
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].month、payload.results[].pl_no、payload.results[].pl_name、payload.results[].productCount、payload.results[].laborCount、payload.results[].unit、payload.results[].hourlyOutput、payload.results[].creationTime
 
 ### Database Tables Used
 

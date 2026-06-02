@@ -60,7 +60,11 @@ None
     "user": {
       "token": "String",
       "role": "Integer",
-      "employee": "Need Review"
+      "employee": {
+        "no": "String",
+        "name": "String",
+        "department": "String"
+      }
     }
   }
 }
@@ -74,7 +78,9 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.user.token | String | 登入 token |  |
 | payload.user.role | Integer | 角色 |  |
-| payload.user.employee | Need Review | 員工資訊 |  |
+| payload.user.employee.no | String | 編號篩選 |  |
+| payload.user.employee.name | String | 名稱 |  |
+| payload.user.employee.department | String | department 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -88,7 +94,7 @@ None
 
 1. 驗證 request body 欄位：registerNo、username、password
 2. 查詢資料表並套用條件：device、employee、session、user_group
-3. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId、payload.user.token、payload.user.role、payload.user.employee
+3. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId、payload.user.token、payload.user.role、payload.user.employee.no、payload.user.employee.name、payload.user.employee.department
 
 ### Database Tables Used
 
@@ -129,7 +135,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -137,7 +143,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 
@@ -201,7 +206,7 @@ None
   "message": "String",
   "payload": {
     "token": "String",
-    "user": "Need Review"
+    "user": {}
   }
 }
 ```
@@ -211,7 +216,6 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.token | String | 登入 token |  |
-| payload.user | Need Review | 使用者資訊 |  |
 
 ### Failed Response Data
 
@@ -225,7 +229,7 @@ None
 
 1. 驗證 request body 欄位：username、password
 2. 查詢資料表並套用條件：session
-3. 組裝回傳 payload 欄位：payload.token、payload.user
+3. 組裝回傳 payload 欄位：payload.token
 
 ### Database Tables Used
 
@@ -265,7 +269,7 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": "Need Review"
+  "payload": {}
 }
 ```
 
@@ -273,7 +277,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload | Need Review | 程式回傳空 payload 物件，無子欄位可展開 |  |
 
 ### Failed Response Data
 

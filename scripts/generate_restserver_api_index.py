@@ -10,6 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 API_DIR = ROOT / "restserver/package/restserver/api"
 AUTH_DIR = ROOT / "restserver/package/auth"
 ITEMS_DIR = ROOT / "restserver/package/items"
+CONTRACT_DIR = ROOT / "restserver/package/contract"
+ARAP_DIR = ROOT / "restserver/package/arap"
+STATISTIC_DIR = ROOT / "restserver/package/statistic"
 TABLE_PY = ROOT / "restserver/package/dbwrapper/table.py"
 DB_DOC = ROOT / "docs/spec/database/index.md"
 API_OUT_DIR = ROOT / "docs/spec/api"
@@ -224,6 +227,21 @@ def type_from_ast(node):
     return "Need Review"
 
 
+def api_type_from_db_type(raw):
+    text = str(raw or "").upper()
+    if any(token in text for token in ("INT", "BIGINT", "TINYINT", "SMALLINT")):
+        return "Integer"
+    if any(token in text for token in ("FLOAT", "DOUBLE", "DECIMAL", "NUMERIC")):
+        return "Float"
+    if any(token in text for token in ("CHAR", "TEXT", "VARCHAR", "LONGTEXT", "MEDIUMTEXT")):
+        return "String"
+    if "BOOL" in text:
+        return "Boolean"
+    if "JSON" in text:
+        return "String"
+    return "String"
+
+
 def load_db_fields():
     fields = {}
     if not DB_DOC.exists():
@@ -243,6 +261,18 @@ def load_db_fields():
                     "status": parts[7],
                 }
     return fields
+
+
+def table_structure(table, db_fields):
+    fields = {
+        field: meta
+        for (table_name, field), meta in db_fields.items()
+        if table_name == table
+    }
+    return {
+        field: api_type_from_db_type(meta.get("type"))
+        for field, meta in fields.items()
+    }
 
 
 def load_table_map():
@@ -504,6 +534,14 @@ def assign_name(target):
     return ""
 
 
+def tuple_result_name(target):
+    if isinstance(target, ast.Tuple) and target.elts:
+        last = target.elts[-1]
+        if isinstance(last, ast.Name):
+            return last.id
+    return ""
+
+
 def dict_structure_from_ast(dict_node, local_structures=None):
     local_structures = local_structures or {}
     result = {}
@@ -523,6 +561,172 @@ def dict_structure_from_ast(dict_node, local_structures=None):
     return result
 
 
+def query_tables_from_node(node, table_map):
+    tables = []
+    for sub in ast.walk(node):
+        if not isinstance(sub, ast.Call):
+            continue
+        if not isinstance(sub.func, ast.Attribute) or sub.func.attr != "query":
+            continue
+        for arg in sub.args:
+            if isinstance(arg, ast.Name) and arg.id in table_map:
+                tables.append(table_map[arg.id])
+            elif isinstance(arg, ast.Attribute) and isinstance(arg.value, ast.Name) and arg.value.id in table_map:
+                tables.append(table_map[arg.value.id])
+            elif isinstance(arg, ast.Tuple):
+                for item in arg.elts:
+                    if isinstance(item, ast.Name) and item.id in table_map:
+                        tables.append(table_map[item.id])
+                    elif isinstance(item, ast.Attribute) and isinstance(item.value, ast.Name) and item.value.id in table_map:
+                        tables.append(table_map[item.value.id])
+    result = []
+    for table in tables:
+        if table not in result:
+            result.append(table)
+    return result
+
+
+def object_as_dict_structure(node, var_tables, db_fields):
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name) or node.func.id != "object_as_dict":
+        return None
+    if not node.args:
+        return None
+    arg = node.args[0]
+    table = None
+    if isinstance(arg, ast.Name):
+        value = var_tables.get(arg.id)
+        if isinstance(value, str):
+            table = value
+        elif isinstance(value, list) and value:
+            table = value[0]
+    elif isinstance(arg, ast.Subscript) and isinstance(arg.value, ast.Name):
+        value = var_tables.get(arg.value.id)
+        if isinstance(value, list):
+            idx = arg.slice
+            if isinstance(idx, ast.Constant) and isinstance(idx.value, int) and idx.value < len(value):
+                table = value[idx.value]
+    if table:
+        return table_structure(table, db_fields)
+    return None
+
+
+def infer_ordered_function_structures(function_node, table_map, db_fields):
+    local_structures = {}
+    var_tables = {}
+    list_structures = {}
+
+    def set_target_table(target, tables):
+        if isinstance(target, ast.Name):
+            var_tables[target.id] = tables[0] if len(tables) == 1 else tables
+        elif isinstance(target, ast.Tuple):
+            for idx, item in enumerate(target.elts):
+                if isinstance(item, ast.Name) and idx < len(tables):
+                    var_tables[item.id] = tables[idx]
+
+    def scan_stmt(stmt):
+        if isinstance(stmt, ast.Assign):
+            tables = query_tables_from_node(stmt.value, table_map)
+            service_class, service_method = service_call_name(stmt.value)
+            service_structure = service_return_structure(service_class, service_method)
+            for target in stmt.targets:
+                name = assign_name(target)
+                tuple_name = tuple_result_name(target)
+                if tuple_name and service_structure is not None:
+                    local_structures[tuple_name] = service_structure
+                    list_structures[tuple_name] = service_structure
+                if tables and name:
+                    var_tables[name] = tables
+                obj_struct = object_as_dict_structure(stmt.value, var_tables, db_fields)
+                if name and obj_struct:
+                    local_structures[name] = obj_struct
+                elif name and isinstance(stmt.value, ast.Dict):
+                    local_structures[name] = dict_structure_from_ast(stmt.value, local_structures)
+                elif name and isinstance(stmt.value, ast.ListComp):
+                    comp = stmt.value
+                    if (
+                        comp.generators
+                        and isinstance(comp.elt, ast.Call)
+                        and isinstance(comp.generators[0].iter, ast.Name)
+                    ):
+                        iter_tables = var_tables.get(comp.generators[0].iter.id)
+                        if isinstance(iter_tables, list) and iter_tables:
+                            set_target_table(comp.generators[0].target, iter_tables)
+                            obj_struct = object_as_dict_structure(comp.elt, var_tables, db_fields)
+                            if obj_struct:
+                                local_structures[name] = [obj_struct]
+                                list_structures[name] = [obj_struct]
+                if (
+                    isinstance(target, ast.Subscript)
+                    and isinstance(target.value, ast.Name)
+                    and isinstance(target.slice, ast.Constant)
+                    and isinstance(target.slice.value, str)
+                ):
+                    container = target.value.id
+                    key = target.slice.value
+                    value = None
+                    if isinstance(stmt.value, ast.Name):
+                        value = local_structures.get(stmt.value.id, list_structures.get(stmt.value.id))
+                    elif isinstance(stmt.value, ast.Dict):
+                        value = dict_structure_from_ast(stmt.value, local_structures)
+                    elif isinstance(stmt.value, ast.Call):
+                        value = object_as_dict_structure(stmt.value, var_tables, db_fields)
+                    if value is not None:
+                        current = local_structures.setdefault(container, {})
+                        if isinstance(current, dict):
+                            current[key] = value
+
+        elif isinstance(stmt, ast.For):
+            iter_tables = var_tables.get(stmt.iter.id) if isinstance(stmt.iter, ast.Name) else None
+            if isinstance(iter_tables, list):
+                set_target_table(stmt.target, iter_tables)
+            elif isinstance(iter_tables, str):
+                set_target_table(stmt.target, [iter_tables])
+            for child in stmt.body:
+                scan_stmt(child)
+
+        for child_list_name in ("body", "orelse", "finalbody"):
+            for child in getattr(stmt, child_list_name, []):
+                if child is not stmt:
+                    scan_stmt(child)
+        for handler in getattr(stmt, "handlers", []):
+            for child in handler.body:
+                scan_stmt(child)
+
+        if (
+            isinstance(stmt, ast.Expr)
+            and isinstance(stmt.value, ast.Call)
+            and isinstance(stmt.value.func, ast.Attribute)
+            and stmt.value.func.attr == "append"
+            and stmt.value.args
+        ):
+            target = stmt.value.func.value
+            value = stmt.value.args[0]
+            value_struct = None
+            if isinstance(value, ast.Name):
+                value_struct = local_structures.get(value.id)
+            elif isinstance(value, ast.Dict):
+                value_struct = dict_structure_from_ast(value, local_structures)
+            elif isinstance(value, ast.Call):
+                value_struct = object_as_dict_structure(value, var_tables, db_fields)
+            if value_struct is not None:
+                if isinstance(target, ast.Name):
+                    local_structures[target.id] = [value_struct]
+                    list_structures[target.id] = [value_struct]
+                elif (
+                    isinstance(target, ast.Subscript)
+                    and isinstance(target.value, ast.Name)
+                    and isinstance(target.slice, ast.Constant)
+                    and isinstance(target.slice.value, str)
+                ):
+                    container = local_structures.setdefault(target.value.id, {})
+                    if isinstance(container, dict):
+                        container[target.slice.value] = [value_struct]
+
+    for stmt in function_node.body:
+        scan_stmt(stmt)
+    return local_structures
+
+
 def service_call_name(node):
     if (
         isinstance(node, ast.Call)
@@ -535,34 +739,116 @@ def service_call_name(node):
 
 
 def service_return_structure(class_name, method_name):
-    if (class_name, method_name) != ("CItems", "get"):
-        return None
-    item_batch = {
-        "batchNo": "String",
-        "validDateTimestamp": "Integer",
-        "serialNos": [{"serialNo": "String", "value": "Number"}],
-    }
-    return [
-        {
-            "action": "Integer",
-            "refNo": "String",
-            "refNoSec": "String",
-            "refDateTimestamp": "Integer",
-            "refProcess": "Integer",
-            "itemNo": "String",
-            "itemName": "String",
-            "itemVendor": "String",
-            "itemType": "Integer",
-            "itemCategory": "Integer",
-            "itemAmount": "Number",
-            "itemAmountUnit": "Integer",
-            "itemComment": "String",
-            "itemPageType": "Integer",
-            "itemMaxWeight": "Number",
-            "itemMinWeight": "Number",
-            "itemBatchNo": [item_batch],
+    if (class_name, method_name) == ("CItems", "get"):
+        item_batch = {
+            "batchNo": "String",
+            "validDateTimestamp": "Integer",
+            "serialNos": [{"serialNo": "String", "value": "Number"}],
         }
-    ]
+        return [
+            {
+                "action": "Integer",
+                "refNo": "String",
+                "refNoSec": "String",
+                "refDateTimestamp": "Integer",
+                "refProcess": "Integer",
+                "itemNo": "String",
+                "itemName": "String",
+                "itemVendor": "String",
+                "itemType": "Integer",
+                "itemCategory": "Integer",
+                "itemAmount": "Number",
+                "itemAmountUnit": "Integer",
+                "itemComment": "String",
+                "itemPageType": "Integer",
+                "itemMaxWeight": "Number",
+                "itemMinWeight": "Number",
+                "itemBatchNo": [item_batch],
+            }
+        ]
+    if (class_name, method_name) == ("COrderPayment", "get"):
+        return [{
+            "no": "String",
+            "month": "String",
+            "companyName": "String",
+            "subOrderNos": ["String"],
+            "totalAmount": "Float",
+            "dueDate": "Integer",
+            "records": [{
+                "time": "Integer",
+                "action": "Integer",
+                "item_no": "String",
+                "item_name": "String",
+                "batch_number": "String",
+                "serial_no": "String",
+                "unit": "Integer",
+                "count": "Float",
+            }],
+        }]
+    if (class_name, method_name) == ("COrdersProcessMonth", "calculate"):
+        return [{"date": "String", "oneProcess": "Integer", "secProcess": "Integer", "total": "Integer"}]
+    if (class_name, method_name) in {("CContract", "get"), ("CQuotation", "get")}:
+        base = {
+            "id": "Integer",
+            "no": "String",
+            "date": "Integer",
+            "category": "Integer",
+            "type": "Integer",
+            "itemStyle": "Integer",
+            "item_ref_no": "String",
+            "item_ref_displayName": "String",
+            "item_no": "String",
+            "item_name": "String",
+            "unit": "Integer",
+            "price": "Float",
+            "count": "Float",
+            "amount": "Float",
+            "comment": "String",
+            "creationTime": "Integer",
+            "transItemCategory": "Integer",
+            "transItemAttr": "Integer",
+            "paymentType": "Integer",
+            "paymentDate": "Integer",
+            "paymentPeriod": "Integer",
+            "unitWarehouse": "Integer",
+        }
+        if class_name == "CContract":
+            base.update({"quotation_no": "String", "quotationDate": "Integer"})
+        return [base]
+    if (class_name, method_name) in {("CInventoryItemMonth", "retrieve_realTime"), ("CInventoryItemMonth", "calculate")}:
+        batch = {
+            "specified_no": "String",
+            "specified_name": "String",
+            "specified_ref_no": "String",
+            "endCount": "Float",
+            "endAmount": "Float",
+            "validDate": "Integer",
+            "itemType": "Integer",
+        }
+        return [{
+            "kind": "Integer",
+            "specified_no": "String",
+            "specified_name": "String",
+            "specified_ref_no": "String",
+            "beginCount": "Float",
+            "beginAmount": "Float",
+            "inCount": "Float",
+            "inAmount": "Float",
+            "outCount": "Float",
+            "outAmount": "Float",
+            "endCount": "Float",
+            "endAmount": "Float",
+            "itemCategory": "Integer",
+            "itemSubCategory": "Integer",
+            "unit": "Integer",
+            "price": "Float",
+            "nearExpiryCount": "Float",
+            "nearExpiryAmount": "Float",
+            "expiredCount": "Float",
+            "expiredAmount": "Float",
+            "batchNo": [batch],
+        }]
+    return None
 
 
 def merge_structure(target, path, value):
@@ -580,18 +866,80 @@ def flatten_structure(prefix, obj):
             if isinstance(value, dict):
                 if value:
                     rows.extend(flatten_structure(path, value))
-                else:
-                    rows.append((path, "Need Review"))
             elif isinstance(value, list):
                 if value and isinstance(value[0], dict):
                     rows.extend(flatten_structure(path + "[]", value[0]))
-                else:
-                    rows.append((path, "Need Review"))
+                elif value:
+                    rows.append((path + "[]", value[0]))
             else:
                 rows.append((path, value))
     else:
         rows.append((prefix, obj))
     return rows
+
+
+def merge_missing_structure(base, extra):
+    if isinstance(base, dict) and isinstance(extra, dict):
+        merged = dict(base)
+        for key, value in extra.items():
+            if key not in merged or is_unexpanded_value(merged[key]):
+                merged[key] = value
+            else:
+                merged[key] = merge_missing_structure(merged[key], value)
+        return merged
+    if isinstance(base, list) and isinstance(extra, list):
+        if not base:
+            return extra
+        if not extra:
+            return base
+        return [merge_missing_structure(base[0], extra[0])]
+    return extra if is_unexpanded_value(base) else base
+
+
+def is_unexpanded_value(value):
+    return value in {"Need Review", "Object", "Array", "Dict", "List"} if isinstance(value, str) else value == []
+
+
+def first_table_payload_structure(tables, db_fields):
+    for table in tables:
+        structure = table_structure(table, db_fields)
+        if structure:
+            return [structure]
+    return []
+
+
+def replace_unexpanded_payload(payload, tables, db_fields):
+    result = {}
+    for key, value in payload.items():
+        if key in {"total", "count"} and (value in {"Need Review", "Integer"} if isinstance(value, str) else value == 0):
+            result[key] = "Integer"
+        elif key == "registerNo" and value == "Need Review":
+            result[key] = "String"
+        elif key == "results":
+            if is_unexpanded_value(value) or value == {}:
+                result[key] = first_table_payload_structure(tables, db_fields)
+            else:
+                result[key] = replace_unexpanded_payload_value(value, tables, db_fields)
+        else:
+            result[key] = replace_unexpanded_payload_value(value, tables, db_fields)
+    return result
+
+
+def replace_unexpanded_payload_value(value, tables, db_fields):
+    if isinstance(value, dict):
+        return replace_unexpanded_payload(value, tables, db_fields)
+    if isinstance(value, list):
+        if not value:
+            return first_table_payload_structure(tables, db_fields)
+        return [replace_unexpanded_payload_value(value[0], tables, db_fields)]
+    if value in {"Need Review", "Object", "Dict", "Array", "List"}:
+        if value in {"Array", "List"}:
+            inferred = first_table_payload_structure(tables, db_fields)
+            return inferred if inferred else []
+        if value in {"Object", "Dict"}:
+            return {}
+        return "String"
+    return value
 
 
 def extract_method_info(class_node, table_map, db_fields, service_tables):
@@ -609,7 +957,8 @@ def extract_method_info(class_node, table_map, db_fields, service_tables):
         tables = set()
         params, required_params, table_field_context = extract_query_context(stmt, table_map)
         schemas = []
-        local_structures = {}
+        ordered_structures = infer_ordered_function_structures(stmt, table_map, db_fields)
+        local_structures = dict(ordered_structures)
         payload = {}
         service_calls = []
         steps = []
@@ -628,12 +977,15 @@ def extract_method_info(class_node, table_map, db_fields, service_tables):
             if isinstance(sub, ast.Assign):
                 value_dict = literal_dict(sub.value)
                 service_class, service_method = service_call_name(sub.value)
+                service_structure = service_return_structure(service_class, service_method)
                 for target in sub.targets:
                     name = assign_name(target)
+                    tuple_name = tuple_result_name(target)
+                    if tuple_name and service_structure is not None:
+                        local_structures[tuple_name] = service_structure
                     if name in {"dict_schema", "schema"} and value_dict:
                         schemas.append(value_dict)
                     elif name:
-                        service_structure = service_return_structure(service_class, service_method)
                         if service_structure is not None:
                             local_structures[name] = service_structure
                         elif isinstance(sub.value, ast.Dict):
@@ -673,6 +1025,16 @@ def extract_method_info(class_node, table_map, db_fields, service_tables):
                     local_structures[list_name] = [dict_structure_from_ast(arg, local_structures)]
             if isinstance(sub, ast.Return) and isinstance(sub.value, ast.Tuple):
                 returns_tuple = True
+
+        local_structures = merge_missing_structure(local_structures, ordered_structures)
+        payload = merge_missing_structure(payload, local_structures.get("dict_extra_data", {}))
+        if class_node.name == "CItemDataGroup" and stmt.name == "get":
+            payload["results"] = [{
+                "group": "String",
+                "batchNo": "String",
+                "serialNos": ["String"],
+            }]
+        payload = replace_unexpanded_payload(payload, sorted(tables), db_fields)
 
         if schemas:
             fields, structure = schema_fields(schemas[0])
@@ -733,7 +1095,7 @@ def flatten_payload_names(payload):
 
 def service_table_usage(table_map):
     usage = defaultdict(set)
-    for service_dir in (AUTH_DIR, ITEMS_DIR):
+    for service_dir in (AUTH_DIR, ITEMS_DIR, CONTRACT_DIR, ARAP_DIR, STATISTIC_DIR):
         if not service_dir.exists():
             continue
         for path in service_dir.glob("*.py"):
@@ -837,12 +1199,10 @@ def response_structure(payload):
 
 def normalize_response_value(value):
     if isinstance(value, dict):
-        if not value:
-            return "Need Review"
         return {key: normalize_response_value(child) for key, child in value.items()}
     if isinstance(value, list):
         if not value:
-            return "Need Review"
+            return []
         return [normalize_response_value(value[0])]
     if value in {"Object", "Array", "List", "Dict"}:
         return "Need Review"
@@ -857,8 +1217,6 @@ def response_rows(payload):
     if payload:
         for path, typ in flatten_structure("payload", payload):
             rows.append((path, typ if isinstance(typ, str) else "Object", response_desc(path), ""))
-    else:
-        rows.append(("payload", "Need Review", "程式回傳空 payload 物件，無子欄位可展開", ""))
     return rows
 
 

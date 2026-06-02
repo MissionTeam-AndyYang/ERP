@@ -160,7 +160,15 @@ None
     "serverId": "String",
     "serverTimestamp": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "group": "String",
+        "batchNo": "String",
+        "serialNos": [
+          "String"
+        ]
+      }
+    ]
   }
 }
 ```
@@ -172,7 +180,9 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].group | String | group 回傳欄位 |  |
+| payload.results[].batchNo | String | 批號 |  |
+| payload.results[].serialNos[] | String | serialNos[] 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -184,7 +194,7 @@ None
 
 ### Processing Flow
 
-1. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results
+1. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].group、payload.results[].batchNo、payload.results[].serialNos[]
 
 ### Database Tables Used
 
@@ -329,7 +339,29 @@ None
     "serverId": "String",
     "serverTimestamp": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "groupNo": "String",
+        "itemNo": "String",
+        "itemName": "String",
+        "itemVendor": "String",
+        "itemType": "String",
+        "itemCategory": "String",
+        "itemComment": "String",
+        "itemBatchNo": [
+          {
+            "batchNo": "String",
+            "validDateTimestamp": "String",
+            "serialNos": [
+              {
+                "serialNo": "String",
+                "value": "String"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -341,7 +373,17 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].groupNo | String | 棧板群組編號 |  |
+| payload.results[].itemNo | String | 料品/品項編號 |  |
+| payload.results[].itemName | String | 料品名稱 |  |
+| payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
+| payload.results[].itemType | String | 料品類型 |  |
+| payload.results[].itemCategory | String | 料品類別 |  |
+| payload.results[].itemComment | String | 料品備註 |  |
+| payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
+| payload.results[].itemBatchNo[].validDateTimestamp | String | 效期時間戳記 |  |
+| payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | String | 數量或重量 |  |
 
 ### Failed Response Data
 
@@ -355,7 +397,7 @@ None
 
 1. 讀取查詢條件：groupNo、registerNo
 2. 查詢資料表並套用條件：batch_number、batchno_serialno_group
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].groupNo、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemComment、payload.results[].itemBatchNo[].batchNo、payload.results[].itemBatchNo[].validDateTimestamp、payload.results[].itemBatchNo[].serialNos[].serialNo、payload.results[].itemBatchNo[].serialNos[].value
 
 ### Database Tables Used
 
@@ -401,7 +443,18 @@ None
     "serverId": "String",
     "serverTimestamp": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "itemNo": "String",
+        "itemName": "String",
+        "itemVendor": "String",
+        "itemType": "String",
+        "itemCategory": "String",
+        "itemBatchNo": "String",
+        "itemValidDateTimestamp": "String",
+        "itemComment": "String"
+      }
+    ]
   }
 }
 ```
@@ -413,7 +466,14 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].itemNo | String | 料品/品項編號 |  |
+| payload.results[].itemName | String | 料品名稱 |  |
+| payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
+| payload.results[].itemType | String | 料品類型 |  |
+| payload.results[].itemCategory | String | 料品類別 |  |
+| payload.results[].itemBatchNo | String | 料品批號清單 |  |
+| payload.results[].itemValidDateTimestamp | String | itemValidDateTimestamp 回傳欄位 |  |
+| payload.results[].itemComment | String | 料品備註 |  |
 
 ### Failed Response Data
 
@@ -427,7 +487,7 @@ None
 
 1. 讀取查詢條件：batchNo、registerNo
 2. 查詢資料表並套用條件：batch_number
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemBatchNo、payload.results[].itemValidDateTimestamp、payload.results[].itemComment
 
 ### Database Tables Used
 

@@ -56,7 +56,7 @@ None
   "payload": {
     "serverTimestamp": "Integer",
     "serverId": "String",
-    "registerNo": "Need Review"
+    "registerNo": "String"
   }
 }
 ```
@@ -67,7 +67,7 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.serverId | String | 伺服器識別 |  |
-| payload.registerNo | Need Review | 設備註冊編號 |  |
+| payload.registerNo | String | 設備註冊編號 |  |
 
 ### Failed Response Data
 

@@ -43,7 +43,23 @@ None
   "message": "String",
   "payload": {
     "total": "Integer",
-    "results": "Need Review",
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "product_order_no": "String",
+        "oneProcess": "Integer",
+        "secProcess": "Integer",
+        "item_no": "String",
+        "item_name": "String",
+        "itemCategory": "Integer",
+        "unit": "Integer",
+        "amount": "Float",
+        "minutes": "Integer",
+        "laborCount": "Integer",
+        "creationTime": "Integer"
+      }
+    ],
     "count": "Integer"
   }
 }
@@ -54,7 +70,19 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].product_order_no | String | 訂購單號 |  |
+| payload.results[].oneProcess | Integer | 主製程 |  |
+| payload.results[].secProcess | Integer | secProcess 回傳欄位 |  |
+| payload.results[].item_no | String | 料品/品項編號 |  |
+| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].itemCategory | Integer | 料品類別 |  |
+| payload.results[].unit | Integer | unit 回傳欄位 |  |
+| payload.results[].amount | Float | amount 回傳欄位 |  |
+| payload.results[].minutes | Integer | minutes 回傳欄位 |  |
+| payload.results[].laborCount | Integer | laborCount 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data
@@ -69,7 +97,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：aps_quantity、contract、product_order
-3. 組裝回傳 payload 欄位：payload.total、payload.results、payload.count
+3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].no、payload.results[].product_order_no、payload.results[].oneProcess、payload.results[].secProcess、payload.results[].item_no、payload.results[].item_name、payload.results[].itemCategory、payload.results[].unit、payload.results[].amount、payload.results[].minutes、payload.results[].laborCount、payload.results[].creationTime、payload.count
 
 ### Database Tables Used
 

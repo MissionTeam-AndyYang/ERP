@@ -44,7 +44,22 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "id": "Integer",
+        "no": "String",
+        "businessNo": "String",
+        "displayName": "String",
+        "name": "String",
+        "address": "String",
+        "phone": "String",
+        "fax": "String",
+        "department": "Integer",
+        "lar": "String",
+        "comment": "String",
+        "creationTime": "Integer"
+      }
+    ]
   }
 }
 ```
@@ -55,7 +70,18 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].id | Integer | 資料 ID |  |
+| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].businessNo | String | businessNo 回傳欄位 |  |
+| payload.results[].displayName | String | 顯示名稱 |  |
+| payload.results[].name | String | 名稱 |  |
+| payload.results[].address | String | address 回傳欄位 |  |
+| payload.results[].phone | String | phone 回傳欄位 |  |
+| payload.results[].fax | String | fax 回傳欄位 |  |
+| payload.results[].department | Integer | department 回傳欄位 |  |
+| payload.results[].lar | String | lar 回傳欄位 |  |
+| payload.results[].comment | String | comment 回傳欄位 |  |
+| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -69,7 +95,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：enterprise
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].businessNo、payload.results[].displayName、payload.results[].name、payload.results[].address、payload.results[].phone、payload.results[].fax、payload.results[].department、payload.results[].lar、payload.results[].comment、payload.results[].creationTime
 
 ### Database Tables Used
 

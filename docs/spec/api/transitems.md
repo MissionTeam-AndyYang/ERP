@@ -47,7 +47,13 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "item": {},
+        "paidPayment": {},
+        "receivedPayment": {}
+      }
+    ]
   }
 }
 ```
@@ -58,7 +64,6 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
 
 ### Failed Response Data
 
@@ -72,7 +77,7 @@ None
 
 1. 讀取查詢條件：category、count、start、type
 2. 查詢資料表並套用條件：company、payment、trans_items、trans_items2
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count
 
 ### Database Tables Used
 
@@ -118,7 +123,25 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {
+        "transItem": {
+          "id": "Integer",
+          "no": "String",
+          "name": "String",
+          "category": "Integer",
+          "attribute": "Integer",
+          "company_no": "String",
+          "company_displayName": "String",
+          "item_no": "String",
+          "item_name": "String",
+          "comment": "String",
+          "creationTime": "Integer"
+        },
+        "paidPayment": {},
+        "receivedPayment": {}
+      }
+    ]
   }
 }
 ```
@@ -129,7 +152,17 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
+| payload.results[].transItem.id | Integer | 資料 ID |  |
+| payload.results[].transItem.no | String | 編號篩選 |  |
+| payload.results[].transItem.name | String | 名稱 |  |
+| payload.results[].transItem.category | Integer | 類別篩選 |  |
+| payload.results[].transItem.attribute | Integer | attribute 回傳欄位 |  |
+| payload.results[].transItem.company_no | String | company_no 回傳欄位 |  |
+| payload.results[].transItem.company_displayName | String | company_displayName 回傳欄位 |  |
+| payload.results[].transItem.item_no | String | 料品/品項編號 |  |
+| payload.results[].transItem.item_name | String | item_name 回傳欄位 |  |
+| payload.results[].transItem.comment | String | comment 回傳欄位 |  |
+| payload.results[].transItem.creationTime | Integer | creationTime 回傳欄位 |  |
 
 ### Failed Response Data
 
@@ -143,7 +176,7 @@ None
 
 1. 讀取查詢條件：item_no
 2. 查詢資料表並套用條件：company、payment、trans_items
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].transItem.id、payload.results[].transItem.no、payload.results[].transItem.name、payload.results[].transItem.category、payload.results[].transItem.attribute、payload.results[].transItem.company_no、payload.results[].transItem.company_displayName、payload.results[].transItem.item_no、payload.results[].transItem.item_name、payload.results[].transItem.comment、payload.results[].transItem.creationTime
 
 ### Database Tables Used
 

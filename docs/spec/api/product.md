@@ -44,7 +44,9 @@ None
   "payload": {
     "total": "Integer",
     "count": "Integer",
-    "results": "Need Review"
+    "results": [
+      {}
+    ]
   }
 }
 ```
@@ -55,7 +57,6 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results | Need Review | 查詢結果清單 |  |
 
 ### Failed Response Data
 
@@ -69,7 +70,7 @@ None
 
 1. 讀取查詢條件：count、start
 2. 查詢資料表並套用條件：product
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results
+3. 組裝回傳 payload 欄位：payload.total、payload.count
 
 ### Database Tables Used
 

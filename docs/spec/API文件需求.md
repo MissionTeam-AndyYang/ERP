@@ -304,11 +304,27 @@ API Summary 不得獨立成檔案。
           - response wrapper
           - inheritance
 
-         可追蹤：
-          - dict
-          - list
-          - object
-          - ORM model
+         必須遞迴追蹤：
+         - dict
+         - list
+         - tuple
+         - object
+         - ORM model
+         - dataclass
+         - DTO
+         - serializer
+
+         直到：
+
+         1. Primitive Type
+            - String
+            - Integer
+            - Float
+            - Boolean
+            - ...
+         或
+
+         2. 無法取得原始結構才允許停止。
          
          ### Response Wrapper 分析規則
          若 API 最終回傳經過共用封裝：
@@ -348,12 +364,163 @@ API Summary 不得獨立成檔案。
           - response_data
           - result_data
 
+         若可解析最終 Response Structure, 應產出完整 Success Response Data。
+         僅在無法找到最終 Response 格式時, 標示 Need Review。
+         
+         ### Variable Reassignment Rule
+         欄位型態必須以最終賦值結果判定。
 
-         若可解析最終 Response Structure：
-         應產出完整 Success Response Data。
+         例如：
 
-         僅在無法找到最終 Response 格式時：
-         標示 Need Review。
+         dict_data = {
+            "count": 0
+         }
+
+         dict_data["count"] = len(lst_result)
+
+         則：
+
+         count = Integer
+
+         不得因 dict_data 為 Dict
+         而將 count 標示為 Object。
+
+
+         ### Object / Array Mandatory Expansion Rule
+         若 Response 欄位型態為：
+
+         - Object
+         - Array
+         - List
+         - Dict
+
+         必須繼續向下追蹤實際結構。
+
+         禁止僅輸出：
+
+         {
+            "payload": {
+               "results": "Object"
+            }
+         }
+
+         或
+
+         {
+            "payload": {
+               "results": "Array"
+            }
+         }
+
+         ---
+
+         必須分析來源：
+
+         - dict literal
+         - dict assignment
+         - payload assignment
+         - ORM model mapping
+         - serializer
+         - helper function
+         - service return value
+
+         並展開至最終可解析欄位。
+
+         例如：
+
+         results = [
+            {
+               "itemNo": "A001",
+               "itemName": "Apple"
+            }
+         ]
+
+         必須輸出：
+
+         {
+            "payload": {
+               "results": [
+                  {
+                     "itemNo": "String",
+                     "itemName": "String"
+                  }
+               ]
+            }
+         }
+
+         不得簡化為：
+
+         {
+            "payload": {
+               "results": "Array"
+            }
+         }
+         禁止保留 Object 作為最終型態
+
+         ### Function Return Expansion Rule
+
+         若 Response 欄位來自：
+
+         - function return
+         - class method return
+         - helper function return
+         - service function return
+
+         例如：
+
+         dict_user = self.__find_user_info()
+
+         則必須繼續追蹤：
+
+         __find_user_info()
+
+         內部回傳內容。
+
+         若回傳為 dict：
+
+         {
+            "user_no": xxx,
+            "user_name": xxx
+         }
+
+         則必須展開欄位。
+
+         不得僅輸出：
+
+         "user": "Object"
+
+         僅在 function 無法追蹤時，
+         才允許標示 Need Review。
+
+         ### Primitive Type Resolution Rule
+         Success Response Data 最終輸出時：
+
+         禁止將以下型態作為最終欄位型態：
+
+         - Object
+         - Dict
+         - List
+         - Array
+
+         否則必須持續向下展開。
+
+         例如：
+
+         {
+         "results": "Object"
+         }
+
+         為不合格輸出。
+
+         應展開至：
+
+         {
+         "results": [
+            {
+               "contractNo": "String"
+            }
+         ]
+         }
 
          範例:
          ```json
@@ -397,13 +564,44 @@ API Summary 不得獨立成檔案。
       - framework wrapper flow
       - request lifecycle generic steps
 
+      不得停留於：
+      - 呼叫服務
+      - 呼叫 helper
+      - 呼叫 business layer
+      - 呼叫 repository
+
+      例如：
+
+      CContract.get(...)
+      CMember.login(...)
+      CInventory.create(...)
+
+      不得描述為：
+
+      1. 呼叫服務 CContract.get()
+
+
+      必須改寫為：
+      1. 查詢 Contract 資料
+      2. 計算符合條件資料筆數   
+      3. 組裝回傳結果
+      必須繼續追蹤被呼叫函式內容。
+
       ---
 
       #### 必須
 
-      必須描述：
+      必須描述, 此 API 實際業務邏輯執行流程」
+      - 查詢
+      - 驗證
+      - 計算
+      - 新增
+      - 修改
+      - 刪除
+      - 轉換資料
+      - 組裝 Response
 
-      「此 API 實際業務邏輯執行流程」
+      等實際業務行為。
 
       來源必須來自：
 
@@ -412,8 +610,28 @@ API Summary 不得獨立成檔案。
       - ORM query
       - validation logic
       - response construction
+       
 
-      ---
+      若 Processing Flow 出現：
+
+      - payload.results
+      - payload.data
+      - payload.items
+
+      則必須追蹤其來源變數。
+
+      例如：
+
+      payload["results"] = results
+
+      必須分析：
+
+      results = ?
+
+      若 results 來自 CContract.get(), 則必須繼續分析 CContract.get()
+      若未分析 CContract.get() 則視為文件不完整
+
+      不得停止於 payload 組裝階段。
 
       #### 範例（login API）
 
@@ -441,52 +659,71 @@ API Summary 不得獨立成檔案。
          → 從 ORM / SQLAlchemy / query 推導
 
          只要可由程式碼路徑追溯，即列入文件。
-     
+         不得因資料表出現在其他 function 而忽略。
+
+      Purpose 欄位不得描述：
+
+      - 程式碼有使用此資料表
+      - ORM 有使用此資料表
+      - Service 有使用此資料表
+      - Query 有使用此資料表
+      - 程式碼路徑中使用此資料表
+      ---
+
+      Purpose 必須描述：
+      此 API 使用該資料表的實際業務目的,  API 為何存取此資料表。
+
+      推導來源：
+
+      - ORM query()
+      - filter()
+      - join()
+      - insert()
+      - update()
+      - delete()
+      - service layer
+      - business layer
+
+      ---
 
       範例：
-      | Table | Purpose| 
-      |----------|------|
-      |member|驗證帳號|
 
-      範例：
+      query(CTableMember)
+      .filter(
+         CTableMember.account == account
+      )
 
-      API
-      → CAuth.login()
-      → query(CTableMember)
-      → insert(CTableSession)
+      應產出：
 
-      應列出：
-      | Table | Purpose| 
-      |----------|------|
-      |member|驗證登入帳號|
-      |session|建立登入 Session|
+      | Table | Purpose |
+      |---------|---------|
+      | member | 驗證登入帳號 |
 
 
-   不得因資料表出現在其他 function 而忽略。
+   
 ## 7. 保留 Need Review 條件
 
-      僅在以下情況允許保留 Need Review：
+   僅在以下情況允許保留 Need Review：
+   - Response Key 動態產生
+   - Runtime Reflection
+   - eval()
+   - 動態 ORM Mapping
+   - 無法找到實際 Response Wrapper
+   - API 用途無法合理推導
 
-      - Response Key 動態產生
-      - Runtime Reflection
-      - eval()
-      - 動態 ORM Mapping
-      - 無法找到實際 Response Wrapper
-      - API 用途無法合理推導
+   必須於 Review Note 說明原因。
 
-      必須於 Review Note 說明原因。
+   不得使用：
 
-      不得使用：
+   "Cannot determine"
 
-      "Cannot determine"
+   作為唯一說明。
 
-      作為唯一說明。
+   必須具體指出：
 
-      必須具體指出：
-
-      - 哪個欄位無法確認
-      - 哪個 function 無法追蹤
-      - 哪個 response 無法解析
+   - 哪個欄位無法確認
+   - 哪個 function 無法追蹤
+   - 哪個 response 無法解析
 
 ## 8. 文件處理規則
 1. 允許：
@@ -528,4 +765,53 @@ API Summary 不得獨立成檔案。
 
    完成上述分析後才允許輸出文件。
 
-   
+## 10. Output Validation Rules
+
+在輸出文件前，必須檢查：
+
+### Success Response Data
+
+禁止出現：
+
+- Object
+- Dict
+- Array
+- List
+
+作為最終葉節點型態。
+
+除非符合第 7 章 Need Review 條件。
+
+---
+
+### Processing Flow
+
+禁止出現：
+
+- 呼叫服務
+- 呼叫 helper
+- 呼叫 repository
+- 呼叫 business layer
+
+作為流程步驟。
+
+必須轉換為實際業務行為。
+
+---
+
+### Database Tables Used
+
+Purpose 不得包含：
+
+- 使用此資料表
+- ORM 使用
+- Query 使用
+- 程式碼路徑使用
+
+必須描述業務目的。
+
+---
+
+若違反以上規則：
+
+文件視為未完成。

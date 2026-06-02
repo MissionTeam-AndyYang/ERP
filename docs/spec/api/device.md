@@ -31,7 +31,21 @@ None
 
 ### Request Body
 
-Need Review: request body is read in code, but no explicit schema or field check was found.
+```json
+{
+  "deviceId": "String",
+  "deviceName": "String",
+  "deviceRole": "Integer",
+  "deviceComment": "String"
+}
+```
+
+| Field Path | Type | Required | Description | Enum |
+|----------|----------|------|-----|---|
+| deviceId | String | YES | deviceId 欄位 |  |
+| deviceName | String | YES | deviceName 欄位 |  |
+| deviceRole | Integer | YES | deviceRole 欄位 | ELocationType.STORAGE, ELocationType.PREPARING1, ELocationType.PREPARING2, ELocationType.PROCESSING, ELocationType.PACKAGING |
+| deviceComment | String | YES | deviceComment 欄位 |  |
 
 ### Success Response Data
 
@@ -65,8 +79,9 @@ Need Review: request body is read in code, but no explicit schema or field check
 
 ### Processing Flow
 
-1. 查詢資料表並套用條件：device
-2. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId、payload.registerNo
+1. 驗證 request body 欄位：deviceId、deviceName、deviceRole、deviceComment
+2. 查詢資料表並套用條件：device
+3. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId、payload.registerNo
 
 ### Database Tables Used
 

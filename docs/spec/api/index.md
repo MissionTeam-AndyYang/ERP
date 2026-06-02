@@ -16,6 +16,7 @@
 - [goods](./goods.md)
 - [heartbeat](./heartbeat.md)
 - [inventory](./inventory.md)
+- [item](./item.md)
 - [material](./material.md)
 - [mix](./mix.md)
 - [plstatistics](./plstatistics.md)

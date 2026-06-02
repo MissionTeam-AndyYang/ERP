@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 API_DIR = ROOT / "restserver/package/restserver/api"
 AUTH_DIR = ROOT / "restserver/package/auth"
+ITEMS_DIR = ROOT / "restserver/package/items"
 TABLE_PY = ROOT / "restserver/package/dbwrapper/table.py"
 DB_DOC = ROOT / "docs/spec/database/index.md"
 API_OUT_DIR = ROOT / "docs/spec/api"
@@ -27,6 +28,7 @@ MODULE_LABELS = {
     "goods": "貨品",
     "heartbeat": "服務心跳",
     "inventory": "庫存",
+    "item": "設備料品作業",
     "material": "原物料",
     "mix": "混合品項",
     "plstatistics": "產線統計",
@@ -48,6 +50,14 @@ SEGMENT_LABELS = {
     "device": "設備",
     "quantity": "製造需求數量",
     "item": "品項",
+    "data": "資料",
+    "group": "棧板群組",
+    "purchase": "採購",
+    "manufacture": "製造",
+    "sales": "銷售",
+    "other": "其他",
+    "info": "批號資訊",
+    "groupInfo": "棧板群組資訊",
     "itemprice": "品項價格",
     "process": "製程",
     "tree": "樹狀資料",
@@ -126,6 +136,34 @@ PARAM_LABELS = {
     "name": "名稱",
     "process": "製程",
     "registerNo": "設備註冊編號",
+    "dateTimestampUTC": "UTC 日期時間戳記",
+    "shift": "班別",
+    "refProcess": "參照製程",
+    "batchNo": "批號",
+    "groupNo": "棧板群組編號",
+    "devAction": "設備動作",
+    "refNo": "來源單號",
+    "refNoSec": "來源子單號",
+    "itemBatchNo": "料品批號清單",
+    "serialNos": "流水號清單",
+    "devDateTimestamp": "設備作業時間戳記",
+    "serialNo": "流水號",
+    "value": "數量或重量",
+    "isValid": "是否有效",
+    "action": "設備作業方向",
+    "refDateTimestamp": "來源單據日期時間戳記",
+    "itemName": "料品名稱",
+    "itemVendor": "料品供應商或交易對象",
+    "itemType": "料品類型",
+    "itemAmount": "料品作業數量",
+    "itemAmountUnit": "料品作業單位",
+    "itemComment": "料品備註",
+    "itemPageType": "設備作業頁面類型",
+    "itemMaxWeight": "允收最大重量",
+    "itemMinWeight": "允收最小重量",
+    "validDateTimestamp": "效期時間戳記",
+    "results": "資料清單",
+    "total": "總筆數",
     "username": "登入帳號",
     "password": "登入密碼",
     "token": "登入 token",
@@ -294,12 +332,30 @@ def is_request_args_get(call_node):
     )
 
 
+def literal_value(node):
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Dict):
+        return {
+            literal_value(key): literal_value(value)
+            for key, value in zip(node.keys, node.values)
+            if key is not None
+        }
+    if isinstance(node, ast.List):
+        return [literal_value(item) for item in node.elts]
+    if isinstance(node, ast.Tuple):
+        return [literal_value(item) for item in node.elts]
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        value = literal_value(node.operand)
+        return -value if isinstance(value, (int, float)) else ast.unparse(node)
+    if isinstance(node, (ast.Name, ast.Attribute)):
+        return ast.unparse(node)
+    return ast.unparse(node)
+
+
 def literal_dict(node):
-    try:
-        value = ast.literal_eval(node)
-        return value if isinstance(value, dict) else None
-    except Exception:
-        return None
+    value = literal_value(node)
+    return value if isinstance(value, dict) else None
 
 
 def extract_modules():
@@ -355,28 +411,55 @@ def extract_modules():
     return modules
 
 
+def schema_structure(spec):
+    if not isinstance(spec, dict):
+        return "Need Review"
+    raw_type = spec.get("type", "object")
+    if raw_type == "object":
+        return {name: schema_structure(child) for name, child in spec.get("properties", {}).items()}
+    if raw_type == "array":
+        return [schema_structure(spec.get("items", {}))]
+    return type_from_schema(raw_type)
+
+
+def schema_field_rows(spec, prefix=""):
+    if not isinstance(spec, dict):
+        return []
+    raw_type = spec.get("type", "object")
+    rows = []
+    if raw_type == "object":
+        required = set(spec.get("required", []))
+        for name, child in spec.get("properties", {}).items():
+            child = child if isinstance(child, dict) else {}
+            path = f"{prefix}.{name}" if prefix else name
+            child_type = type_from_schema(child.get("type", "object"))
+            is_required = (
+                name in required
+                or child.get("required") is True
+                or child.get("minLength", 0) > 0
+                or child.get("minItems", 0) > 0
+            )
+            enum_values = child.get("enum", "")
+            rows.append(
+                {
+                    "path": path,
+                    "type": child_type,
+                    "required": "YES" if is_required else "NO",
+                    "description": PARAM_LABELS.get(name, f"{name} 欄位"),
+                    "enum": ", ".join(str(item) for item in enum_values) if isinstance(enum_values, list) else "",
+                }
+            )
+            if child.get("type") == "array":
+                rows.extend(schema_field_rows(child.get("items", {}), path + "[]"))
+            elif child.get("type", "object") == "object":
+                rows.extend(schema_field_rows(child, path))
+    return rows
+
+
 def schema_fields(schema):
     if not isinstance(schema, dict):
         return [], {}
-    props = schema.get("properties", {})
-    required = set(schema.get("required", []))
-    fields = []
-    structure = {}
-    for name, spec in props.items():
-        spec = spec if isinstance(spec, dict) else {}
-        field_type = type_from_schema(spec.get("type", "object"))
-        is_required = name in required or spec.get("required") is True or spec.get("minLength", 0) > 0
-        structure[name] = field_type
-        fields.append(
-            {
-                "path": name,
-                "type": field_type,
-                "required": "YES" if is_required else "NO",
-                "description": PARAM_LABELS.get(name, f"{name} 欄位"),
-                "enum": "",
-            }
-        )
-    return fields, structure
+    return schema_field_rows(schema), schema_structure(schema)
 
 
 def table_attr_name(node):
@@ -440,6 +523,48 @@ def dict_structure_from_ast(dict_node, local_structures=None):
     return result
 
 
+def service_call_name(node):
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Call)
+        and isinstance(node.func.value.func, ast.Name)
+    ):
+        return node.func.value.func.id, node.func.attr
+    return "", ""
+
+
+def service_return_structure(class_name, method_name):
+    if (class_name, method_name) != ("CItems", "get"):
+        return None
+    item_batch = {
+        "batchNo": "String",
+        "validDateTimestamp": "Integer",
+        "serialNos": [{"serialNo": "String", "value": "Number"}],
+    }
+    return [
+        {
+            "action": "Integer",
+            "refNo": "String",
+            "refNoSec": "String",
+            "refDateTimestamp": "Integer",
+            "refProcess": "Integer",
+            "itemNo": "String",
+            "itemName": "String",
+            "itemVendor": "String",
+            "itemType": "Integer",
+            "itemCategory": "Integer",
+            "itemAmount": "Number",
+            "itemAmountUnit": "Integer",
+            "itemComment": "String",
+            "itemPageType": "Integer",
+            "itemMaxWeight": "Number",
+            "itemMinWeight": "Number",
+            "itemBatchNo": [item_batch],
+        }
+    ]
+
+
 def merge_structure(target, path, value):
     cur = target
     for key in path[:-1]:
@@ -493,20 +618,25 @@ def extract_method_info(class_node, table_map, db_fields, service_tables):
             if isinstance(sub, ast.Name) and sub.id in table_map:
                 tables.add(table_map[sub.id])
             if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
-                if isinstance(sub.func.value, ast.Call) and isinstance(sub.func.value.func, ast.Name):
-                    service_calls.append(f"{sub.func.value.func.id}.{sub.func.attr}")
-                    tables.update(service_tables.get((sub.func.value.func.id, sub.func.attr), set()))
+                service_class, service_method = service_call_name(sub)
+                if service_class and service_method:
+                    service_calls.append(f"{service_class}.{service_method}")
+                    tables.update(service_tables.get((service_class, service_method), set()))
                 if isinstance(sub.func.value, ast.Name) and sub.func.value.id == "self":
                     helper_names.add(sub.func.attr)
                     tables.update(helper_tables.get(sub.func.attr, set()))
             if isinstance(sub, ast.Assign):
                 value_dict = literal_dict(sub.value)
+                service_class, service_method = service_call_name(sub.value)
                 for target in sub.targets:
                     name = assign_name(target)
                     if name in {"dict_schema", "schema"} and value_dict:
                         schemas.append(value_dict)
                     elif name:
-                        if isinstance(sub.value, ast.Dict):
+                        service_structure = service_return_structure(service_class, service_method)
+                        if service_structure is not None:
+                            local_structures[name] = service_structure
+                        elif isinstance(sub.value, ast.Dict):
                             local_structures[name] = dict_structure_from_ast(sub.value, local_structures)
                         elif isinstance(sub.value, ast.List):
                             local_structures[name] = []
@@ -603,20 +733,30 @@ def flatten_payload_names(payload):
 
 def service_table_usage(table_map):
     usage = defaultdict(set)
-    for path in AUTH_DIR.glob("*.py"):
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for cls in tree.body:
-            if not isinstance(cls, ast.ClassDef):
-                continue
-            for method in cls.body:
-                if not isinstance(method, ast.FunctionDef):
+    for service_dir in (AUTH_DIR, ITEMS_DIR):
+        if not service_dir.exists():
+            continue
+        for path in service_dir.glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for cls in tree.body:
+                if not isinstance(cls, ast.ClassDef):
                     continue
-                tables = set()
-                for sub in ast.walk(method):
-                    if isinstance(sub, ast.Name) and sub.id in table_map:
-                        tables.add(table_map[sub.id])
-                if tables:
-                    usage[(cls.name, method.name)] = tables
+                class_tables = set()
+                method_tables = {}
+                for method in cls.body:
+                    if not isinstance(method, ast.FunctionDef):
+                        continue
+                    tables = set()
+                    for sub in ast.walk(method):
+                        if isinstance(sub, ast.Name) and sub.id in table_map:
+                            tables.add(table_map[sub.id])
+                    if tables:
+                        method_tables[method.name] = tables
+                        class_tables.update(tables)
+                for method_name, tables in method_tables.items():
+                    usage[(cls.name, method_name)] = tables
+                if cls.name == "CItems" and class_tables:
+                    usage[(cls.name, "get")].update(class_tables)
     return usage
 
 
@@ -641,6 +781,27 @@ def path_segments(path):
 
 def description(module, route, method):
     segments = path_segments(route["path"])
+    if module == "item":
+        tail = [segment for segment in segments if segment != "item"]
+        item_subjects = {
+            ("data",): "設備料品資料",
+            ("data", "group"): "設備料品棧板群組資料",
+            ("purchase",): "設備採購入庫料品",
+            ("manufacture",): "設備製造料品",
+            ("sales",): "設備銷售出庫料品",
+            ("other",): "設備其他庫存料品",
+            ("info",): "設備批號資訊",
+            ("groupInfo",): "設備棧板群組資訊",
+        }
+        subject = item_subjects.get(tuple(tail), "設備料品作業")
+        if method == "GET":
+            return f"查詢{subject}"
+        if method == "POST":
+            return f"新增{subject}"
+        if method == "PUT":
+            return f"更新{subject}"
+        if method == "DELETE":
+            return f"刪除{subject}"
     labels = [SEGMENT_LABELS.get(seg, MODULE_LABELS.get(seg, seg)) for seg in segments]
     if not labels:
         labels = [MODULE_LABELS.get(module, module)]
@@ -722,6 +883,20 @@ def response_desc(path):
 
 def table_purpose(module_name, route_path, table):
     subject = MODULE_LABELS.get(module_name, module_name)
+    if module_name == "item":
+        mapping = {
+            "device": "確認設備註冊編號、硬體識別與設備角色，決定可執行的料品作業",
+            "goods_receipt_note": "取得採購入庫與採購退回的待作業料品",
+            "process_order": "取得領料、退料、餘料、廢料或產出相關製造作業料品",
+            "shipping_order": "取得銷售出庫與銷售退回的待作業料品",
+            "inventory_order": "取得其他庫存異動的待作業料品",
+            "batch_number": "取得或確認料品批號、效期、料品類型與類別",
+            "batchno_serialno": "取得或寫入批號流水號、預期數量與有效狀態",
+            "batchno_serialno_group": "取得或建立棧板群組與批號流水號分派關係",
+            "device_log": "記錄設備端料品作業送出的原始資料與處理結果",
+        }
+        if table in mapping:
+            return mapping[table]
     if module_name == "user":
         if table == "member":
             return "驗證登入帳號"

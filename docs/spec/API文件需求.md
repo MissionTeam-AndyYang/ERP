@@ -7,7 +7,11 @@
 
 ## 1. 輸出位置
 docs/spec/api/index.md
+### 檔案初始化規則
 
+- 必須先清空 docs/spec/api/ 內所有檔案
+- 清空後再開始生成
+- 視為全新專案初始化（not incremental）
 
 ## 2. 文件架構
 
@@ -292,9 +296,7 @@ API Summary 不得獨立成檔案。
          - 保留完整 JSON Structure。
          - 表格僅列出實際欄位，不列出中繼 Object。
 
-      4. 推導規則
-         Response Data 不得僅依據 return statement 判定。
-
+      4. 規則
          允許沿著程式碼路徑進行追蹤：
 
           - function call
@@ -365,7 +367,6 @@ API Summary 不得獨立成檔案。
           - result_data
 
          若可解析最終 Response Structure, 應產出完整 Success Response Data。
-         僅在無法找到最終 Response 格式時, 標示 Need Review。
          
          ### Variable Reassignment Rule
          欄位型態必須以最終賦值結果判定。
@@ -385,77 +386,6 @@ API Summary 不得獨立成檔案。
          不得因 dict_data 為 Dict
          而將 count 標示為 Object。
 
-
-         ### Object / Array Mandatory Expansion Rule
-         若 Response 欄位型態為：
-
-         - Object
-         - Array
-         - List
-         - Dict
-
-         必須繼續向下追蹤實際結構。
-
-         禁止僅輸出：
-
-         {
-            "payload": {
-               "results": "Object"
-            }
-         }
-
-         或
-
-         {
-            "payload": {
-               "results": "Array"
-            }
-         }
-
-         ---
-
-         必須分析來源：
-
-         - dict literal
-         - dict assignment
-         - payload assignment
-         - ORM model mapping
-         - serializer
-         - helper function
-         - service return value
-
-         並展開至最終可解析欄位。
-
-         例如：
-
-         results = [
-            {
-               "itemNo": "A001",
-               "itemName": "Apple"
-            }
-         ]
-
-         必須輸出：
-
-         {
-            "payload": {
-               "results": [
-                  {
-                     "itemNo": "String",
-                     "itemName": "String"
-                  }
-               ]
-            }
-         }
-
-         不得簡化為：
-
-         {
-            "payload": {
-               "results": "Array"
-            }
-         }
-         禁止保留 Object 作為最終型態
 
          ### Function Return Expansion Rule
 
@@ -489,38 +419,6 @@ API Summary 不得獨立成檔案。
 
          "user": "Object"
 
-         僅在 function 無法追蹤時，
-         才允許標示 Need Review。
-
-         ### Primitive Type Resolution Rule
-         Success Response Data 最終輸出時：
-
-         禁止將以下型態作為最終欄位型態：
-
-         - Object
-         - Dict
-         - List
-         - Array
-
-         否則必須持續向下展開。
-
-         例如：
-
-         {
-         "results": "Object"
-         }
-
-         為不合格輸出。
-
-         應展開至：
-
-         {
-         "results": [
-            {
-               "contractNo": "String"
-            }
-         ]
-         }
 
          範例:
          ```json
@@ -603,15 +501,6 @@ API Summary 不得獨立成檔案。
 
       等實際業務行為。
 
-      來源必須來自：
-
-      - controller logic
-      - service logic
-      - ORM query
-      - validation logic
-      - response construction
-       
-
       若 Processing Flow 出現：
 
       - payload.results
@@ -673,17 +562,6 @@ API Summary 不得獨立成檔案。
       Purpose 必須描述：
       此 API 使用該資料表的實際業務目的,  API 為何存取此資料表。
 
-      推導來源：
-
-      - ORM query()
-      - filter()
-      - join()
-      - insert()
-      - update()
-      - delete()
-      - service layer
-      - business layer
-
       ---
 
       範例：
@@ -699,33 +577,9 @@ API Summary 不得獨立成檔案。
       |---------|---------|
       | member | 驗證登入帳號 |
 
+ 
 
-   
-## 7. 保留 Need Review 條件
-
-   僅在以下情況允許保留 Need Review：
-   - Response Key 動態產生
-   - Runtime Reflection
-   - eval()
-   - 動態 ORM Mapping
-   - 無法找到實際 Response Wrapper
-   - API 用途無法合理推導
-
-   必須於 Review Note 說明原因。
-
-   不得使用：
-
-   "Cannot determine"
-
-   作為唯一說明。
-
-   必須具體指出：
-
-   - 哪個欄位無法確認
-   - 哪個 function 無法追蹤
-   - 哪個 response 無法解析
-
-## 8. 文件處理規則
+## 7. 文件處理規則
 1. 允許：
    允許分析範圍：
    - route decorator (*_uri.py)
@@ -740,17 +594,14 @@ API Summary 不得獨立成檔案。
    - 跨 class 分析
    - 跨 function 分析
 
-   必須允許跨 function / class 追蹤，不得只看單一函式。
-  
+   必須允許跨 function / class 追蹤，不得只看單一函式。  
 
 2. 所有內容必須來自程式碼或資料庫文件。
-3. 不得推測不存在的 API。
-4. 不得自行設計 Response。
-5. 文件內容必須可追溯至程式碼。
-6. Code Review 優先於 Need Review。
-7. 若程式碼與資料庫文件衝突，以程式碼為主，並於 Review Note 說明。
+3. 文件內容必須可追溯至程式碼。
+4. Code Review 優先於 Need Review。
+5. 若程式碼與資料庫文件衝突，以程式碼為主，並於 Review Note 說明。
 
-## 9. Documentation Quality Rules
+## 8. Documentation Quality Rules
 
    產生文件前，
 
@@ -779,9 +630,6 @@ API Summary 不得獨立成檔案。
 - List
 
 作為最終葉節點型態。
-
-除非符合第 7 章 Need Review 條件。
-
 ---
 
 ### Processing Flow

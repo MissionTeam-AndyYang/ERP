@@ -7,11 +7,6 @@
 
 ## 1. 輸出位置
 docs/spec/api/index.md
-### 檔案初始化規則
-
-- 必須先清空 docs/spec/api/ 內所有檔案
-- 清空後再開始生成
-- 視為全新專案初始化（not incremental）
 
 ## 2. 文件架構
 

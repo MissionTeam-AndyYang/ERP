@@ -16,6 +16,7 @@ STATISTIC_DIR = ROOT / "restserver/package/statistic"
 TABLE_PY = ROOT / "restserver/package/dbwrapper/table.py"
 DB_DOC = ROOT / "docs/spec/database/index.md"
 API_OUT_DIR = ROOT / "docs/spec/api"
+FIELD_DESCRIPTIONS = {}
 
 
 MODULE_LABELS = {
@@ -172,6 +173,128 @@ PARAM_LABELS = {
     "token": "登入 token",
 }
 
+RESPONSE_LABELS = {
+    "id": "資料 ID",
+    "no": "資料編號",
+    "date": "日期時間",
+    "creationTime": "資料建立時間",
+    "creator_no": "製單人員編號",
+    "ref_no": "來源單號",
+    "ref_sub_no": "來源子單號",
+    "refCategory": "來源類別",
+    "category": "類別",
+    "subCategory": "子類別",
+    "type": "類型",
+    "name": "名稱",
+    "displayName": "顯示名稱",
+    "businessNo": "統一編號或商業識別編號",
+    "address": "地址",
+    "phone": "電話",
+    "fax": "傳真",
+    "contactName": "聯絡人姓名",
+    "contactPhone": "聯絡人電話",
+    "contactTitle": "聯絡人職稱",
+    "contactEmail": "聯絡人 Email",
+    "currency": "幣別",
+    "branch": "銀行分行",
+    "account": "銀行帳戶名稱",
+    "number": "銀行帳號",
+    "item_no": "料品/品項編號",
+    "item_name": "料品/品項名稱",
+    "item_ref_no": "交易對象編號",
+    "item_ref_displayName": "交易對象顯示名稱",
+    "itemCategory": "料品類別",
+    "itemSubCategory": "料品子類別",
+    "itemType": "料品類型",
+    "unit": "單位",
+    "price": "單價",
+    "amount": "金額或需求量",
+    "expectedCount": "預期數量",
+    "checkedCount": "已確認數量",
+    "preparedCount": "已備數量",
+    "count": "數量",
+    "total": "總筆數",
+    "totalAmount": "總金額",
+    "dueDate": "預計收付款日期",
+    "month": "月份",
+    "comment": "備註",
+    "validDays": "有效天數",
+    "validDate": "效期日期",
+    "validDateNo": "效期日期編號",
+    "batch_number": "批號",
+    "serial_no": "流水號",
+    "serialNo": "流水號",
+    "oneProcess": "主製程",
+    "secProcess": "次製程",
+    "process_order_no": "製程單號",
+    "work_order_no": "工單號",
+    "product_order_no": "訂購單號",
+    "purchase_order_no": "採購單號",
+    "production_line_no": "產線編號",
+    "productionLineName": "產線名稱",
+    "output_item_no": "產出品項編號",
+    "output_item_name": "產出品項名稱",
+    "payment_type": "收付款類別",
+    "paymentType": "收付款類別",
+    "payment_source": "收付款來源",
+    "payment_date": "收付款日期",
+    "paymentDate": "收付款日期",
+    "payment_period": "付款期間",
+    "paymentPeriod": "付款期間",
+    "payment_source": "收付款來源",
+    "paid_id": "付款帳戶 ID",
+    "received_id": "收款帳戶 ID",
+    "bankDisplayName": "銀行顯示名稱",
+    "bankName": "銀行名稱",
+    "bankCurrency": "銀行帳戶幣別",
+    "bankBranch": "銀行分行",
+    "bankAccount": "銀行帳戶名稱",
+    "bankNo": "銀行帳號",
+    "returnAmount": "退回金額",
+    "normalAmount": "一般交易金額",
+    "itemCategoryAmount": "依料品類別彙總金額",
+    "records": "出入庫紀錄清單",
+    "subOrderNos": "子單號清單",
+    "recDetails": "運輸紀錄明細",
+    "nearExpiryCount": "即期庫存數量",
+    "nearExpiryAmount": "即期庫存金額",
+    "expiredCount": "已過期庫存數量",
+    "expiredAmount": "已過期庫存金額",
+    "endCount": "期末庫存數量",
+    "endAmount": "期末庫存金額",
+    "beginCount": "期初庫存數量",
+    "beginAmount": "期初庫存金額",
+    "inCount": "入庫數量",
+    "inAmount": "入庫金額",
+    "outCount": "出庫數量",
+    "outAmount": "出庫金額",
+    "kind": "庫存統計類型",
+    "specified_no": "指定料品或批號編號",
+    "specified_name": "指定料品或批號名稱",
+    "specified_ref_no": "指定料品參照編號",
+    "group": "群組編號",
+    "time": "作業時間",
+    "action": "作業方向",
+    "role": "角色",
+    "department": "部門",
+    "level": "職等",
+    "jobTitle": "職稱",
+    "joinedDate": "到職日期",
+    "leftDate": "離職日期",
+    "identityId": "身分證號或識別碼",
+    "country": "國籍",
+    "birthday": "生日",
+    "sex": "性別",
+    "weight": "重量",
+    "hours": "工時",
+    "minutes": "分鐘數",
+    "laborCount": "人力需求數",
+    "version": "版本",
+    "data": "明細資料",
+    "items": "品項清單",
+    "cost": "成本資料",
+}
+
 
 def rel(path):
     return str(path.relative_to(ROOT)).replace("\\", "/")
@@ -261,6 +384,25 @@ def load_db_fields():
                     "status": parts[7],
                 }
     return fields
+
+
+def clean_db_description(description):
+    text = str(description or "").strip()
+    if not text:
+        return ""
+    text = re.split(r"[；;]", text, maxsplit=1)[0].strip()
+    text = re.sub(r"^(AUTO_INCREMENT|UNIQUE KEY|<PK>)", "", text).strip()
+    return text
+
+
+def build_field_descriptions(db_fields):
+    descriptions = {}
+    for (_table, field), meta in db_fields.items():
+        desc = clean_db_description(meta.get("description", ""))
+        if not desc:
+            continue
+        descriptions.setdefault(field, desc)
+    return descriptions
 
 
 def table_structure(table, db_fields):
@@ -1221,7 +1363,7 @@ def response_rows(payload):
 
 
 def response_desc(path):
-    last = path.split(".")[-1]
+    last = path.split(".")[-1].replace("[]", "")
     mapping = {
         "total": "符合條件的總筆數",
         "count": "本次回傳筆數",
@@ -1236,7 +1378,16 @@ def response_desc(path):
         "nonWork": "非生產來源追蹤資料",
         "work": "生產來源追蹤資料",
     }
-    return mapping.get(last, PARAM_LABELS.get(last, f"{last} 回傳欄位"))
+    if last in mapping:
+        return mapping[last]
+    if last in RESPONSE_LABELS:
+        return RESPONSE_LABELS[last]
+    if last in FIELD_DESCRIPTIONS:
+        return FIELD_DESCRIPTIONS[last]
+    if last in PARAM_LABELS and not PARAM_LABELS[last].endswith("篩選"):
+        return PARAM_LABELS[last]
+    readable = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", last).replace("_", " ")
+    return f"{readable} 的業務資料"
 
 
 def table_purpose(module_name, route_path, table):
@@ -1310,6 +1461,78 @@ def status_for(method_info, desc):
     if reasons:
         return "Need Review", " ".join(reasons)
     return "OK", "OK"
+
+
+def business_flow_steps(module_name, route, method, method_info, desc):
+    path = route["path"]
+    if module_name == "user" and path == "/api/v1/user/login" and method == "POST":
+        return [
+            "驗證 username / password",
+            "查詢 member table",
+            "使用 Argon2 驗證密碼",
+            "查詢 employee 資料",
+            "建立 session token",
+            "寫入 session 資料表",
+            "回傳 token + user info",
+        ]
+    if module_name == "user" and method == "DELETE" and "login" in path:
+        return ["讀取登入 token", "使 session token 失效", "回傳登出結果"]
+
+    subject = desc
+    for prefix in ("查詢", "新增", "更新", "刪除"):
+        if subject.startswith(prefix):
+            subject = subject[len(prefix):]
+            break
+
+    steps = []
+    if method_info.get("body_fields"):
+        body_names = [field["path"] for field in method_info["body_fields"][:6]]
+        steps.append("驗證 request body 必填欄位與資料格式：" + "、".join(body_names))
+    if method_info.get("query_fields"):
+        query_names = [field["name"] for field in method_info["query_fields"][:8]]
+        steps.append("讀取查詢條件並轉換為業務篩選條件：" + "、".join(query_names))
+
+    tables = method_info.get("tables", [])
+    if method == "GET":
+        if tables:
+            primary = "、".join(tables[:4])
+            steps.append(f"查詢 {primary} 取得{subject}資料")
+        else:
+            steps.append(f"取得{subject}資料")
+        payload = method_info.get("payload", {})
+        if "total" in payload or "count" in payload:
+            steps.append("計算符合條件的總筆數與本次回傳筆數")
+        if has_payload_path(payload, "results"):
+            steps.append("整理查詢結果清單並展開回傳欄位語意")
+        else:
+            steps.append("整理查詢結果並回傳")
+    elif method == "POST":
+        steps.append(f"建立{subject}資料")
+        steps.append("回傳建立結果與必要識別資訊")
+    elif method == "PUT":
+        steps.append(f"依條件更新{subject}資料")
+        steps.append("回傳更新結果")
+    elif method == "DELETE":
+        steps.append(f"依條件刪除或取消{subject}資料")
+        steps.append("回傳刪除或取消結果")
+
+    return dedupe_steps(steps) or method_info.get("steps", [])
+
+
+def has_payload_path(payload, key):
+    if isinstance(payload, dict):
+        return key in payload or any(has_payload_path(value, key) for value in payload.values())
+    if isinstance(payload, list) and payload:
+        return has_payload_path(payload[0], key)
+    return False
+
+
+def dedupe_steps(steps):
+    result = []
+    for step in steps:
+        if step and step not in result:
+            result.append(step)
+    return result
 
 
 def module_doc(module, executors):
@@ -1416,7 +1639,7 @@ def module_doc(module, executors):
                 "",
             ]
         )
-        steps = method_info.get("steps", [])
+        steps = business_flow_steps(module["name"], route, method, method_info, desc)
         if steps:
             for idx, step in enumerate(steps, 1):
                 lines.append(f"{idx}. {md(step)}")
@@ -1442,8 +1665,10 @@ def clean_output_dir():
 
 
 def main():
+    global FIELD_DESCRIPTIONS
     table_map = load_table_map()
     db_fields = load_db_fields()
+    FIELD_DESCRIPTIONS = build_field_descriptions(db_fields)
     modules = extract_modules()
     executors = executor_info(table_map, db_fields)
     clean_output_dir()

@@ -78,9 +78,9 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.user.token | String | 登入 token |  |
 | payload.user.role | Integer | 角色 |  |
-| payload.user.employee.no | String | 編號篩選 |  |
+| payload.user.employee.no | String | 資料編號 |  |
 | payload.user.employee.name | String | 名稱 |  |
-| payload.user.employee.department | String | department 回傳欄位 |  |
+| payload.user.employee.department | String | 部門 |  |
 
 ### Failed Response Data
 
@@ -92,9 +92,9 @@ None
 
 ### Processing Flow
 
-1. 驗證 request body 欄位：registerNo、username、password
-2. 查詢資料表並套用條件：device、employee、session、user_group
-3. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId、payload.user.token、payload.user.role、payload.user.employee.no、payload.user.employee.name、payload.user.employee.department
+1. 驗證 request body 必填欄位與資料格式：registerNo、username、password
+2. 建立使用者 / 設備 / 登入資料
+3. 回傳建立結果與必要識別資訊
 
 ### Database Tables Used
 
@@ -154,8 +154,8 @@ None
 
 ### Processing Flow
 
-1. 使登入 token 失效
-2. 查詢資料表並套用條件：session
+1. 依條件刪除或取消使用者 / 設備 / 登出資料
+2. 回傳刪除或取消結果
 
 ### Database Tables Used
 
@@ -226,6 +226,7 @@ None
 | payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
 
 ### Processing Flow
+
 1. 驗證 username / password
 2. 查詢 member table
 3. 使用 Argon2 驗證密碼
@@ -291,9 +292,9 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：token
-2. 使登入 token 失效
-3. 查詢資料表並套用條件：session
+1. 讀取登入 token
+2. 使 session token 失效
+3. 回傳登出結果
 
 ### Database Tables Used
 

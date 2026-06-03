@@ -110,9 +110,9 @@ None
 
 ### Processing Flow
 
-1. 驗證 request body 欄位：registerNo、results、results[].devAction、results[].refNo、results[].refNoSec、results[].itemBatchNo、results[].itemBatchNo[].batchNo、results[].itemBatchNo[].serialNos、results[].itemBatchNo[].serialNos[].devDateTimestamp、results[].itemBatchNo[].serialNos[].serialNo、results[].itemBatchNo[].serialNos[].value、results[].itemBatchNo[].serialNos[].isValid
-2. 查詢資料表並套用條件：device、device_log、goods_receipt_note、inventory_order、process_order、shipping_order、work_order
-3. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId
+1. 驗證 request body 必填欄位與資料格式：registerNo、results、results[].devAction、results[].refNo、results[].refNoSec、results[].itemBatchNo
+2. 建立設備料品資料資料
+3. 回傳建立結果與必要識別資訊
 
 ### Database Tables Used
 
@@ -180,9 +180,9 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].group | String | group 回傳欄位 |  |
+| payload.results[].group | String | 群組編號 |  |
 | payload.results[].batchNo | String | 批號 |  |
-| payload.results[].serialNos[] | String | serialNos[] 回傳欄位 |  |
+| payload.results[].serialNos[] | String | 流水號清單 |  |
 
 ### Failed Response Data
 
@@ -194,7 +194,9 @@ None
 
 ### Processing Flow
 
-1. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].group、payload.results[].batchNo、payload.results[].serialNos[]
+1. 取得設備料品棧板群組資料資料
+2. 計算符合條件的總筆數與本次回傳筆數
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -292,9 +294,9 @@ None
 
 ### Processing Flow
 
-1. 驗證 request body 欄位：registerNo、total、results、results[].devDateTimestamp、results[].devGroupNo、results[].devComment、results[].itemBatchNo、results[].itemBatchNo[].batchNo、results[].itemBatchNo[].serialNos、results[].itemBatchNo[].serialNos[].serialNo、results[].itemBatchNo[].serialNos[].value
-2. 查詢資料表並套用條件：batchno_serialno_group
-3. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId
+1. 驗證 request body 必填欄位與資料格式：registerNo、total、results、results[].devDateTimestamp、results[].devGroupNo、results[].devComment
+2. 建立設備料品棧板群組資料資料
+3. 回傳建立結果與必要識別資訊
 
 ### Database Tables Used
 
@@ -383,7 +385,7 @@ None
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
 | payload.results[].itemBatchNo[].validDateTimestamp | String | 效期時間戳記 |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | String | 數量或重量 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | String | 實際時數 |  |
 
 ### Failed Response Data
 
@@ -395,9 +397,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：groupNo、registerNo
-2. 查詢資料表並套用條件：batch_number、batchno_serialno_group
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].groupNo、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemComment、payload.results[].itemBatchNo[].batchNo、payload.results[].itemBatchNo[].validDateTimestamp、payload.results[].itemBatchNo[].serialNos[].serialNo、payload.results[].itemBatchNo[].serialNos[].value
+1. 讀取查詢條件並轉換為業務篩選條件：groupNo、registerNo
+2. 查詢 batch_number、batchno_serialno_group 取得設備棧板群組資訊資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -472,7 +475,7 @@ None
 | payload.results[].itemType | String | 料品類型 |  |
 | payload.results[].itemCategory | String | 料品類別 |  |
 | payload.results[].itemBatchNo | String | 料品批號清單 |  |
-| payload.results[].itemValidDateTimestamp | String | itemValidDateTimestamp 回傳欄位 |  |
+| payload.results[].itemValidDateTimestamp | String | item Valid Date Timestamp 的業務資料 |  |
 | payload.results[].itemComment | String | 料品備註 |  |
 
 ### Failed Response Data
@@ -485,9 +488,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：batchNo、registerNo
-2. 查詢資料表並套用條件：batch_number
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemBatchNo、payload.results[].itemValidDateTimestamp、payload.results[].itemComment
+1. 讀取查詢條件並轉換為業務篩選條件：batchNo、registerNo
+2. 查詢 batch_number 取得設備批號資訊資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -577,11 +581,11 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 設備作業方向 |  |
+| payload.results[].action | Integer | 作業方向 |  |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
-| payload.results[].refProcess | Integer | 參照製程 |  |
+| payload.results[].refProcess | Integer | 派工製程 |  |
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
@@ -596,7 +600,7 @@ None
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
 | payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 數量或重量 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
 
 ### Failed Response Data
 
@@ -608,9 +612,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：dateTimestampUTC、refProcess、registerNo、shift
-2. 查詢資料表並套用條件：batch_number、batchno_serialno、device、goods_receipt_note、inventory_order、process_order、shipping_order
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].action、payload.results[].refNo、payload.results[].refNoSec、payload.results[].refDateTimestamp、payload.results[].refProcess、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemAmount、payload.results[].itemAmountUnit、payload.results[].itemComment、payload.results[].itemPageType、payload.results[].itemMaxWeight、payload.results[].itemMinWeight、payload.results[].itemBatchNo[].batchNo、payload.results[].itemBatchNo[].validDateTimestamp、payload.results[].itemBatchNo[].serialNos[].serialNo、payload.results[].itemBatchNo[].serialNos[].value
+1. 讀取查詢條件並轉換為業務篩選條件：dateTimestampUTC、refProcess、registerNo、shift
+2. 查詢 batch_number、batchno_serialno、device、goods_receipt_note 取得設備製造料品資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -705,11 +710,11 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 設備作業方向 |  |
+| payload.results[].action | Integer | 作業方向 |  |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
-| payload.results[].refProcess | Integer | 參照製程 |  |
+| payload.results[].refProcess | Integer | 派工製程 |  |
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
@@ -724,7 +729,7 @@ None
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
 | payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 數量或重量 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
 
 ### Failed Response Data
 
@@ -736,9 +741,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：dateTimestampUTC、registerNo、shift
-2. 查詢資料表並套用條件：batch_number、batchno_serialno、device、goods_receipt_note、inventory_order、process_order、shipping_order
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].action、payload.results[].refNo、payload.results[].refNoSec、payload.results[].refDateTimestamp、payload.results[].refProcess、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemAmount、payload.results[].itemAmountUnit、payload.results[].itemComment、payload.results[].itemPageType、payload.results[].itemMaxWeight、payload.results[].itemMinWeight、payload.results[].itemBatchNo[].batchNo、payload.results[].itemBatchNo[].validDateTimestamp、payload.results[].itemBatchNo[].serialNos[].serialNo、payload.results[].itemBatchNo[].serialNos[].value
+1. 讀取查詢條件並轉換為業務篩選條件：dateTimestampUTC、registerNo、shift
+2. 查詢 batch_number、batchno_serialno、device、goods_receipt_note 取得設備其他庫存料品資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -833,11 +839,11 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 設備作業方向 |  |
+| payload.results[].action | Integer | 作業方向 |  |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
-| payload.results[].refProcess | Integer | 參照製程 |  |
+| payload.results[].refProcess | Integer | 派工製程 |  |
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
@@ -852,7 +858,7 @@ None
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
 | payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 數量或重量 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
 
 ### Failed Response Data
 
@@ -864,9 +870,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：dateTimestampUTC、registerNo、shift
-2. 查詢資料表並套用條件：batch_number、batchno_serialno、device、goods_receipt_note、inventory_order、process_order、shipping_order
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].action、payload.results[].refNo、payload.results[].refNoSec、payload.results[].refDateTimestamp、payload.results[].refProcess、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemAmount、payload.results[].itemAmountUnit、payload.results[].itemComment、payload.results[].itemPageType、payload.results[].itemMaxWeight、payload.results[].itemMinWeight、payload.results[].itemBatchNo[].batchNo、payload.results[].itemBatchNo[].validDateTimestamp、payload.results[].itemBatchNo[].serialNos[].serialNo、payload.results[].itemBatchNo[].serialNos[].value
+1. 讀取查詢條件並轉換為業務篩選條件：dateTimestampUTC、registerNo、shift
+2. 查詢 batch_number、batchno_serialno、device、goods_receipt_note 取得設備採購入庫料品資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -961,11 +968,11 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 設備作業方向 |  |
+| payload.results[].action | Integer | 作業方向 |  |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
-| payload.results[].refProcess | Integer | 參照製程 |  |
+| payload.results[].refProcess | Integer | 派工製程 |  |
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
@@ -980,7 +987,7 @@ None
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
 | payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 數量或重量 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
 
 ### Failed Response Data
 
@@ -992,9 +999,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：dateTimestampUTC、registerNo、shift
-2. 查詢資料表並套用條件：batch_number、batchno_serialno、device、goods_receipt_note、inventory_order、process_order、shipping_order
-3. 組裝回傳 payload 欄位：payload.serverId、payload.serverTimestamp、payload.count、payload.results[].action、payload.results[].refNo、payload.results[].refNoSec、payload.results[].refDateTimestamp、payload.results[].refProcess、payload.results[].itemNo、payload.results[].itemName、payload.results[].itemVendor、payload.results[].itemType、payload.results[].itemCategory、payload.results[].itemAmount、payload.results[].itemAmountUnit、payload.results[].itemComment、payload.results[].itemPageType、payload.results[].itemMaxWeight、payload.results[].itemMinWeight、payload.results[].itemBatchNo[].batchNo、payload.results[].itemBatchNo[].validDateTimestamp、payload.results[].itemBatchNo[].serialNos[].serialNo、payload.results[].itemBatchNo[].serialNos[].value
+1. 讀取查詢條件並轉換為業務篩選條件：dateTimestampUTC、registerNo、shift
+2. 查詢 batch_number、batchno_serialno、device、goods_receipt_note 取得設備銷售出庫料品資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

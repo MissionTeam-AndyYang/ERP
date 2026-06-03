@@ -73,18 +73,18 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].month | String | month 回傳欄位 |  |
-| payload.results[].pl_no | String | pl_no 回傳欄位 |  |
-| payload.results[].pl_name | String | pl_name 回傳欄位 |  |
-| payload.results[].productCount | String | productCount 回傳欄位 |  |
+| payload.results[].month | String | 月份 |  |
+| payload.results[].pl_no | String | 產線no，關聯至production_line資料表 |  |
+| payload.results[].pl_name | String | 產線名稱，關聯至production_line資料表 |  |
+| payload.results[].productCount | String | 產製次數 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
-| payload.results[].assembly_no | String | assembly_no 回傳欄位 |  |
-| payload.results[].assemblyVer | String | assemblyVer 回傳欄位 |  |
-| payload.results[].bomWeight | String | bomWeight 回傳欄位 |  |
-| payload.results[].bomUnit | String | bomUnit 回傳欄位 |  |
-| payload.results[].unit | String | unit 回傳欄位 |  |
-| payload.results[].hourlyOutput | String | hourlyOutput 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].assembly_no | String | 產出料品品項組裝編號 |  |
+| payload.results[].assemblyVer | String | 產出料品品項組裝版本 |  |
+| payload.results[].bomWeight | String | 產出料品品項Bom重量 |  |
+| payload.results[].bomUnit | String | 產出料品品項成分單位 |  |
+| payload.results[].unit | String | 單位 |  |
+| payload.results[].hourlyOutput | String | 產出物時產量 |  |
 
 ### Failed Response Data
 
@@ -96,9 +96,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：pl_item_capacity
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].month、payload.results[].pl_no、payload.results[].pl_name、payload.results[].productCount、payload.results[].item_no、payload.results[].item_name、payload.results[].assembly_no、payload.results[].assemblyVer、payload.results[].bomWeight、payload.results[].bomUnit、payload.results[].unit、payload.results[].hourlyOutput
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 pl_item_capacity 取得產線統計 / 品項產能資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -168,18 +169,18 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].month | String | month 回傳欄位 |  |
-| payload.results[].pl_no | String | pl_no 回傳欄位 |  |
-| payload.results[].pl_name | String | pl_name 回傳欄位 |  |
-| payload.results[].productCount | String | productCount 回傳欄位 |  |
+| payload.results[].month | String | 月份 |  |
+| payload.results[].pl_no | String | 產線no，關聯至production_line資料表 |  |
+| payload.results[].pl_name | String | 產線名稱，關聯至production_line資料表 |  |
+| payload.results[].productCount | String | 產製次數 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
-| payload.results[].assembly_no | String | assembly_no 回傳欄位 |  |
-| payload.results[].assemblyVer | String | assemblyVer 回傳欄位 |  |
-| payload.results[].price | String | price 回傳欄位 |  |
-| payload.results[].rawMaterialCost | String | rawMaterialCost 回傳欄位 |  |
-| payload.results[].materialCost | String | materialCost 回傳欄位 |  |
-| payload.results[].laborCost | String | laborCost 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].assembly_no | String | 產出料品品項組裝編號 |  |
+| payload.results[].assemblyVer | String | 產出料品品項組裝版本 |  |
+| payload.results[].price | String | 單價 |  |
+| payload.results[].rawMaterialCost | String | 原料費 |  |
+| payload.results[].materialCost | String | 物料費 |  |
+| payload.results[].laborCost | String | 人工費 |  |
 
 ### Failed Response Data
 
@@ -191,9 +192,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：pl_item_capacity
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].month、payload.results[].pl_no、payload.results[].pl_name、payload.results[].productCount、payload.results[].item_no、payload.results[].item_name、payload.results[].assembly_no、payload.results[].assemblyVer、payload.results[].price、payload.results[].rawMaterialCost、payload.results[].materialCost、payload.results[].laborCost
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 pl_item_capacity 取得產線統計 / 品項成本資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -263,15 +265,15 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].month | String | month 回傳欄位 |  |
-| payload.results[].pl_item_capacity_no | String | pl_item_capacity_no 回傳欄位 |  |
+| payload.results[].month | String | 月份 |  |
+| payload.results[].pl_item_capacity_no | String | 產線料品產能，關聯至pl_item_capacity資料表 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | itemSubCategory 回傳欄位 |  |
-| payload.results[].weightRatio | Float | weightRatio 回傳欄位 |  |
-| payload.results[].lossRate | Float | lossRate 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
+| payload.results[].weightRatio | Float | 投入物之產重比 |  |
+| payload.results[].lossRate | Float | 投入物之損耗率 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -283,9 +285,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：pl_item_capacity、pl_item_loss
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].month、payload.results[].pl_item_capacity_no、payload.results[].item_no、payload.results[].item_name、payload.results[].itemCategory、payload.results[].itemSubCategory、payload.results[].weightRatio、payload.results[].lossRate、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 pl_item_capacity、pl_item_loss 取得產線統計 / 品項損耗資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -354,14 +357,14 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].month | String | month 回傳欄位 |  |
-| payload.results[].pl_no | String | pl_no 回傳欄位 |  |
-| payload.results[].pl_name | String | pl_name 回傳欄位 |  |
-| payload.results[].productCount | Integer | productCount 回傳欄位 |  |
-| payload.results[].laborCount | Integer | laborCount 回傳欄位 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].hourlyOutput | Float | hourlyOutput 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].month | String | 月份 |  |
+| payload.results[].pl_no | String | 產線no，關聯至production_line資料表 |  |
+| payload.results[].pl_name | String | 產線名稱，關聯至production_line資料表 |  |
+| payload.results[].productCount | Integer | 產製次數 |  |
+| payload.results[].laborCount | Integer | 人力需求數 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].hourlyOutput | Float | 產出物時產量 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -373,9 +376,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：pl_man_capacity
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].month、payload.results[].pl_no、payload.results[].pl_name、payload.results[].productCount、payload.results[].laborCount、payload.results[].unit、payload.results[].hourlyOutput、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 pl_man_capacity 取得產線統計 / 人力產能資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

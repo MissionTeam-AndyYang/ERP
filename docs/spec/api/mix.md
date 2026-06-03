@@ -66,13 +66,13 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].no | String | 資料編號 |  |
 | payload.results[].name | String | 名稱 |  |
-| payload.results[].category | String | 類別篩選 |  |
-| payload.results[].subCategory | String | 子類別篩選 |  |
-| payload.results[].unitWarehouse | String | unitWarehouse 回傳欄位 |  |
-| payload.results[].unitProduct | String | unitProduct 回傳欄位 |  |
-| payload.results[].bom | String | bom 回傳欄位 |  |
+| payload.results[].category | String | 類別 |  |
+| payload.results[].subCategory | String | 子類別 |  |
+| payload.results[].unitWarehouse | String | 倉儲單位 |  |
+| payload.results[].unitProduct | String | 產製單位 |  |
+| payload.results[].bom | String | bom 的業務資料 |  |
 
 ### Failed Response Data
 
@@ -84,9 +84,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：inproduct、inproduct_bom_spec、product、product_bom_spec、product_spec、product_ver
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].no、payload.results[].name、payload.results[].category、payload.results[].subCategory、payload.results[].unitWarehouse、payload.results[].unitProduct、payload.results[].bom
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 inproduct、inproduct_bom_spec、product、product_bom_spec 取得混合品項 / 品項資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -160,20 +161,20 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].month | String | month 回傳欄位 |  |
-| payload.results[].estUnit | String | estUnit 回傳欄位 |  |
-| payload.results[].estPrice | String | estPrice 回傳欄位 |  |
-| payload.results[].estPrice1 | String | estPrice1 回傳欄位 |  |
-| payload.results[].estPrice2 | String | estPrice2 回傳欄位 |  |
-| payload.results[].estLaborCost | String | estLaborCost 回傳欄位 |  |
-| payload.results[].unit | String | unit 回傳欄位 |  |
-| payload.results[].price | String | price 回傳欄位 |  |
-| payload.results[].price1 | String | price1 回傳欄位 |  |
-| payload.results[].price2 | String | price2 回傳欄位 |  |
-| payload.results[].laborCost | String | laborCost 回傳欄位 |  |
-| payload.results[].lossUnit | String | lossUnit 回傳欄位 |  |
-| payload.results[].loss | String | loss 回傳欄位 |  |
-| payload.results[].estLoss | String | estLoss 回傳欄位 |  |
+| payload.results[].month | String | 月份 |  |
+| payload.results[].estUnit | String | est Unit 的業務資料 |  |
+| payload.results[].estPrice | String | est Price 的業務資料 |  |
+| payload.results[].estPrice1 | String | est Price1 的業務資料 |  |
+| payload.results[].estPrice2 | String | est Price2 的業務資料 |  |
+| payload.results[].estLaborCost | String | 預估人工費 |  |
+| payload.results[].unit | String | 單位 |  |
+| payload.results[].price | String | 單價 |  |
+| payload.results[].price1 | String | price1 的業務資料 |  |
+| payload.results[].price2 | String | price2 的業務資料 |  |
+| payload.results[].laborCost | String | 人工費 |  |
+| payload.results[].lossUnit | String | loss Unit 的業務資料 |  |
+| payload.results[].loss | String | loss 的業務資料 |  |
+| payload.results[].estLoss | String | est Loss 的業務資料 |  |
 
 ### Failed Response Data
 
@@ -185,9 +186,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：item_no
-2. 查詢資料表並套用條件：item_loss、item_price
-3. 組裝回傳 payload 欄位：payload.count、payload.results[].month、payload.results[].estUnit、payload.results[].estPrice、payload.results[].estPrice1、payload.results[].estPrice2、payload.results[].estLaborCost、payload.results[].unit、payload.results[].price、payload.results[].price1、payload.results[].price2、payload.results[].laborCost、payload.results[].lossUnit、payload.results[].loss、payload.results[].estLoss
+1. 讀取查詢條件並轉換為業務篩選條件：item_no
+2. 查詢 item_loss、item_price 取得混合品項 / 品項價格資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

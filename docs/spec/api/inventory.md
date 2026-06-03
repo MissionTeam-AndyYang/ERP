@@ -84,26 +84,26 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].date | Integer | 日期 |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].creator_no | String | creator_no 回傳欄位 |  |
-| payload.results[].ref_no | String | ref_no 回傳欄位 |  |
-| payload.results[].refCategory | Integer | refCategory 回傳欄位 |  |
+| payload.results[].date | Integer | 日期時間 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].creator_no | String | 製單人員編號 |  |
+| payload.results[].ref_no | String | 來源單號 |  |
+| payload.results[].refCategory | Integer | 來源類別 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | itemSubCategory 回傳欄位 |  |
+| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
 | payload.results[].itemType | Integer | 料品類型 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].expectedCount | Float | expectedCount 回傳欄位 |  |
-| payload.results[].checkedCount | Float | checkedCount 回傳欄位 |  |
-| payload.results[].validDays | Integer | validDays 回傳欄位 |  |
-| payload.results[].validDate | Integer | validDate 回傳欄位 |  |
-| payload.results[].validDateNo | String | validDateNo 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].expectedCount | Float | 預期數量 |  |
+| payload.results[].checkedCount | Float | 已確認數量 |  |
+| payload.results[].validDays | Integer | 有效天數 |  |
+| payload.results[].validDate | Integer | 效期日期 |  |
+| payload.results[].validDateNo | String | 效期日期編號 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -115,9 +115,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：batch_number、inventory_record、process_order
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].date、payload.results[].no、payload.results[].creator_no、payload.results[].ref_no、payload.results[].refCategory、payload.results[].item_no、payload.results[].item_name、payload.results[].item_ref_no、payload.results[].item_ref_displayName、payload.results[].itemCategory、payload.results[].itemSubCategory、payload.results[].itemType、payload.results[].unit、payload.results[].expectedCount、payload.results[].checkedCount、payload.results[].validDays、payload.results[].validDate、payload.results[].validDateNo、payload.results[].comment、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 batch_number、inventory_record、process_order 取得庫存資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -211,32 +212,32 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].kind | Integer | kind 回傳欄位 |  |
-| payload.results[].specified_no | String | specified_no 回傳欄位 |  |
-| payload.results[].specified_name | String | specified_name 回傳欄位 |  |
-| payload.results[].specified_ref_no | String | specified_ref_no 回傳欄位 |  |
-| payload.results[].beginCount | Float | beginCount 回傳欄位 |  |
-| payload.results[].beginAmount | Float | beginAmount 回傳欄位 |  |
-| payload.results[].inCount | Float | inCount 回傳欄位 |  |
-| payload.results[].inAmount | Float | inAmount 回傳欄位 |  |
-| payload.results[].outCount | Float | outCount 回傳欄位 |  |
-| payload.results[].outAmount | Float | outAmount 回傳欄位 |  |
-| payload.results[].endCount | Float | endCount 回傳欄位 |  |
-| payload.results[].endAmount | Float | endAmount 回傳欄位 |  |
+| payload.results[].kind | Integer | 庫存統計類型 |  |
+| payload.results[].specified_no | String | 指定料品或批號編號 |  |
+| payload.results[].specified_name | String | 指定料品或批號名稱 |  |
+| payload.results[].specified_ref_no | String | 指定料品參照編號 |  |
+| payload.results[].beginCount | Float | 期初庫存數量 |  |
+| payload.results[].beginAmount | Float | 期初庫存金額 |  |
+| payload.results[].inCount | Float | 入庫數量 |  |
+| payload.results[].inAmount | Float | 入庫金額 |  |
+| payload.results[].outCount | Float | 出庫數量 |  |
+| payload.results[].outAmount | Float | 出庫金額 |  |
+| payload.results[].endCount | Float | 期末庫存數量 |  |
+| payload.results[].endAmount | Float | 期末庫存金額 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | itemSubCategory 回傳欄位 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].price | Float | price 回傳欄位 |  |
-| payload.results[].nearExpiryCount | Float | nearExpiryCount 回傳欄位 |  |
-| payload.results[].nearExpiryAmount | Float | nearExpiryAmount 回傳欄位 |  |
-| payload.results[].expiredCount | Float | expiredCount 回傳欄位 |  |
-| payload.results[].expiredAmount | Float | expiredAmount 回傳欄位 |  |
-| payload.results[].batchNo[].specified_no | String | specified_no 回傳欄位 |  |
-| payload.results[].batchNo[].specified_name | String | specified_name 回傳欄位 |  |
-| payload.results[].batchNo[].specified_ref_no | String | specified_ref_no 回傳欄位 |  |
-| payload.results[].batchNo[].endCount | Float | endCount 回傳欄位 |  |
-| payload.results[].batchNo[].endAmount | Float | endAmount 回傳欄位 |  |
-| payload.results[].batchNo[].validDate | Integer | validDate 回傳欄位 |  |
+| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].price | Float | 單價 |  |
+| payload.results[].nearExpiryCount | Float | 即期庫存數量 |  |
+| payload.results[].nearExpiryAmount | Float | 即期庫存金額 |  |
+| payload.results[].expiredCount | Float | 已過期庫存數量 |  |
+| payload.results[].expiredAmount | Float | 已過期庫存金額 |  |
+| payload.results[].batchNo[].specified_no | String | 指定料品或批號編號 |  |
+| payload.results[].batchNo[].specified_name | String | 指定料品或批號名稱 |  |
+| payload.results[].batchNo[].specified_ref_no | String | 指定料品參照編號 |  |
+| payload.results[].batchNo[].endCount | Float | 期末庫存數量 |  |
+| payload.results[].batchNo[].endAmount | Float | 期末庫存金額 |  |
+| payload.results[].batchNo[].validDate | Integer | 效期日期 |  |
 | payload.results[].batchNo[].itemType | Integer | 料品類型 |  |
 
 ### Failed Response Data
@@ -249,8 +250,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：commit、date、end_time、itemCategory、item_no、start_time、type
-2. 組裝回傳 payload 欄位：payload.total、payload.results[].kind、payload.results[].specified_no、payload.results[].specified_name、payload.results[].specified_ref_no、payload.results[].beginCount、payload.results[].beginAmount、payload.results[].inCount、payload.results[].inAmount、payload.results[].outCount、payload.results[].outAmount、payload.results[].endCount、payload.results[].endAmount、payload.results[].itemCategory、payload.results[].itemSubCategory、payload.results[].unit、payload.results[].price、payload.results[].nearExpiryCount、payload.results[].nearExpiryAmount、payload.results[].expiredCount、payload.results[].expiredAmount、payload.results[].batchNo[].specified_no、payload.results[].batchNo[].specified_name、payload.results[].batchNo[].specified_ref_no、payload.results[].batchNo[].endCount、payload.results[].batchNo[].endAmount、payload.results[].batchNo[].validDate、payload.results[].batchNo[].itemType
+1. 讀取查詢條件並轉換為業務篩選條件：commit、date、end_time、itemCategory、item_no、start_time、type
+2. 取得庫存 / 品項清單資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -317,17 +320,17 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].warehouse_no | String | warehouse_no 回傳欄位 |  |
-| payload.results[].warehouse_displayName | String | warehouse_displayName 回傳欄位 |  |
-| payload.results[].date | String | 日期 |  |
-| payload.results[].timezone | String | timezone 回傳欄位 |  |
-| payload.results[].category | Integer | 類別篩選 |  |
-| payload.results[].startAmount | Float | startAmount 回傳欄位 |  |
-| payload.results[].inAmount | Float | inAmount 回傳欄位 |  |
-| payload.results[].outAmount | Float | outAmount 回傳欄位 |  |
-| payload.results[].inPurchaseAmount | Float | inPurchaseAmount 回傳欄位 |  |
-| payload.results[].endAmount | Float | endAmount 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].warehouse_no | String | 倉庫no，關連至ship_wh_alias |  |
+| payload.results[].warehouse_displayName | String | 倉儲別名名稱，關聯至ship_wh_alias資料表 |  |
+| payload.results[].date | String | 日期時間 |  |
+| payload.results[].timezone | String | 用戶端時區 |  |
+| payload.results[].category | Integer | 類別 |  |
+| payload.results[].startAmount | Float | 期初庫存價值 (含稅價，小數點4位) |  |
+| payload.results[].inAmount | Float | 入庫金額 |  |
+| payload.results[].outAmount | Float | 出庫金額 |  |
+| payload.results[].inPurchaseAmount | Float | 採購累計庫存價值 (含稅價，小數點4位) |  |
+| payload.results[].endAmount | Float | 期末庫存金額 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -339,9 +342,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：end_time、start_time
-2. 查詢資料表並套用條件：inventory_month_statistic
-3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].warehouse_no、payload.results[].warehouse_displayName、payload.results[].date、payload.results[].timezone、payload.results[].category、payload.results[].startAmount、payload.results[].inAmount、payload.results[].outAmount、payload.results[].inPurchaseAmount、payload.results[].endAmount、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：end_time、start_time
+2. 查詢 inventory_month_statistic 取得庫存 / 月資料資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -411,12 +415,12 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].contract.contract.displayName | String | 顯示名稱 |  |
-| payload.results[].contract.contract.category | String | 類別篩選 |  |
-| payload.results[].contract.contract.type | String | 類型篩選 |  |
+| payload.results[].contract.contract.category | String | 類別 |  |
+| payload.results[].contract.contract.type | String | 類型 |  |
 | payload.results[].contract.contract.itemStyle | String | 品項樣式 |  |
-| payload.results[].contract.contract.unit | String | unit 回傳欄位 |  |
-| payload.results[].contract.contract.price | String | price 回傳欄位 |  |
-| payload.results[].contract.contract.comment | String | comment 回傳欄位 |  |
+| payload.results[].contract.contract.unit | String | 單位 |  |
+| payload.results[].contract.contract.price | String | 單價 |  |
+| payload.results[].contract.contract.comment | String | 備註 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data
@@ -429,9 +433,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start、type
-2. 查詢資料表並套用條件：item_price、trans_items
-3. 組裝回傳 payload 欄位：payload.total、payload.results[].contract.contract.displayName、payload.results[].contract.contract.category、payload.results[].contract.contract.type、payload.results[].contract.contract.itemStyle、payload.results[].contract.contract.unit、payload.results[].contract.contract.price、payload.results[].contract.contract.comment、payload.count
+1. 讀取查詢條件並轉換為業務篩選條件：count、start、type
+2. 查詢 item_price、trans_items 取得庫存 / 價格資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -513,30 +518,30 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.results.warehouse[].id | Integer | 資料 ID |  |
-| payload.results.warehouse[].creator_no | String | creator_no 回傳欄位 |  |
-| payload.results.warehouse[].group | String | group 回傳欄位 |  |
-| payload.results.warehouse[].refCategory | Integer | refCategory 回傳欄位 |  |
-| payload.results.warehouse[].ref_no | String | ref_no 回傳欄位 |  |
-| payload.results.warehouse[].warehouse_no | String | warehouse_no 回傳欄位 |  |
-| payload.results.warehouse[].warehouse_displayName | String | warehouse_displayName 回傳欄位 |  |
-| payload.results.warehouse[].date | Integer | 日期 |  |
-| payload.results.warehouse[].category | Integer | 類別篩選 |  |
-| payload.results.warehouse[].source | Integer | source 回傳欄位 |  |
-| payload.results.warehouse[].batchNumber | String | 批號 |  |
+| payload.results.warehouse[].creator_no | String | 製單人員編號 |  |
+| payload.results.warehouse[].group | String | 群組編號 |  |
+| payload.results.warehouse[].refCategory | Integer | 來源類別 |  |
+| payload.results.warehouse[].ref_no | String | 來源單號 |  |
+| payload.results.warehouse[].warehouse_no | String | 倉庫no，關連至ship_wh_alias |  |
+| payload.results.warehouse[].warehouse_displayName | String | 倉儲別名名稱，關聯至ship_wh_alias資料表 |  |
+| payload.results.warehouse[].date | Integer | 日期時間 |  |
+| payload.results.warehouse[].category | Integer | 類別 |  |
+| payload.results.warehouse[].source | Integer | 源由 |  |
+| payload.results.warehouse[].batchNumber | String | 出入庫批號 |  |
 | payload.results.warehouse[].serialNo | String | 流水號 |  |
 | payload.results.warehouse[].item_no | String | 料品/品項編號 |  |
-| payload.results.warehouse[].item_name | String | item_name 回傳欄位 |  |
+| payload.results.warehouse[].item_name | String | 料品/品項名稱 |  |
 | payload.results.warehouse[].item_ref_no | String | 交易對象編號 |  |
 | payload.results.warehouse[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results.warehouse[].itemCategory | Integer | 料品類別 |  |
 | payload.results.warehouse[].itemType | Integer | 料品類型 |  |
-| payload.results.warehouse[].unit | Integer | unit 回傳欄位 |  |
+| payload.results.warehouse[].unit | Integer | 單位 |  |
 | payload.results.warehouse[].count | Float | 本次回傳筆數 |  |
-| payload.results.warehouse[].price | Float | price 回傳欄位 |  |
-| payload.results.warehouse[].amount | Integer | amount 回傳欄位 |  |
-| payload.results.warehouse[].comment | String | comment 回傳欄位 |  |
-| payload.results.warehouse[].registerDevId | String | registerDevId 回傳欄位 |  |
-| payload.results.warehouse[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results.warehouse[].price | Float | 單價 |  |
+| payload.results.warehouse[].amount | Integer | 金額或需求量 |  |
+| payload.results.warehouse[].comment | String | 備註 |  |
+| payload.results.warehouse[].registerDevId | String | 註冊之設備ID |  |
+| payload.results.warehouse[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -548,9 +553,9 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：batchNumber
-2. 查詢資料表並套用條件：inventory_record
-3. 組裝回傳 payload 欄位：payload.results.warehouse[].id、payload.results.warehouse[].creator_no、payload.results.warehouse[].group、payload.results.warehouse[].refCategory、payload.results.warehouse[].ref_no、payload.results.warehouse[].warehouse_no、payload.results.warehouse[].warehouse_displayName、payload.results.warehouse[].date、payload.results.warehouse[].category、payload.results.warehouse[].source、payload.results.warehouse[].batchNumber、payload.results.warehouse[].serialNo、payload.results.warehouse[].item_no、payload.results.warehouse[].item_name、payload.results.warehouse[].item_ref_no、payload.results.warehouse[].item_ref_displayName、payload.results.warehouse[].itemCategory、payload.results.warehouse[].itemType、payload.results.warehouse[].unit、payload.results.warehouse[].count、payload.results.warehouse[].price、payload.results.warehouse[].amount、payload.results.warehouse[].comment、payload.results.warehouse[].registerDevId、payload.results.warehouse[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：batchNumber
+2. 查詢 inventory_record 取得庫存 / 統計資料
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

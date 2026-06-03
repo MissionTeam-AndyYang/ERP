@@ -82,26 +82,26 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].date | Integer | 日期 |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].creator_no | String | creator_no 回傳欄位 |  |
-| payload.results[].ref_no | String | ref_no 回傳欄位 |  |
-| payload.results[].refCategory | Integer | refCategory 回傳欄位 |  |
+| payload.results[].date | Integer | 日期時間 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].creator_no | String | 製單人員編號 |  |
+| payload.results[].ref_no | String | 來源單號 |  |
+| payload.results[].refCategory | Integer | 來源類別 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | itemSubCategory 回傳欄位 |  |
+| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
 | payload.results[].itemType | Integer | 料品類型 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].expectedCount | Float | expectedCount 回傳欄位 |  |
-| payload.results[].checkedCount | Float | checkedCount 回傳欄位 |  |
-| payload.results[].validDays | Integer | validDays 回傳欄位 |  |
-| payload.results[].validDate | Integer | validDate 回傳欄位 |  |
-| payload.results[].validDateNo | String | validDateNo 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].expectedCount | Float | 預期數量 |  |
+| payload.results[].checkedCount | Float | 已確認數量 |  |
+| payload.results[].validDays | Integer | 有效天數 |  |
+| payload.results[].validDate | Integer | 效期日期 |  |
+| payload.results[].validDateNo | String | 效期日期編號 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -113,9 +113,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：inventoryType、orderCategory、type
-2. 查詢資料表並套用條件：batch_number、goods_receipt_note、inventory_record、production_data、production_data_output
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].date、payload.results[].no、payload.results[].creator_no、payload.results[].ref_no、payload.results[].refCategory、payload.results[].item_no、payload.results[].item_name、payload.results[].item_ref_no、payload.results[].item_ref_displayName、payload.results[].itemCategory、payload.results[].itemSubCategory、payload.results[].itemType、payload.results[].unit、payload.results[].expectedCount、payload.results[].checkedCount、payload.results[].validDays、payload.results[].validDate、payload.results[].validDateNo、payload.results[].comment、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：inventoryType、orderCategory、type
+2. 查詢 batch_number、goods_receipt_note、inventory_record、production_data 取得批號追蹤資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -206,26 +207,26 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.nonWork[].id | Integer | 資料 ID |  |
-| payload.nonWork[].creator_no | String | creator_no 回傳欄位 |  |
+| payload.nonWork[].creator_no | String | 製單人員編號 |  |
 | payload.nonWork[].work_order_no | String | 工單號 |  |
 | payload.nonWork[].product_order_no | String | 訂購單號 |  |
-| payload.nonWork[].customer_no | String | customer_no 回傳欄位 |  |
-| payload.nonWork[].customer_displayName | String | customer_displayName 回傳欄位 |  |
-| payload.nonWork[].product_no | String | 製成品編號 |  |
-| payload.nonWork[].product_name | String | product_name 回傳欄位 |  |
-| payload.nonWork[].date | Integer | 日期 |  |
-| payload.nonWork[].production_line_no | String | production_line_no 回傳欄位 |  |
+| payload.nonWork[].customer_no | String | 客戶no，關連至company資料表 |  |
+| payload.nonWork[].customer_displayName | String | 客戶公司簡稱，關連至company資料表 |  |
+| payload.nonWork[].product_no | String | 製成品no，關連至product 資料表 |  |
+| payload.nonWork[].product_name | String | 交易品項名稱，關連至product 資料表 |  |
+| payload.nonWork[].date | Integer | 日期時間 |  |
+| payload.nonWork[].production_line_no | String | 產線編號 |  |
 | payload.nonWork[].oneProcess | Integer | 主製程 |  |
-| payload.nonWork[].secProcess | Integer | secProcess 回傳欄位 |  |
+| payload.nonWork[].secProcess | Integer | 次製程 |  |
 | payload.nonWork[].item_no | String | 料品/品項編號 |  |
-| payload.nonWork[].item_name | String | item_name 回傳欄位 |  |
-| payload.nonWork[].materialLoss | Float | materialLoss 回傳欄位 |  |
-| payload.nonWork[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.nonWork[].item_name | String | 料品/品項名稱 |  |
+| payload.nonWork[].materialLoss | Float | 損耗 (產出物重量-投入物重量-餘料重量-廢料重量 |  |
+| payload.nonWork[].creationTime | Integer | 資料建立時間 |  |
 | payload.work[].name | String | 名稱 |  |
 | payload.work[].records[].data.oneProcess | String | 主製程 |  |
-| payload.work[].records[].data.secProcess | String | secProcess 回傳欄位 |  |
-| payload.work[].records[].data.input | String | input 回傳欄位 |  |
-| payload.work[].records[].data.output | String | output 回傳欄位 |  |
+| payload.work[].records[].data.secProcess | String | 次製程 |  |
+| payload.work[].records[].data.input | String | input 的業務資料 |  |
+| payload.work[].records[].data.output | String | output 的業務資料 |  |
 
 ### Failed Response Data
 
@@ -237,9 +238,9 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：itemCategory、no
-2. 查詢資料表並套用條件：production_data、production_data_input、production_data_output
-3. 組裝回傳 payload 欄位：payload.nonWork[].id、payload.nonWork[].creator_no、payload.nonWork[].work_order_no、payload.nonWork[].product_order_no、payload.nonWork[].customer_no、payload.nonWork[].customer_displayName、payload.nonWork[].product_no、payload.nonWork[].product_name、payload.nonWork[].date、payload.nonWork[].production_line_no、payload.nonWork[].oneProcess、payload.nonWork[].secProcess、payload.nonWork[].item_no、payload.nonWork[].item_name、payload.nonWork[].materialLoss、payload.nonWork[].creationTime、payload.work[].name、payload.work[].records[].data.oneProcess、payload.work[].records[].data.secProcess、payload.work[].records[].data.input、payload.work[].records[].data.output
+1. 讀取查詢條件並轉換為業務篩選條件：itemCategory、no
+2. 查詢 production_data、production_data_input、production_data_output 取得批號追蹤 / 紀錄資料
+3. 整理查詢結果並回傳
 
 ### Database Tables Used
 

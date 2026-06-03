@@ -71,18 +71,18 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].no | String | 資料編號 |  |
 | payload.results[].product_order_no | String | 訂購單號 |  |
 | payload.results[].oneProcess | Integer | 主製程 |  |
-| payload.results[].secProcess | Integer | secProcess 回傳欄位 |  |
+| payload.results[].secProcess | Integer | 次製程 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].amount | Float | amount 回傳欄位 |  |
-| payload.results[].minutes | Integer | minutes 回傳欄位 |  |
-| payload.results[].laborCount | Integer | laborCount 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].amount | Float | 金額或需求量 |  |
+| payload.results[].minutes | Integer | 分鐘數 |  |
+| payload.results[].laborCount | Integer | 人力需求數 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data
@@ -95,9 +95,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：aps_quantity、contract、product_order
-3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].no、payload.results[].product_order_no、payload.results[].oneProcess、payload.results[].secProcess、payload.results[].item_no、payload.results[].item_name、payload.results[].itemCategory、payload.results[].unit、payload.results[].amount、payload.results[].minutes、payload.results[].laborCount、payload.results[].creationTime、payload.count
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 aps_quantity、contract、product_order 取得APS 資料 / 製造需求數量資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

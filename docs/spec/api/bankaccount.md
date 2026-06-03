@@ -63,14 +63,14 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].category | Integer | 類別篩選 |  |
-| payload.results[].currency | Integer | currency 回傳欄位 |  |
+| payload.results[].category | Integer | 類別 |  |
+| payload.results[].currency | Integer | 幣別 |  |
 | payload.results[].displayName | String | 顯示名稱 |  |
 | payload.results[].name | String | 名稱 |  |
-| payload.results[].branch | String | branch 回傳欄位 |  |
-| payload.results[].account | String | account 回傳欄位 |  |
-| payload.results[].number | String | number 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].branch | String | 銀行分行 |  |
+| payload.results[].account | String | 銀行帳戶名稱 |  |
+| payload.results[].number | String | 銀行帳號 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -82,8 +82,9 @@ None
 
 ### Processing Flow
 
-1. 查詢資料表並套用條件：bank_account
-2. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].category、payload.results[].currency、payload.results[].displayName、payload.results[].name、payload.results[].branch、payload.results[].account、payload.results[].number、payload.results[].creationTime
+1. 查詢 bank_account 取得銀行帳戶資料
+2. 計算符合條件的總筆數與本次回傳筆數
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

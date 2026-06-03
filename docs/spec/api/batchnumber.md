@@ -88,26 +88,26 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].date | Integer | 日期 |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].creator_no | String | creator_no 回傳欄位 |  |
-| payload.results[].ref_no | String | ref_no 回傳欄位 |  |
-| payload.results[].refCategory | Integer | refCategory 回傳欄位 |  |
+| payload.results[].date | Integer | 日期時間 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].creator_no | String | 製單人員編號 |  |
+| payload.results[].ref_no | String | 來源單號 |  |
+| payload.results[].refCategory | Integer | 來源類別 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | itemSubCategory 回傳欄位 |  |
+| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
 | payload.results[].itemType | Integer | 料品類型 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].expectedCount | Float | expectedCount 回傳欄位 |  |
-| payload.results[].checkedCount | Float | checkedCount 回傳欄位 |  |
-| payload.results[].validDays | Integer | validDays 回傳欄位 |  |
-| payload.results[].validDate | Integer | validDate 回傳欄位 |  |
-| payload.results[].validDateNo | String | validDateNo 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].expectedCount | Float | 預期數量 |  |
+| payload.results[].checkedCount | Float | 已確認數量 |  |
+| payload.results[].validDays | Integer | 有效天數 |  |
+| payload.results[].validDate | Integer | 效期日期 |  |
+| payload.results[].validDateNo | String | 效期日期編號 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 | payload.results[].serialNo[].serialNo | String | 流水號 |  |
 | payload.results[].serialNo[].count | Integer | 本次回傳筆數 |  |
 
@@ -121,9 +121,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、info、start、type
-2. 查詢資料表並套用條件：batch_number
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].date、payload.results[].no、payload.results[].creator_no、payload.results[].ref_no、payload.results[].refCategory、payload.results[].item_no、payload.results[].item_name、payload.results[].item_ref_no、payload.results[].item_ref_displayName、payload.results[].itemCategory、payload.results[].itemSubCategory、payload.results[].itemType、payload.results[].unit、payload.results[].expectedCount、payload.results[].checkedCount、payload.results[].validDays、payload.results[].validDate、payload.results[].validDateNo、payload.results[].comment、payload.results[].creationTime、payload.results[].serialNo[].serialNo、payload.results[].serialNo[].count
+1. 讀取查詢條件並轉換為業務篩選條件：count、info、start、type
+2. 查詢 batch_number 取得批號資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

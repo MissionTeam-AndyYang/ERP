@@ -69,15 +69,15 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].category | Integer | 類別篩選 |  |
-| payload.results[].subCategory | Integer | 子類別篩選 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].category | Integer | 類別 |  |
+| payload.results[].subCategory | Integer | 子類別 |  |
 | payload.results[].name | String | 名稱 |  |
-| payload.results[].unitShipping | Integer | unitShipping 回傳欄位 |  |
-| payload.results[].unitWarehouse | Integer | unitWarehouse 回傳欄位 |  |
-| payload.results[].unitProduct | Integer | unitProduct 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].unitShipping | Integer | 貨運單位 |  |
+| payload.results[].unitWarehouse | Integer | 倉儲單位 |  |
+| payload.results[].unitProduct | Integer | 產製單位 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -89,9 +89,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：goods
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].category、payload.results[].subCategory、payload.results[].name、payload.results[].unitShipping、payload.results[].unitWarehouse、payload.results[].unitProduct、payload.results[].comment、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 goods 取得貨品資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

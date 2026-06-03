@@ -79,18 +79,18 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].factory.no | String | 編號篩選 |  |
-| payload.results[].factory.region | String | region 回傳欄位 |  |
-| payload.results[].factory.location | String | location 回傳欄位 |  |
-| payload.results[].factory.comment | String | comment 回傳欄位 |  |
-| payload.results[].stations[].no | String | 編號篩選 |  |
+| payload.results[].factory.no | String | 資料編號 |  |
+| payload.results[].factory.region | String | 地區 |  |
+| payload.results[].factory.location | String | 地點 |  |
+| payload.results[].factory.comment | String | 備註 |  |
+| payload.results[].stations[].no | String | 資料編號 |  |
 | payload.results[].stations[].name | String | 名稱 |  |
-| payload.results[].stations[].stage | String | stage 回傳欄位 |  |
-| payload.results[].stations[].comment | String | comment 回傳欄位 |  |
-| payload.results[].stations[].equipments[].no | String | 編號篩選 |  |
+| payload.results[].stations[].stage | String | 製程階段 |  |
+| payload.results[].stations[].comment | String | 備註 |  |
+| payload.results[].stations[].equipments[].no | String | 資料編號 |  |
 | payload.results[].stations[].equipments[].name | String | 名稱 |  |
-| payload.results[].stations[].equipments[].appearance | String | appearance 回傳欄位 |  |
-| payload.results[].stations[].equipments[].comment | String | comment 回傳欄位 |  |
+| payload.results[].stations[].equipments[].appearance | String | 外觀尺寸 |  |
+| payload.results[].stations[].equipments[].comment | String | 備註 |  |
 
 ### Failed Response Data
 
@@ -102,8 +102,9 @@ None
 
 ### Processing Flow
 
-1. 查詢資料表並套用條件：production_line
-2. 組裝回傳 payload 欄位：payload.total、payload.results[].factory.no、payload.results[].factory.region、payload.results[].factory.location、payload.results[].factory.comment、payload.results[].stations[].no、payload.results[].stations[].name、payload.results[].stations[].stage、payload.results[].stations[].comment、payload.results[].stations[].equipments[].no、payload.results[].stations[].equipments[].name、payload.results[].stations[].equipments[].appearance、payload.results[].stations[].equipments[].comment
+1. 查詢 production_line 取得產線資料
+2. 計算符合條件的總筆數與本次回傳筆數
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -168,14 +169,14 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].station.no | String | 編號篩選 |  |
+| payload.results[].station.no | String | 資料編號 |  |
 | payload.results[].station.name | String | 名稱 |  |
-| payload.results[].station.stage | String | stage 回傳欄位 |  |
-| payload.results[].station.comment | String | comment 回傳欄位 |  |
-| payload.results[].productionLine.no | String | 編號篩選 |  |
+| payload.results[].station.stage | String | 製程階段 |  |
+| payload.results[].station.comment | String | 備註 |  |
+| payload.results[].productionLine.no | String | 資料編號 |  |
 | payload.results[].productionLine.name | String | 名稱 |  |
 | payload.results[].productionLine.oneProcess | String | 主製程 |  |
-| payload.results[].productionLine.secProcess | String | secProcess 回傳欄位 |  |
+| payload.results[].productionLine.secProcess | String | 次製程 |  |
 
 ### Failed Response Data
 
@@ -187,8 +188,9 @@ None
 
 ### Processing Flow
 
-1. 查詢資料表並套用條件：equipment
-2. 組裝回傳 payload 欄位：payload.total、payload.results[].station.no、payload.results[].station.name、payload.results[].station.stage、payload.results[].station.comment、payload.results[].productionLine.no、payload.results[].productionLine.name、payload.results[].productionLine.oneProcess、payload.results[].productionLine.secProcess
+1. 查詢 equipment 取得產線 / 設備資料
+2. 計算符合條件的總筆數與本次回傳筆數
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -251,8 +253,9 @@ None
 
 ### Processing Flow
 
-1. 查詢資料表並套用條件：factory
-2. 組裝回傳 payload 欄位：payload.total
+1. 查詢 factory 取得產線 / 廠區資料
+2. 計算符合條件的總筆數與本次回傳筆數
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -315,8 +318,9 @@ None
 
 ### Processing Flow
 
-1. 查詢資料表並套用條件：process
-2. 組裝回傳 payload 欄位：payload.total
+1. 查詢 process 取得產線 / 製程資料
+2. 計算符合條件的總筆數與本次回傳筆數
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -375,10 +379,10 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].productionLine.no | String | 編號篩選 |  |
+| payload.results[].productionLine.no | String | 資料編號 |  |
 | payload.results[].productionLine.name | String | 名稱 |  |
 | payload.results[].productionLine.oneProcess | String | 主製程 |  |
-| payload.results[].productionLine.secProcess | String | secProcess 回傳欄位 |  |
+| payload.results[].productionLine.secProcess | String | 次製程 |  |
 
 ### Failed Response Data
 
@@ -390,8 +394,9 @@ None
 
 ### Processing Flow
 
-1. 查詢資料表並套用條件：station
-2. 組裝回傳 payload 欄位：payload.total、payload.results[].productionLine.no、payload.results[].productionLine.name、payload.results[].productionLine.oneProcess、payload.results[].productionLine.secProcess
+1. 查詢 station 取得產線 / 站點資料
+2. 計算符合條件的總筆數與本次回傳筆數
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

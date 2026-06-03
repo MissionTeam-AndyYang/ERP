@@ -79,9 +79,9 @@ None
 
 ### Processing Flow
 
-1. 驗證 request body 欄位：deviceId、deviceName、deviceRole、deviceComment
-2. 查詢資料表並套用條件：device
-3. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId、payload.registerNo
+1. 驗證 request body 必填欄位與資料格式：deviceId、deviceName、deviceRole、deviceComment
+2. 建立設備 / register資料
+3. 回傳建立結果與必要識別資訊
 
 ### Database Tables Used
 

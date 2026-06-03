@@ -103,33 +103,33 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | String | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].no | String | 資料編號 |  |
 | payload.results[].displayName | String | 顯示名稱 |  |
-| payload.results[].unit | String | unit 回傳欄位 |  |
-| payload.results[].data[].version | String | version 回傳欄位 |  |
-| payload.results[].data[].date | String | 日期 |  |
-| payload.results[].data[].unit | String | unit 回傳欄位 |  |
-| payload.results[].data[].weight | String | weight 回傳欄位 |  |
-| payload.results[].data[].creationTime | String | creationTime 回傳欄位 |  |
-| payload.results[].data[].comment | String | comment 回傳欄位 |  |
+| payload.results[].unit | String | 單位 |  |
+| payload.results[].data[].version | String | 版本 |  |
+| payload.results[].data[].date | String | 日期時間 |  |
+| payload.results[].data[].unit | String | 單位 |  |
+| payload.results[].data[].weight | String | 重量 |  |
+| payload.results[].data[].creationTime | String | 資料建立時間 |  |
+| payload.results[].data[].comment | String | 備註 |  |
 | payload.results[].data[].items[].id | Integer | 資料 ID |  |
-| payload.results[].data[].items[].no | String | 編號篩選 |  |
+| payload.results[].data[].items[].no | String | 資料編號 |  |
 | payload.results[].data[].items[].displayName | String | 顯示名稱 |  |
-| payload.results[].data[].items[].version | Integer | version 回傳欄位 |  |
-| payload.results[].data[].items[].date | Integer | 日期 |  |
-| payload.results[].data[].items[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].data[].items[].weight | Float | weight 回傳欄位 |  |
-| payload.results[].data[].items[].comment | String | comment 回傳欄位 |  |
-| payload.results[].data[].items[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].data[].items[].version | Integer | 版本 |  |
+| payload.results[].data[].items[].date | Integer | 日期時間 |  |
+| payload.results[].data[].items[].unit | Integer | 單位 |  |
+| payload.results[].data[].items[].weight | Float | 重量 |  |
+| payload.results[].data[].items[].comment | String | 備註 |  |
+| payload.results[].data[].items[].creationTime | Integer | 資料建立時間 |  |
 | payload.results[].data[].cost[].id | Integer | 資料 ID |  |
-| payload.results[].data[].cost[].no | String | 編號篩選 |  |
+| payload.results[].data[].cost[].no | String | 資料編號 |  |
 | payload.results[].data[].cost[].displayName | String | 顯示名稱 |  |
-| payload.results[].data[].cost[].version | Integer | version 回傳欄位 |  |
-| payload.results[].data[].cost[].date | Integer | 日期 |  |
-| payload.results[].data[].cost[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].data[].cost[].weight | Float | weight 回傳欄位 |  |
-| payload.results[].data[].cost[].comment | String | comment 回傳欄位 |  |
-| payload.results[].data[].cost[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].data[].cost[].version | Integer | 版本 |  |
+| payload.results[].data[].cost[].date | Integer | 日期時間 |  |
+| payload.results[].data[].cost[].unit | Integer | 單位 |  |
+| payload.results[].data[].cost[].weight | Float | 重量 |  |
+| payload.results[].data[].cost[].comment | String | 備註 |  |
+| payload.results[].data[].cost[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -141,9 +141,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start、type
-2. 查詢資料表並套用條件：bom、sample_price
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].displayName、payload.results[].unit、payload.results[].data[].version、payload.results[].data[].date、payload.results[].data[].unit、payload.results[].data[].weight、payload.results[].data[].creationTime、payload.results[].data[].comment、payload.results[].data[].items[].id、payload.results[].data[].items[].no、payload.results[].data[].items[].displayName、payload.results[].data[].items[].version、payload.results[].data[].items[].date、payload.results[].data[].items[].unit、payload.results[].data[].items[].weight、payload.results[].data[].items[].comment、payload.results[].data[].items[].creationTime、payload.results[].data[].cost[].id、payload.results[].data[].cost[].no、payload.results[].data[].cost[].displayName、payload.results[].data[].cost[].version、payload.results[].data[].cost[].date、payload.results[].data[].cost[].unit、payload.results[].data[].cost[].weight、payload.results[].data[].cost[].comment、payload.results[].data[].cost[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：count、start、type
+2. 查詢 bom、sample_price 取得BOM資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -221,27 +222,27 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].creator_no | String | creator_no 回傳欄位 |  |
-| payload.results[].date | Integer | 日期 |  |
-| payload.results[].ref_no | String | ref_no 回傳欄位 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].creator_no | String | 製單人員編號 |  |
+| payload.results[].date | Integer | 日期時間 |  |
+| payload.results[].ref_no | String | 來源單號 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].price | Float | price 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].price | Float | 單價 |  |
 | payload.results[].count | Float | 本次回傳筆數 |  |
-| payload.results[].preparedCount | Float | preparedCount 回傳欄位 |  |
-| payload.results[].amount | Integer | amount 回傳欄位 |  |
-| payload.results[].expectedDate | Integer | expectedDate 回傳欄位 |  |
-| payload.results[].address | String | address 回傳欄位 |  |
-| payload.results[].payment_type | Integer | payment_type 回傳欄位 |  |
-| payload.results[].payment_source | Integer | payment_source 回傳欄位 |  |
-| payload.results[].payment_date | Integer | payment_date 回傳欄位 |  |
-| payload.results[].payment_period | Integer | payment_period 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].preparedCount | Float | 已備數量 |  |
+| payload.results[].amount | Integer | 金額或需求量 |  |
+| payload.results[].expectedDate | Integer | 預計交貨日期 |  |
+| payload.results[].address | String | 地址 |  |
+| payload.results[].payment_type | Integer | 收付款類別 |  |
+| payload.results[].payment_source | Integer | 收付款來源 |  |
+| payload.results[].payment_date | Integer | 收付款日期 |  |
+| payload.results[].payment_period | Integer | 付款期間 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -253,9 +254,9 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：order_no、product_no
-2. 查詢資料表並套用條件：product_order
-3. 組裝回傳 payload 欄位：payload.results[].id、payload.results[].no、payload.results[].creator_no、payload.results[].date、payload.results[].ref_no、payload.results[].item_ref_no、payload.results[].item_ref_displayName、payload.results[].item_no、payload.results[].item_name、payload.results[].unit、payload.results[].price、payload.results[].count、payload.results[].preparedCount、payload.results[].amount、payload.results[].expectedDate、payload.results[].address、payload.results[].payment_type、payload.results[].payment_source、payload.results[].payment_date、payload.results[].payment_period、payload.results[].comment、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：order_no、product_no
+2. 查詢 product_order 取得BOM / APS 資料資料
+3. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -318,10 +319,10 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
+| payload.results[].no | String | 資料編號 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].version | Integer | version 回傳欄位 |  |
-| payload.results[].date | Integer | 日期 |  |
+| payload.results[].version | Integer | 版本 |  |
+| payload.results[].date | Integer | 日期時間 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data
@@ -334,9 +335,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：product_process
-3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].no、payload.results[].item_no、payload.results[].version、payload.results[].date、payload.count
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 product_process 取得BOM / 製程資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -402,15 +404,15 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].category | Integer | 類別篩選 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].category | Integer | 類別 |  |
 | payload.results[].name | String | 名稱 |  |
-| payload.results[].unitShipping | Integer | unitShipping 回傳欄位 |  |
-| payload.results[].unitWarehouse | Integer | unitWarehouse 回傳欄位 |  |
-| payload.results[].unitProduct | Integer | unitProduct 回傳欄位 |  |
-| payload.results[].version | Integer | version 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].unitShipping | Integer | 貨運單位 |  |
+| payload.results[].unitWarehouse | Integer | 倉儲單位 |  |
+| payload.results[].unitProduct | Integer | 產製單位 |  |
+| payload.results[].version | Integer | 版本 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -422,9 +424,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：product_no
-2. 查詢資料表並套用條件：product
-3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].no、payload.results[].category、payload.results[].name、payload.results[].unitShipping、payload.results[].unitWarehouse、payload.results[].unitProduct、payload.results[].version、payload.results[].comment、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：product_no
+2. 查詢 product 取得BOM / 樹狀資料資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

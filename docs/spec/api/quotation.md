@@ -81,27 +81,27 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].date | Integer | 日期 |  |
-| payload.results[].category | Integer | 類別篩選 |  |
-| payload.results[].type | Integer | 類型篩選 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].date | Integer | 日期時間 |  |
+| payload.results[].category | Integer | 類別 |  |
+| payload.results[].type | Integer | 類型 |  |
 | payload.results[].itemStyle | Integer | 品項樣式 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | item_name 回傳欄位 |  |
-| payload.results[].unit | Integer | unit 回傳欄位 |  |
-| payload.results[].price | Float | price 回傳欄位 |  |
+| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].price | Float | 單價 |  |
 | payload.results[].count | Float | 本次回傳筆數 |  |
-| payload.results[].amount | Float | amount 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
-| payload.results[].transItemCategory | Integer | transItemCategory 回傳欄位 |  |
-| payload.results[].transItemAttr | Integer | transItemAttr 回傳欄位 |  |
-| payload.results[].paymentType | Integer | paymentType 回傳欄位 |  |
-| payload.results[].paymentDate | Integer | paymentDate 回傳欄位 |  |
-| payload.results[].paymentPeriod | Integer | paymentPeriod 回傳欄位 |  |
-| payload.results[].unitWarehouse | Integer | unitWarehouse 回傳欄位 |  |
+| payload.results[].amount | Float | 金額或需求量 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
+| payload.results[].transItemCategory | Integer | trans Item Category 的業務資料 |  |
+| payload.results[].transItemAttr | Integer | trans Item Attr 的業務資料 |  |
+| payload.results[].paymentType | Integer | 收付款類別 |  |
+| payload.results[].paymentDate | Integer | 收付款日期 |  |
+| payload.results[].paymentPeriod | Integer | 付款期間 |  |
+| payload.results[].unitWarehouse | Integer | 倉儲單位 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data
@@ -114,9 +114,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start、type
-2. 查詢資料表並套用條件：company、payment
-3. 組裝回傳 payload 欄位：payload.total、payload.results[].id、payload.results[].no、payload.results[].date、payload.results[].category、payload.results[].type、payload.results[].itemStyle、payload.results[].item_ref_no、payload.results[].item_ref_displayName、payload.results[].item_no、payload.results[].item_name、payload.results[].unit、payload.results[].price、payload.results[].count、payload.results[].amount、payload.results[].comment、payload.results[].creationTime、payload.results[].transItemCategory、payload.results[].transItemAttr、payload.results[].paymentType、payload.results[].paymentDate、payload.results[].paymentPeriod、payload.results[].unitWarehouse、payload.count
+1. 讀取查詢條件並轉換為業務篩選條件：count、start、type
+2. 查詢 company、payment 取得報價資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

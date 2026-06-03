@@ -62,7 +62,8 @@ None
 
 ### Processing Flow
 
-1. 組裝回傳 payload 欄位：payload.serverTimestamp、payload.serverId
+1. 取得服務心跳資料
+2. 整理查詢結果並回傳
 
 ### Database Tables Used
 

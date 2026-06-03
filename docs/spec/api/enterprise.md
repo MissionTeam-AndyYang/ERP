@@ -71,17 +71,17 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 編號篩選 |  |
-| payload.results[].businessNo | String | businessNo 回傳欄位 |  |
+| payload.results[].no | String | 資料編號 |  |
+| payload.results[].businessNo | String | 統一編號或商業識別編號 |  |
 | payload.results[].displayName | String | 顯示名稱 |  |
 | payload.results[].name | String | 名稱 |  |
-| payload.results[].address | String | address 回傳欄位 |  |
-| payload.results[].phone | String | phone 回傳欄位 |  |
-| payload.results[].fax | String | fax 回傳欄位 |  |
-| payload.results[].department | Integer | department 回傳欄位 |  |
-| payload.results[].lar | String | lar 回傳欄位 |  |
-| payload.results[].comment | String | comment 回傳欄位 |  |
-| payload.results[].creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].address | String | 地址 |  |
+| payload.results[].phone | String | 電話 |  |
+| payload.results[].fax | String | 傳真 |  |
+| payload.results[].department | Integer | 部門 |  |
+| payload.results[].lar | String | 公司法人代表 |  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -93,9 +93,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：enterprise
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].id、payload.results[].no、payload.results[].businessNo、payload.results[].displayName、payload.results[].name、payload.results[].address、payload.results[].phone、payload.results[].fax、payload.results[].department、payload.results[].lar、payload.results[].comment、payload.results[].creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 enterprise 取得企業資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

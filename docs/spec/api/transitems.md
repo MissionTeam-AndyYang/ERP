@@ -75,9 +75,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：category、count、start、type
-2. 查詢資料表並套用條件：company、payment、trans_items、trans_items2
-3. 組裝回傳 payload 欄位：payload.total、payload.count
+1. 讀取查詢條件並轉換為業務篩選條件：category、count、start、type
+2. 查詢 company、payment、trans_items、trans_items2 取得交易品項資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 
@@ -153,16 +154,16 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].transItem.id | Integer | 資料 ID |  |
-| payload.results[].transItem.no | String | 編號篩選 |  |
+| payload.results[].transItem.no | String | 資料編號 |  |
 | payload.results[].transItem.name | String | 名稱 |  |
-| payload.results[].transItem.category | Integer | 類別篩選 |  |
-| payload.results[].transItem.attribute | Integer | attribute 回傳欄位 |  |
-| payload.results[].transItem.company_no | String | company_no 回傳欄位 |  |
-| payload.results[].transItem.company_displayName | String | company_displayName 回傳欄位 |  |
+| payload.results[].transItem.category | Integer | 類別 |  |
+| payload.results[].transItem.attribute | Integer | 屬性 |  |
+| payload.results[].transItem.company_no | String | 廠商資料no，關連至company資料表 |  |
+| payload.results[].transItem.company_displayName | String | 廠商公司簡稱，關連至company資料表 |  |
 | payload.results[].transItem.item_no | String | 料品/品項編號 |  |
-| payload.results[].transItem.item_name | String | item_name 回傳欄位 |  |
-| payload.results[].transItem.comment | String | comment 回傳欄位 |  |
-| payload.results[].transItem.creationTime | Integer | creationTime 回傳欄位 |  |
+| payload.results[].transItem.item_name | String | 料品/品項名稱 |  |
+| payload.results[].transItem.comment | String | 備註 |  |
+| payload.results[].transItem.creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 
@@ -174,9 +175,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：item_no
-2. 查詢資料表並套用條件：company、payment、trans_items
-3. 組裝回傳 payload 欄位：payload.total、payload.count、payload.results[].transItem.id、payload.results[].transItem.no、payload.results[].transItem.name、payload.results[].transItem.category、payload.results[].transItem.attribute、payload.results[].transItem.company_no、payload.results[].transItem.company_displayName、payload.results[].transItem.item_no、payload.results[].transItem.item_name、payload.results[].transItem.comment、payload.results[].transItem.creationTime
+1. 讀取查詢條件並轉換為業務篩選條件：item_no
+2. 查詢 company、payment、trans_items 取得交易品項 / 品項資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

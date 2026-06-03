@@ -68,9 +68,10 @@ None
 
 ### Processing Flow
 
-1. 讀取查詢條件：count、start
-2. 查詢資料表並套用條件：product
-3. 組裝回傳 payload 欄位：payload.total、payload.count
+1. 讀取查詢條件並轉換為業務篩選條件：count、start
+2. 查詢 product 取得製成品資料
+3. 計算符合條件的總筆數與本次回傳筆數
+4. 整理查詢結果清單並展開回傳欄位語意
 
 ### Database Tables Used
 

@@ -226,10 +226,13 @@ None
 | payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
 
 ### Processing Flow
-
-1. 驗證 request body 欄位：username、password
-2. 查詢資料表並套用條件：session
-3. 組裝回傳 payload 欄位：payload.token
+1. 驗證 username / password
+2. 查詢 member table
+3. 使用 Argon2 驗證密碼
+4. 查詢 employee 資料
+5. 建立 session token
+6. 寫入 session 資料表
+7. 回傳 token + user info
 
 ### Database Tables Used
 

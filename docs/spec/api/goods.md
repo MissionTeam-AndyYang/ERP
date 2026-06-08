@@ -70,8 +70,8 @@ None
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
 | payload.results[].no | String | 資料編號 |  |
-| payload.results[].category | Integer | 類別 |  |
-| payload.results[].subCategory | Integer | 子類別 |  |
+| payload.results[].category | Integer | 類別 | (0)其他 |
+| payload.results[].subCategory | Integer | 子類別 | (0)其他 |
 | payload.results[].name | String | 名稱 |  |
 | payload.results[].unitShipping | Integer | 貨運單位 |  |
 | payload.results[].unitWarehouse | Integer | 倉儲單位 |  |

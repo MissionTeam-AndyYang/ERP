@@ -7,31 +7,13 @@
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | [/api/v1/shipwarehouse](#get-api-v1-shipwarehouse) | GET | 查詢物流倉儲 | OK | OK |
-| [/api/v1/shipwarehouse](#post-api-v1-shipwarehouse) | POST | 新增物流倉儲 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse](#put-api-v1-shipwarehouse) | PUT | 更新物流倉儲 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse](#delete-api-v1-shipwarehouse) | DELETE | 刪除物流倉儲 | Need Review | Executor method is not present in code. |
 | [/api/v1/shipwarehouse/contract](#get-api-v1-shipwarehouse-contract) | GET | 查詢物流倉儲 / 合約 | OK | OK |
-| [/api/v1/shipwarehouse/contract](#post-api-v1-shipwarehouse-contract) | POST | 新增物流倉儲 / 合約 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/contract](#put-api-v1-shipwarehouse-contract) | PUT | 更新物流倉儲 / 合約 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/contract](#delete-api-v1-shipwarehouse-contract) | DELETE | 刪除物流倉儲 / 合約 | Need Review | Executor method is not present in code. |
 | [/api/v1/shipwarehouse/shiparap](#get-api-v1-shipwarehouse-shiparap) | GET | 查詢物流倉儲 / 物流應收應付 | OK | OK |
 | [/api/v1/shipwarehouse/shippayment](#get-api-v1-shipwarehouse-shippayment) | GET | 查詢物流倉儲 / 物流帳款 | OK | OK |
-| [/api/v1/shipwarehouse/shippayment](#post-api-v1-shipwarehouse-shippayment) | POST | 新增物流倉儲 / 物流帳款 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/shippayment](#put-api-v1-shipwarehouse-shippayment) | PUT | 更新物流倉儲 / 物流帳款 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/shippayment](#delete-api-v1-shipwarehouse-shippayment) | DELETE | 刪除物流倉儲 / 物流帳款 | Need Review | Executor method is not present in code. |
 | [/api/v1/shipwarehouse/shiprec](#get-api-v1-shipwarehouse-shiprec) | GET | 查詢物流倉儲 / 運輸紀錄 | OK | OK |
-| [/api/v1/shipwarehouse/shiprec](#post-api-v1-shipwarehouse-shiprec) | POST | 新增物流倉儲 / 運輸紀錄 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/shiprec](#put-api-v1-shipwarehouse-shiprec) | PUT | 更新物流倉儲 / 運輸紀錄 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/shiprec](#delete-api-v1-shipwarehouse-shiprec) | DELETE | 刪除物流倉儲 / 運輸紀錄 | Need Review | Executor method is not present in code. |
 | [/api/v1/shipwarehouse/warehousearap](#get-api-v1-shipwarehouse-warehousearap) | GET | 查詢物流倉儲 / 倉儲應收應付 | OK | OK |
 | [/api/v1/shipwarehouse/warehousepayment](#get-api-v1-shipwarehouse-warehousepayment) | GET | 查詢物流倉儲 / 倉儲帳款 | OK | OK |
-| [/api/v1/shipwarehouse/warehousepayment](#post-api-v1-shipwarehouse-warehousepayment) | POST | 新增物流倉儲 / 倉儲帳款 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/warehousepayment](#put-api-v1-shipwarehouse-warehousepayment) | PUT | 更新物流倉儲 / 倉儲帳款 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/warehousepayment](#delete-api-v1-shipwarehouse-warehousepayment) | DELETE | 刪除物流倉儲 / 倉儲帳款 | Need Review | Executor method is not present in code. |
 | [/api/v1/shipwarehouse/warehouserec](#get-api-v1-shipwarehouse-warehouserec) | GET | 查詢物流倉儲 / 倉儲紀錄 | OK | OK |
-| [/api/v1/shipwarehouse/warehouserec](#post-api-v1-shipwarehouse-warehouserec) | POST | 新增物流倉儲 / 倉儲紀錄 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/warehouserec](#put-api-v1-shipwarehouse-warehouserec) | PUT | 更新物流倉儲 / 倉儲紀錄 | Need Review | Executor method is not present in code. |
-| [/api/v1/shipwarehouse/warehouserec](#delete-api-v1-shipwarehouse-warehouserec) | DELETE | 刪除物流倉儲 / 倉儲紀錄 | Need Review | Executor method is not present in code. |
 
 ## GET /api/v1/shipwarehouse
 
@@ -90,10 +72,10 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
+| payload.results[].no | String | 編號 |  |
 | payload.results[].name | String | 名稱 |  |
-| payload.results[].category | Integer | 類別 |  |
-| payload.results[].type | Integer | 類型 |  |
+| payload.results[].category | Integer | 類別 | 物流 (1)、倉儲 (2) 、其他 (0) |
+| payload.results[].type | Integer | 類型 | 自有 (1)、合約 (2) 、客供 (3) 、其他 (0) |
 | payload.results[].creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
@@ -116,176 +98,6 @@ None
 | Table | Purpose |
 |----------|------|
 | ship_wh_alias | 提供物流倉儲查詢、統計或紀錄資料 |
-
-## POST /api/v1/shipwarehouse
-
-<a id="post-api-v1-shipwarehouse"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse | POST | 新增物流倉儲 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 建立物流倉儲資料
-2. 回傳建立結果與必要識別資訊
-
-### Database Tables Used
-
-None
-
-## PUT /api/v1/shipwarehouse
-
-<a id="put-api-v1-shipwarehouse"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse | PUT | 更新物流倉儲 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件更新物流倉儲資料
-2. 回傳更新結果
-
-### Database Tables Used
-
-None
-
-## DELETE /api/v1/shipwarehouse
-
-<a id="delete-api-v1-shipwarehouse"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse | DELETE | 刪除物流倉儲 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-None
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件刪除或取消物流倉儲資料
-2. 回傳刪除或取消結果
-
-### Database Tables Used
-
-None
 
 ## GET /api/v1/shipwarehouse/contract
 
@@ -327,26 +139,35 @@ None
       {
         "id": "Integer",
         "no": "String",
-        "businessNo": "String",
+        "date": "Integer",
+        "ref_no": "String",
+        "sw_alias_no": "String",
         "displayName": "String",
-        "name": "String",
-        "address": "String",
-        "phone": "String",
-        "fax": "String",
-        "contactName": "String",
-        "contactPhone": "String",
-        "contactTitle": "String",
-        "contactEmail": "String",
-        "received_id": "Integer",
-        "paid_id": "Integer",
-        "bankDisplayName": "String",
-        "bankName": "String",
-        "bankCurrency": "Integer",
-        "bankBranch": "String",
-        "bankAccount": "String",
-        "bankNo": "String",
+        "item_no": "String",
+        "item_name": "String",
+        "item_ref_no": "String",
+        "item_ref_displayName": "String",
+        "category": "Integer",
+        "type": "Integer",
+        "itemStyle": "Integer",
+        "region": "Integer",
+        "unit": "Integer",
+        "price": "Float",
+        "fee": "Float",
         "comment": "String",
-        "creationTime": "Integer"
+        "creationTime": "Integer",
+        "shipwh": {
+            "no": "String",
+            "name": "String",
+            "attribute": "Integer"
+        },
+        "vendor": {
+            "no": "String",
+            "name": "String",
+            "paymentType": "Integer",
+            "paymentDate": "Integer",
+            "paymentPeriod": "Integer"
+        }
       }
     ]
   }
@@ -359,29 +180,33 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].businessNo | String | 統一編號或商業識別編號 |  |
+| payload.results[].id | Integer | 物流倉儲ID |  |
+| payload.results[].no | String | 物流倉儲編號 |  |
+| payload.results[].date | Integer | 日期時間 |  |
+| payload.results[].ref_no | String | 來源單號 |  |
+| payload.results[].sw_alias_no | String | 物流倉儲別名no，關連至ship_wh_alias資料表 |  |
 | payload.results[].displayName | String | 顯示名稱 |  |
-| payload.results[].name | String | 名稱 |  |
-| payload.results[].address | String | 地址 |  |
-| payload.results[].phone | String | 電話 |  |
-| payload.results[].fax | String | 傳真 |  |
-| payload.results[].contactName | String | 聯絡人姓名 |  |
-| payload.results[].contactPhone | String | 聯絡人電話 |  |
-| payload.results[].contactTitle | String | 聯絡人職稱 |  |
-| payload.results[].contactEmail | String | 聯絡人 Email |  |
-| payload.results[].received_id | Integer | 收款帳戶 ID |  |
-| payload.results[].paid_id | Integer | 付款帳戶 ID |  |
-| payload.results[].bankDisplayName | String | 銀行顯示名稱 |  |
-| payload.results[].bankName | String | 銀行名稱 |  |
-| payload.results[].bankCurrency | Integer | 銀行帳戶幣別 |  |
-| payload.results[].bankBranch | String | 銀行分行 |  |
-| payload.results[].bankAccount | String | 銀行帳戶名稱 |  |
-| payload.results[].bankNo | String | 銀行帳號 |  |
+| payload.results[].item_no | String | 「料品品項」編號 |  |
+| payload.results[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].item_ref_no | String | 交易對象編號 |  |
+| payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
+| payload.results[].category | Integer | 合約類型 | 物流 (1)、倉儲 (2) |
+| payload.results[].type | Integer | 合約樣式 | 合約類別為 <br>1.物流: 宅配 (1)、專車 (2)、併車 (3) 、回頭車 (4) 、貨櫃 (5) <br>2.倉儲: 月租 (1)、日租 (2) 、時租 (3) |
+| payload.results[].itemStyle | Integer | 品項樣式 | 物流 (1)、倉儲 (2) |
+| payload.results[].region | Integer | 地區 |  |
+| payload.results[].unit | Integer | 單位 |  |
+| payload.results[].price | Float | 單價 |  |
+| payload.results[].fee | Float | 作業費 / 次 |  |
 | payload.results[].comment | String | 備註 |  |
 | payload.results[].creationTime | Integer | 資料建立時間 |  |
-
+| payload.results[].shipwh.no | String | 「交易品項」編號 |  |
+| payload.results[].shipwh.name | String | 「交易品項」名稱 |  |
+| payload.results[].shipwh.attribute | Integer | 「交易品項」屬性 | 常溫 (1)、冷藏 (2)、冷凍 (3) 、其他 (0) |
+| payload.results[].vendor.no | String | 公司編號 |  |
+| payload.results[].vendor.name | String | 公司名稱 |  |
+| payload.results[].vendor.paymentType | Integer | 收付款類別 | 現結 (0)、月結 (1) |
+| payload.results[].vendor.paymentDate | Integer | 收付款方式 | 現金 (0)、匯款 (1)、支票 (2) |
+| payload.results[].vendor.paymentPeriod | Integer | 收付款期 |  |
 ### Failed Response Data
 
 | Field Path | Type | Description | Enum |
@@ -405,176 +230,6 @@ None
 | payment | 提供物流倉儲查詢、統計或紀錄資料 |
 | ship_wh | 提供物流倉儲查詢、統計或紀錄資料 |
 | ship_wh_contract | 提供物流倉儲查詢、統計或紀錄資料 |
-
-## POST /api/v1/shipwarehouse/contract
-
-<a id="post-api-v1-shipwarehouse-contract"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/contract | POST | 新增物流倉儲 / 合約 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 建立物流倉儲 / 合約資料
-2. 回傳建立結果與必要識別資訊
-
-### Database Tables Used
-
-None
-
-## PUT /api/v1/shipwarehouse/contract
-
-<a id="put-api-v1-shipwarehouse-contract"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/contract | PUT | 更新物流倉儲 / 合約 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件更新物流倉儲 / 合約資料
-2. 回傳更新結果
-
-### Database Tables Used
-
-None
-
-## DELETE /api/v1/shipwarehouse/contract
-
-<a id="delete-api-v1-shipwarehouse-contract"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/contract | DELETE | 刪除物流倉儲 / 合約 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-None
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件刪除或取消物流倉儲 / 合約資料
-2. 回傳刪除或取消結果
-
-### Database Tables Used
-
-None
 
 ## GET /api/v1/shipwarehouse/shiparap
 
@@ -612,28 +267,27 @@ None
     "total": "Integer",
     "results": [
       {
-        "id": "Integer",
         "no": "String",
-        "businessNo": "String",
-        "displayName": "String",
-        "name": "String",
-        "address": "String",
-        "phone": "String",
-        "fax": "String",
-        "contactName": "String",
-        "contactPhone": "String",
-        "contactTitle": "String",
-        "contactEmail": "String",
-        "received_id": "Integer",
-        "paid_id": "Integer",
-        "bankDisplayName": "String",
-        "bankName": "String",
-        "bankCurrency": "Integer",
-        "bankBranch": "String",
-        "bankAccount": "String",
-        "bankNo": "String",
-        "comment": "String",
-        "creationTime": "Integer"
+        "month": "String",
+        "companyName": "String",
+        "totalAmount": "Integer",
+        "dueDate": "Integer",
+        "records": [
+          {
+            "shipRec": {
+                "date": "Integer",
+                "unit": "Integer",
+                "price": "Integer",
+                "amount": "Integer",
+                "comment": "String"
+            },
+            "contract": {
+                "category": "Integer",
+                "type": "Integer",
+                "region":"Integer"
+            }
+          }
+        ]
       }
     ]
   }
@@ -647,26 +301,19 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
 | payload.results[].no | String | 資料編號 |  |
-| payload.results[].businessNo | String | 統一編號或商業識別編號 |  |
-| payload.results[].displayName | String | 顯示名稱 |  |
-| payload.results[].name | String | 名稱 |  |
-| payload.results[].address | String | 地址 |  |
-| payload.results[].phone | String | 電話 |  |
-| payload.results[].fax | String | 傳真 |  |
-| payload.results[].contactName | String | 聯絡人姓名 |  |
-| payload.results[].contactPhone | String | 聯絡人電話 |  |
-| payload.results[].contactTitle | String | 聯絡人職稱 |  |
-| payload.results[].contactEmail | String | 聯絡人 Email |  |
-| payload.results[].received_id | Integer | 收款帳戶 ID |  |
-| payload.results[].paid_id | Integer | 付款帳戶 ID |  |
-| payload.results[].bankDisplayName | String | 銀行顯示名稱 |  |
-| payload.results[].bankName | String | 銀行名稱 |  |
-| payload.results[].bankCurrency | Integer | 銀行帳戶幣別 |  |
-| payload.results[].bankBranch | String | 銀行分行 |  |
-| payload.results[].bankAccount | String | 銀行帳戶名稱 |  |
-| payload.results[].bankNo | String | 銀行帳號 |  |
-| payload.results[].comment | String | 備註 |  |
-| payload.results[].creationTime | Integer | 資料建立時間 |  |
+| payload.results[].month | String | 年序月 |  |
+| payload.results[].companyName | String | 物流公司名稱 |  |
+| payload.results[].totalAmount | Integer | 總金額 |  |
+| payload.results[].dueDate | Integer | 銷帳日期 |  |
+| payload.results[].records[].shipRec.date | Integer | 物流日 |  |
+| payload.results[].records[].shipRec.unit | Integer | 物流交易單位 |  |
+| payload.results[].records[].shipRec.price | Integer | 物流單價 |  |
+| payload.results[].records[].shipRec.amount | Integer | 物流金額 |  |
+| payload.results[].records[].shipRec.comment | Integer | 備註 |  |
+| payload.results[].records[].contract.category | Integer | 合約類別 |  物流 (1)、倉儲 (2) |
+| payload.results[].records[].contract.type | Integer | 合約樣式 | 合約類別為 <br>1.物流: 宅配 (1)、專車 (2)、併車 (3) 、回頭車 (4) 、貨櫃 (5) <br>2.倉儲: 月租 (1)、日租 (2) 、時租 (3) |
+| payload.results[].records[].contract.region | region | 合約地區 |  |
+
 
 ### Failed Response Data
 
@@ -731,26 +378,28 @@ None
     "count": "Integer",
     "results": [
       {
-        "id": "Integer",
-        "no": "String",
-        "date": "Integer",
-        "ref_no": "String",
-        "sw_alias_no": "String",
-        "displayName": "String",
-        "item_no": "String",
-        "item_name": "String",
-        "item_ref_no": "String",
-        "item_ref_displayName": "String",
-        "category": "Integer",
-        "type": "Integer",
-        "itemStyle": "Integer",
-        "region": "Integer",
-        "unit": "Integer",
-        "price": "Float",
-        "fee": "Float",
-        "comment": "String",
-        "creationTime": "Integer"
-      }
+        "payment": {
+            "no": "String",
+            "date": "Integer",
+            "month": "String",
+            "count": "Integer",
+            "amount": "Integer",
+            "addDeleteAmount": "Integer",
+        },
+        "order": {
+            "checkedCount": "Integer",
+            "expectedCount": "Integer",
+            "item_name": "String",
+            "item_ref_displayName": "String",
+            "unit": "Integer",
+            "price": "Integer",
+            "contractNo": "String",
+            "contractCategory": "Integer",
+            "contractType": "Integer",
+            "contractItemStyle": "Integer",
+            "paymentType": "Integer"
+        }
+      }      
     ]
   }
 }
@@ -762,25 +411,21 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].date | Integer | 日期時間 |  |
-| payload.results[].ref_no | String | 來源單號 |  |
-| payload.results[].sw_alias_no | String | 物流倉儲別名no，關連至ship_wh_alias資料表 |  |
-| payload.results[].displayName | String | 顯示名稱 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].item_ref_no | String | 交易對象編號 |  |
-| payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].category | Integer | 類別 |  |
-| payload.results[].type | Integer | 類型 |  |
-| payload.results[].itemStyle | Integer | 品項樣式 |  |
-| payload.results[].region | Integer | 地區 |  |
-| payload.results[].unit | Integer | 單位 |  |
-| payload.results[].price | Float | 單價 |  |
-| payload.results[].fee | Float | 作業費 / 次 |  |
-| payload.results[].comment | String | 備註 |  |
-| payload.results[].creationTime | Integer | 資料建立時間 |  |
+| payload.results[].payment.no | String | 帳款編號 |  |
+| payload.results[].payment.date | Integer | 帳款費用日期 |  |
+| payload.results[].payment.count | Integer | 件 / 車數 |  |
+| payload.results[].payment.amount | Integer | 金額 |  |
+| payload.results[].payment.addDeleteAmount | Integer | 加 / 扣款金額 |  |
+| payload.results[].order.checkedCount | Integer | 計價數量 |  |
+| payload.results[].order.expectedCount | Integer | 預期數量 |  |
+| payload.results[].order.unit | Integer | 交易單位 |  |
+| payload.results[].order.price | Integer | 交易單價 |  |
+| payload.results[].order.contractNo | String | 倉儲物流合約編號 |  |
+| payload.results[].order.contractCategory  | Integer | 合約類別 |  物流 (1)、倉儲 (2) |
+| payload.results[].order.contractType | Integer | 合約樣式 | 合約類別為 <br>1.物流: 宅配 (1)、專車 (2)、併車 (3) 、回頭車 (4) 、貨櫃 (5) <br>2.倉儲: 月租 (1)、日租 (2) 、時租 (3) |
+| payload.results[].order.contractItemStyle | Integer | 品項樣式 | 物流 (1)、倉儲 (2) |
+| payload.results[].order.paymentType | Integer | 收付款類別 | 現結 (0)、月結 (1) |
+
 
 ### Failed Response Data
 
@@ -804,176 +449,6 @@ None
 | ship_wh_contract | 提供物流倉儲查詢、統計或紀錄資料 |
 | shipping_payment | 提供物流倉儲查詢、統計或紀錄資料 |
 | shipping_record | 提供物流倉儲查詢、統計或紀錄資料 |
-
-## POST /api/v1/shipwarehouse/shippayment
-
-<a id="post-api-v1-shipwarehouse-shippayment"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/shippayment | POST | 新增物流倉儲 / 物流帳款 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 建立物流倉儲 / 物流帳款資料
-2. 回傳建立結果與必要識別資訊
-
-### Database Tables Used
-
-None
-
-## PUT /api/v1/shipwarehouse/shippayment
-
-<a id="put-api-v1-shipwarehouse-shippayment"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/shippayment | PUT | 更新物流倉儲 / 物流帳款 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件更新物流倉儲 / 物流帳款資料
-2. 回傳更新結果
-
-### Database Tables Used
-
-None
-
-## DELETE /api/v1/shipwarehouse/shippayment
-
-<a id="delete-api-v1-shipwarehouse-shippayment"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/shippayment | DELETE | 刪除物流倉儲 / 物流帳款 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-None
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件刪除或取消物流倉儲 / 物流帳款資料
-2. 回傳刪除或取消結果
-
-### Database Tables Used
-
-None
 
 ## GET /api/v1/shipwarehouse/shiprec
 
@@ -1014,26 +489,26 @@ None
     "results": [
       {
         "id": "String",
-        "date": "String",
+        "date": "Integer",
         "count": "Integer",
         "alias": {
           "name": "String",
-          "type": "String"
+          "type": "Integer"
         },
         "contract": {
-          "category": "String",
-          "type": "String",
-          "region": "String",
-          "unit": "String",
-          "price": "String"
+          "category": "Integer",
+          "type": "Integer",
+          "region": "Integer",
+          "unit": "Integer",
+          "price": "Integer"
         },
         "order": {
-          "date": "String",
+          "date": "Integer",
           "item_name": "String",
           "item_ref_displayName": "String",
-          "unit": "String",
-          "price": "String",
-          "contractPrice": "String"
+          "unit": "Integer",
+          "price": "Float",
+          "contractPrice": "Float"
         }
       }
     ]
@@ -1048,21 +523,21 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | String | 資料 ID |  |
-| payload.results[].date | String | 日期時間 |  |
+| payload.results[].date | String | 物流記錄日期時間 |  |
 | payload.results[].count | Integer | 本次回傳筆數 |  |
-| payload.results[].alias.name | String | 名稱 |  |
-| payload.results[].alias.type | String | 類型 |  |
-| payload.results[].contract.category | String | 類別 |  |
-| payload.results[].contract.type | String | 類型 |  |
-| payload.results[].contract.region | String | 地區 |  |
-| payload.results[].contract.unit | String | 單位 |  |
-| payload.results[].contract.price | String | 單價 |  |
-| payload.results[].order.date | String | 日期時間 |  |
-| payload.results[].order.item_name | String | 料品/品項名稱 |  |
-| payload.results[].order.item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].order.unit | String | 單位 |  |
-| payload.results[].order.price | String | 單價 |  |
-| payload.results[].order.contractPrice | String | contract Price 的業務資料 |  |
+| payload.results[].alias.name | String | 倉儲物流名稱 |  |
+| payload.results[].alias.type | Integer | 樣式 | 自有 (1)、合約 (2) 、客供 (3) 、其他 (0)  |
+| payload.results[].contract.category | Integer | 合約類別 |  物流 (1)、倉儲 (2) |
+| payload.results[].contract.type | Integer | 合約樣式 | 合約類別為 <br>1.物流: 宅配 (1)、專車 (2)、併車 (3) 、回頭車 (4) 、貨櫃 (5) <br>2.倉儲: 月租 (1)、日租 (2) 、時租 (3) |
+| payload.results[].contract.region | Integer | 地區 |  |
+| payload.results[].contract.unit | Integer | 計價單位 |  |
+| payload.results[].contract.price | Float | 含稅價格 |  | 
+| payload.results[].order.date | Integer | 進貨/銷貨日期時間 |  |
+| payload.results[].order.item_name | String | 進銷貨「交易品項」名稱 |  |
+| payload.results[].order.item_ref_displayName | String | 進銷貨交易對象顯示名稱 |  |
+| payload.results[].order.unit | String | 進銷貨交易單位 |  |
+| payload.results[].order.price | Float | 進銷貨單價 |  |
+| payload.results[].order.contractPrice | Float | 進銷貨合約交易單價 |  |
 
 ### Failed Response Data
 
@@ -1092,176 +567,6 @@ None
 | shipping_order | 提供物流倉儲查詢、統計或紀錄資料 |
 | shipping_record | 提供物流倉儲查詢、統計或紀錄資料 |
 
-## POST /api/v1/shipwarehouse/shiprec
-
-<a id="post-api-v1-shipwarehouse-shiprec"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/shiprec | POST | 新增物流倉儲 / 運輸紀錄 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 建立物流倉儲 / 運輸紀錄資料
-2. 回傳建立結果與必要識別資訊
-
-### Database Tables Used
-
-None
-
-## PUT /api/v1/shipwarehouse/shiprec
-
-<a id="put-api-v1-shipwarehouse-shiprec"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/shiprec | PUT | 更新物流倉儲 / 運輸紀錄 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件更新物流倉儲 / 運輸紀錄資料
-2. 回傳更新結果
-
-### Database Tables Used
-
-None
-
-## DELETE /api/v1/shipwarehouse/shiprec
-
-<a id="delete-api-v1-shipwarehouse-shiprec"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/shiprec | DELETE | 刪除物流倉儲 / 運輸紀錄 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-None
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件刪除或取消物流倉儲 / 運輸紀錄資料
-2. 回傳刪除或取消結果
-
-### Database Tables Used
-
-None
-
 ## GET /api/v1/shipwarehouse/warehousearap
 
 <a id="get-api-v1-shipwarehouse-warehousearap"></a>
@@ -1270,7 +575,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/shipwarehouse/warehousearap | GET | 查詢物流倉儲 / 倉儲應收應付 |
+| /api/v1/shipwarehouse/warehousearap | GET | 查詢倉儲應收應付(掛帳) |
 
 ### Request Header
 
@@ -1299,28 +604,28 @@ None
     "total": "Integer",
     "results": [
       {
-        "id": "Integer",
         "no": "String",
-        "businessNo": "String",
-        "displayName": "String",
-        "name": "String",
-        "address": "String",
-        "phone": "String",
-        "fax": "String",
-        "contactName": "String",
-        "contactPhone": "String",
-        "contactTitle": "String",
-        "contactEmail": "String",
-        "received_id": "Integer",
-        "paid_id": "Integer",
-        "bankDisplayName": "String",
-        "bankName": "String",
-        "bankCurrency": "Integer",
-        "bankBranch": "String",
-        "bankAccount": "String",
-        "bankNo": "String",
-        "comment": "String",
-        "creationTime": "Integer"
+        "month": "String",
+        "companyName": "String",
+        "totalAmount": "Integer",
+        "dueDate": "Integer",
+        "records": [
+          {
+            "warehouseRec": {
+              "date": "Integer",
+              "unit": "Integer",
+              "price": "Integer",
+              "amount": "Integer",
+              "countDays": "Integer",
+              "comment": "String"
+            },
+            "contract": {
+              "category": "Integer",
+              "type": "Integer",
+              "region":"Integer"
+            }
+          }
+        ]
       }
     ]
   }
@@ -1333,27 +638,21 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].businessNo | String | 統一編號或商業識別編號 |  |
-| payload.results[].displayName | String | 顯示名稱 |  |
-| payload.results[].name | String | 名稱 |  |
-| payload.results[].address | String | 地址 |  |
-| payload.results[].phone | String | 電話 |  |
-| payload.results[].fax | String | 傳真 |  |
-| payload.results[].contactName | String | 聯絡人姓名 |  |
-| payload.results[].contactPhone | String | 聯絡人電話 |  |
-| payload.results[].contactTitle | String | 聯絡人職稱 |  |
-| payload.results[].contactEmail | String | 聯絡人 Email |  |
-| payload.results[].received_id | Integer | 收款帳戶 ID |  |
-| payload.results[].paid_id | Integer | 付款帳戶 ID |  |
-| payload.results[].bankDisplayName | String | 銀行顯示名稱 |  |
-| payload.results[].bankName | String | 銀行名稱 |  |
-| payload.results[].bankCurrency | Integer | 銀行帳戶幣別 |  |
-| payload.results[].bankBranch | String | 銀行分行 |  |
-| payload.results[].bankAccount | String | 銀行帳戶名稱 |  |
-| payload.results[].bankNo | String | 銀行帳號 |  |
-| payload.results[].comment | String | 備註 |  |
-| payload.results[].creationTime | Integer | 資料建立時間 |  |
+| payload.results[].no | String | 帳款編號 |  |
+| payload.results[].month | String | 年序月 |  |
+| payload.results[].companyName | String | 倉儲公司名稱 |  |
+| payload.results[].totalAmount | Integer | 總金額 |  |
+| payload.results[].dueDate | Integer | 銷帳日期 |  |
+| payload.results[].records[].warehouseRec.date | Integer | 出庫日 |  |
+| payload.results[].records[].warehouseRec.unit | Integer | 交易單位 |  |
+| payload.results[].records[].warehouseRec.price | Integer | 單價 |  |
+| payload.results[].records[].warehouseRec.amount | Integer | 金額 |  |
+| payload.results[].records[].warehouseRec.countDays | Integer | 存放積和數 |  |
+| payload.results[].records[].warehouseRec.comment | String | 備註 |  |
+| payload.results[].records[].contract.category | Integer | 合約類別 |  物流 (1)、倉儲 (2) |
+| payload.results[].records[].contract.type | Integer | 合約樣式 | 合約類別為 <br>1.物流: 宅配 (1)、專車 (2)、併車 (3) 、回頭車 (4) 、貨櫃 (5) <br>2.倉儲: 月租 (1)、日租 (2) 、時租 (3) |
+| payload.results[].records[].contract.region | region | 合約地區 |  |
+
 
 ### Failed Response Data
 
@@ -1388,7 +687,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/shipwarehouse/warehousepayment | GET | 查詢物流倉儲 / 倉儲帳款 |
+| /api/v1/shipwarehouse/warehousepayment | GET | 查詢倉儲帳款 |
 
 ### Request Header
 
@@ -1418,26 +717,27 @@ None
     "count": "Integer",
     "results": [
       {
-        "id": "Integer",
-        "no": "String",
-        "date": "Integer",
-        "ref_no": "String",
-        "sw_alias_no": "String",
-        "displayName": "String",
-        "item_no": "String",
-        "item_name": "String",
-        "item_ref_no": "String",
-        "item_ref_displayName": "String",
-        "category": "Integer",
-        "type": "Integer",
-        "itemStyle": "Integer",
-        "region": "Integer",
-        "unit": "Integer",
-        "price": "Float",
-        "fee": "Float",
-        "comment": "String",
-        "creationTime": "Integer"
-      }
+        "payment": {
+            "no": "String",
+            "date": "Integer",
+            "month": "String",
+            "count": "Integer",
+            "amount": "Integer",
+            "addDeleteAmount": "Integer",
+        },
+        "order": {
+            "count": "Integer",
+            "item_name": "String",
+            "item_ref_displayName": "String",
+            "unit": "Integer",
+            "price": "Integer",
+            "contractNo": "String",
+            "contractCategory": "Integer",
+            "contractType": "Integer",
+            "contractItemStyle": "Integer",
+            "paymentType": "Integer"
+        }
+      }      
     ]
   }
 }
@@ -1449,25 +749,22 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].date | Integer | 日期時間 |  |
-| payload.results[].ref_no | String | 來源單號 |  |
-| payload.results[].sw_alias_no | String | 物流倉儲別名no，關連至ship_wh_alias資料表 |  |
-| payload.results[].displayName | String | 顯示名稱 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].item_ref_no | String | 交易對象編號 |  |
-| payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].category | Integer | 類別 |  |
-| payload.results[].type | Integer | 類型 |  |
-| payload.results[].itemStyle | Integer | 品項樣式 |  |
-| payload.results[].region | Integer | 地區 |  |
-| payload.results[].unit | Integer | 單位 |  |
-| payload.results[].price | Float | 單價 |  |
-| payload.results[].fee | Float | 作業費 / 次 |  |
-| payload.results[].comment | String | 備註 |  |
-| payload.results[].creationTime | Integer | 資料建立時間 |  |
+| payload.results[].id | Integer | 物流倉儲ID |  |
+| payload.results[].payment.no | String | 帳款編號 |  |
+| payload.results[].payment.date | Integer | 帳款費用日期 |  |
+| payload.results[].payment.count | Integer | 計價積和|  |
+| payload.results[].payment.amount | Integer | 金額 |  |
+| payload.results[].payment.addDeleteAmount | Integer | 加 / 扣款金額 |  |
+| payload.results[].order.count | Integer | 倉儲計價數量 |  |
+| payload.results[].order.item_name | String | 交易品項名稱 |  |
+| payload.results[].order.item_ref_displayName | String | 交易對象 |  |
+| payload.results[].order.unit | Integer | 交易單位 |  |
+| payload.results[].order.price | Integer | 交易單價 |  |
+| payload.results[].order.contractNo | String | 倉儲物流合約編號 |  |
+| payload.results[].order.contractCategory  | Integer | 合約類別 |  物流 (1)、倉儲 (2) |
+| payload.results[].order.contractType | Integer | 合約樣式 | 合約類別為 <br>1.物流: 宅配 (1)、專車 (2)、併車 (3) 、回頭車 (4) 、貨櫃 (5) <br>2.倉儲: 月租 (1)、日租 (2) 、時租 (3) |
+| payload.results[].order.contractItemStyle | Integer | 品項樣式 | 物流 (1)、倉儲 (2) |
+| payload.results[].order.paymentType | Integer | 收付款類型 | 現結 (0)、月結 (1) |
 
 ### Failed Response Data
 
@@ -1492,176 +789,6 @@ None
 | warehouse_payment | 提供物流倉儲查詢、統計或紀錄資料 |
 | warehouse_record | 提供物流倉儲查詢、統計或紀錄資料 |
 
-## POST /api/v1/shipwarehouse/warehousepayment
-
-<a id="post-api-v1-shipwarehouse-warehousepayment"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/warehousepayment | POST | 新增物流倉儲 / 倉儲帳款 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 建立物流倉儲 / 倉儲帳款資料
-2. 回傳建立結果與必要識別資訊
-
-### Database Tables Used
-
-None
-
-## PUT /api/v1/shipwarehouse/warehousepayment
-
-<a id="put-api-v1-shipwarehouse-warehousepayment"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/warehousepayment | PUT | 更新物流倉儲 / 倉儲帳款 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件更新物流倉儲 / 倉儲帳款資料
-2. 回傳更新結果
-
-### Database Tables Used
-
-None
-
-## DELETE /api/v1/shipwarehouse/warehousepayment
-
-<a id="delete-api-v1-shipwarehouse-warehousepayment"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/warehousepayment | DELETE | 刪除物流倉儲 / 倉儲帳款 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-None
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件刪除或取消物流倉儲 / 倉儲帳款資料
-2. 回傳刪除或取消結果
-
-### Database Tables Used
-
-None
-
 ## GET /api/v1/shipwarehouse/warehouserec
 
 <a id="get-api-v1-shipwarehouse-warehouserec"></a>
@@ -1670,7 +797,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/shipwarehouse/warehouserec | GET | 查詢物流倉儲 / 倉儲紀錄 |
+| /api/v1/shipwarehouse/warehouserec | GET | 查詢倉儲紀錄 |
 
 ### Request Header
 
@@ -1701,26 +828,26 @@ None
     "results": [
       {
         "id": "String",
-        "date": "String",
+        "date": "Integer",
         "count": "Integer",
-        "days": "String",
-        "alias": {
+        "count": "Integer",
+        "days": {
           "name": "String",
-          "type": "String"
+          "type": "Integer"
         },
         "contract": {
-          "category": "String",
-          "type": "String",
-          "unit": "String",
-          "price": "String"
+          "category": "Integer",
+          "type": "Integer",
+          "unit": "Integer",
+          "price": "Integer"
         },
         "batch": {
           "no": "String",
           "item_name": "String",
           "itemCategory": "String",
-          "itemSubCategory": "String",
-          "validDate": "String"
-        }
+          "itemSubCategory": "Integer",
+          "validDate": "Integer"
+        }      
       }
     ]
   }
@@ -1734,19 +861,19 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | String | 資料 ID |  |
-| payload.results[].date | String | 日期時間 |  |
-| payload.results[].count | Integer | 本次回傳筆數 |  |
-| payload.results[].days | String | 存放天數 |  |
-| payload.results[].alias.name | String | 名稱 |  |
-| payload.results[].alias.type | String | 類型 |  |
-| payload.results[].contract.category | String | 類別 |  |
-| payload.results[].contract.type | String | 類型 |  |
-| payload.results[].contract.unit | String | 單位 |  |
-| payload.results[].contract.price | String | 單價 |  |
-| payload.results[].batch.no | String | 資料編號 |  |
-| payload.results[].batch.item_name | String | 料品/品項名稱 |  |
-| payload.results[].batch.itemCategory | String | 料品類別 |  |
-| payload.results[].batch.itemSubCategory | String | 料品子類別 |  |
+| payload.results[].date | String | 出庫日 |  |
+| payload.results[].count | Integer | 件 / 板數 |  |
+| payload.results[].days | Integer | 存放天數 |  |
+| payload.results[].alias.name | String | 倉儲名稱 |  |
+| payload.results[].alias.type | Integer | 樣式 | 自有 (1)、合約 (2) 、客供 (3) 、其他 (0)  |
+| payload.results[].contract.category | Integer | 合約類別 |  物流 (1)、倉儲 (2) |
+| payload.results[].contract.type | Integer | 合約樣式 | 合約類別為 <br>1.物流: 宅配 (1)、專車 (2)、併車 (3) 、回頭車 (4) 、貨櫃 (5) <br>2.倉儲: 月租 (1)、日租 (2) 、時租 (3) |
+| payload.results[].contract.unit | Integer | 計價單位 |  |
+| payload.results[].contract.price | Float | 含稅價格 |  | 
+| payload.results[].batch.no | String | 批號 |  |
+| payload.results[].batch.item_name | String | 「料品品項」名稱 |  |
+| payload.results[].batch.itemCategory | String | 「料品品項」類別 |  |
+| payload.results[].batch.itemSubCategory | String | 「料品品項」子類別 |  |
 | payload.results[].batch.validDate | String | 效期日期 |  |
 
 ### Failed Response Data
@@ -1772,173 +899,3 @@ None
 | ship_wh_alias | 提供物流倉儲查詢、統計或紀錄資料 |
 | ship_wh_contract | 提供物流倉儲查詢、統計或紀錄資料 |
 | warehouse_record | 提供物流倉儲查詢、統計或紀錄資料 |
-
-## POST /api/v1/shipwarehouse/warehouserec
-
-<a id="post-api-v1-shipwarehouse-warehouserec"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/warehouserec | POST | 新增物流倉儲 / 倉儲紀錄 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 建立物流倉儲 / 倉儲紀錄資料
-2. 回傳建立結果與必要識別資訊
-
-### Database Tables Used
-
-None
-
-## PUT /api/v1/shipwarehouse/warehouserec
-
-<a id="put-api-v1-shipwarehouse-warehouserec"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/warehouserec | PUT | 更新物流倉儲 / 倉儲紀錄 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| Content-Type | application/json |
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-Need Review: request body is read in code, but no explicit schema or field check was found.
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件更新物流倉儲 / 倉儲紀錄資料
-2. 回傳更新結果
-
-### Database Tables Used
-
-None
-
-## DELETE /api/v1/shipwarehouse/warehouserec
-
-<a id="delete-api-v1-shipwarehouse-warehouserec"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/shipwarehouse/warehouserec | DELETE | 刪除物流倉儲 / 倉儲紀錄 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-None
-
-### Request Body
-
-None
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {}
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 依條件刪除或取消物流倉儲 / 倉儲紀錄資料
-2. 回傳刪除或取消結果
-
-### Database Tables Used
-
-None

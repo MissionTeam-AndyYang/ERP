@@ -7,7 +7,7 @@
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | [/api/v1/material](#get-api-v1-material) | GET | 查詢原物料 | OK | OK |
-| [/api/v1/material/itemprice](#get-api-v1-material-itemprice) | GET | 查詢原物料 / 品項價格 | OK | OK |
+| [/api/v1/material/itemprice](#get-api-v1-material-itemprice) | GET | 查詢原物料價格 | OK | OK |
 
 ## GET /api/v1/material
 
@@ -47,9 +47,16 @@ None
     "total": "Integer",
     "results": [
       {
-        "id": "String",
+        "id": "Integer",
         "no": "String",
-        "name": "String"
+        "name": "String",
+        "category": "Integer",
+        "subCategory": "Integer",
+        "unitShipping": "Integer",
+        "unitWarehouse": "Integer",
+        "unitProduct": "Integer",
+        "comment": "String",
+        "creationTime": "Integer"
       }
     ],
     "count": "Integer"
@@ -63,8 +70,14 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].id | String | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
+| payload.results[].no | String | 原物料編號 |  |
 | payload.results[].name | String | 名稱 |  |
+| payload.results[].category | Integer | 類型 |  |
+| payload.results[].subCategory | Integer | 子類型 | 原料餅體 (1)、拌料 (2)、餡料 (3)、巧克力 (4)、其他 (0)<br>物料紙盒 (1)、紙袋 (2)、塑盒 (3)、塑袋 (4)、鐵盒桶 (5)、外箱 (6)、 膠帶 (7)、膠膜 (8)、內襯 (9) 、環保稅 (10)、其他 (0)<br>膠捲膠捲 (1)、其他 (0)  |
+| payload.results[].unitShipping | Integer | 貨運單位 |  |
+| payload.results[].unitWarehouse | Integer | 倉儲單位 |  |
+| payload.results[].unitProduct | Integer | 	產製單位 |  |
+| payload.results[].comment | String | 備註 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data
@@ -96,7 +109,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/material/itemprice | GET | 查詢原物料 / 品項價格 |
+| /api/v1/material/itemprice | GET | 查詢原物料價格 |
 
 ### Request Header
 
@@ -108,7 +121,7 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| item_no | String | YES | 料品/品項編號 |
+| item_no | String | YES | 「料品品項」編號 |
 
 ### Request Body
 
@@ -125,19 +138,13 @@ None
     "results": [
       {
         "month": "String",
-        "estUnit": "String",
-        "estPrice": "String",
-        "estPrice1": "String",
-        "estPrice2": "String",
-        "estLaborCost": "String",
-        "unit": "String",
-        "price": "String",
-        "price1": "String",
-        "price2": "String",
-        "laborCost": "String",
-        "lossUnit": "String",
-        "loss": "String",
-        "estLoss": "String"
+        "estUnit": "Integer",
+        "estPrice": "Float",      
+        "unit": "Integer",
+        "price": "Float",     
+        "lossUnit": "Integer",
+        "loss": "Float",
+        "estLoss": "Float"
       }
     ]
   }
@@ -150,19 +157,13 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].month | String | 月份 |  |
-| payload.results[].estUnit | String | est Unit 的業務資料 |  |
-| payload.results[].estPrice | String | est Price 的業務資料 |  |
-| payload.results[].estPrice1 | String | est Price1 的業務資料 |  |
-| payload.results[].estPrice2 | String | est Price2 的業務資料 |  |
-| payload.results[].estLaborCost | String | 預估人工費 |  |
-| payload.results[].unit | String | 單位 |  |
-| payload.results[].price | String | 單價 |  |
-| payload.results[].price1 | String | price1 的業務資料 |  |
-| payload.results[].price2 | String | price2 的業務資料 |  |
-| payload.results[].laborCost | String | 人工費 |  |
-| payload.results[].lossUnit | String | loss Unit 的業務資料 |  |
-| payload.results[].loss | String | loss 的業務資料 |  |
-| payload.results[].estLoss | String | est Loss 的業務資料 |  |
+| payload.results[].estUnit | Integer | 預估成本重量單位 |  |
+| payload.results[].estPrice | Float |預估成本重量單位價格 |  |
+| payload.results[].unit | Integer | 成本重量單位 |  |
+| payload.results[].price | Float | 成本重量單位價格 |  |
+| payload.results[].lossUnit | Integer |  損耗單位 |  |
+| payload.results[].loss | Float | 損耗比率 |  |
+| payload.results[].estLoss | Float | 預估損耗比率 |  |
 
 ### Failed Response Data
 
@@ -175,7 +176,7 @@ None
 ### Processing Flow
 
 1. 讀取查詢條件並轉換為業務篩選條件：item_no
-2. 查詢 item_loss、item_price 取得原物料 / 品項價格資料
+2. 查詢 item_loss、item_price 取得原物料價格與損耗資料
 3. 計算符合條件的總筆數與本次回傳筆數
 4. 整理查詢結果清單並展開回傳欄位語意
 
@@ -183,5 +184,5 @@ None
 
 | Table | Purpose |
 |----------|------|
-| item_loss | 提供原物料主檔、配方或價格資料 |
-| item_price | 提供原物料主檔、配方或價格資料 |
+| item_loss | 提供原物料損耗資料 |
+| item_price | 提供原物料價格資料 |

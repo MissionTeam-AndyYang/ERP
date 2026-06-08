@@ -52,15 +52,15 @@ None
         "month": "String",
         "pl_no": "String",
         "pl_name": "String",
-        "productCount": "String",
+        "productCount": "Integer",
         "item_no": "String",
         "item_name": "String",
         "assembly_no": "String",
-        "assemblyVer": "String",
-        "bomWeight": "String",
-        "bomUnit": "String",
-        "unit": "String",
-        "hourlyOutput": "String"
+        "assemblyVer": "Integer",
+        "bomWeight": "Float",
+        "bomUnit": "Integer",
+        "unit": "Integer",
+        "hourlyOutput": "Float"
       }
     ]
   }
@@ -76,15 +76,15 @@ None
 | payload.results[].month | String | 月份 |  |
 | payload.results[].pl_no | String | 產線no，關聯至production_line資料表 |  |
 | payload.results[].pl_name | String | 產線名稱，關聯至production_line資料表 |  |
-| payload.results[].productCount | String | 產製次數 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].assembly_no | String | 產出料品品項組裝編號 |  |
-| payload.results[].assemblyVer | String | 產出料品品項組裝版本 |  |
-| payload.results[].bomWeight | String | 產出料品品項Bom重量 |  |
-| payload.results[].bomUnit | String | 產出料品品項成分單位 |  |
+| payload.results[].productCount | Integer | 產製次數 |  |
+| payload.results[].item_no | String | 「料品品項」編號 |  |
+| payload.results[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].assembly_no | String | 產出「料品品項」組裝編號 |  |
+| payload.results[].assemblyVer | Integer | 產出「料品品項」組裝版本 |  |
+| payload.results[].bomWeight | Float | 產出「料品品項」Bom重量 |  |
+| payload.results[].bomUnit | Integer | 產出「料品品項」成分單位 |  |
 | payload.results[].unit | String | 單位 |  |
-| payload.results[].hourlyOutput | String | 產出物時產量 |  |
+| payload.results[].hourlyOutput | Float | 產出物時產量 |  |
 
 ### Failed Response Data
 
@@ -148,15 +148,15 @@ None
         "month": "String",
         "pl_no": "String",
         "pl_name": "String",
-        "productCount": "String",
+        "productCount": "Integer",
         "item_no": "String",
         "item_name": "String",
         "assembly_no": "String",
-        "assemblyVer": "String",
-        "price": "String",
-        "rawMaterialCost": "String",
-        "materialCost": "String",
-        "laborCost": "String"
+        "assemblyVer": "Integer",
+        "price": "Float",
+        "rawMaterialCost": "Float",
+        "materialCost": "Float",
+        "laborCost": "Float"
       }
     ]
   }
@@ -172,15 +172,15 @@ None
 | payload.results[].month | String | 月份 |  |
 | payload.results[].pl_no | String | 產線no，關聯至production_line資料表 |  |
 | payload.results[].pl_name | String | 產線名稱，關聯至production_line資料表 |  |
-| payload.results[].productCount | String | 產製次數 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].assembly_no | String | 產出料品品項組裝編號 |  |
-| payload.results[].assemblyVer | String | 產出料品品項組裝版本 |  |
-| payload.results[].price | String | 單價 |  |
-| payload.results[].rawMaterialCost | String | 原料費 |  |
-| payload.results[].materialCost | String | 物料費 |  |
-| payload.results[].laborCost | String | 人工費 |  |
+| payload.results[].productCount | Integer | 產製次數 |  |
+| payload.results[].item_no | String | 「料品品項」編號 |  |
+| payload.results[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].assembly_no | String | 產出「料品品項」組裝編號 |  |
+| payload.results[].assemblyVer | Integer | 產出「料品品項」組裝版本 |  |
+| payload.results[].price | Float | 單價 |  |
+| payload.results[].rawMaterialCost | Float | 原料費 |  |
+| payload.results[].materialCost | Float | 物料費 |  |
+| payload.results[].laborCost | Float | 人工費 |  |
 
 ### Failed Response Data
 
@@ -251,7 +251,17 @@ None
         "weightRatio": "Float",
         "lossRate": "Float",
         "creationTime": "Integer",
-        "output": {}
+        "output": {
+          "pl_no": "String",
+          "pl_name": "String",
+          "productCount": "Integer",
+          "item_no": "String",
+          "item_name": "String",
+          "assembly_no": "String",
+          "assemblyVer": "Integer",
+          "bomWeight": "Float",
+          "bomUnit": "Integer"
+        }
       }
     ]
   }
@@ -267,14 +277,22 @@ None
 | payload.results[].id | Integer | 資料 ID |  |
 | payload.results[].month | String | 月份 |  |
 | payload.results[].pl_item_capacity_no | String | 產線料品產能，關聯至pl_item_capacity資料表 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
+| payload.results[].item_no | String | 投入「料品品項」編號 |  |
+| payload.results[].item_name | String | 投入「料品品項」名稱 |  |
+| payload.results[].itemCategory | Integer | 投入「料品品項」類別 |  |
+| payload.results[].itemSubCategory | Integer | 投入「料品品項」子類別 |  |
 | payload.results[].weightRatio | Float | 投入物之產重比 |  |
 | payload.results[].lossRate | Float | 投入物之損耗率 |  |
 | payload.results[].creationTime | Integer | 資料建立時間 |  |
-
+| payload.results[].output.pl_no | String | 產線no，關聯至production_line資料表 |  |
+| payload.results[].output.pl_name | String | 產線名稱，關聯至production_line資料表 |  |
+| payload.results[].output.productCount | Integer | 產製次數 |  |
+| payload.results[].output.item_no | String | 產出「料品品項」編號 |  |
+| payload.results[].output.item_name | String | 產出「料品品項」名稱 |  |
+| payload.results[].output.assembly_no | String | 產出「料品品項」組裝編號 |  |
+| payload.results[].output.assemblyVer | Integer | 產出「料品品項」組裝版本 |  |
+| payload.results[].output.bomWeight | Float | 產出「料品品項」Bom重量 |  |
+| payload.results[].output.bomUnit | Integer | 產出「料品品項」成分單位 |  |
 ### Failed Response Data
 
 | Field Path | Type | Description | Enum |

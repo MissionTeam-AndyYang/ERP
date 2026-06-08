@@ -89,8 +89,8 @@ None
 | payload.results[].creator_no | String | 製單人員編號 |  |
 | payload.results[].ref_no | String | 來源單號 |  |
 | payload.results[].refCategory | Integer | 來源類別 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].item_no | String | 「料品品項」編號 |  |
+| payload.results[].item_name | String | 「料品品項」名稱 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
@@ -152,7 +152,7 @@ None
 | date | String | NO | 日期 |
 | end_time | String | NO | 查詢結束時間 |
 | itemCategory | String | NO | 料品類別 |
-| item_no | String | NO | 料品/品項編號 |
+| item_no | String | NO | 「料品品項」編號 |
 | start_time | String | NO | 查詢開始時間 |
 | type | String | NO | 類型篩選 |
 
@@ -529,8 +529,8 @@ None
 | payload.results.warehouse[].source | Integer | 源由 |  |
 | payload.results.warehouse[].batchNumber | String | 出入庫批號 |  |
 | payload.results.warehouse[].serialNo | String | 流水號 |  |
-| payload.results.warehouse[].item_no | String | 料品/品項編號 |  |
-| payload.results.warehouse[].item_name | String | 料品/品項名稱 |  |
+| payload.results.warehouse[].item_no | String | 「料品品項」編號 |  |
+| payload.results.warehouse[].item_name | String | 「料品品項」名稱 |  |
 | payload.results.warehouse[].item_ref_no | String | 交易對象編號 |  |
 | payload.results.warehouse[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results.warehouse[].itemCategory | Integer | 料品類別 |  |

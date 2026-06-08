@@ -49,9 +49,32 @@ None
     "count": "Integer",
     "results": [
       {
-        "item": {},
-        "paidPayment": {},
-        "receivedPayment": {}
+        "item": {
+          "no": "String",
+          "name": "String",
+          "category": "Integer",
+          "attribute": "Integer",
+          "company_no": "String",
+          "company_displayName": "String",
+          "item_no": "String",
+          "item_name": "String",
+          "comment": "String",
+          "creationTime": "Integer",
+
+          "itemCategory": "Integer",
+          "itemSubCategory": "Integer",
+          "itemUnit": "Integer"          
+        },
+        "paidPayment": {
+            "paymentType": "Integer",           
+            "paymentDate": "Integer",
+            "paymentPeriod": "Integer",
+        },
+        "receivedPayment": {
+            "paymentType": "Integer",           
+            "paymentDate": "Integer",
+            "paymentPeriod": "Integer",
+        }
       }
     ]
   }
@@ -64,6 +87,26 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
+| payload.results[].transItem.no | String | 資料編號 |  |
+| payload.results[].transItem.name | String | 名稱 |  |
+| payload.results[].transItem.category | Integer | 類別 |  |
+| payload.results[].transItem.attribute | Integer | 屬性 |  |
+| payload.results[].transItem.company_no | String | 廠商資料no，關連至company資料表 |  |
+| payload.results[].transItem.company_displayName | String | 廠商公司簡稱，關連至company資料表 |  |
+| payload.results[].transItem.item_no | String | 「交易品項」編號 |  |
+| payload.results[].transItem.item_name | String | 「交易品項」名稱 |  |
+| payload.results[].transItem.itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].transItem.itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.results[].transItem.itemUnit | Integer | 「料品品項」單位 |  |
+| payload.results[].transItem.comment | String | 備註 |  |
+| payload.results[].transItem.creationTime | Integer | 資料建立時間 |  |
+| payload.results[].receivedPayment.paymentType | Integer | 收款類別 | 現結 (0)、月結 (1) |
+| payload.results[].receivedPayment.paymentDate | Integer | 收款結帳款日 |  |
+| payload.results[].receivedPayment.paymentPeriod | Integer | 收款期 |  |
+| payload.results[].paidPayment.paymentType | Integer | 付款類別 | 現結 (0)、月結 (1) |
+| payload.results[].paidPayment.paymentDate | Integer | 付款結帳款日 |  |
+| payload.results[].paidPayment.paymentPeriod | Integer | 付款期 |  |
+
 
 ### Failed Response Data
 
@@ -127,7 +170,6 @@ None
     "results": [
       {
         "transItem": {
-          "id": "Integer",
           "no": "String",
           "name": "String",
           "category": "Integer",
@@ -137,10 +179,28 @@ None
           "item_no": "String",
           "item_name": "String",
           "comment": "String",
-          "creationTime": "Integer"
+          "creationTime": "Integer",
+
+          "itemCategory": "Integer",
+          "itemSubCategory": "Integer",
+          "itemUnit": "Integer"          
         },
-        "paidPayment": {},
-        "receivedPayment": {}
+        "paidPayment": {
+            "id": "Integer",
+            "type": "Integer",
+            "source": "Integer",
+            "date": "Integer",
+            "period": "Integer",
+            "creationTime": "Integer"
+        },
+        "receivedPayment": {
+            "id": "Integer",
+            "type": "Integer",
+            "source": "Integer",
+            "date": "Integer",
+            "period": "Integer",
+            "creationTime": "Integer"
+        }
       }
     ]
   }
@@ -153,17 +213,31 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].transItem.id | Integer | 資料 ID |  |
 | payload.results[].transItem.no | String | 資料編號 |  |
 | payload.results[].transItem.name | String | 名稱 |  |
 | payload.results[].transItem.category | Integer | 類別 |  |
 | payload.results[].transItem.attribute | Integer | 屬性 |  |
 | payload.results[].transItem.company_no | String | 廠商資料no，關連至company資料表 |  |
 | payload.results[].transItem.company_displayName | String | 廠商公司簡稱，關連至company資料表 |  |
-| payload.results[].transItem.item_no | String | 料品/品項編號 |  |
-| payload.results[].transItem.item_name | String | 料品/品項名稱 |  |
+| payload.results[].transItem.item_no | String | 「交易品項」編號 |  |
+| payload.results[].transItem.item_name | String | 「交易品項」名稱 |  |
+| payload.results[].transItem.itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].transItem.itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.results[].transItem.itemUnit | Integer | 「料品品項」單位 |  |
 | payload.results[].transItem.comment | String | 備註 |  |
 | payload.results[].transItem.creationTime | Integer | 資料建立時間 |  |
+| payload.results[].receivedPayment.id | Integer | 收款帳款資料id |  |
+| payload.results[].receivedPayment.type | Integer | 收款類別 | 現結 (0)、月結 (1) |
+| payload.results[].receivedPayment.date | Integer | 收款結帳款日 |  |
+| payload.results[].receivedPayment.source | Integer | 收款方式 | 現金 (0)、匯款 (1)、支票 (2) |
+| payload.results[].receivedPayment.period | Integer | 收款期 |  |
+| payload.results[].receivedPayment.creationTime | Integer | 資料建立時間 |  |
+| payload.results[].paidPayment.id | Integer | 付款帳款資料id |  |
+| payload.results[].paidPayment.type | Integer | 付款類別 | 現結 (0)、月結 (1) |
+| payload.results[].paidPayment.date | Integer | 付款結帳款日 |  |
+| payload.results[].paidPayment.source | Integer | 付款方式 | 現金 (0)、匯款 (1)、支票 (2) |
+| payload.results[].paidPayment.period | Integer | 付款期 |  |
+| payload.results[].paidPayment.creationTime | Integer | 資料建立時間 |  |
 
 ### Failed Response Data
 

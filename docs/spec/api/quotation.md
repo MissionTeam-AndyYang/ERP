@@ -80,28 +80,28 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].date | Integer | 日期時間 |  |
-| payload.results[].category | Integer | 類別 |  |
-| payload.results[].type | Integer | 類型 |  |
-| payload.results[].itemStyle | Integer | 品項樣式 |  |
+| payload.results[].id | Integer | ID |  |
+| payload.results[].no | String | 編號 |  |
+| payload.results[].date | Integer | 報價日期 |  |
+| payload.results[].category | Integer | 類別 | 採購 (1)、訂購 (2) |
+| payload.results[].type | Integer | 類型 | 合約類別為: <br>1.採購: 採購 (1)、客供 (2)、採買 (3)、購置/保修 (4)<br>2. 訂購: 產製 (1)、進銷 (2) |
+| payload.results[].itemStyle | Integer | 品項樣式 | 貨品 (1) 、 產品 (2) 、材料 (3)、耗品(4) 、設備(5) |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].item_no | String | 「交易品項」編號 |  |
+| payload.results[].item_name | String | 交易品項」名稱 |  |
 | payload.results[].unit | Integer | 單位 |  |
 | payload.results[].price | Float | 單價 |  |
-| payload.results[].count | Float | 本次回傳筆數 |  |
-| payload.results[].amount | Float | 金額或需求量 |  |
+| payload.results[].count | Float | 需求量 |  |
+| payload.results[].amount | Float | 金額 |  |
 | payload.results[].comment | String | 備註 |  |
-| payload.results[].creationTime | Integer | 資料建立時間 |  |
-| payload.results[].transItemCategory | Integer | trans Item Category 的業務資料 |  |
-| payload.results[].transItemAttr | Integer | trans Item Attr 的業務資料 |  |
+| payload.results[].transItemCategory | Integer | 「交易品項」的樣式 |  |
+| payload.results[].transItemAttr | Integer | 「交易品項」的屬性 |  |
 | payload.results[].paymentType | Integer | 收付款類別 |  |
 | payload.results[].paymentDate | Integer | 收付款日期 |  |
 | payload.results[].paymentPeriod | Integer | 付款期間 |  |
 | payload.results[].unitWarehouse | Integer | 倉儲單位 |  |
+| payload.results[].creationTime | Integer | 資料建立時間 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data

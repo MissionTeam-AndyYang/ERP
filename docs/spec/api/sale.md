@@ -7,7 +7,6 @@
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | [/api/v1/sale/arap](#get-api-v1-sale-arap) | GET | 查詢銷售 / 應收應付 | OK | OK |
-| [/api/v1/sale/contract](#get-api-v1-sale-contract) | GET | 查詢銷售 / 合約 | OK | OK |
 | [/api/v1/sale/payment](#get-api-v1-sale-payment) | GET | 查詢銷售 / 帳款 | OK | OK |
 | [/api/v1/sale/productorder](#get-api-v1-sale-productorder) | GET | 查詢銷售 / 訂購單 | OK | OK |
 | [/api/v1/sale/shippingorder](#get-api-v1-sale-shippingorder) | GET | 查詢銷售 / 銷貨單 | OK | OK |
@@ -119,127 +118,6 @@ None
 | payment | 提供銷售單據、合約、帳款或統計資料 |
 | shipping_order | 提供銷售單據、合約、帳款或統計資料 |
 
-## GET /api/v1/sale/contract
-
-<a id="get-api-v1-sale-contract"></a>
-
-### Basic Information
-
-| URL | Method | Description |
-|----------|----------|----------------|
-| /api/v1/sale/contract | GET | 查詢銷售 / 合約 |
-
-### Request Header
-
-| Header | Description |
-|----------|----------|
-| x-auth-token | 存取金鑰 |
-
-### Query Parameters
-
-| Parameter | Type | Required | Description |
-|----------|----------|------|-----|
-| count | String | NO | 分頁筆數 |
-| start | String | NO | 分頁起始位置 |
-
-### Request Body
-
-None
-
-### Success Response Data
-
-```json
-{
-  "code": "Integer",
-  "message": "String",
-  "payload": {
-    "total": "Integer",
-    "results": [
-      {
-        "id": "Integer",
-        "no": "String",
-        "date": "Integer",
-        "category": "Integer",
-        "type": "Integer",
-        "itemStyle": "Integer",
-        "item_ref_no": "String",
-        "item_ref_displayName": "String",
-        "item_no": "String",
-        "item_name": "String",
-        "unit": "Integer",
-        "price": "Float",
-        "count": "Float",
-        "amount": "Float",
-        "comment": "String",
-        "creationTime": "Integer",
-        "transItemCategory": "Integer",
-        "transItemAttr": "Integer",
-        "paymentType": "Integer",
-        "paymentDate": "Integer",
-        "paymentPeriod": "Integer",
-        "unitWarehouse": "Integer",
-        "quotation_no": "String",
-        "quotationDate": "Integer"
-      }
-    ],
-    "count": "Integer"
-  }
-}
-```
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
-| message | String | API 回傳訊息 |  |
-| payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].date | Integer | 日期時間 |  |
-| payload.results[].category | Integer | 類別 |  |
-| payload.results[].type | Integer | 類型 |  |
-| payload.results[].itemStyle | Integer | 品項樣式 |  |
-| payload.results[].item_ref_no | String | 交易對象編號 |  |
-| payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].unit | Integer | 單位 |  |
-| payload.results[].price | Float | 單價 |  |
-| payload.results[].count | Float | 本次回傳筆數 |  |
-| payload.results[].amount | Float | 金額或需求量 |  |
-| payload.results[].comment | String | 備註 |  |
-| payload.results[].creationTime | Integer | 資料建立時間 |  |
-| payload.results[].transItemCategory | Integer | trans Item Category 的業務資料 |  |
-| payload.results[].transItemAttr | Integer | trans Item Attr 的業務資料 |  |
-| payload.results[].paymentType | Integer | 收付款類別 |  |
-| payload.results[].paymentDate | Integer | 收付款日期 |  |
-| payload.results[].paymentPeriod | Integer | 付款期間 |  |
-| payload.results[].unitWarehouse | Integer | 倉儲單位 |  |
-| payload.results[].quotation_no | String | quotation no 的業務資料 |  |
-| payload.results[].quotationDate | Integer | quotation Date 的業務資料 |  |
-| payload.count | Integer | 本次回傳筆數 |  |
-
-### Failed Response Data
-
-| Field Path | Type | Description | Enum |
-|----------|----------|------|---|
-| code | Integer | API 錯誤代碼 |  |
-| message | String | API 錯誤訊息 |  |
-| payload | Need Review | 錯誤 payload 目前多為空物件，無子欄位可展開 |  |
-
-### Processing Flow
-
-1. 讀取查詢條件並轉換為業務篩選條件：count、start
-2. 查詢 company、payment 取得銷售 / 合約資料
-3. 計算符合條件的總筆數與本次回傳筆數
-4. 整理查詢結果清單並展開回傳欄位語意
-
-### Database Tables Used
-
-| Table | Purpose |
-|----------|------|
-| company | 提供銷售單據、合約、帳款或統計資料 |
-| payment | 提供銷售單據、合約、帳款或統計資料 |
-
 ## GET /api/v1/sale/payment
 
 <a id="get-api-v1-sale-payment"></a>
@@ -268,38 +146,38 @@ None
 None
 
 ### Success Response Data
-
 ```json
 {
   "code": "Integer",
   "message": "String",
   "payload": {
     "total": "Integer",
+    "count": "Integer",
     "results": [
       {
-        "id": "Integer",
-        "no": "String",
-        "ref_no": "String",
-        "creator_no": "String",
-        "date": "Integer",
-        "displayName": "String",
-        "category": "Integer",
-        "type": "Integer",
-        "itemStyle": "Integer",
-        "item_no": "String",
-        "item_name": "String",
-        "itemCategory": "Integer",
-        "itemSubCategory": "Integer",
-        "item_ref_no": "String",
-        "item_ref_displayName": "String",
-        "payment_id": "Integer",
-        "unit": "Integer",
-        "price": "Float",
-        "shippingPrice": "Float",
-        "unitConversion": "Float",
-        "comment": "String",
-        "creationTime": "Integer"
-      }
+        "payment": {
+            "no": "String",
+            "date": "Integer",
+            "month": "String",
+            "count": "Integer",
+            "amount": "Integer",
+            "addDeleteAmount": "Integer",
+        },
+        "order": {
+            "no": "String", 
+            "count":   "Integer",
+            "expectedCount": "Integer",
+            "parentNo": "String",
+            "item_name": "String",
+            "item_ref_displayName": "String",
+            "unit": "Integer",
+            "price": "Integer",            
+            "contractCategory": "Integer",
+            "contractType": "Integer",
+            "contractItemStyle": "Integer",
+            "paymentType": "Integer"
+        }
+      }      
     ]
   }
 }
@@ -310,28 +188,23 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].id | Integer | 資料 ID |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].ref_no | String | 來源單號 |  |
-| payload.results[].creator_no | String | 製單人員編號 |  |
-| payload.results[].date | Integer | 日期時間 |  |
-| payload.results[].displayName | String | 顯示名稱 |  |
-| payload.results[].category | Integer | 類別 |  |
-| payload.results[].type | Integer | 類型 |  |
-| payload.results[].itemStyle | Integer | 品項樣式 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
-| payload.results[].item_ref_no | String | 交易對象編號 |  |
-| payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].payment_id | Integer | 帳款資料id，關連至payment資料表 |  |
-| payload.results[].unit | Integer | 單位 |  |
-| payload.results[].price | Float | 單價 |  |
-| payload.results[].shippingPrice | Float | 物流價格 |  |
-| payload.results[].unitConversion | Float | 規格轉換 |  |
-| payload.results[].comment | String | 備註 |  |
-| payload.results[].creationTime | Integer | 資料建立時間 |  |
+| payload.count | Integer | 本次回傳筆數 |  |
+| payload.results[].payment.no | String | 帳款編號 |  |
+| payload.results[].payment.date | Integer | 帳款費用日期 |  |
+| payload.results[].payment.count | Integer | 數量 |  |
+| payload.results[].payment.amount | Integer | 金額 |  |
+| payload.results[].payment.addDeleteAmount | Integer | 加 / 扣款金額 |  |
+| payload.results[].order.no | String | 銷貨單號 |  |
+| payload.results[].order.count | Integer | 計價數量 |  |
+| payload.results[].order.expectedCount | Integer | 預期數量 |  |
+| payload.results[].order.parentNo | String | 訂購單號 |  |
+| payload.results[].order.unit | Integer | 交易單位 |  |
+| payload.results[].order.price | Integer | 交易單價 |  |
+| payload.results[].order.contractNo | String | 合約編號 |  |
+| payload.results[].order.contractCategory  | Integer | 合約類別 |  採購 (1)、訂購 (2) |
+| payload.results[].order.contractType | Integer | 合約樣式 | 合約類別為<br>1.採購: 採購 (1)、客供 (2)、採買 (3)、購置/保修 (4)<br>2.訂購: 產製 (1)、進銷 (2)|
+| payload.results[].order.contractItemStyle | Integer | 品項樣式 | 貨品 (1) 、 產品 (2) 、材料 (3)、耗品(4) 、設備(5) |
+| payload.results[].order.paymentType | Integer | 收付款類別 | 現結 (0)、月結 (1) |
 
 ### Failed Response Data
 

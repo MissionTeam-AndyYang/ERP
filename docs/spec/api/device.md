@@ -6,7 +6,7 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [//device/register](#post-device-register) | POST | 新增設備 / register | OK | OK |
+| [//device/register](#post-device-register) | POST | 設備註冊 | OK | OK |
 
 ## POST //device/register
 
@@ -16,7 +16,7 @@
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //device/register | POST | 新增設備 / register |
+| //device/register | POST | 註冊電子智能秤設備 |
 
 ### Request Header
 
@@ -42,10 +42,10 @@ None
 
 | Field Path | Type | Required | Description | Enum |
 |----------|----------|------|-----|---|
-| deviceId | String | YES | deviceId 欄位 |  |
-| deviceName | String | YES | deviceName 欄位 |  |
-| deviceRole | Integer | YES | deviceRole 欄位 | ELocationType.STORAGE, ELocationType.PREPARING1, ELocationType.PREPARING2, ELocationType.PROCESSING, ELocationType.PACKAGING |
-| deviceComment | String | YES | deviceComment 欄位 |  |
+| deviceId | String | YES | 設備Hardware ID |  |
+| deviceName | String | YES | 設備名稱 |  |
+| deviceRole | Integer | YES | 設備角色 |倉庫(1)、前備產線1(2)、前備產線2(3)、加工產線(4)、包裝產線(5)|
+| deviceComment | String | YES | 設備備註訊息 |  |
 
 ### Success Response Data
 
@@ -63,11 +63,11 @@ None
 
 | Field Path | Type | Description | Enum |
 |----------|----------|------|---|
-| code | Integer | API 回傳代碼 |  |
+| code | Integer | API 回傳值 |  |
 | message | String | API 回傳訊息 |  |
-| payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
-| payload.serverId | String | 伺服器識別 |  |
-| payload.registerNo | String | 設備註冊編號 |  |
+| payload.serverTimestamp | Integer | 伺服器時間 (UTC) |  |
+| payload.serverId | String | 伺服器ID |  |
+| payload.registerNo | String | 設備註冊碼 |  |
 
 ### Failed Response Data
 
@@ -79,9 +79,9 @@ None
 
 ### Processing Flow
 
-1. 驗證 request body 必填欄位與資料格式：deviceId、deviceName、deviceRole、deviceComment
-2. 建立設備 / register資料
-3. 回傳建立結果與必要識別資訊
+1. 驗證 request body 必填欄位與資料格式
+2. 建立設備註冊資料
+3. 回傳結果與資訊
 
 ### Database Tables Used
 

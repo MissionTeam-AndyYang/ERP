@@ -45,7 +45,18 @@ None
     "total": "Integer",
     "count": "Integer",
     "results": [
-      {}
+      {
+        "id": "Integer",
+        "no": "String",
+        "name": "String",
+        "category": "Integer",
+        "unitShipping": "Integer",
+        "unitWarehouse": "Integer",
+        "unitProduct": "Integer",
+        "version": "Integer",
+        "comment": "String",
+        "creationTime": "Integer"
+      }
     ]
   }
 }
@@ -56,6 +67,14 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
+| payload.results[].no | String | 編號 |  |
+| payload.results[].name | String | 名稱 |  |
+| payload.results[].category | Integer | 類型 | 散裝品 (1)、組裝品 (2)、其他 (0)  |
+| payload.results[].version | Integer | 版本 |  |
+| payload.results[].unitShipping | Integer | 貨運單位 |  |
+| payload.results[].unitWarehouse | Integer | 倉儲單位 |  |
+| payload.results[].unitProduct | Integer | 	產製單位 |  |
+| payload.results[].comment | String | 備註 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 
 ### Failed Response Data

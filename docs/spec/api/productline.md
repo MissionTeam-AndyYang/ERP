@@ -79,17 +79,17 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].factory.no | String | 資料編號 |  |
-| payload.results[].factory.region | String | 地區 |  |
-| payload.results[].factory.location | String | 地點 |  |
+| payload.results[].factory.no | String | 廠區編號 |  |
+| payload.results[].factory.region | String | 廠區地區 |  |
+| payload.results[].factory.location | String | 廠區地點 |  |
 | payload.results[].factory.comment | String | 備註 |  |
-| payload.results[].stations[].no | String | 資料編號 |  |
-| payload.results[].stations[].name | String | 名稱 |  |
-| payload.results[].stations[].stage | String | 製程階段 |  |
+| payload.results[].stations[].no | String | 站點編號 |  |
+| payload.results[].stations[].name | String | 站點名稱 |  |
+| payload.results[].stations[].stage | String | 站點製程階段 | 前段 (1)、後段 (2) |
 | payload.results[].stations[].comment | String | 備註 |  |
-| payload.results[].stations[].equipments[].no | String | 資料編號 |  |
-| payload.results[].stations[].equipments[].name | String | 名稱 |  |
-| payload.results[].stations[].equipments[].appearance | String | 外觀尺寸 |  |
+| payload.results[].stations[].equipments[].no | String | 設備編號 |  |
+| payload.results[].stations[].equipments[].name | String | 設備名稱 |  |
+| payload.results[].stations[].equipments[].appearance | String | 設備外觀尺寸 |  |
 | payload.results[].stations[].equipments[].comment | String | 備註 |  |
 
 ### Failed Response Data
@@ -149,14 +149,14 @@ None
         "station": {
           "no": "String",
           "name": "String",
-          "stage": "String",
+          "stage": "Integer",
           "comment": "String"
         },
         "productionLine": {
           "no": "String",
           "name": "String",
-          "oneProcess": "String",
-          "secProcess": "String"
+          "oneProcess": "Integer",
+          "secProcess": "Integer"
         }
       }
     ]
@@ -169,14 +169,14 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].station.no | String | 資料編號 |  |
-| payload.results[].station.name | String | 名稱 |  |
-| payload.results[].station.stage | String | 製程階段 |  |
+| payload.results[].station.no | String | 站點編號 |  |
+| payload.results[].station.name | String | 站點名稱 |  |
+| payload.results[].station.stage | Integer | 站點製程階段 | 前段 (1)、後段 (2)  |
 | payload.results[].station.comment | String | 備註 |  |
-| payload.results[].productionLine.no | String | 資料編號 |  |
-| payload.results[].productionLine.name | String | 名稱 |  |
-| payload.results[].productionLine.oneProcess | String | 主製程 |  |
-| payload.results[].productionLine.secProcess | String | 次製程 |  |
+| payload.results[].productionLine.no | String | 產線編號 |  |
+| payload.results[].productionLine.name | String | 產線名稱 |  |
+| payload.results[].productionLine.oneProcess | Integer | 主製程 |  |
+| payload.results[].productionLine.secProcess | Integer | 次製程 |  |
 
 ### Failed Response Data
 
@@ -231,7 +231,11 @@ None
   "payload": {
     "total": "Integer",
     "results": [
-      {}
+      {
+        "no": "F0000000001", 
+        "region": "台中西屯區",
+        "location": "廠房A棟", 
+        "comment": "台中分公司製造廠"}
     ]
   }
 }
@@ -296,7 +300,12 @@ None
   "payload": {
     "total": "Integer",
     "results": [
-      {}
+      {
+        "no": "String",
+        "oneProcess": "Integer",
+        "secProcess": "Integer",
+        "comment": "String"
+      }
     ]
   }
 }
@@ -307,6 +316,10 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
+| payload.results[].no | String | 製程編號 |  |
+| payload.results[].oneProcess | Integer | 主製程 |  |
+| payload.results[].secProcess | Integer | 次製程 |  |
+
 
 ### Failed Response Data
 
@@ -362,13 +375,17 @@ None
     "total": "Integer",
     "results": [
       {
+        "no": "String",
+        "name": "String",
+        "stage": "Integer",
+        "comment": "String",
         "productionLine": {
           "no": "String",
           "name": "String",
           "oneProcess": "String",
           "secProcess": "String"
-        }
-      }
+        }              
+      }      
     ]
   }
 }
@@ -379,8 +396,12 @@ None
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
-| payload.results[].productionLine.no | String | 資料編號 |  |
-| payload.results[].productionLine.name | String | 名稱 |  |
+| payload.results[].no | String | 站點編號 |  |
+| payload.results[].name | String | 站點名稱 |  |
+| payload.results[].stage | Integer | 站點製程階段 | 前段 (1)、後段 (2)  |
+| payload.results[].comment | String | 備註 |  |
+| payload.results[].productionLine.no | String | 產線編號 |  |
+| payload.results[].productionLine.name | String | 產線名稱 |  |
 | payload.results[].productionLine.oneProcess | String | 主製程 |  |
 | payload.results[].productionLine.secProcess | String | 次製程 |  |
 

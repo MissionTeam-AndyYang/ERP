@@ -6,7 +6,7 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [/api/v1/mix/item](#get-api-v1-mix-item) | GET | 查詢混合品項 / 品項 | OK | OK |
+| [/api/v1/mix/item](#get-api-v1-mix-item) | GET | 查詢「料品品項」資料 - 在製品/製成品 | OK | OK |
 | [/api/v1/mix/itemprice](#get-api-v1-mix-itemprice) | GET | 查詢混合品項 / 品項價格 | OK | OK |
 
 ## GET /api/v1/mix/item
@@ -17,7 +17,7 @@
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/mix/item | GET | 查詢混合品項 / 品項 |
+| /api/v1/mix/item | GET |查詢「料品品項」資料 - 在製品/製成品 |
 
 ### Request Header
 
@@ -49,11 +49,18 @@ None
       {
         "no": "String",
         "name": "String",
-        "category": "String",
-        "subCategory": "String",
-        "unitWarehouse": "String",
-        "unitProduct": "String",
-        "bom": "String"
+        "category": "Integer",
+        "subCategory": "Integer",
+        "unitWarehouse": "Integer",
+        "unitProduct": "Integer",
+        "bom": {
+            "assemblyNo": "String",
+            "version":  "Integer",
+            "date":  "Integer",
+            "unit":  "Integer",
+            "netWeight":  "Float",
+            "grossWeight":  "Float",
+        }
       }
     ]
   }
@@ -72,7 +79,12 @@ None
 | payload.results[].subCategory | String | 子類別 |  |
 | payload.results[].unitWarehouse | String | 倉儲單位 |  |
 | payload.results[].unitProduct | String | 產製單位 |  |
-| payload.results[].bom | String | bom 的業務資料 |  |
+| payload.results[].bom.assemblyNo | String | 組裝編號 |  |
+| payload.results[].bom.version | Integer | 組裝版本 |  |
+| payload.results[].bom.date | Integer | 組裝生效日期 |  |
+| payload.results[].bom.unit | Integer | 組裝重量單位 |  |
+| payload.results[].bom.netWeight | Integer | 組裝毛重量 |  |
+| payload.results[].bom.grossWeight | Integer | 組裝淨重量 |  |
 
 ### Failed Response Data
 
@@ -85,7 +97,7 @@ None
 ### Processing Flow
 
 1. 讀取查詢條件並轉換為業務篩選條件：count、start
-2. 查詢 inproduct、inproduct_bom_spec、product、product_bom_spec 取得混合品項 / 品項資料
+2. 查詢 inproduct、inproduct_bom_spec、product、product_bom_spec 取得「料品品項」資料 - 在製品/製成品
 3. 計算符合條件的總筆數與本次回傳筆數
 4. 整理查詢結果清單並展開回傳欄位語意
 
@@ -108,7 +120,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/mix/itemprice | GET | 查詢混合品項 / 品項價格 |
+| /api/v1/mix/itemprice | GET | 查詢「料品品項」價格- 在製品/製成品 |
 
 ### Request Header
 
@@ -120,7 +132,7 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| item_no | String | YES | 料品/品項編號 |
+| item_no | String | YES | 在製品/製成品「料品品項」編號 |
 
 ### Request Body
 
@@ -138,18 +150,19 @@ None
       {
         "month": "String",
         "estUnit": "String",
-        "estPrice": "String",
-        "estPrice1": "String",
-        "estPrice2": "String",
-        "estLaborCost": "String",
+        "estPrice": "Float",
+        "estPrice1": "Float",
+        "estPrice2": "Float",
+        "estLoss": "Float",
+        "estLaborCost": "Float",
         "unit": "String",
-        "price": "String",
-        "price1": "String",
-        "price2": "String",
-        "laborCost": "String",
+        "price": "Float",
+        "price1": "Float",
+        "price2": "Float",
+        "laborCost": "Float",
         "lossUnit": "String",
-        "loss": "String",
-        "estLoss": "String"
+        "loss": "Float"
+        
       }
     ]
   }
@@ -162,19 +175,19 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].month | String | 月份 |  |
-| payload.results[].estUnit | String | est Unit 的業務資料 |  |
-| payload.results[].estPrice | String | est Price 的業務資料 |  |
-| payload.results[].estPrice1 | String | est Price1 的業務資料 |  |
-| payload.results[].estPrice2 | String | est Price2 的業務資料 |  |
+| payload.results[].estUnit | String | 重量單位 |  |
+| payload.results[].estPrice | String | 重量單位價格 |  |
+| payload.results[].estPrice1 | String | 預估「原料」重量單位價格 |  |
+| payload.results[].estPrice2 | String | 預估「物料」重量單位價格 |  |
 | payload.results[].estLaborCost | String | 預估人工費 |  |
-| payload.results[].unit | String | 單位 |  |
-| payload.results[].price | String | 單價 |  |
-| payload.results[].price1 | String | price1 的業務資料 |  |
-| payload.results[].price2 | String | price2 的業務資料 |  |
+| payload.results[].unit | String | 重量單位 |  |
+| payload.results[].price | String |  重量單位價格 |  |
+| payload.results[].price1 | String | 「原料」重量單位價格 |  |
+| payload.results[].price2 | String | 「物料」重量單位價格 |  |
 | payload.results[].laborCost | String | 人工費 |  |
-| payload.results[].lossUnit | String | loss Unit 的業務資料 |  |
-| payload.results[].loss | String | loss 的業務資料 |  |
-| payload.results[].estLoss | String | est Loss 的業務資料 |  |
+| payload.results[].lossUnit | Integer |  損耗單位 |  |
+| payload.results[].loss | Float | 損耗比率 |  |
+| payload.results[].estLoss | Float | 預估損耗比率 |  |
 
 ### Failed Response Data
 
@@ -187,7 +200,7 @@ None
 ### Processing Flow
 
 1. 讀取查詢條件並轉換為業務篩選條件：item_no
-2. 查詢 item_loss、item_price 取得混合品項 / 品項價格資料
+2. 查詢 item_loss、item_price 取得查詢「料品品項」資料 - 在製品/製成品
 3. 計算符合條件的總筆數與本次回傳筆數
 4. 整理查詢結果清單並展開回傳欄位語意
 

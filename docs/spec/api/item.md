@@ -6,17 +6,17 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [//item/data](#post-item-data) | POST | 新增設備料品資料 | OK | OK |
-| [//item/data/group](#get-item-data-group) | GET | 查詢設備料品棧板群組資料 | OK | OK |
-| [//item/data/group](#post-item-data-group) | POST | 新增設備料品棧板群組資料 | OK | OK |
-| [//item/groupInfo](#get-item-groupInfo) | GET | 查詢設備棧板群組資訊 | OK | OK |
-| [//item/info](#get-item-info) | GET | 查詢設備批號資訊 | OK | OK |
-| [//item/manufacture](#get-item-manufacture) | GET | 查詢設備製造料品 | OK | OK |
-| [//item/other](#get-item-other) | GET | 查詢設備其他庫存料品 | OK | OK |
-| [//item/purchase](#get-item-purchase) | GET | 查詢設備採購入庫料品 | OK | OK |
-| [//item/sales](#get-item-sales) | GET | 查詢設備銷售出庫料品 | OK | OK |
+| [/item/data](#post-item-data) | POST | 資料回傳 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/item/data/group](#get-item-data-group) | GET | 查詢設備料品棧板群組資料 | Need Review | Backend route exists, but not listed in REST API 1.06 |
+| [/item/data/group](#post-item-data-group) | POST | 成板資料回傳 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/item/groupInfo](#get-item-groupInfo) | GET | 品項資訊查詢 - 板號 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/item/info](#get-item-info) | GET | 品項資訊查詢 - 批號 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/item/manufacture](#get-item-manufacture) | GET | 品項項目取得 - 產製類別項目 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/item/other](#get-item-other) | GET | 品項項目取得 - 其他類別項目 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/item/purchase](#get-item-purchase) | GET | 品項項目取得 - 採購類別項目 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/item/sales](#get-item-sales) | GET | 品項項目取得 - 訂購類別項目 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
 
-## POST //item/data
+## POST /item/data
 
 <a id="post-item-data"></a>
 
@@ -24,7 +24,7 @@
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/data | POST | 新增設備料品資料 |
+| /item/data | POST | 回傳的「採購、產製、訂購、其他」品項項目之更新資料 |
 
 ### Request Header
 
@@ -42,9 +42,11 @@ None
 ```json
 {
   "registerNo": "String",
+  "total": "Integer",
   "results": [
     {
       "devAction": "Integer",
+      "devComment": "String",
       "refNo": "String",
       "refNoSec": "String",
       "itemBatchNo": [
@@ -54,7 +56,7 @@ None
             {
               "devDateTimestamp": "Integer",
               "serialNo": "String",
-              "value": "Number",
+              "value": "Float",
               "isValid": "Boolean"
             }
           ]
@@ -67,18 +69,20 @@ None
 
 | Field Path | Type | Required | Description | Enum |
 |----------|----------|------|-----|---|
-| registerNo | String | YES | 設備註冊編號 |  |
+| registerNo | String | YES | 設備註冊碼 |  |
+| total | Integer | NO | 回傳資料筆數 |  |
 | results | Array | YES | 資料清單 |  |
-| results[].devAction | Integer | YES | 設備動作 | EDevAction.IN, EDevAction.OUT |
-| results[].refNo | String | YES | 來源單號 |  |
-| results[].refNoSec | String | NO | 來源子單號 |  |
+| results[].devAction | Integer | YES | 設備端處理行為 (入/出庫、入/出產) | action |
+| results[].devComment | String | NO | 設備端備註訊息 |  |
+| results[].refNo | String | YES | 相對應品項項目單號 |  |
+| results[].refNoSec | String | NO | 相對應品項項目子單號 |  |
 | results[].itemBatchNo | Array | YES | 料品批號清單 |  |
-| results[].itemBatchNo[].batchNo | String | YES | 批號 |  |
+| results[].itemBatchNo[].batchNo | String | YES | 相對應品項項目批號 |  |
 | results[].itemBatchNo[].serialNos | Array | YES | 流水號清單 |  |
-| results[].itemBatchNo[].serialNos[].devDateTimestamp | Integer | YES | 設備作業時間戳記 |  |
-| results[].itemBatchNo[].serialNos[].serialNo | String | YES | 流水號 |  |
-| results[].itemBatchNo[].serialNos[].value | Number | YES | 數量或重量 |  |
-| results[].itemBatchNo[].serialNos[].isValid | Boolean | YES | 是否有效 |  |
+| results[].itemBatchNo[].serialNos[].devDateTimestamp | Integer | YES | 設備端處理時間 (UTC) |  |
+| results[].itemBatchNo[].serialNos[].serialNo | String | YES | 相對應品項項目流水號 |  |
+| results[].itemBatchNo[].serialNos[].value | Float | YES | 相對應品項項目重量或數量 |  |
+| results[].itemBatchNo[].serialNos[].isValid | Boolean | YES | 相對應品項項目是否相符 | valid |
 
 ### Success Response Data
 
@@ -118,7 +122,7 @@ None
 
 | Table | Purpose |
 |----------|------|
-| device | 確認設備註冊編號、硬體識別與設備角色，決定可執行的料品作業 |
+| device | 確認設備註冊碼、硬體識別與設備角色，決定可執行的料品作業 |
 | device_log | 記錄設備端料品作業送出的原始資料與處理結果 |
 | goods_receipt_note | 取得採購入庫與採購退回的待作業料品 |
 | inventory_order | 取得其他庫存異動的待作業料品 |
@@ -126,7 +130,7 @@ None
 | shipping_order | 取得銷售出庫與銷售退回的待作業料品 |
 | work_order | 提供設備料品作業相關資料 |
 
-## GET //item/data/group
+## GET /item/data/group
 
 <a id="get-item-data-group"></a>
 
@@ -134,7 +138,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/data/group | GET | 查詢設備料品棧板群組資料 |
+| /item/data/group | GET | 查詢設備料品棧板群組資料 |
 
 ### Request Header
 
@@ -202,7 +206,7 @@ None
 
 None
 
-## POST //item/data/group
+## POST /item/data/group
 
 <a id="post-item-data-group"></a>
 
@@ -210,7 +214,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/data/group | POST | 新增設備料品棧板群組資料 |
+| /item/data/group | POST | 回傳設備端品項批號與棧板編號資料 |
 
 ### Request Header
 
@@ -240,7 +244,7 @@ None
           "serialNos": [
             {
               "serialNo": "String",
-              "value": "Number"
+              "value": "Float"
             }
           ]
         }
@@ -252,17 +256,17 @@ None
 
 | Field Path | Type | Required | Description | Enum |
 |----------|----------|------|-----|---|
-| registerNo | String | YES | 設備註冊編號 |  |
-| total | Integer | NO | 總筆數 |  |
+| registerNo | String | YES | 設備註冊碼 |  |
+| total | Integer | NO | `"results"` 資料檢核碼 (SHA-256 編碼) |  |
 | results | Array | YES | 資料清單 |  |
-| results[].devDateTimestamp | Integer | YES | 設備作業時間戳記 |  |
-| results[].devGroupNo | String | YES | devGroupNo 欄位 |  |
-| results[].devComment | String | NO | devComment 欄位 |  |
+| results[].devDateTimestamp | Integer | YES | 設備端處理時間 (UTC) |  |
+| results[].devGroupNo | String | YES | 設備端棧板編號 |  |
+| results[].devComment | String | NO | 設備端備註 |  |
 | results[].itemBatchNo | Array | YES | 料品批號清單 |  |
-| results[].itemBatchNo[].batchNo | String | YES | 批號 |  |
+| results[].itemBatchNo[].batchNo | String | YES | 相對應品項項目批號 |  |
 | results[].itemBatchNo[].serialNos | Array | YES | 流水號清單 |  |
-| results[].itemBatchNo[].serialNos[].serialNo | String | YES | 流水號 |  |
-| results[].itemBatchNo[].serialNos[].value | Number | YES | 數量或重量 |  |
+| results[].itemBatchNo[].serialNos[].serialNo | String | YES | 相對應品項項目流水號 |  |
+| results[].itemBatchNo[].serialNos[].value | Float | YES | 相對應品項項目重量或數量 |  |
 
 ### Success Response Data
 
@@ -304,7 +308,7 @@ None
 |----------|------|
 | batchno_serialno_group | 取得或建立棧板群組與批號流水號分派關係 |
 
-## GET //item/groupInfo
+## GET /item/groupInfo
 
 <a id="get-item-groupInfo"></a>
 
@@ -312,7 +316,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/groupInfo | GET | 查詢設備棧板群組資訊 |
+| /item/groupInfo | GET | 取得「板號」相關品項項目資訊 |
 
 ### Request Header
 
@@ -324,8 +328,8 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| groupNo | String | NO | 棧板群組編號 |
-| registerNo | String | NO | 設備註冊編號 |
+| registerNo | String | YES | 設備註冊碼 |
+| groupNo | String | YES | 板號 |
 
 ### Request Body
 
@@ -353,7 +357,7 @@ None
         "itemBatchNo": [
           {
             "batchNo": "String",
-            "validDateTimestamp": "String",
+            "validDateTimestamp": "Integer",
             "serialNos": [
               {
                 "serialNo": "String",
@@ -375,17 +379,17 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].groupNo | String | 棧板群組編號 |  |
+| payload.results[].groupNo | String | 板號 |  |
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
-| payload.results[].itemType | String | 料品類型 |  |
-| payload.results[].itemCategory | String | 料品類別 |  |
+| payload.results[].itemType | Integer | 品項類別 | type |
+| payload.results[].itemCategory | Integer | 品項類型 | category |
 | payload.results[].itemComment | String | 料品備註 |  |
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
-| payload.results[].itemBatchNo[].validDateTimestamp | String | 效期時間戳記 |  |
+| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期 (UTC) |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | String | 實際時數 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Float | 重量或數量 |  |
 
 ### Failed Response Data
 
@@ -409,7 +413,7 @@ None
 | batch_number | 取得或確認料品批號、效期、料品類型與類別 |
 | batchno_serialno_group | 取得或建立棧板群組與批號流水號分派關係 |
 
-## GET //item/info
+## GET /item/info
 
 <a id="get-item-info"></a>
 
@@ -417,7 +421,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/info | GET | 查詢設備批號資訊 |
+| /item/info | GET | 取得「批號」相關品項資訊 |
 
 ### Request Header
 
@@ -429,8 +433,8 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| batchNo | String | NO | 批號 |
-| registerNo | String | NO | 設備註冊編號 |
+| registerNo | String | YES | 設備註冊碼 |
+| batchNo | String | YES | 批號 |
 
 ### Request Body
 
@@ -454,7 +458,7 @@ None
         "itemType": "String",
         "itemCategory": "String",
         "itemBatchNo": "String",
-        "itemValidDateTimestamp": "String",
+        "validDateTimestamp": "Integer",
         "itemComment": "String"
       }
     ]
@@ -472,10 +476,10 @@ None
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
-| payload.results[].itemType | String | 料品類型 |  |
-| payload.results[].itemCategory | String | 料品類別 |  |
+| payload.results[].itemType | Integer | 品項類別 | type |
+| payload.results[].itemCategory | Integer | 品項類型 | category |
 | payload.results[].itemBatchNo | String | 料品批號清單 |  |
-| payload.results[].itemValidDateTimestamp | String | item Valid Date Timestamp 的業務資料 |  |
+| payload.results[].validDateTimestamp | Integer | 效期 (UTC) |  |
 | payload.results[].itemComment | String | 料品備註 |  |
 
 ### Failed Response Data
@@ -499,7 +503,7 @@ None
 |----------|------|
 | batch_number | 取得或確認料品批號、效期、料品類型與類別 |
 
-## GET //item/manufacture
+## GET /item/manufacture
 
 <a id="get-item-manufacture"></a>
 
@@ -507,7 +511,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/manufacture | GET | 查詢設備製造料品 |
+| /item/manufacture | GET | 取得「產製」相關品項項目 (倉庫、產間設備適用) |
 
 ### Request Header
 
@@ -519,10 +523,10 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| dateTimestampUTC | String | NO | UTC 日期時間戳記 |
+| dateTimestampUTC | String | YES | 今日時間 (UTC) |
 | refProcess | String | NO | 參照製程 |
-| registerNo | String | NO | 設備註冊編號 |
-| shift | String | NO | 班別 |
+| registerNo | String | YES | 設備註冊碼 |
+| shift | String | YES | 班別 |
 
 ### Request Body
 
@@ -550,12 +554,12 @@ None
         "itemVendor": "String",
         "itemType": "Integer",
         "itemCategory": "Integer",
-        "itemAmount": "Number",
+        "itemAmount": "Float",
         "itemAmountUnit": "Integer",
         "itemComment": "String",
         "itemPageType": "Integer",
-        "itemMaxWeight": "Number",
-        "itemMinWeight": "Number",
+        "itemMaxWeight": "Float",
+        "itemMinWeight": "Float",
         "itemBatchNo": [
           {
             "batchNo": "String",
@@ -563,7 +567,7 @@ None
             "serialNos": [
               {
                 "serialNo": "String",
-                "value": "Number"
+                "value": "Float"
               }
             ]
           }
@@ -581,7 +585,7 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 作業方向 |  |
+| payload.results[].action | Integer | 設備端處理行為 | action |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
@@ -589,18 +593,18 @@ None
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
-| payload.results[].itemType | Integer | 料品類型 |  |
-| payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemAmount | Number | 料品作業數量 |  |
-| payload.results[].itemAmountUnit | Integer | 料品作業單位 |  |
+| payload.results[].itemType | Integer | 品項類別 | type |
+| payload.results[].itemCategory | Integer | 品項類型 | category |
+| payload.results[].itemAmount | Float | 排定數量 |  |
+| payload.results[].itemAmountUnit | Integer | 排定數量單位 | unit |
 | payload.results[].itemComment | String | 料品備註 |  |
-| payload.results[].itemPageType | Integer | 設備作業頁面類型 |  |
-| payload.results[].itemMaxWeight | Number | 允收最大重量 |  |
-| payload.results[].itemMinWeight | Number | 允收最小重量 |  |
+| payload.results[].itemPageType | Integer | 畫面顯示方式 | pageType |
+| payload.results[].itemMaxWeight | Float | 最大重量 |  |
+| payload.results[].itemMinWeight | Float | 最小重量 |  |
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
-| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
+| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期 (UTC) |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Float | 重量或數量 |  |
 
 ### Failed Response Data
 
@@ -623,13 +627,13 @@ None
 |----------|------|
 | batch_number | 取得或確認料品批號、效期、料品類型與類別 |
 | batchno_serialno | 取得或寫入批號流水號、預期數量與有效狀態 |
-| device | 確認設備註冊編號、硬體識別與設備角色，決定可執行的料品作業 |
+| device | 確認設備註冊碼、硬體識別與設備角色，決定可執行的料品作業 |
 | goods_receipt_note | 取得採購入庫與採購退回的待作業料品 |
 | inventory_order | 取得其他庫存異動的待作業料品 |
 | process_order | 取得領料、退料、餘料、廢料或產出相關製造作業料品 |
 | shipping_order | 取得銷售出庫與銷售退回的待作業料品 |
 
-## GET //item/other
+## GET /item/other
 
 <a id="get-item-other"></a>
 
@@ -637,7 +641,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/other | GET | 查詢設備其他庫存料品 |
+| /item/other | GET | 取得「其他」相關品項項目 (僅倉庫設備適用) |
 
 ### Request Header
 
@@ -649,9 +653,9 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| dateTimestampUTC | String | NO | UTC 日期時間戳記 |
-| registerNo | String | NO | 設備註冊編號 |
-| shift | String | NO | 班別 |
+| dateTimestampUTC | String | YES | 今日時間 (UTC) |
+| registerNo | String | YES | 設備註冊碼 |
+| shift | String | YES | 班別 |
 
 ### Request Body
 
@@ -679,12 +683,12 @@ None
         "itemVendor": "String",
         "itemType": "Integer",
         "itemCategory": "Integer",
-        "itemAmount": "Number",
+        "itemAmount": "Float",
         "itemAmountUnit": "Integer",
         "itemComment": "String",
         "itemPageType": "Integer",
-        "itemMaxWeight": "Number",
-        "itemMinWeight": "Number",
+        "itemMaxWeight": "Float",
+        "itemMinWeight": "Float",
         "itemBatchNo": [
           {
             "batchNo": "String",
@@ -692,7 +696,7 @@ None
             "serialNos": [
               {
                 "serialNo": "String",
-                "value": "Number"
+                "value": "Float"
               }
             ]
           }
@@ -710,7 +714,7 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 作業方向 |  |
+| payload.results[].action | Integer | 設備端處理行為 | action |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
@@ -718,18 +722,18 @@ None
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
-| payload.results[].itemType | Integer | 料品類型 |  |
-| payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemAmount | Number | 料品作業數量 |  |
-| payload.results[].itemAmountUnit | Integer | 料品作業單位 |  |
+| payload.results[].itemType | Integer | 品項類別 | type |
+| payload.results[].itemCategory | Integer | 品項類型 | category |
+| payload.results[].itemAmount | Float | 排定數量 |  |
+| payload.results[].itemAmountUnit | Integer | 排定數量單位 | unit |
 | payload.results[].itemComment | String | 料品備註 |  |
-| payload.results[].itemPageType | Integer | 設備作業頁面類型 |  |
-| payload.results[].itemMaxWeight | Number | 允收最大重量 |  |
-| payload.results[].itemMinWeight | Number | 允收最小重量 |  |
+| payload.results[].itemPageType | Integer | 畫面顯示方式 | pageType |
+| payload.results[].itemMaxWeight | Float | 最大重量 |  |
+| payload.results[].itemMinWeight | Float | 最小重量 |  |
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
-| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
+| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期 (UTC) |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Float | 重量或數量 |  |
 
 ### Failed Response Data
 
@@ -752,13 +756,13 @@ None
 |----------|------|
 | batch_number | 取得或確認料品批號、效期、料品類型與類別 |
 | batchno_serialno | 取得或寫入批號流水號、預期數量與有效狀態 |
-| device | 確認設備註冊編號、硬體識別與設備角色，決定可執行的料品作業 |
+| device | 確認設備註冊碼、硬體識別與設備角色，決定可執行的料品作業 |
 | goods_receipt_note | 取得採購入庫與採購退回的待作業料品 |
 | inventory_order | 取得其他庫存異動的待作業料品 |
 | process_order | 取得領料、退料、餘料、廢料或產出相關製造作業料品 |
 | shipping_order | 取得銷售出庫與銷售退回的待作業料品 |
 
-## GET //item/purchase
+## GET /item/purchase
 
 <a id="get-item-purchase"></a>
 
@@ -766,7 +770,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/purchase | GET | 查詢設備採購入庫料品 |
+| /item/purchase | GET | 取得「採購」相關品項項目 (僅倉庫設備適用) |
 
 ### Request Header
 
@@ -778,9 +782,9 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| dateTimestampUTC | String | NO | UTC 日期時間戳記 |
-| registerNo | String | NO | 設備註冊編號 |
-| shift | String | NO | 班別 |
+| dateTimestampUTC | String | YES | 今日時間 (UTC) |
+| registerNo | String | YES | 設備註冊碼 |
+| shift | String | YES | 班別 |
 
 ### Request Body
 
@@ -808,12 +812,12 @@ None
         "itemVendor": "String",
         "itemType": "Integer",
         "itemCategory": "Integer",
-        "itemAmount": "Number",
+        "itemAmount": "Float",
         "itemAmountUnit": "Integer",
         "itemComment": "String",
         "itemPageType": "Integer",
-        "itemMaxWeight": "Number",
-        "itemMinWeight": "Number",
+        "itemMaxWeight": "Float",
+        "itemMinWeight": "Float",
         "itemBatchNo": [
           {
             "batchNo": "String",
@@ -821,7 +825,7 @@ None
             "serialNos": [
               {
                 "serialNo": "String",
-                "value": "Number"
+                "value": "Float"
               }
             ]
           }
@@ -839,7 +843,7 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 作業方向 |  |
+| payload.results[].action | Integer | 設備端處理行為 | action |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
@@ -847,18 +851,18 @@ None
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
-| payload.results[].itemType | Integer | 料品類型 |  |
-| payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemAmount | Number | 料品作業數量 |  |
-| payload.results[].itemAmountUnit | Integer | 料品作業單位 |  |
+| payload.results[].itemType | Integer | 品項類別 | type |
+| payload.results[].itemCategory | Integer | 品項類型 | category |
+| payload.results[].itemAmount | Float | 排定數量 |  |
+| payload.results[].itemAmountUnit | Integer | 排定數量單位 | unit |
 | payload.results[].itemComment | String | 料品備註 |  |
-| payload.results[].itemPageType | Integer | 設備作業頁面類型 |  |
-| payload.results[].itemMaxWeight | Number | 允收最大重量 |  |
-| payload.results[].itemMinWeight | Number | 允收最小重量 |  |
+| payload.results[].itemPageType | Integer | 畫面顯示方式 | pageType |
+| payload.results[].itemMaxWeight | Float | 最大重量 |  |
+| payload.results[].itemMinWeight | Float | 最小重量 |  |
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
-| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
+| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期 (UTC) |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Float | 重量或數量 |  |
 
 ### Failed Response Data
 
@@ -881,13 +885,13 @@ None
 |----------|------|
 | batch_number | 取得或確認料品批號、效期、料品類型與類別 |
 | batchno_serialno | 取得或寫入批號流水號、預期數量與有效狀態 |
-| device | 確認設備註冊編號、硬體識別與設備角色，決定可執行的料品作業 |
+| device | 確認設備註冊碼、硬體識別與設備角色，決定可執行的料品作業 |
 | goods_receipt_note | 取得採購入庫與採購退回的待作業料品 |
 | inventory_order | 取得其他庫存異動的待作業料品 |
 | process_order | 取得領料、退料、餘料、廢料或產出相關製造作業料品 |
 | shipping_order | 取得銷售出庫與銷售退回的待作業料品 |
 
-## GET //item/sales
+## GET /item/sales
 
 <a id="get-item-sales"></a>
 
@@ -895,7 +899,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //item/sales | GET | 查詢設備銷售出庫料品 |
+| /item/sales | GET | 取得「訂購」相關品項項目 (僅倉庫設備適用) |
 
 ### Request Header
 
@@ -907,9 +911,9 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| dateTimestampUTC | String | NO | UTC 日期時間戳記 |
-| registerNo | String | NO | 設備註冊編號 |
-| shift | String | NO | 班別 |
+| dateTimestampUTC | String | YES | 今日時間 (UTC) |
+| registerNo | String | YES | 設備註冊碼 |
+| shift | String | YES | 班別 |
 
 ### Request Body
 
@@ -937,12 +941,12 @@ None
         "itemVendor": "String",
         "itemType": "Integer",
         "itemCategory": "Integer",
-        "itemAmount": "Number",
+        "itemAmount": "Float",
         "itemAmountUnit": "Integer",
         "itemComment": "String",
         "itemPageType": "Integer",
-        "itemMaxWeight": "Number",
-        "itemMinWeight": "Number",
+        "itemMaxWeight": "Float",
+        "itemMinWeight": "Float",
         "itemBatchNo": [
           {
             "batchNo": "String",
@@ -950,7 +954,7 @@ None
             "serialNos": [
               {
                 "serialNo": "String",
-                "value": "Number"
+                "value": "Float"
               }
             ]
           }
@@ -968,7 +972,7 @@ None
 | payload.serverId | String | 伺服器識別 |  |
 | payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].action | Integer | 作業方向 |  |
+| payload.results[].action | Integer | 設備端處理行為 | action |
 | payload.results[].refNo | String | 來源單號 |  |
 | payload.results[].refNoSec | String | 來源子單號 |  |
 | payload.results[].refDateTimestamp | Integer | 來源單據日期時間戳記 |  |
@@ -976,18 +980,18 @@ None
 | payload.results[].itemNo | String | 料品/品項編號 |  |
 | payload.results[].itemName | String | 料品名稱 |  |
 | payload.results[].itemVendor | String | 料品供應商或交易對象 |  |
-| payload.results[].itemType | Integer | 料品類型 |  |
-| payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemAmount | Number | 料品作業數量 |  |
-| payload.results[].itemAmountUnit | Integer | 料品作業單位 |  |
+| payload.results[].itemType | Integer | 品項類別 | type |
+| payload.results[].itemCategory | Integer | 品項類型 | category |
+| payload.results[].itemAmount | Float | 排定數量 |  |
+| payload.results[].itemAmountUnit | Integer | 排定數量單位 | unit |
 | payload.results[].itemComment | String | 料品備註 |  |
-| payload.results[].itemPageType | Integer | 設備作業頁面類型 |  |
-| payload.results[].itemMaxWeight | Number | 允收最大重量 |  |
-| payload.results[].itemMinWeight | Number | 允收最小重量 |  |
+| payload.results[].itemPageType | Integer | 畫面顯示方式 | pageType |
+| payload.results[].itemMaxWeight | Float | 最大重量 |  |
+| payload.results[].itemMinWeight | Float | 最小重量 |  |
 | payload.results[].itemBatchNo[].batchNo | String | 批號 |  |
-| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期時間戳記 |  |
+| payload.results[].itemBatchNo[].validDateTimestamp | Integer | 效期 (UTC) |  |
 | payload.results[].itemBatchNo[].serialNos[].serialNo | String | 流水號 |  |
-| payload.results[].itemBatchNo[].serialNos[].value | Number | 實際時數 |  |
+| payload.results[].itemBatchNo[].serialNos[].value | Float | 重量或數量 |  |
 
 ### Failed Response Data
 
@@ -1010,7 +1014,7 @@ None
 |----------|------|
 | batch_number | 取得或確認料品批號、效期、料品類型與類別 |
 | batchno_serialno | 取得或寫入批號流水號、預期數量與有效狀態 |
-| device | 確認設備註冊編號、硬體識別與設備角色，決定可執行的料品作業 |
+| device | 確認設備註冊碼、硬體識別與設備角色，決定可執行的料品作業 |
 | goods_receipt_note | 取得採購入庫與採購退回的待作業料品 |
 | inventory_order | 取得其他庫存異動的待作業料品 |
 | process_order | 取得領料、退料、餘料、廢料或產出相關製造作業料品 |

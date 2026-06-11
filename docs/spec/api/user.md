@@ -6,12 +6,12 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [//user/device/login](#post-user-device-login) | POST | 使用者 / 設備 / 登入 | OK | OK |
-| [//user/device/logout](#delete-user-device-logout) | DELETE | 使用者 / 設備 / 登出 | OK | OK |
+| [/user/device/login](#post-user-device-login) | POST | 用戶登入 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
+| [/user/device/logout](#delete-user-device-logout) | DELETE | 用戶登出 | OK | Aligned with `docs/spec/scale/電子智能秤系統REST API_1.06.docx` |
 | [/api/v1/user/login](#post-api-v1-user-login) | POST | 使用者 / 登入 | OK | OK |
 | [/api/v1/user/login](#delete-api-v1-user-login) | DELETE | 刪除使用者 / 登入 | OK | OK |
 
-## POST //user/device/login
+## POST /user/device/login
 
 <a id="post-user-device-login"></a>
 
@@ -19,7 +19,7 @@
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //user/device/login | POST | 使用者 / 設備 / 登入 |
+| /user/device/login | POST | 登入食品製造管理系統 |
 
 ### Request Header
 
@@ -44,9 +44,9 @@ None
 
 | Field Path | Type | Required | Description | Enum |
 |----------|----------|------|-----|---|
-| registerNo | String | YES | 設備註冊編號 |  |
-| username | String | YES | 登入帳號 |  |
-| password | String | YES | 登入密碼 |  |
+| registerNo | String | YES | 設備註冊碼 |  |
+| username | String | YES | 使用者登入帳號 |  |
+| password | String | YES | 使用者登入密碼 (base64 encryption 編碼) |  |
 
 ### Success Response Data
 
@@ -74,13 +74,13 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload.serverTimestamp | Integer | 伺服器時間戳記 |  |
-| payload.serverId | String | 伺服器識別 |  |
-| payload.user.token | String | 登入 token |  |
-| payload.user.role | Integer | 角色 |  |
-| payload.user.employee.no | String | 資料編號 |  |
-| payload.user.employee.name | String | 名稱 |  |
-| payload.user.employee.department | String | 部門 |  |
+| payload.serverTimestamp | Integer | 伺服器時間 (UTC) |  |
+| payload.serverId | String | 伺服器ID |  |
+| payload.user.token | String | 存取金鑰 |  |
+| payload.user.role | Integer | 身份類型 | role |
+| payload.user.employee.no | String | 員工編號 |  |
+| payload.user.employee.name | String | 員工姓名 |  |
+| payload.user.employee.department | Integer | 部門 | department |
 
 ### Failed Response Data
 
@@ -100,12 +100,12 @@ None
 
 | Table | Purpose |
 |----------|------|
-| device | 確認設備註冊編號與設備角色 |
+| device | 確認設備註冊碼與設備角色 |
 | employee | 取得登入人員資料與部門權限 |
 | session | 建立或失效登入 Session |
 | user_group | 取得使用者群組與角色 |
 
-## DELETE //user/device/logout
+## DELETE /user/device/logout
 
 <a id="delete-user-device-logout"></a>
 
@@ -113,7 +113,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| //user/device/logout | DELETE | 使用者 / 設備 / 登出 |
+| /user/device/logout | DELETE | 登出系統 |
 
 ### Request Header
 
@@ -135,7 +135,10 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": {}
+  "payload": {
+    "serverTimestamp": "Integer",
+    "serverId": "String"
+  }
 }
 ```
 
@@ -143,6 +146,8 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
+| payload.serverTimestamp | Integer | 伺服器時間 (UTC) |  |
+| payload.serverId | String | 伺服器ID |  |
 
 ### Failed Response Data
 

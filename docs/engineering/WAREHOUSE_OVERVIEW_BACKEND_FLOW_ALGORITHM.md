@@ -5,6 +5,22 @@
 對應 API 草案：`docs/spec/api-proposal/warehouse_overview_api.md`
 對應 DB 新增規劃：`docs/spec/database/WAREHOUSE_OVERVIEW_DB_EXTENSION_PLAN.md`
 
+## 工程師提問與建議:
+
+1. Step 3：計算預留數量與預留價值
+    - 請進一步說明『預留數量』與『品檢保留量』的定義及差異?
+    - 能否詳細說明，哪些來源訂單會新增至 `warehouse_inventory_reservation`？例如：請購單是否會納入？ 進貨單是否會納入？銷貨單是否會納入？工單領料是否也會納入？
+    
+2. Step 4：計算品檢保留量與保留價值
+    - 能否詳細說明，哪些來源訂單會新增至 `warehouse_quality_hold`？例如：請購單是否會納入？ 進貨單是否會納入？銷貨單是否會納入？工單領料是否也會納入？
+
+3. Step 11：計算任務處理狀態
+    - 為什麼需要盤點單呢？能否分享你的想法？
+    - 在實務情境中，是否可能出現『已處理數量』小於『預期處理數量』的情況？例如：採購進貨時，廠商送貨到場後經檢查發現部分料品損壞。此時，任務狀態應如何轉換為「已完成」?
+
+4. Step 12：判斷下一步負責部門
+    - 建議建立資料表以完整紀錄「下一步負責部門」，涵蓋從請購 → 採購 → 進貨 → 產製 → 訂購出貨的各環節，將整體流程納入考量
+
 ## 文件定位
 
 本文件只描述流程與演算法，不進行程式實作。
@@ -162,6 +178,7 @@ qualityHoldValue = qualityHoldQuantity * unitCost
 
 ### Step 5：計算可用數量與可用價值
 
+
 演算法：
 
 ```txt
@@ -318,12 +335,13 @@ warehouse_risk_rule
 
 ### Step 11：計算任務處理狀態
 
+
 候選來源單據：
 
 | 任務類型 | 來源 |
 | --- | --- |
-| 入庫 | `goods_receipt_note`、`process_order` 產品入庫、`inventory_order` 入庫 |
-| 出庫 | `shipping_order`、`process_order` 領料/退料/廢料、`inventory_order` 出庫 |
+| 入庫 | `goods_receipt_note`、`process_order` 退料/餘料、廢料、產品入庫、`inventory_order` 入庫 |
+| 出庫 | `shipping_order`、`process_order` 領料、`inventory_order` 出庫 |
 | 移倉 | `inventory_order` 或後續移倉單 |
 | 盤點 | `inventory_order` 或後續盤點單 |
 

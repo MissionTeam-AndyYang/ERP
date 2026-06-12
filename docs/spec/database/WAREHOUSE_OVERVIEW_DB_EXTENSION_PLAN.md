@@ -5,6 +5,24 @@
 基準文件：`docs/spec/database/index.md`
 目的：補足 `warehouse_overview_api.md` 中已確認「尚未規劃與實作」的資料來源，供工程師 review 後再進入 SQL schema 與 ORM 實作。
 
+
+## 工程師提問與建議:
+
+1. 能否詳細說明`warehouse_inventory_reservation` 、 `warehouse_quality_hold` 及 `warehouse_pallet_movement`中的`source_no`分別關聯至那些資料表? 此外，`sourceType`欄位是否是依據`source_no`來源單號而對應的類型? 能否進一步說明不同來源單號對應到的來源類型，例如：進貨單對應採購？
+2. 能否詳細說明，為什麼`warehouse_inventory_reservation`需要設置`timezone`欄位, 而 `warehouse_quality_hold`則不需要？請闡述其中的設計考量。
+3. `warehouse_inventory_reservation` 和 `warehouse_quality_hold`是否可以僅以 id 作為主鍵 (PK) 與唯一鍵 (UK)? 還是`no`欄位除了作為唯一鍵之外，尚有其他設計考量？
+4. 是否可以以`ship_wh`取代`warehouse_capacity`?
+`ship_wh`: 代表「交易品項-倉儲物流」，其中 unit 為儲放／運輸單位，maxCapacity 為最大儲放／運輸量。
+`ship_wh_quotation`: 代表「倉儲物流議價」，並綁定至ship_wh
+`ship_wh_contract`: 代表「倉儲物流合約」，並綁定至ship_wh_alias，當議價成功後產生合約。
+整體流程為： ship_wh → ship_wh_quotation → ship_wh_contract。
+當儲放／運輸量發生變動時，會產生新的交易品項，並重新進行議價與簽訂合約。
+5. 是否能將 `warehouse_pallet_movement` 的資料分散並整合至 `inventory_record`、`warehouse_inventory_reservation`、`warehouse_quality_hold`？這三張資料表分別記載出入庫數量、預留數量與保留數量，若再額外記錄棧板資訊，理論上應可行；還是此設計上另有其他考量？
+6. 請購單`purchase_request`、 採購單`purchase_order`、 報價單`quotation` 、 訂購單 `product_order`是否同樣適用『任務處理狀態』的概念？若是，請重新檢視你所設計的資料表 `warehouse_task_state`，確認是否能共用同一資料表。
+7. 能否詳細說明目前有哪些風險類型？另外，`riskType`、`riskLevel` 與 `excludedItemCategories` 的資料型態是否適合採用 ENUM？ 改用 VARCHAR(255)，是否還有其他設計上的考量？」
+8. 建議 `source_no`欄位更名`ref_no` 、 `source_sub_no`欄位更名`ref_subNo`, 以保持與原資料庫命名規則的一致性。
+
+
 ## 標記規則
 
 本文件所有新規劃的 table 或欄位皆以 `[新增]` 標記。

@@ -53,7 +53,7 @@
 | 倉儲總板位與可用板位 | `ship_wh.maxCapacity`、`ship_wh_contract` 可支援合約倉容量 | 沿用既有 `ship_wh` / `ship_wh_contract` / `ship_wh_alias` |
 | 安全水位 | 尚未支援 | [新增] `item_safety_stock` |
 | 風險說明文字、建議處理方式 | 可由前端 i18n 或後端規則產生 | [新增] `warehouse_risk_rule`，前端仍負責多國語言顯示 |
-| 任務處理狀態、下一步負責部門 | 尚未完整支援 | [新增] `workflow_task_state` |
+| 任務處理狀態、下一步負責部門 | 尚未完整支援 | [新增] `workflow_task_state`、`workflow_next_owner_rule` |
 
 ## 既有資料表基準
 
@@ -249,6 +249,68 @@
 | updateTime | INT | NO |  | [新增] 最後更新時間。 |
 | creationTime | INT | YES |  | [新增] 建立時間，UTC timestamp。 |
 
+### workflow_task_state 任務類型完成判斷
+
+| taskType | 來源單據/流程 | 完成判斷條件 |
+| --- | --- | --- |
+| 請購(1) | `purchase_request` | 請購已核准並轉成採購單，或已取消/結案；若只有部分品項轉採購，狀態為部分完成。 |
+| 採購(2) | `purchase_order` | 採購單需求已由進貨單覆蓋，或差異已取消/結案；若部分到貨，狀態為部分完成。 |
+| 進貨(3) | `goods_receipt_note` | 到貨數量已完成驗收分類，且 `acceptedQuantity + rejectedQuantity + cancelledQuantity >= expectedQuantity`。 |
+| 入庫(4) | `goods_receipt_note`、`process_order`、`inventory_order` | 應入庫數量已建立入庫 `inventory_record`，並完成倉儲/批號/棧板關聯；若差異已結案也可完成。 |
+| 出庫(5) | `shipping_order`、`process_order`、`inventory_order` | 應出庫數量已建立出庫 `inventory_record`，或短出/取消差異已結案。 |
+| 移倉(6) | `inventory_order` | 來源倉出庫與目的倉入庫皆完成，或移倉差異已結案。 |
+| 生產(7) | `work_order`、`process_order`、`production_data` | 工單要求產出、領退餘廢與生產數據已完成登錄，且差異已結案。 |
+| 品檢(8) | 品檢單或 `warehouse_quality_hold` | 品檢結果已判定，保留量已放行、退回、報廢或轉異常結案。 |
+| 出貨(9) | `shipping_order`、`shipping_record` | 出貨數量、物流/倉儲紀錄與必要單據已完成，或短出/取消差異已結案。 |
+
+通用完成原則：
+
+```txt
+closedQuantity = acceptedQuantity + rejectedQuantity + cancelledQuantity
+
+if closedQuantity >= expectedQuantity:
+    taskStatus = 已完成
+else if closedQuantity > 0:
+    taskStatus = 部分完成
+else if blockReason exists:
+    taskStatus = 阻塞
+else:
+    taskStatus = 待處理
+```
+
+## [新增] workflow_next_owner_rule
+
+用途：保存跨模組流程中「下一步負責部門」的判斷規則，讓請購、採購、進貨、產製、訂購出貨與倉庫任務能以同一套規則決定 `workflow_task_state.ownerDepartment`。
+
+| Field | Type | Required | Key / Index | Description |
+| --- | --- | --- | --- | --- |
+| id | BIGINT UNSIGNED | YES | PK | [新增] 資料 ID。 |
+| no | VARCHAR(60) | YES | UK | [新增] 規則編號。 |
+| module | INT | YES | IDX | [新增] 適用模組；採購(1)、業務(2)、生管(3)、製造(4)、倉庫(5)、品保(6)、其他(0)。 |
+| taskType | INT | YES | IDX | [新增] 任務類型；請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0)。 |
+| refCategory | INT | NO | IDX | [新增] 來源類別；空值表示不限定來源類別。 |
+| taskStatus | INT | NO | IDX | [新增] 任務狀態條件；空值表示不限定狀態。 |
+| blockReasonCode | VARCHAR(80) | NO | IDX | [新增] 阻塞原因條件；空值表示不限定阻塞原因。 |
+| fromDepartment | INT | NO | IDX | [新增] 目前負責部門；空值表示不限定目前部門。 |
+| ownerDepartment | INT | YES | IDX | [新增] 下一步負責部門；參照 `EDepartment`。 |
+| rulePriority | INT | YES | IDX | [新增] 規則優先序；數字越小優先。 |
+| status | INT | YES | IDX | [新增] 狀態；啟用(1)、停用(2)。 |
+| comment | TEXT | NO |  | [新增] 備註，說明業務情境。 |
+| creationTime | INT | YES |  | [新增] 建立時間，UTC timestamp。 |
+
+建議初始規則：
+
+| 流程情境 | ownerDepartment |
+| --- | --- |
+| 請購待核准或請購資料缺漏 | 生管部或需求提出部門 |
+| 採購單待建立、供應商或合約資料缺漏 | 採購部 |
+| 進貨到場待入庫 | 倉庫部 |
+| 進貨需檢驗或檢驗異常 | 品保部 |
+| 工單備料不足或排程需調整 | 生管部 |
+| 生產執行中或生產數據待補 | 製造部 |
+| 入庫、出庫、移倉待處理 | 倉庫部 |
+| 訂購交期、出貨資料或客戶確認異常 | 業務部 |
+
 ## 建議實作順序
 
 1. [新增] `item_safety_stock`，並確認 `ship_wh` / `ship_wh_contract` 可支援倉儲容量來源。
@@ -256,7 +318,8 @@
 3. [新增] `warehouse_quality_hold`：支援品檢保留量與可用量扣除。
 4. [新增] `warehouse_pallet_movement`：支援出入庫紀錄與棧板異動關係。
 5. [新增] `workflow_task_state`：支援跨模組任務狀態、負責部門與阻塞狀態。
-6. [新增] `warehouse_risk_rule`：支援風險訊息模板與建議處理方式。
+6. [新增] `workflow_next_owner_rule`：支援下一步負責部門規則。
+7. [新增] `warehouse_risk_rule`：支援風險訊息模板與建議處理方式。
 
 ## Review 後需同步的文件
 

@@ -421,20 +421,69 @@ else:
 
 例如採購進貨預期 100，現場檢查後接受 90、拒收 10，雖然實際入庫數量小於預期數量，但差異已分類結案，因此任務可轉為 `done`。
 
+### workflow_task_state 任務類型完成條件
+
+| taskType | 主要來源 | 完成判斷條件 | 常見下一步 |
+| --- | --- | --- | --- |
+| 請購(1) | `purchase_request` | 請購已核准並轉成 `purchase_order`，或請購已取消/結案；部分品項轉採購則為 `partial`。 | 採購部建立採購單，或需求部門補資料。 |
+| 採購(2) | `purchase_order` | 採購需求已由 `goods_receipt_note` 覆蓋，或未到/短交差異已取消/結案。 | 採購部追供應商，或倉庫等待進貨。 |
+| 進貨(3) | `goods_receipt_note` | 到貨數量已完成驗收分類，`acceptedQuantity + rejectedQuantity + cancelledQuantity >= expectedQuantity`。 | 倉庫入庫或品保檢驗。 |
+| 入庫(4) | `goods_receipt_note`、`process_order`、`inventory_order` | 應入庫數量已建立入庫 `inventory_record`，且倉儲、批號、棧板關聯完成；差異結案亦可完成。 | 倉庫完成上架，或品保處理未放行。 |
+| 出庫(5) | `shipping_order`、`process_order`、`inventory_order` | 應出庫數量已建立出庫 `inventory_record`，或短出/取消差異已結案。 | 倉庫出庫，或業務/生管處理短缺。 |
+| 移倉(6) | `inventory_order` | 來源倉出庫與目的倉入庫皆完成，或移倉差異已結案。 | 倉庫完成移倉確認。 |
+| 生產(7) | `work_order`、`process_order`、`production_data` | 工單要求產出、領退餘廢與生產數據已登錄，且差異已結案。 | 製造部補生產資料，或生管調整排程。 |
+| 品檢(8) | 品檢單或 `warehouse_quality_hold` | 品檢結果已判定，保留量已放行、退回、報廢或異常結案。 | 品保部判定，或倉庫依判定入庫/退回/報廢。 |
+| 出貨(9) | `shipping_order`、`shipping_record` | 出貨數量、物流/倉儲紀錄與必要單據已完成，或短出/取消差異已結案。 | 業務確認交期/客戶資料，或倉庫安排出貨。 |
+
+任務狀態判斷應優先讀取 `workflow_task_state` 中的人工狀態；若尚未建立狀態紀錄，才依來源單據與數量即時計算。
+
 ### Step 12：判斷下一步負責部門
 
-建議規則：
+建議新增規則表：
+
+```txt
+workflow_next_owner_rule
+```
+
+`workflow_task_state.ownerDepartment` 保存任務目前的下一步負責部門；`workflow_next_owner_rule` 保存可重複使用的部門判斷規則。後端產生或更新任務時，先依規則表決定 owner，再寫入 `workflow_task_state.ownerDepartment`。
+
+規則匹配順序：
+
+```txt
+1. 依 module + taskType + refCategory + taskStatus + blockReasonCode 精準匹配
+2. 若無結果，放寬 blockReasonCode
+3. 若無結果，放寬 refCategory
+4. 若無結果，使用 taskType 預設規則
+5. 若仍無結果，ownerDepartment = 來源單據目前負責部門或系統預設部門
+```
+
+建議初始規則：
 
 | 條件 | ownerDepartment |
 | --- | --- |
+| 請購待核准或請購資料缺漏 | 生管部或需求提出部門 |
+| 採購單待建立、供應商或合約資料缺漏 | 採購部 |
+| 進貨到場待入庫 | 倉庫部 |
+| 進貨需檢驗或檢驗異常 | 品保部 |
 | 一般入庫、出庫、移倉待處理 | 倉庫部 |
 | 品檢未放行、品檢保留、檢驗異常 | 品保部 |
 | 工單備料不足、工單排程需調整 | 生管部 |
+| 生產執行中或生產數據待補 | 製造部 |
 | 銷售出貨資料缺漏或交期調整 | 業務部 |
 | 採購入庫資料缺漏或供應商到貨問題 | 採購部 |
 | 請購、採購、進貨、生產、訂購出貨跨流程任務 | 依 `workflow_task_state.ownerDepartment` 保存結果 |
 
-若 `workflow_task_state.ownerDepartment` 已存在，以人工/狀態表設定為準；否則依規則即時計算。
+更新流程：
+
+```txt
+if workflow_task_state.ownerDepartment exists and is manually assigned:
+    keep existing ownerDepartment
+else:
+    ownerDepartment = match(workflow_next_owner_rule)
+    update workflow_task_state.ownerDepartment
+```
+
+這樣可完整涵蓋「請購 -> 採購 -> 進貨 -> 產製 -> 訂購出貨」各環節，且 Warehouse dashboard 只需篩選與倉庫、品檢、出入庫相關的任務。
 
 ## Dashboard Response 組裝
 
@@ -458,3 +507,5 @@ else:
 4. 預留、可用、品檢保留、板數、安全水位、任務狀態皆有明確資料來源或明確 fallback。
 5. 尚未實作的資料來源不得用假資料偽裝成正式值。
 6. 第一版 Warehouse dashboard 不顯示盤點任務。
+7. `workflow_task_state` 每個任務類型都有明確完成條件。
+8. `workflow_next_owner_rule` 可保存並套用下一步負責部門規則。

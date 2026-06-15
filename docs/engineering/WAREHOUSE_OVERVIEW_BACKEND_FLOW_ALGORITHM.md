@@ -21,6 +21,18 @@
 4. Step 12：判斷下一步負責部門
     - 建議建立資料表以完整紀錄「下一步負責部門」，涵蓋從請購 → 採購 → 進貨 → 產製 → 訂購出貨的各環節，將整體流程納入考量
 
+## 本次調整決議
+
+| 項目 | 決議 |
+| --- | --- |
+| `sourceType` 命名 | 更名為 `refCategory`，用於表示 `ref_no` 指向的業務來源類別。 |
+| 來源欄位命名 | 使用 `ref_no` / `ref_sub_no`，以符合既有資料庫命名規則。 |
+| `id` 與 `no` | 維持原設計：`id` 作 PK，`no` 作 UK 與業務識別碼。 |
+| `warehouse_pallet_movement` | 維持原設計，不分散整合至其他表。 |
+| 倉儲容量來源 | 取消新增 `warehouse_capacity`，改由 `ship_wh.maxCapacity` 搭配 `ship_wh_contract`、`ship_wh_alias` 取得。 |
+| 任務狀態 | 改用跨模組 `workflow_task_state`，Warehouse dashboard 僅篩選與倉庫待處理相關的任務。 |
+| 盤點 | 第一版 Warehouse dashboard 暫不處理盤點。 |
+
 ## 文件定位
 
 本文件只描述流程與演算法，不進行程式實作。
@@ -41,7 +53,7 @@ v1 文件可保留為討論歷史；實作時以 v2 route 為準。
 ## 共用時間規則
 
 1. DB 的 `date`、`time`、`creationTime` 若為 timestamp，統一視為 UTC timestamp。
-2. 若資料表有 `timezone` 欄位，`date` 代表使用者端日期，並搭配 `timezone` 解讀。
+2. 新增規劃表不個別保存 `timezone`；`date`、`time`、`creationTime` 一律保存 UTC timestamp。
 3. API 接收 `date` 與 `timezone` 後，需換算為本地營業日的 UTC 起訖時間。
 4. 回傳給前端時，timestamp 保持 UTC timestamp；顯示格式由前端依語系與時區轉換。
 
@@ -115,6 +127,9 @@ inventoryValue = sum(inventory_record.amount where category = IN)
 
 ### Step 3：計算預留數量與預留價值
 
+預留數量指「現有庫存已分配給特定業務需求，但尚未完成出庫或釋放」的數量。
+品檢保留量則是「實體庫存已存在，但因品保未放行、異常或隔離而不可用」的數量。兩者都會扣減可用量，但來源、責任部門與解除條件不同。
+
 建議新增來源：
 
 ```txt
@@ -143,13 +158,18 @@ reservedValue = reservedQuantity * unitCost
 
 預留來源建議：
 
-| sourceType | 來源 |
-| --- | --- |
-| 銷售 | 銷售訂單、出貨需求。 |
-| 生產 | 工單備料、領料需求。 |
-| 倉庫任務 | 待出庫、移倉、盤點保留。 |
+| refCategory | 來源 | 是否納入預留 |
+| --- | --- | --- |
+| 銷售/訂購 | `product_order`、`shipping_order` | 是，用於製成品出貨需求。 |
+| 生產/工單 | `work_order`、`process_order` 領料需求 | 是，用於原料、物料、膠捲或半成品備料。 |
+| 倉庫任務 | `inventory_order` 出庫或移倉 | 是，用於人工出庫或移倉前預留。 |
+| 請購 | `purchase_request` | 否，請購是補貨需求，不佔用現有庫存。 |
+| 採購 | `purchase_order` | 否，採購是未到貨供給，不佔用現有庫存。 |
+| 進貨 | `goods_receipt_note` | 否，進貨完成後進入庫存或品檢保留，不作為預留來源。 |
 
 ### Step 4：計算品檢保留量與保留價值
+
+品檢保留量只處理已到貨、已產出或已由倉庫隔離的實體庫存；尚未成為實體庫存的請購、採購、報價或訂購，不進入品檢保留。
 
 建議新增來源：
 
@@ -175,6 +195,15 @@ qualityHoldValue = sum(holdValue)
 ```txt
 qualityHoldValue = qualityHoldQuantity * unitCost
 ```
+
+品檢保留來源建議：
+
+| refCategory | 來源 | 是否納入品檢保留 |
+| --- | --- | --- |
+| 進貨 | `goods_receipt_note` | 是，用於材料到貨檢驗或隔離。 |
+| 生產 | `process_order` 產品入庫、餘料、退料、廢料相關檢驗 | 是，用於產出或製程回庫後的品檢。 |
+| 倉庫任務 | `inventory_order` 人工隔離或轉倉 | 是，用於倉庫發現異常後轉品檢。 |
+| 請購/採購/報價/訂購 | `purchase_request`、`purchase_order`、`quotation`、`product_order` | 否，尚未形成需品檢保留的實體庫存。 |
 
 ### Step 5：計算可用數量與可用價值
 
@@ -217,7 +246,9 @@ batchno_serialno_group.group
 
 ```txt
 warehouse_pallet_movement
-warehouse_capacity
+ship_wh
+ship_wh_contract
+ship_wh_alias
 ```
 
 演算法：
@@ -225,10 +256,15 @@ warehouse_capacity
 ```txt
 usedPallets = sum(palletCount where palletStatus = 佔用)
 reservedPallets = sum(palletCount where palletStatus = 預留)
-totalPallets = warehouse_capacity.totalPallets where status = 啟用
+totalPallets = 透過啟用中的 ship_wh_contract 與 ship_wh_alias 取得 ship_wh.maxCapacity
 availablePallets = totalPallets - usedPallets - reservedPallets
 utilizationRate = usedPallets / totalPallets
 ```
+
+注意：
+
+1. 第一版優先使用 `ship_wh.maxCapacity` 作為容量來源。
+2. 若自有倉沒有對應 `ship_wh_contract` 或 `ship_wh`，需由工程師確認既有資料是否會補齊；未確認前不新增 `warehouse_capacity`。
 
 分類佔用板數：
 
@@ -343,18 +379,19 @@ warehouse_risk_rule
 | 入庫 | `goods_receipt_note`、`process_order` 退料/餘料、廢料、產品入庫、`inventory_order` 入庫 |
 | 出庫 | `shipping_order`、`process_order` 領料、`inventory_order` 出庫 |
 | 移倉 | `inventory_order` 或後續移倉單 |
-| 盤點 | `inventory_order` 或後續盤點單 |
+
+第一版 Warehouse dashboard 暫不處理盤點任務。
 
 建議新增狀態表：
 
 ```txt
-warehouse_task_state
+workflow_task_state
 ```
 
 演算法：
 
 ```txt
-processedQuantity = sum(inventory_record.count matched by source_no, item_no, batchNumber, warehouse_no)
+processedQuantity = sum(inventory_record.count matched by ref_no, item_no, batchNumber, warehouse_no)
 remainingQuantity = expectedQuantity - processedQuantity
 
 if blockReason exists:
@@ -367,19 +404,37 @@ else:
     status = done
 ```
 
+例外結案演算法：
+
+```txt
+closedQuantity = acceptedQuantity + rejectedQuantity + cancelledQuantity
+
+if closedQuantity >= expectedQuantity:
+    status = done
+else if acceptedQuantity > 0 or rejectedQuantity > 0 or cancelledQuantity > 0:
+    status = partial
+else if blockReason exists:
+    status = blocked
+else:
+    status = pending
+```
+
+例如採購進貨預期 100，現場檢查後接受 90、拒收 10，雖然實際入庫數量小於預期數量，但差異已分類結案，因此任務可轉為 `done`。
+
 ### Step 12：判斷下一步負責部門
 
 建議規則：
 
 | 條件 | ownerDepartment |
 | --- | --- |
-| 一般入庫、出庫、移倉、盤點待處理 | 倉庫部 |
+| 一般入庫、出庫、移倉待處理 | 倉庫部 |
 | 品檢未放行、品檢保留、檢驗異常 | 品保部 |
 | 工單備料不足、工單排程需調整 | 生管部 |
 | 銷售出貨資料缺漏或交期調整 | 業務部 |
 | 採購入庫資料缺漏或供應商到貨問題 | 採購部 |
+| 請購、採購、進貨、生產、訂購出貨跨流程任務 | 依 `workflow_task_state.ownerDepartment` 保存結果 |
 
-若 `warehouse_task_state.ownerDepartment` 已存在，以人工/狀態表設定為準；否則依規則即時計算。
+若 `workflow_task_state.ownerDepartment` 已存在，以人工/狀態表設定為準；否則依規則即時計算。
 
 ## Dashboard Response 組裝
 
@@ -402,3 +457,4 @@ else:
 3. Enum 顯示文字由前端轉換。
 4. 預留、可用、品檢保留、板數、安全水位、任務狀態皆有明確資料來源或明確 fallback。
 5. 尚未實作的資料來源不得用假資料偽裝成正式值。
+6. 第一版 Warehouse dashboard 不顯示盤點任務。

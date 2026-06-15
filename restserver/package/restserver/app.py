@@ -36,6 +36,7 @@ from package.restserver.api.goods_uri import goods
 from package.restserver.api.quotation_uri import quotation
 from package.restserver.api.plstatistics_uri import plstatistics
 from package.restserver.api.item_uri import item
+from package.restserver.api.v2.warehouse_uri import warehouse_v2
 
 def create_app():
     app = Flask(__name__)
@@ -66,7 +67,8 @@ def create_app():
         goods,
         quotation,
         plstatistics,
-        item
+        item,
+        warehouse_v2
     ]
 
     for obj_bp in lst_blueprints:

@@ -28,5 +28,6 @@
 - [shipwarehouse](./shipwarehouse.md)
 - [transitems](./transitems.md)
 - [user](./user.md)
+- [warehouse](./warehouse.md)
 - [work](./work.md)
 - [workorder](./workorder.md)

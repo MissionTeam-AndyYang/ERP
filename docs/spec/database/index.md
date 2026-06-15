@@ -85,6 +85,13 @@
 - [user_group](#user_group)
 - [warehouse_payment](#warehouse_payment)
 - [warehouse_record](#warehouse_record)
+- [warehouse_inventory_reservation](#warehouse_inventory_reservation)
+- [warehouse_quality_hold](#warehouse_quality_hold)
+- [warehouse_pallet_movement](#warehouse_pallet_movement)
+- [item_safety_stock](#item_safety_stock)
+- [warehouse_risk_rule](#warehouse_risk_rule)
+- [workflow_task_state](#workflow_task_state)
+- [workflow_next_owner_rule](#workflow_next_owner_rule)
 - [work_order](#work_order)
 
 ## Generation Notes
@@ -1850,6 +1857,177 @@
 | days | FLOAT | Yes |  |  | 存放天數；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | Free-form remark field. |  | OK | Free-form remark field. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+
+
+
+## warehouse_inventory_reservation
+
+<summary>warehouse_inventory_reservation ([新增] 倉庫庫存預留紀錄)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] 待工程師依 SQL 實作確認。 |
+| no | VARCHAR(60) | No | UK(uq_warehouse_inventory_reservation_composite) |  | 預留紀錄編號 |  | Need Review | [新增] 業務識別碼。 |
+| date | INT | No | IDX |  | 預留建立時間，UTC timestamp |  | Need Review | [新增] 第一版不另存 timezone。 |
+| refCategory | INT | No | IDX |  | 來源類別 | 銷售/訂購(1)、生產/工單(2)、倉庫任務(3)、其他(0) | Need Review | [新增] 取代 sourceType。 |
+| ref_no | VARCHAR(60) | No | IDX |  | 來源單號，對應 product_order、shipping_order、work_order、process_order 或 inventory_order |  | Need Review | [新增] polymorphic reference。 |
+| ref_sub_no | VARCHAR(60) | Yes |  |  | 來源明細編號 |  | Need Review | [新增] 若無則空值。 |
+| warehouse_no | VARCHAR(60) | Yes | IDX | warehouse_inventory_reservation.warehouse_no -> ship_wh_alias.no | 倉儲別名 no |  | Need Review | [新增] |
+| warehouse_displayName | VARCHAR(60) | Yes |  |  | 倉儲別名名稱 |  | Need Review | [新增] |
+| itemCategory | INT | No | IDX |  | 料品品項類別 | 原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5) | Need Review | [新增] |
+| item_no | VARCHAR(60) | No | IDX |  | 料品品項編號 |  | Need Review | [新增] |
+| item_name | VARCHAR(255) | Yes |  |  | 料品品項名稱 |  | Need Review | [新增] |
+| batchNumber | VARCHAR(60) | Yes | IDX | warehouse_inventory_reservation.batchNumber -> batch_number.no | 批號 |  | Need Review | [新增] 尚未指定批號時可為空。 |
+| unit | INT | Yes |  |  | 預留數量單位 | Unit 單位定義 | Need Review | [新增] |
+| reservedQuantity | FLOAT | No |  |  | 預留數量 |  | Need Review | [新增] |
+| unitCost | DOUBLE | Yes |  |  | 預留計算使用的單位成本 |  | Need Review | [新增] |
+| reservedValue | DOUBLE | Yes |  |  | 預留價值 |  | Need Review | [新增] |
+| status | INT | No | IDX |  | 預留狀態 | 有效(1)、已釋放(2)、已取消(3)、已轉出庫(4) | Need Review | [新增] |
+| releaseTime | INT | Yes |  |  | 預留釋放或完成時間 |  | Need Review | [新增] |
+| comment | TEXT | Yes |  |  | 備註 |  | Need Review | [新增] |
+| creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+
+## warehouse_quality_hold
+
+<summary>warehouse_quality_hold ([新增] 倉庫品檢保留紀錄)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] 待工程師依 SQL 實作確認。 |
+| no | VARCHAR(60) | No | UK(uq_warehouse_quality_hold_composite) |  | 品檢保留紀錄編號 |  | Need Review | [新增] |
+| date | INT | No | IDX |  | 保留建立時間，UTC timestamp |  | Need Review | [新增] |
+| refCategory | INT | No | IDX |  | 來源類別 | 進貨(1)、生產(2)、倉庫任務(3)、其他(0) | Need Review | [新增] |
+| ref_no | VARCHAR(60) | No | IDX |  | 來源單號，對應 goods_receipt_note、process_order 或 inventory_order |  | Need Review | [新增] |
+| ref_sub_no | VARCHAR(60) | Yes |  |  | 來源明細編號 |  | Need Review | [新增] |
+| inspection_no | VARCHAR(60) | Yes | IDX |  | 品檢單號 |  | Need Review | [新增] Quality 模組建立前可先保留。 |
+| warehouse_no | VARCHAR(60) | Yes | IDX | warehouse_quality_hold.warehouse_no -> ship_wh_alias.no | 倉儲別名 no |  | Need Review | [新增] |
+| warehouse_displayName | VARCHAR(60) | Yes |  |  | 倉儲別名名稱 |  | Need Review | [新增] |
+| itemCategory | INT | No | IDX |  | 料品品項類別 | 原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5) | Need Review | [新增] |
+| item_no | VARCHAR(60) | No | IDX |  | 料品品項編號 |  | Need Review | [新增] |
+| item_name | VARCHAR(255) | Yes |  |  | 料品品項名稱 |  | Need Review | [新增] |
+| batchNumber | VARCHAR(60) | No | IDX | warehouse_quality_hold.batchNumber -> batch_number.no | 批號 |  | Need Review | [新增] |
+| unit | INT | Yes |  |  | 保留數量單位 | Unit 單位定義 | Need Review | [新增] |
+| holdQuantity | FLOAT | No |  |  | 品檢保留數量 |  | Need Review | [新增] |
+| unitCost | DOUBLE | Yes |  |  | 保留價值計算使用的單位成本 |  | Need Review | [新增] |
+| holdValue | DOUBLE | Yes |  |  | 品檢保留價值 |  | Need Review | [新增] |
+| status | INT | No | IDX |  | 保留狀態 | 保留中(1)、已放行(2)、退回(3)、報廢(4) | Need Review | [新增] |
+| releaseTime | INT | Yes |  |  | 放行、退回或報廢時間 |  | Need Review | [新增] |
+| reason | VARCHAR(255) | Yes |  |  | 保留原因 |  | Need Review | [新增] |
+| comment | TEXT | Yes |  |  | 備註 |  | Need Review | [新增] |
+| creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+
+## warehouse_pallet_movement
+
+<summary>warehouse_pallet_movement ([新增] 倉庫棧板異動紀錄)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] |
+| no | VARCHAR(60) | No | UK(uq_warehouse_pallet_movement_composite) |  | 棧板異動紀錄編號 |  | Need Review | [新增] |
+| date | INT | No | IDX |  | 棧板異動時間，UTC timestamp |  | Need Review | [新增] |
+| inventory_record_id | BIGINT UNSIGNED | Yes | IDX | warehouse_pallet_movement.inventory_record_id -> inventory_record.id | 出入庫紀錄 ID |  | Need Review | [新增] |
+| refCategory | INT | No | IDX |  | 來源類別 | 入庫(1)、出庫(2)、移倉(3)、預留(4)、品檢保留(5)、釋放(6) | Need Review | [新增] |
+| ref_no | VARCHAR(60) | Yes | IDX |  | 來源單號 |  | Need Review | [新增] |
+| warehouse_no | VARCHAR(60) | No | IDX | warehouse_pallet_movement.warehouse_no -> ship_wh_alias.no | 倉儲別名 no |  | Need Review | [新增] |
+| pallet_group_no | VARCHAR(60) | No | IDX | warehouse_pallet_movement.pallet_group_no -> batchno_serialno_group.group | 棧板編號 |  | Need Review | [新增] |
+| batchNumber | VARCHAR(60) | Yes | IDX | warehouse_pallet_movement.batchNumber -> batch_number.no | 批號 |  | Need Review | [新增] |
+| serialNo | VARCHAR(60) | Yes |  |  | 批號流水號 |  | Need Review | [新增] |
+| itemCategory | INT | Yes | IDX |  | 料品品項類別 |  | Need Review | [新增] |
+| item_no | VARCHAR(60) | Yes | IDX |  | 料品品項編號 |  | Need Review | [新增] |
+| palletStatus | INT | No | IDX |  | 棧板狀態 | 佔用(1)、預留(2)、釋放(3)、移出(4) | Need Review | [新增] |
+| palletCount | FLOAT | No |  |  | 板數 |  | Need Review | [新增] 支援併板小數。 |
+| creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+
+## item_safety_stock
+
+<summary>item_safety_stock ([新增] 料品安全水位設定)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] |
+| no | VARCHAR(60) | No | UK(uq_item_safety_stock_composite) |  | 安全水位設定編號 |  | Need Review | [新增] |
+| itemCategory | INT | No | IDX |  | 料品品項類別 | 原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5) | Need Review | [新增] |
+| item_no | VARCHAR(60) | No | IDX |  | 料品品項編號 |  | Need Review | [新增] |
+| item_name | VARCHAR(255) | Yes |  |  | 料品品項名稱 |  | Need Review | [新增] |
+| warehouse_no | VARCHAR(60) | Yes | IDX | item_safety_stock.warehouse_no -> ship_wh_alias.no | 倉儲別名 no；空值表示全倉通用 |  | Need Review | [新增] |
+| unit | INT | Yes |  |  | 安全水位單位 | Unit 單位定義 | Need Review | [新增] |
+| safetyStock | FLOAT | No |  |  | 安全水位數量 |  | Need Review | [新增] |
+| effectiveDate | INT | No | IDX |  | 生效時間，UTC timestamp |  | Need Review | [新增] |
+| expiryDate | INT | Yes |  |  | 失效時間，UTC timestamp |  | Need Review | [新增] |
+| status | INT | No | IDX |  | 狀態 | 啟用(1)、停用(2) | Need Review | [新增] |
+| comment | TEXT | Yes |  |  | 備註 |  | Need Review | [新增] |
+| creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+
+## warehouse_risk_rule
+
+<summary>warehouse_risk_rule ([新增] 倉庫風險規則)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] |
+| riskType | VARCHAR(60) | No | UK(uq_warehouse_risk_rule_composite) |  | 風險類型 | TURNOVER_OVER_30_DAYS、SHELF_LIFE_LT_ONE_THIRD、BELOW_SAFETY_STOCK | Need Review | [新增] |
+| riskLevel | INT | No |  |  | 預設風險等級 | 正常(1)、注意(2)、警示(3)、危險(4) | Need Review | [新增] |
+| messageCode | VARCHAR(80) | No |  |  | 前端 i18n message key |  | Need Review | [新增] |
+| messageTemplateZhTw | VARCHAR(255) | Yes |  |  | 預設繁中風險說明模板 |  | Need Review | [新增] |
+| recommendedActionCode | VARCHAR(80) | No |  |  | 前端 i18n action key |  | Need Review | [新增] |
+| recommendedActionTemplateZhTw | VARCHAR(255) | Yes |  |  | 預設繁中建議處理模板 |  | Need Review | [新增] |
+| thresholdValue | FLOAT | Yes |  |  | 規則門檻值 |  | Need Review | [新增] |
+| excludedItemCategories | LONGTEXT | Yes |  |  | 排除料品類別 JSON Array |  | Need Review | [新增] |
+| status | INT | No | IDX |  | 狀態 | 啟用(1)、停用(2) | Need Review | [新增] |
+| creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+
+## workflow_task_state
+
+<summary>workflow_task_state ([新增] 跨模組任務狀態)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] |
+| taskId | VARCHAR(80) | No | UK(uq_workflow_task_state_composite) |  | 任務識別碼 |  | Need Review | [新增] |
+| module | INT | No | IDX |  | 模組 | 採購(1)、業務(2)、生管(3)、製造(4)、倉庫(5)、品保(6)、其他(0) | Need Review | [新增] |
+| taskType | INT | No | IDX |  | 任務類型 | 請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0) | Need Review | [新增] |
+| refCategory | INT | No | IDX |  | 來源類別 | 請購(1)、採購(2)、進貨(3)、訂購(4)、銷貨(5)、工單(6)、領退餘廢產(7)、出入庫單(8)、其他(0) | Need Review | [新增] |
+| ref_no | VARCHAR(60) | No | IDX |  | 來源單號 |  | Need Review | [新增] |
+| ref_sub_no | VARCHAR(60) | Yes |  |  | 來源明細編號 |  | Need Review | [新增] |
+| itemCategory | INT | Yes | IDX |  | 料品品項類別 |  | Need Review | [新增] |
+| item_no | VARCHAR(60) | Yes | IDX |  | 料品品項編號 |  | Need Review | [新增] |
+| item_name | VARCHAR(255) | Yes |  |  | 料品品項名稱 |  | Need Review | [新增] |
+| batchNumber | VARCHAR(60) | Yes | IDX |  | 批號 |  | Need Review | [新增] |
+| warehouse_no | VARCHAR(60) | Yes | IDX | workflow_task_state.warehouse_no -> ship_wh_alias.no | 倉儲別名 no |  | Need Review | [新增] |
+| expectedQuantity | FLOAT | Yes |  |  | 預期處理數量 |  | Need Review | [新增] |
+| processedQuantity | FLOAT | Yes |  |  | 已處理數量 |  | Need Review | [新增] |
+| acceptedQuantity | FLOAT | Yes |  |  | 已接受數量 |  | Need Review | [新增] |
+| rejectedQuantity | FLOAT | Yes |  |  | 已拒收/報廢/退回數量 |  | Need Review | [新增] |
+| cancelledQuantity | FLOAT | Yes |  |  | 已取消數量 |  | Need Review | [新增] |
+| unit | INT | Yes |  |  | 任務單位 | Unit 單位定義 | Need Review | [新增] |
+| palletCount | FLOAT | Yes |  |  | 任務板數 |  | Need Review | [新增] |
+| dueTimestamp | INT | Yes | IDX |  | 預計處理時間 |  | Need Review | [新增] |
+| taskStatus | INT | No | IDX |  | 任務狀態 | 待處理(1)、部分完成(2)、已完成(3)、阻塞(4)、取消(5) | Need Review | [新增] 第一版由主管人工判斷。 |
+| ownerDepartment | INT | No | IDX |  | 下一步負責部門 | 參照 EDepartment | Need Review | [新增] |
+| blockReasonCode | VARCHAR(80) | Yes |  |  | 阻塞原因代碼 |  | Need Review | [新增] |
+| blockReason | VARCHAR(255) | Yes |  |  | 阻塞原因文字 |  | Need Review | [新增] |
+| updateTime | INT | Yes |  |  | 最後更新時間 |  | Need Review | [新增] |
+| creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+
+## workflow_next_owner_rule
+
+<summary>workflow_next_owner_rule ([新增] 下一步負責部門規則)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] |
+| no | VARCHAR(60) | No | UK(uq_workflow_next_owner_rule_composite) |  | 規則編號 |  | Need Review | [新增] |
+| module | INT | No | IDX |  | 適用模組 | 採購(1)、業務(2)、生管(3)、製造(4)、倉庫(5)、品保(6)、其他(0) | Need Review | [新增] |
+| taskType | INT | No | IDX |  | 任務類型 | 請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0) | Need Review | [新增] |
+| refCategory | INT | Yes | IDX |  | 來源類別；空值表示不限定來源類別 |  | Need Review | [新增] |
+| taskStatus | INT | Yes | IDX |  | 任務狀態條件；空值表示不限定狀態 |  | Need Review | [新增] |
+| blockReasonCode | VARCHAR(80) | Yes | IDX |  | 阻塞原因條件；空值表示不限定阻塞原因 |  | Need Review | [新增] |
+| fromDepartment | INT | Yes | IDX |  | 目前負責部門；空值表示不限定目前部門 |  | Need Review | [新增] |
+| ownerDepartment | INT | No | IDX |  | 下一步負責部門 | 參照 EDepartment | Need Review | [新增] |
+| rulePriority | INT | No | IDX |  | 規則優先序；數字越小優先 |  | Need Review | [新增] |
+| status | INT | No | IDX |  | 狀態 | 啟用(1)、停用(2) | Need Review | [新增] |
+| comment | TEXT | Yes |  |  | 備註 |  | Need Review | [新增] |
+| creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
 
 
 

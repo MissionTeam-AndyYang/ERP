@@ -251,32 +251,29 @@
 
 ### workflow_task_state 任務類型完成判斷
 
-| taskType | 來源單據/流程 | 完成判斷條件 |
-| --- | --- | --- |
-| 請購(1) | `purchase_request` | 請購已核准並轉成採購單，或已取消/結案；若只有部分品項轉採購，狀態為部分完成。 |
-| 採購(2) | `purchase_order` | 採購單需求已由進貨單覆蓋，或差異已取消/結案；若部分到貨，狀態為部分完成。 |
-| 進貨(3) | `goods_receipt_note` | 到貨數量已完成驗收分類，且 `acceptedQuantity + rejectedQuantity + cancelledQuantity >= expectedQuantity`。 |
-| 入庫(4) | `goods_receipt_note`、`process_order`、`inventory_order` | 應入庫數量已建立入庫 `inventory_record`，並完成倉儲/批號/棧板關聯；若差異已結案也可完成。 |
-| 出庫(5) | `shipping_order`、`process_order`、`inventory_order` | 應出庫數量已建立出庫 `inventory_record`，或短出/取消差異已結案。 |
-| 移倉(6) | `inventory_order` | 來源倉出庫與目的倉入庫皆完成，或移倉差異已結案。 |
-| 生產(7) | `work_order`、`process_order`、`production_data` | 工單要求產出、領退餘廢與生產數據已完成登錄，且差異已結案。 |
-| 品檢(8) | 品檢單或 `warehouse_quality_hold` | 品檢結果已判定，保留量已放行、退回、報廢或轉異常結案。 |
-| 出貨(9) | `shipping_order`、`shipping_record` | 出貨數量、物流/倉儲紀錄與必要單據已完成，或短出/取消差異已結案。 |
+第一版任務完成與否先交由各部門主管以人工方式判斷，系統只保存主管確認後的 `taskStatus`、`ownerDepartment` 與相關數量欄位。下表為主管判斷時的參考要點，不作為第一版自動結案規則。
 
-通用完成原則：
+| taskType | 來源單據/流程 | 第一版人工判斷參考要點 |
+| --- | --- | --- |
+| 請購(1) | `purchase_request` | 主管確認請購已核准、轉採購、取消或結案。 |
+| 採購(2) | `purchase_order` | 採購主管確認供應商、合約、交期與採購處理狀態已完成或結案。 |
+| 進貨(3) | `goods_receipt_note` | 倉庫或品保主管確認到貨驗收、數量分類與異常處理狀態。 |
+| 入庫(4) | `goods_receipt_note`、`process_order`、`inventory_order` | 倉庫主管確認入庫、上架、倉儲/批號/棧板關聯或差異結案。 |
+| 出庫(5) | `shipping_order`、`process_order`、`inventory_order` | 倉庫主管確認出庫、短出、取消或差異結案。 |
+| 移倉(6) | `inventory_order` | 倉庫主管確認來源倉移出與目的倉移入狀態。 |
+| 生產(7) | `work_order`、`process_order`、`production_data` | 製造或生管主管確認產出、領退餘廢、生產數據與差異處理狀態。 |
+| 品檢(8) | 品檢單或 `warehouse_quality_hold` | 品保主管確認檢驗結果、放行、退回、報廢或異常結案。 |
+| 出貨(9) | `shipping_order`、`shipping_record` | 業務或倉庫主管確認出貨、物流紀錄、短出、取消或結案。 |
+
+進貨單任務建立規則：
 
 ```txt
-closedQuantity = acceptedQuantity + rejectedQuantity + cancelledQuantity
-
-if closedQuantity >= expectedQuantity:
-    taskStatus = 已完成
-else if closedQuantity > 0:
-    taskStatus = 部分完成
-else if blockReason exists:
-    taskStatus = 阻塞
-else:
-    taskStatus = 待處理
+新增一筆 goods_receipt_note 時，系統可同時建立：
+1. taskType = 進貨(3)：處理到貨、驗收、數量分類與異常確認。
+2. taskType = 入庫(4)：處理入庫、上架、庫存紀錄與棧板/倉位關聯。
 ```
+
+兩筆任務可共用同一個 `ref_no = goods_receipt_note.no`，但 `taskId` 不同，`ownerDepartment`、`taskStatus` 與處理順序可不同。若進貨需品檢，入庫任務可先維持待處理或阻塞，直到品保放行。
 
 ## [新增] workflow_next_owner_rule
 
@@ -310,6 +307,19 @@ else:
 | 生產執行中或生產數據待補 | 製造部 |
 | 入庫、出庫、移倉待處理 | 倉庫部 |
 | 訂購交期、出貨資料或客戶確認異常 | 業務部 |
+
+樣本資料：
+
+| no | module | taskType | refCategory | taskStatus | blockReasonCode | fromDepartment | ownerDepartment | rulePriority | comment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| WONR-PR-001 | 生管(3) | 請購(1) | 請購(1) | 待處理(1) |  |  | 生管部(3) | 10 | 請購建立後由生管或需求主管確認。 |
+| WONR-PO-001 | 採購(1) | 採購(2) | 採購(2) | 待處理(1) |  | 生管部(3) | 採購部(1) | 10 | 請購確認後交由採購建立或追蹤採購單。 |
+| WONR-GRN-001 | 倉庫(5) | 進貨(3) | 進貨(3) | 待處理(1) |  | 採購部(1) | 倉庫部(5) | 10 | 進貨單建立後先由倉庫處理到貨驗收。 |
+| WONR-GRN-002 | 品保(6) | 進貨(3) | 進貨(3) | 阻塞(4) | QUALITY_REQUIRED | 倉庫部(5) | 品保部(6) | 5 | 進貨需檢驗或檢驗異常時交由品保。 |
+| WONR-IN-001 | 倉庫(5) | 入庫(4) | 進貨(3) | 待處理(1) |  | 品保部(6) | 倉庫部(5) | 10 | 進貨驗收或品保放行後由倉庫入庫上架。 |
+| WONR-WO-001 | 生管(3) | 生產(7) | 工單(6) | 阻塞(4) | MATERIAL_SHORTAGE | 製造部(4) | 生管部(3) | 5 | 工單缺料或排程需調整時交由生管。 |
+| WONR-QA-001 | 品保(6) | 品檢(8) | 進貨(3) | 待處理(1) |  | 倉庫部(5) | 品保部(6) | 10 | 材料到貨需檢驗時由品保判定。 |
+| WONR-SHIP-001 | 業務(2) | 出貨(9) | 銷貨(5) | 阻塞(4) | CUSTOMER_OR_DATE_ISSUE | 倉庫部(5) | 業務部(2) | 5 | 出貨資料、客戶確認或交期異常交由業務。 |
 
 ## 建議實作順序
 

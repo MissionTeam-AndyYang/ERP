@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Warehouse Inventory Detail API Preview</title>
+    <style>
+      :root {
+        --bg: #f5f7fa;
+        --surface: #ffffff;
+        --line: #d9e1ea;
+        --text: #17202a;
+        --muted: #66758a;
+        --primary: #2563eb;
+        --success: #0f9f6e;
+        --warning: #b7791f;
+        --danger: #dc2626;
+        --soft-blue: #eff6ff;
+        --soft-amber: #fffbeb;
+        --soft-red: #fef2f2;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          "Microsoft JhengHei",
+          "Noto Sans TC",
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        line-height: 1.5;
+      }
+
+      header {
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .wrap {
+        width: min(1480px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 16px 0;
+      }
+
+      .brand {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .crumbs,
+      .toolbar,
+      .tabs,
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip,
+      .tab,
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #f8fafc;
+        padding: 6px 10px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .button.primary,
+      .tab.active {
+        border-color: #bfdbfe;
+        background: var(--soft-blue);
+        color: var(--primary);
+      }
+
+      main {
+        padding: 22px 0 40px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        padding-bottom: 18px;
+      }
+
+      h1 {
+        font-size: 28px;
+        line-height: 1.25;
+      }
+
+      .subcopy {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 8px 20px rgb(15 23 42 / 0.05);
+      }
+
+      .kpi {
+        padding: 14px;
+      }
+
+      .kpi-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .kpi-value {
+        margin-top: 6px;
+        font-size: 22px;
+        font-weight: 760;
+      }
+
+      .kpi-hint {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr) 380px;
+        gap: 14px;
+        margin-top: 14px;
+        align-items: start;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .panel-title {
+        font-size: 14px;
+        font-weight: 760;
+      }
+
+      label {
+        display: block;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      input,
+      select {
+        width: 100%;
+        height: 36px;
+        margin-top: 5px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        padding: 0 10px;
+        color: var(--text);
+        font: inherit;
+        font-size: 13px;
+      }
+
+      .table-card {
+        overflow: hidden;
+      }
+
+      .table-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 14px;
+      }
+
+      table {
+        width: 100%;
+        min-width: 960px;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: left;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 12px;
+        vertical-align: top;
+      }
+
+      td.num,
+      th.num {
+        text-align: right;
+      }
+
+      .scroll {
+        overflow-x: auto;
+      }
+
+      .selected {
+        background: #f8fbff;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .badge.blue {
+        background: var(--soft-blue);
+        color: var(--primary);
+      }
+
+      .badge.green {
+        background: #ecfdf5;
+        color: var(--success);
+      }
+
+      .badge.amber {
+        background: var(--soft-amber);
+        color: var(--warning);
+      }
+
+      .badge.red {
+        background: var(--soft-red);
+        color: var(--danger);
+      }
+
+      .detail-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .detail-section {
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .metric {
+        border-radius: 8px;
+        background: #f8fafc;
+        padding: 10px;
+      }
+
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 15px;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .event {
+        display: grid;
+        grid-template-columns: 72px 1fr;
+        gap: 10px;
+        font-size: 12px;
+      }
+
+      .event time {
+        color: var(--muted);
+        font-weight: 650;
+      }
+
+      .event strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .api-note {
+        margin-top: 14px;
+        border-left: 4px solid var(--primary);
+        background: var(--soft-blue);
+        padding: 12px 14px;
+        color: #1e3a8a;
+        font-size: 13px;
+      }
+
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .kpis {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .hero,
+        .topbar {
+          display: block;
+        }
+
+        .toolbar,
+        .crumbs {
+          margin-top: 10px;
+        }
+
+        .kpis {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap topbar">
+        <div>
+          <div class="brand">ERP 2.0 · Warehouse</div>
+          <div class="crumbs" aria-label="breadcrumb">
+            <span class="chip">Dashboard</span>
+            <span class="chip">庫存明細與批號追蹤</span>
+            <span class="chip">API Proposal</span>
+          </div>
+        </div>
+        <div class="toolbar">
+          <span class="button">匯出</span>
+          <span class="button primary">同步查詢</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div>
+          <div class="tabs">
+            <span class="tab active">庫存明細</span>
+            <span class="tab">風險批號</span>
+            <span class="tab">待處理任務</span>
+          </div>
+          <h1>庫存明細與批號追蹤</h1>
+          <p class="subcopy">從 Warehouse Dashboard 點進來後，管理者可以查明細、確認可用量、追溯來源單據，並判斷下一步應由哪個部門處理。</p>
+        </div>
+        <div class="chips">
+          <span class="chip">GET /warehouse/inventory/lots</span>
+          <span class="chip">GET /warehouse/inventory/lots/{lotKey}</span>
+        </div>
+      </section>
+
+      <section class="kpis" aria-label="inventory summary">
+        <div class="card kpi">
+          <p class="kpi-label">篩選庫存價值</p>
+          <p class="kpi-value">$12,846,000</p>
+          <p class="kpi-hint">金額回傳整數</p>
+        </div>
+        <div class="card kpi">
+          <p class="kpi-label">可用量</p>
+          <p class="kpi-value">18,420.50</p>
+          <p class="kpi-hint">數量取小數第 2 位</p>
+        </div>
+        <div class="card kpi">
+          <p class="kpi-label">風險批號</p>
+          <p class="kpi-value">8</p>
+          <p class="kpi-hint">效期、迴轉、安全水位</p>
+        </div>
+        <div class="card kpi">
+          <p class="kpi-label">未完成任務</p>
+          <p class="kpi-value">14</p>
+          <p class="kpi-hint">入庫、出庫、品檢、移倉</p>
+        </div>
+      </section>
+
+      <section class="layout">
+        <aside class="card panel">
+          <h2 class="panel-title">查詢條件</h2>
+          <label for="keyword">關鍵字</label>
+          <input id="keyword" value="RM-2408 / B240611" />
+          <label for="category">料品類別</label>
+          <select id="category">
+            <option>原料</option>
+            <option>物料</option>
+            <option>膠捲</option>
+            <option>在製品</option>
+            <option>製成品</option>
+          </select>
+          <label for="warehouse">倉儲</label>
+          <select id="warehouse">
+            <option>A 原料常溫倉</option>
+            <option>B 冷藏倉</option>
+            <option>C 成品倉</option>
+          </select>
+          <label for="risk">風險類型</label>
+          <select id="risk">
+            <option>全部</option>
+            <option>低於安全水位</option>
+            <option>效期低於 1/3</option>
+            <option>迴轉超過 30 天</option>
+          </select>
+          <label for="availability">可用狀態</label>
+          <select id="availability">
+            <option>全部</option>
+            <option>可用</option>
+            <option>已預留</option>
+            <option>品檢保留</option>
+          </select>
+          <div class="api-note">前端以 enum code 轉換顯示文字；API 不需回傳 categoryName、statusText 或 departmentName。</div>
+        </aside>
+
+        <section class="card table-card">
+          <div class="table-head">
+            <div>
+              <h2 class="panel-title">批號庫存清單</h2>
+              <p class="subcopy">點選批號後，右側載入 detail API。</p>
+            </div>
+            <span class="chip">total 128 · page 1</span>
+          </div>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>料號 / 批號</th>
+                  <th>倉儲</th>
+                  <th class="num">庫存量</th>
+                  <th class="num">預留</th>
+                  <th class="num">品檢</th>
+                  <th class="num">可用量</th>
+                  <th class="num">庫存價值</th>
+                  <th>風險</th>
+                  <th class="num">任務</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="selected">
+                  <td><strong>RM-2408</strong><br />B240611 · 洋蔥粉</td>
+                  <td>A 原料常溫倉<br /><span class="badge blue">WH-A-03</span></td>
+                  <td class="num">2,450.00</td>
+                  <td class="num">480.00</td>
+                  <td class="num">120.00</td>
+                  <td class="num"><strong>1,850.00</strong></td>
+                  <td class="num">$684,000</td>
+                  <td><span class="badge red">安全水位</span></td>
+                  <td class="num">3</td>
+                </tr>
+                <tr>
+                  <td><strong>RM-1902</strong><br />B240527 · 麥芽糊精</td>
+                  <td>A 原料常溫倉<br /><span class="badge blue">WH-A-01</span></td>
+                  <td class="num">5,200.00</td>
+                  <td class="num">1,000.00</td>
+                  <td class="num">0.00</td>
+                  <td class="num"><strong>4,200.00</strong></td>
+                  <td class="num">$1,092,000</td>
+                  <td><span class="badge amber">迴轉</span></td>
+                  <td class="num">1</td>
+                </tr>
+                <tr>
+                  <td><strong>FG-5081</strong><br />P240602 · 牛肉調理包</td>
+                  <td>C 成品倉<br /><span class="badge blue">WH-C-08</span></td>
+                  <td class="num">920.00</td>
+                  <td class="num">600.00</td>
+                  <td class="num">0.00</td>
+                  <td class="num"><strong>320.00</strong></td>
+                  <td class="num">$368,000</td>
+                  <td><span class="badge green">正常</span></td>
+                  <td class="num">2</td>
+                </tr>
+                <tr>
+                  <td><strong>RM-3310</strong><br />B240501 · 香辛料混合粉</td>
+                  <td>B 冷藏倉<br /><span class="badge blue">WH-B-02</span></td>
+                  <td class="num">780.00</td>
+                  <td class="num">0.00</td>
+                  <td class="num">240.00</td>
+                  <td class="num"><strong>540.00</strong></td>
+                  <td class="num">$284,000</td>
+                  <td><span class="badge red">效期</span></td>
+                  <td class="num">2</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="card panel detail-stack">
+          <div>
+            <h2 class="panel-title">批號追蹤面板</h2>
+            <p class="subcopy">RM-2408 · B240611</p>
+          </div>
+
+          <div class="detail-grid">
+            <div class="metric"><span>可用量</span><strong>1,850.00</strong></div>
+            <div class="metric"><span>庫存價值</span><strong>$684,000</strong></div>
+            <div class="metric"><span>佔用板數</span><strong>4.50 板</strong></div>
+            <div class="metric"><span>效期</span><strong>2026-08-22</strong></div>
+          </div>
+
+          <div class="detail-section">
+            <h3 class="panel-title">風險與建議</h3>
+            <div class="chips" style="margin-top: 10px">
+              <span class="badge red">低於安全水位</span>
+              <span class="badge amber">入庫 42 天</span>
+            </div>
+            <p class="subcopy">建議確認採購請購狀態，並檢查是否已有工單預留但尚未領料。</p>
+          </div>
+
+          <div class="detail-section">
+            <h3 class="panel-title">來源與異動</h3>
+            <div class="timeline">
+              <div class="event">
+                <time>06/11</time>
+                <div><strong>進貨 GRN-260611-003</strong><span class="subcopy">入庫 2,450.00 · $684,000</span></div>
+              </div>
+              <div class="event">
+                <time>06/12</time>
+                <div><strong>品檢 QI-260612-009</strong><span class="subcopy">保留 120.00，等待複驗</span></div>
+              </div>
+              <div class="event">
+                <time>06/15</time>
+                <div><strong>工單 WO-260615-022</strong><span class="subcopy">預留 480.00，製造部下一步處理</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3 class="panel-title">API Dataset</h3>
+            <p class="subcopy">list API 提供表格與 summary；detail API 提供 sourceDocuments、reservations、qualityHolds、palletMovements、workflowTasks。</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

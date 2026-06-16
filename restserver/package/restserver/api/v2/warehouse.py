@@ -1,8 +1,9 @@
 # coding=utf8
 import time
 from collections import defaultdict
+from urllib.parse import unquote
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, or_
 
 from package.common.common import (
     EErrorCode,
@@ -31,6 +32,7 @@ from package.dbwrapper.table import (
 from package.log.log import CLogger
 from package.util.util import (
     util_round_amount,
+    util_round_price,
     util_round_quantity,
     util_safe_float,
     util_safe_int,
@@ -621,6 +623,8 @@ class CWarehouseDashboardService(object):
         n_first_inbound = util_safe_int(dict_row.get("firstInboundTimestamp"))
         n_days_in_stock = int((n_query_timestamp - n_first_inbound) / 86400) if n_first_inbound else 0
         dict_rule = dict_risk_rules.get(str_risk_type, {})
+        str_default_message = self.__risk_message(str_risk_type)
+        str_default_action = self.__risk_action(str_risk_type)
         return {
             "alertId": "%s-%s-%s-%s" % (
                 str_risk_type,
@@ -643,8 +647,8 @@ class CWarehouseDashboardService(object):
             "validDate": util_safe_int(dict_row.get("validDate")),
             "remainingShelfLifeRatio": self.__remaining_shelf_life_ratio(dict_row, n_query_timestamp),
             "safetyStock": util_round_quantity(f_safety_stock),
-            "message": dict_rule.get("message") or self.__risk_message(str_risk_type),
-            "recommendedAction": dict_rule.get("recommendedAction") or self.__risk_action(str_risk_type),
+            "message": self.__safe_risk_text(dict_rule.get("message"), str_default_message),
+            "recommendedAction": self.__safe_risk_text(dict_rule.get("recommendedAction"), str_default_action),
         }
 
     def __task_to_dict(self, obj_row):
@@ -709,19 +713,557 @@ class CWarehouseDashboardService(object):
 
     def __risk_message(self, str_risk_type):
         dict_messages = {
-            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "Ã¦Â­Â¤Ã¦â€°Â¹Ã¥ÂºÂ«Ã¥Â­ËœÃ¨Â¿Â´Ã¨Â½â€°Ã©â‚¬Â±Ã¦Å“Å¸Ã¨Â¶â€¦Ã©ÂÅ½ 30 Ã¥Â¤Â©Ã£â‚¬â€š",
-            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "Ã¦Â­Â¤Ã¦â€°Â¹Ã¥ÂºÂ«Ã¥Â­ËœÃ¥â€°Â©Ã©Â¤ËœÃ¦â€¢Ë†Ã¦Å“Å¸Ã¤Â½Å½Ã¦â€“Â¼Ã¤Â¸â€°Ã¥Ë†â€ Ã¤Â¹â€¹Ã¤Â¸â‚¬Ã£â‚¬â€š",
-            EWarehouseRiskType.BELOW_SAFETY_STOCK: "Ã§â€ºÂ®Ã¥â€°ÂÃ¥ÂÂ¯Ã§â€Â¨Ã©â€¡ÂÃ¤Â½Å½Ã¦â€“Â¼Ã¥Â®â€°Ã¥â€¦Â¨Ã¦Â°Â´Ã¤Â½ÂÃ£â‚¬â€š",
+            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "此批庫存迴轉週期超過 30 天。",
+            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "此批庫存剩餘效期低於三分之一。",
+            EWarehouseRiskType.BELOW_SAFETY_STOCK: "目前可用量低於安全水位。",
         }
         return dict_messages.get(str_risk_type, "")
 
     def __risk_action(self, str_risk_type):
         dict_actions = {
-            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "Ã¥Â»ÂºÃ¨Â­Â°Ã§Â¢ÂºÃ¨ÂªÂÃ¦ËœÂ¯Ã¥ÂÂ¦Ã¥Â®â€°Ã¦Å½â€™Ã¥â€¡ÂºÃ¥ÂºÂ«Ã£â‚¬ÂÃ§â€Å¸Ã§â€Â¢Ã¤Â½Â¿Ã§â€Â¨Ã¦Ë†â€“Ã¥ÂºÂ«Ã¥Â­ËœÃ¨â„¢â€¢Ã§Â½Â®Ã£â‚¬â€š",
-            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "Ã¥Â»ÂºÃ¨Â­Â°Ã¥â€žÂªÃ¥â€¦Ë†Ã¥Â®â€°Ã¦Å½â€™Ã¥â€¡ÂºÃ¥ÂºÂ«Ã¦Ë†â€“Ã¨Â½â€°Ã§â€Å¸Ã§â€Â¢Ã¤Â½Â¿Ã§â€Â¨Ã£â‚¬â€š",
-            EWarehouseRiskType.BELOW_SAFETY_STOCK: "Ã¥Â»ÂºÃ¨Â­Â°Ã¥Â»ÂºÃ§Â«â€¹Ã¨Â«â€¹Ã¨Â³Â¼Ã¦Ë†â€“Ã§Â¢ÂºÃ¨ÂªÂÃ¥Â·Â²Ã¤Â¸â€¹Ã¦Å½Â¡Ã¨Â³Â¼Ã¥â€“Â®Ã£â‚¬â€š",
+            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "建議確認是否安排出庫、生產使用或庫存處置。",
+            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "建議優先安排出庫或轉生產使用。",
+            EWarehouseRiskType.BELOW_SAFETY_STOCK: "建議建立請購或確認已下採購單。",
         }
         return dict_actions.get(str_risk_type, "")
+
+    def __safe_risk_text(self, str_value, str_default):
+        if not str_value:
+            return str_default
+        if any(str_marker in str_value for str_marker in ["Ã", "Â", "�"]):
+            return str_default
+        return str_value
+
+
+class CWarehouseInventoryLotService(object):
+    def get_lots(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_warehouse_no="",
+        n_item_category=0,
+        str_item_no="",
+        str_batch_no="",
+        str_risk_type="",
+        n_task_type=0,
+        str_availability="",
+        str_keyword="",
+        str_sort="",
+        str_order="",
+        n_start=0,
+        n_count=50,
+        obj_session=None,
+    ):
+        if obj_session:
+            return self.__get_lots_with_session(
+                obj_session,
+                n_date,
+                str_timezone,
+                str_warehouse_no,
+                n_item_category,
+                str_item_no,
+                str_batch_no,
+                str_risk_type,
+                n_task_type,
+                str_availability,
+                str_keyword,
+                str_sort,
+                str_order,
+                n_start,
+                n_count,
+            )
+
+        with CDBMgr() as obj_dbmgr:
+            return self.__get_lots_with_session(
+                obj_dbmgr.get_session(),
+                n_date,
+                str_timezone,
+                str_warehouse_no,
+                n_item_category,
+                str_item_no,
+                str_batch_no,
+                str_risk_type,
+                n_task_type,
+                str_availability,
+                str_keyword,
+                str_sort,
+                str_order,
+                n_start,
+                n_count,
+            )
+
+    def get_lot_detail(self, str_lot_key, n_date=0, str_timezone="", obj_session=None):
+        if obj_session:
+            return self.__get_lot_detail_with_session(obj_session, str_lot_key, n_date, str_timezone)
+
+        with CDBMgr() as obj_dbmgr:
+            return self.__get_lot_detail_with_session(
+                obj_dbmgr.get_session(),
+                str_lot_key,
+                n_date,
+                str_timezone,
+            )
+
+    def __get_lots_with_session(
+        self,
+        obj_session,
+        n_date,
+        str_timezone,
+        str_warehouse_no,
+        n_item_category,
+        str_item_no,
+        str_batch_no,
+        str_risk_type,
+        n_task_type,
+        str_availability,
+        str_keyword,
+        str_sort,
+        str_order,
+        n_start,
+        n_count,
+    ):
+        n_query_timestamp = n_date if n_date else int(time.time())
+        dict_dashboard = CWarehouseDashboardService().get_dashboard(
+            n_date=n_query_timestamp,
+            str_timezone=str_timezone,
+            str_warehouse_no=str_warehouse_no,
+            n_item_category=n_item_category,
+            b_include_inventory=True,
+            obj_session=obj_session,
+        )
+        dict_risks = self.__group_risks(dict_dashboard.get("riskAlerts", []))
+        dict_tasks = self.__query_task_counts(obj_session, n_task_type)
+        dict_pallets = self.__query_pallet_counts(obj_session)
+        dict_sources = self.__query_latest_sources(obj_session)
+        lst_results = []
+
+        for dict_row in dict_dashboard.get("inventory", []):
+            str_key = self.__stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            dict_risk = dict_risks.get(str_key, {"riskTypes": [], "safetyStock": 0.0})
+            dict_lot = self.__lot_to_dict(
+                dict_row,
+                dict_risk,
+                util_safe_int(dict_tasks.get(str_key)),
+                util_safe_float(dict_pallets.get(str_key)),
+                dict_sources.get(str_key, {}),
+                n_query_timestamp,
+            )
+            if self.__is_lot_matched(
+                dict_lot,
+                str_item_no,
+                str_batch_no,
+                str_risk_type,
+                n_task_type,
+                str_availability,
+                str_keyword,
+            ):
+                lst_results.append(dict_lot)
+
+        lst_results = self.__sort_lots(lst_results, str_sort, str_order)
+        n_start = max(util_safe_int(n_start), 0)
+        n_count = util_safe_int(n_count) if n_count else 50
+        if n_count <= 0:
+            n_count = 50
+        lst_page = lst_results[n_start:n_start + n_count]
+
+        return {
+            "serverTimestamp": n_query_timestamp,
+            "timezone": str_timezone or "UTC",
+            "total": len(lst_results),
+            "count": len(lst_page),
+            "start": n_start,
+            "summary": self.__build_lot_summary(lst_results),
+            "results": lst_page,
+        }
+
+    def __get_lot_detail_with_session(self, obj_session, str_lot_key, n_date, str_timezone):
+        str_warehouse_no, str_item_no, str_batch_no = self.__parse_lot_key(str_lot_key)
+        dict_lots = self.__get_lots_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_warehouse_no,
+            0,
+            str_item_no,
+            str_batch_no,
+            "",
+            0,
+            "",
+            "",
+            "",
+            "",
+            0,
+            1,
+        )
+        dict_lot = dict_lots.get("results", [{}])[0] if dict_lots.get("results") else {}
+        if not dict_lot:
+            return {
+                "lot": {},
+                "sourceDocuments": [],
+                "reservations": [],
+                "qualityHolds": [],
+                "palletMovements": [],
+                "workflowTasks": [],
+            }
+
+        n_query_timestamp = n_date if n_date else int(time.time())
+        return {
+            "lot": dict_lot,
+            "sourceDocuments": self.__query_source_documents(
+                obj_session,
+                str_warehouse_no,
+                str_item_no,
+                str_batch_no,
+            ),
+            "reservations": self.__query_reservation_details(
+                obj_session,
+                str_warehouse_no,
+                str_item_no,
+                str_batch_no,
+                n_query_timestamp,
+            ),
+            "qualityHolds": self.__query_quality_hold_details(
+                obj_session,
+                str_warehouse_no,
+                str_item_no,
+                str_batch_no,
+            ),
+            "palletMovements": self.__query_pallet_movement_details(
+                obj_session,
+                str_warehouse_no,
+                str_item_no,
+                str_batch_no,
+            ),
+            "workflowTasks": self.__query_workflow_task_details(
+                obj_session,
+                str_warehouse_no,
+                str_item_no,
+                str_batch_no,
+            ),
+        }
+
+    def __lot_to_dict(self, dict_row, dict_risk, n_open_task_count, f_pallet_count, dict_source, n_query_timestamp):
+        f_current_quantity = util_safe_float(dict_row.get("currentQuantity"))
+        n_inventory_value = util_round_amount(dict_row.get("inventoryValue"))
+        n_first_inbound = util_safe_int(dict_row.get("firstInboundTimestamp"))
+        return {
+            "lotKey": self.__lot_key(dict_row.get("warehouseNo"), dict_row.get("itemNo"), dict_row.get("batchNo")),
+            "warehouseNo": dict_row.get("warehouseNo", ""),
+            "warehouseName": dict_row.get("warehouseName", ""),
+            "itemCategory": util_safe_int(dict_row.get("itemCategory")),
+            "itemNo": dict_row.get("itemNo", ""),
+            "itemName": dict_row.get("itemName", ""),
+            "batchNo": dict_row.get("batchNo", ""),
+            "unit": util_safe_int(dict_row.get("unit")),
+            "currentQuantity": util_round_quantity(f_current_quantity),
+            "reservedQuantity": util_round_quantity(dict_row.get("reservedQuantity")),
+            "qualityHoldQuantity": util_round_quantity(dict_row.get("qualityHoldQuantity")),
+            "availableQuantity": util_round_quantity(dict_row.get("availableQuantity")),
+            "unitCost": util_round_price(n_inventory_value / f_current_quantity) if f_current_quantity else 0.0,
+            "inventoryValue": n_inventory_value,
+            "reservedValue": util_round_amount(dict_row.get("reservedValue")),
+            "qualityHoldValue": util_round_amount(dict_row.get("qualityHoldValue")),
+            "availableValue": util_round_amount(dict_row.get("availableValue")),
+            "palletCount": util_round_quantity(f_pallet_count),
+            "firstInboundTimestamp": n_first_inbound,
+            "daysInStock": int((n_query_timestamp - n_first_inbound) / 86400) if n_first_inbound else 0,
+            "validDays": util_safe_int(dict_row.get("validDays")),
+            "validDate": util_safe_int(dict_row.get("validDate")),
+            "remainingShelfLifeRatio": self.__remaining_shelf_life_ratio(dict_row, n_query_timestamp),
+            "safetyStock": util_round_quantity(dict_risk.get("safetyStock")),
+            "riskTypes": dict_risk.get("riskTypes", []),
+            "openTaskCount": n_open_task_count,
+            "lastSourceNo": dict_source.get("refNo", ""),
+            "lastSourceCategory": util_safe_int(dict_source.get("refCategory")),
+        }
+
+    def __is_lot_matched(
+        self,
+        dict_lot,
+        str_item_no,
+        str_batch_no,
+        str_risk_type,
+        n_task_type,
+        str_availability,
+        str_keyword,
+    ):
+        if str_item_no and dict_lot.get("itemNo") != str_item_no:
+            return False
+        if str_batch_no and dict_lot.get("batchNo") != str_batch_no:
+            return False
+        if str_risk_type and str_risk_type not in dict_lot.get("riskTypes", []):
+            return False
+        if n_task_type and not dict_lot.get("openTaskCount"):
+            return False
+        if str_availability == "available" and util_safe_float(dict_lot.get("availableQuantity")) <= 0:
+            return False
+        if str_availability == "reserved" and util_safe_float(dict_lot.get("reservedQuantity")) <= 0:
+            return False
+        if str_availability == "quality_hold" and util_safe_float(dict_lot.get("qualityHoldQuantity")) <= 0:
+            return False
+        if str_availability == "blocked" and not dict_lot.get("riskTypes"):
+            return False
+        if str_keyword:
+            str_blob = " ".join([
+                dict_lot.get("warehouseName", ""),
+                dict_lot.get("itemNo", ""),
+                dict_lot.get("itemName", ""),
+                dict_lot.get("batchNo", ""),
+                dict_lot.get("lastSourceNo", ""),
+            ]).lower()
+            if str_keyword.lower() not in str_blob:
+                return False
+        return True
+
+    def __group_risks(self, lst_risks):
+        dict_result = defaultdict(lambda: {"riskTypes": [], "safetyStock": 0.0})
+        for dict_risk in lst_risks:
+            str_key = self.__stock_key(
+                dict_risk.get("itemNo"),
+                dict_risk.get("batchNo"),
+                dict_risk.get("warehouseNo"),
+            )
+            str_risk_type = dict_risk.get("riskType", "")
+            if str_risk_type and str_risk_type not in dict_result[str_key]["riskTypes"]:
+                dict_result[str_key]["riskTypes"].append(str_risk_type)
+            if util_safe_float(dict_risk.get("safetyStock")):
+                dict_result[str_key]["safetyStock"] = util_round_quantity(dict_risk.get("safetyStock"))
+        return dict_result
+
+    def __query_task_counts(self, obj_session, n_task_type):
+        lst_filters = [
+            CTableWorkflowTaskState.taskStatus.in_([
+                EWorkflowTaskStatus.PENDING,
+                EWorkflowTaskStatus.PARTIAL,
+                EWorkflowTaskStatus.BLOCKED,
+            ])
+        ]
+        if n_task_type:
+            lst_filters.append(CTableWorkflowTaskState.taskType == n_task_type)
+        lst_rows = (
+            obj_session.query(
+                CTableWorkflowTaskState.item_no,
+                CTableWorkflowTaskState.batchNumber,
+                CTableWorkflowTaskState.warehouse_no,
+                func.count(CTableWorkflowTaskState.id).label("openTaskCount"),
+            )
+            .filter(*lst_filters)
+            .group_by(
+                CTableWorkflowTaskState.item_no,
+                CTableWorkflowTaskState.batchNumber,
+                CTableWorkflowTaskState.warehouse_no,
+            )
+            .all()
+        )
+        return {
+            self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): util_safe_int(obj_row.openTaskCount)
+            for obj_row in lst_rows
+        }
+
+    def __query_pallet_counts(self, obj_session):
+        lst_rows = (
+            obj_session.query(
+                CTableWarehousePalletMovement.item_no,
+                CTableWarehousePalletMovement.batchNumber,
+                CTableWarehousePalletMovement.warehouse_no,
+                func.sum(CTableWarehousePalletMovement.palletCount).label("palletCount"),
+            )
+            .filter(CTableWarehousePalletMovement.palletStatus == CWarehouseDashboardService.PALLET_STATUS_USED)
+            .group_by(
+                CTableWarehousePalletMovement.item_no,
+                CTableWarehousePalletMovement.batchNumber,
+                CTableWarehousePalletMovement.warehouse_no,
+            )
+            .all()
+        )
+        return {
+            self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): util_round_quantity(obj_row.palletCount)
+            for obj_row in lst_rows
+        }
+
+    def __query_latest_sources(self, obj_session):
+        lst_rows = (
+            obj_session.query(CTableInventoryRec)
+            .filter(CTableInventoryRec.category == EInventoryCategory.IN)
+            .order_by(CTableInventoryRec.date.desc(), CTableInventoryRec.id.desc())
+            .all()
+        )
+        dict_result = {}
+        for obj_row in lst_rows:
+            str_key = self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no)
+            if str_key not in dict_result:
+                dict_result[str_key] = {
+                    "refNo": obj_row.ref_no or "",
+                    "refCategory": util_safe_int(obj_row.refCategory),
+                }
+        return dict_result
+
+    def __query_source_documents(self, obj_session, str_warehouse_no, str_item_no, str_batch_no):
+        lst_rows = (
+            obj_session.query(
+                CTableInventoryRec.refCategory,
+                CTableInventoryRec.ref_no,
+                CTableInventoryRec.date,
+                func.sum(CTableInventoryRec.count).label("quantity"),
+                func.sum(CTableInventoryRec.amount).label("amount"),
+            )
+            .filter(*self.__lot_filters(str_warehouse_no, str_item_no, str_batch_no, CTableInventoryRec))
+            .group_by(
+                CTableInventoryRec.refCategory,
+                CTableInventoryRec.ref_no,
+                CTableInventoryRec.date,
+            )
+            .order_by(CTableInventoryRec.date.desc())
+            .all()
+        )
+        return [{
+            "refCategory": util_safe_int(obj_row.refCategory),
+            "refNo": obj_row.ref_no or "",
+            "refSubNo": "",
+            "date": util_safe_int(obj_row.date),
+            "quantity": util_round_quantity(obj_row.quantity),
+            "amount": util_round_amount(obj_row.amount),
+        } for obj_row in lst_rows]
+
+    def __query_reservation_details(self, obj_session, str_warehouse_no, str_item_no, str_batch_no, n_query_timestamp):
+        lst_rows = (
+            obj_session.query(CTableWarehouseInventoryReservation)
+            .filter(*self.__lot_filters(str_warehouse_no, str_item_no, str_batch_no, CTableWarehouseInventoryReservation))
+            .filter(CTableWarehouseInventoryReservation.status == CWarehouseDashboardService.RESERVATION_STATUS_ACTIVE)
+            .filter(
+                (CTableWarehouseInventoryReservation.releaseTime == None)
+                | (CTableWarehouseInventoryReservation.releaseTime > n_query_timestamp)
+            )
+            .order_by(CTableWarehouseInventoryReservation.date.desc())
+            .all()
+        )
+        return [{
+            "reservationNo": obj_row.no or "",
+            "refCategory": util_safe_int(obj_row.refCategory),
+            "refNo": obj_row.ref_no or "",
+            "reservedQuantity": util_round_quantity(obj_row.reservedQuantity),
+            "reservedValue": util_round_amount(obj_row.reservedValue),
+            "releaseTime": util_safe_int(obj_row.releaseTime),
+            "status": util_safe_int(obj_row.status),
+        } for obj_row in lst_rows]
+
+    def __query_quality_hold_details(self, obj_session, str_warehouse_no, str_item_no, str_batch_no):
+        lst_rows = (
+            obj_session.query(CTableWarehouseQualityHold)
+            .filter(*self.__lot_filters(str_warehouse_no, str_item_no, str_batch_no, CTableWarehouseQualityHold))
+            .filter(CTableWarehouseQualityHold.status == CWarehouseDashboardService.QUALITY_HOLD_STATUS_ACTIVE)
+            .order_by(CTableWarehouseQualityHold.date.desc())
+            .all()
+        )
+        return [{
+            "holdNo": obj_row.no or "",
+            "inspectionNo": obj_row.inspection_no or "",
+            "holdQuantity": util_round_quantity(obj_row.holdQuantity),
+            "holdValue": util_round_amount(obj_row.holdValue),
+            "reason": obj_row.reason or "",
+            "status": util_safe_int(obj_row.status),
+        } for obj_row in lst_rows]
+
+    def __query_pallet_movement_details(self, obj_session, str_warehouse_no, str_item_no, str_batch_no):
+        lst_rows = (
+            obj_session.query(CTableWarehousePalletMovement)
+            .filter(*self.__lot_filters(str_warehouse_no, str_item_no, str_batch_no, CTableWarehousePalletMovement))
+            .order_by(CTableWarehousePalletMovement.date.desc())
+            .all()
+        )
+        return [{
+            "movementNo": obj_row.no or "",
+            "date": util_safe_int(obj_row.date),
+            "palletGroupNo": obj_row.pallet_group_no or "",
+            "palletStatus": util_safe_int(obj_row.palletStatus),
+            "palletCount": util_round_quantity(obj_row.palletCount),
+            "refCategory": util_safe_int(obj_row.refCategory),
+            "refNo": obj_row.ref_no or "",
+        } for obj_row in lst_rows]
+
+    def __query_workflow_task_details(self, obj_session, str_warehouse_no, str_item_no, str_batch_no):
+        lst_rows = (
+            obj_session.query(CTableWorkflowTaskState)
+            .filter(*self.__lot_filters(str_warehouse_no, str_item_no, str_batch_no, CTableWorkflowTaskState))
+            .filter(CTableWorkflowTaskState.taskStatus.in_([
+                EWorkflowTaskStatus.PENDING,
+                EWorkflowTaskStatus.PARTIAL,
+                EWorkflowTaskStatus.BLOCKED,
+            ]))
+            .order_by(CTableWorkflowTaskState.dueTimestamp.asc())
+            .all()
+        )
+        return [{
+            "taskId": obj_row.taskId or "",
+            "taskType": util_safe_int(obj_row.taskType),
+            "taskStatus": util_safe_int(obj_row.taskStatus),
+            "ownerDepartment": util_safe_int(obj_row.ownerDepartment),
+            "expectedQuantity": util_round_quantity(obj_row.expectedQuantity),
+            "processedQuantity": util_round_quantity(obj_row.processedQuantity),
+            "remainingQuantity": util_round_quantity(max(
+                util_safe_float(obj_row.expectedQuantity) - util_safe_float(obj_row.processedQuantity),
+                0.0,
+            )),
+            "dueTimestamp": util_safe_int(obj_row.dueTimestamp),
+            "blockReason": obj_row.blockReason or "",
+        } for obj_row in lst_rows]
+
+    def __lot_filters(self, str_warehouse_no, str_item_no, str_batch_no, obj_table):
+        lst_filters = [
+            obj_table.warehouse_no == str_warehouse_no,
+            obj_table.item_no == str_item_no,
+        ]
+        if str_batch_no:
+            lst_filters.append(obj_table.batchNumber == str_batch_no)
+        else:
+            lst_filters.append(or_(obj_table.batchNumber == "", obj_table.batchNumber == None))
+        return lst_filters
+
+    def __build_lot_summary(self, lst_results):
+        return {
+            "lotCount": len(lst_results),
+            "itemCount": len(set(dict_row.get("itemNo", "") for dict_row in lst_results)),
+            "totalQuantity": util_round_quantity(sum(util_safe_float(dict_row.get("currentQuantity")) for dict_row in lst_results)),
+            "totalInventoryValue": util_round_amount(sum(util_safe_float(dict_row.get("inventoryValue")) for dict_row in lst_results)),
+            "totalAvailableQuantity": util_round_quantity(sum(util_safe_float(dict_row.get("availableQuantity")) for dict_row in lst_results)),
+            "totalAvailableValue": util_round_amount(sum(util_safe_float(dict_row.get("availableValue")) for dict_row in lst_results)),
+            "riskLotCount": len([dict_row for dict_row in lst_results if dict_row.get("riskTypes")]),
+            "pendingTaskCount": sum(util_safe_int(dict_row.get("openTaskCount")) for dict_row in lst_results),
+        }
+
+    def __sort_lots(self, lst_results, str_sort, str_order):
+        dict_sort_key = {
+            "inventoryValue": "inventoryValue",
+            "availableQuantity": "availableQuantity",
+            "validDate": "validDate",
+            "daysInStock": "daysInStock",
+        }
+        str_key = dict_sort_key.get(str_sort, "inventoryValue")
+        return sorted(lst_results, key=lambda dict_row: dict_row.get(str_key, 0), reverse=str_order != "asc")
+
+    def __remaining_shelf_life_ratio(self, dict_row, n_query_timestamp):
+        n_valid_days = util_safe_int(dict_row.get("validDays"))
+        n_valid_date = util_safe_int(dict_row.get("validDate"))
+        if not n_valid_days or not n_valid_date:
+            return 0.0
+        return round(max(n_valid_date - n_query_timestamp, 0) / float(n_valid_days * 86400), 4)
+
+    def __stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
+        return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
+
+    def __lot_key(self, str_warehouse_no, str_item_no, str_batch_no):
+        return "%s|%s|%s" % (str_warehouse_no or "", str_item_no or "", str_batch_no or "")
+
+    def __parse_lot_key(self, str_lot_key):
+        lst_parts = unquote(str_lot_key or "").split("|")
+        while len(lst_parts) < 3:
+            lst_parts.append("")
+        return lst_parts[0], lst_parts[1], lst_parts[2]
+
 
 class CWarehouseDashboard(object):
     def get(self, str_timezone="", str_id=""):
@@ -750,4 +1292,59 @@ class CWarehouseDashboard(object):
             n_code = EErrorCode.ERROR_OTHER_ERROR
             str_message = "throw exception (error: %s)" % str(obj_error)
             CLogger().log(CLogger.LOG_LEVELERROR, "[CWarehouseDashboard] throw exception (error: %s)" % str(obj_error))
+        return n_status_code, n_code, str_message, dict_extra_data
+
+
+class CWarehouseInventoryLots(object):
+    def get(self, str_timezone="", str_id=""):
+        str_message = "success"
+        n_status_code = 200
+        n_code = EErrorCode.ERROR_SUCCESS
+        dict_extra_data = {}
+        try:
+            from flask import request
+
+            dict_extra_data = CWarehouseInventoryLotService().get_lots(
+                n_date=request.args.get("date", 0, type=int),
+                str_timezone=str_timezone,
+                str_warehouse_no=request.args.get("warehouse_no", "", type=str),
+                n_item_category=request.args.get("itemCategory", 0, type=int),
+                str_item_no=request.args.get("item_no", "", type=str),
+                str_batch_no=request.args.get("batchNo", "", type=str),
+                str_risk_type=request.args.get("riskType", "", type=str),
+                n_task_type=request.args.get("taskType", 0, type=int),
+                str_availability=request.args.get("availability", "", type=str),
+                str_keyword=request.args.get("keyword", "", type=str),
+                str_sort=request.args.get("sort", "", type=str),
+                str_order=request.args.get("order", "", type=str),
+                n_start=request.args.get("start", 0, type=int),
+                n_count=request.args.get("count", 50, type=int),
+            )
+        except Exception as obj_error:
+            n_status_code = 400
+            n_code = EErrorCode.ERROR_OTHER_ERROR
+            str_message = "throw exception (error: %s)" % str(obj_error)
+            CLogger().log(CLogger.LOG_LEVELERROR, "[CWarehouseInventoryLots] throw exception (error: %s)" % str(obj_error))
+        return n_status_code, n_code, str_message, dict_extra_data
+
+
+class CWarehouseInventoryLotDetail(object):
+    def get(self, str_timezone="", str_id=""):
+        str_message = "success"
+        n_status_code = 200
+        n_code = EErrorCode.ERROR_SUCCESS
+        dict_extra_data = {}
+        try:
+            from flask import request
+
+            dict_extra_data = CWarehouseInventoryLotService().get_lot_detail(
+                str_lot_key=str_id,
+                n_date=request.args.get("date", 0, type=int),
+                str_timezone=str_timezone,
+            )
+        except Exception as obj_error:
+            n_status_code = 400
+            n_code = EErrorCode.ERROR_OTHER_ERROR
+            str_message = "throw exception (error: %s)" % str(obj_error)
+            CLogger().log(CLogger.LOG_LEVELERROR, "[CWarehouseInventoryLotDetail] throw exception (error: %s)" % str(obj_error))
         return n_status_code, n_code, str_message, dict_extra_data

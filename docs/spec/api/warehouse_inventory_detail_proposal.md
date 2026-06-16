@@ -1,15 +1,16 @@
 # Warehouse Inventory Detail API Proposal
 
-> Status: Proposal / Not Implemented  
-> Target UI Preview: `docs/frontend/preview/warehouse_inventory_detail_static_preview.html`  
+> Status: Implemented / Pending Engineer Runtime Review
+> Target UI Preview: `docs/frontend/preview/warehouse_inventory_detail_static_preview.html`
+> Implementation: `restserver/package/restserver/api/v2/warehouse.py`, `restserver/package/restserver/api/v2/warehouse_uri.py`
 > Purpose: 承接 Warehouse Dashboard 的類別、風險警示與待處理任務點擊情境，提供「庫存明細與批號追蹤」畫面所需 API 規格提案。
 
 ## API Summary
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| `/api/v2/warehouse/inventory/lots` | GET | 查詢庫存批號明細清單 | Proposal | 供明細列表、篩選、排序、分頁與 Dashboard drill-down 使用。 |
-| `/api/v2/warehouse/inventory/lots/{lotKey}` | GET | 查詢單一庫存批號追蹤明細 | Proposal | 供右側明細面板顯示來源、預留、品檢、板位、任務與風險。 |
+| `/api/v2/warehouse/inventory/lots` | GET | 查詢庫存批號明細清單 | Implemented / Pending Runtime Review | 供明細列表、篩選、排序、分頁與 Dashboard drill-down 使用。 |
+| `/api/v2/warehouse/inventory/lots/{lotKey}` | GET | 查詢單一庫存批號追蹤明細 | Implemented / Pending Runtime Review | 供右側明細面板顯示來源、預留、品檢、板位、任務與風險。 |
 
 ## Numeric Format Rules
 

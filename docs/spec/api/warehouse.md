@@ -7,6 +7,8 @@
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | [/api/v2/warehouse/dashboard](#get-api-v2-warehouse-dashboard) | GET | 查詢 Warehouse Dashboard 經營總覽資料 | Need Review | [新增] 依 Warehouse 第一版 UX 需求與工程師確認後之資料庫新增規劃建立；待工程師以實際 MariaDB 測試資料確認。 |
+| [/api/v2/warehouse/inventory/lots](warehouse_inventory_detail_proposal.md#get-apiv2warehouseinventorylots) | GET | 查詢庫存批號明細清單 | Implemented / Pending Runtime Review | [新增] 供 Warehouse Dashboard drill-down、庫存明細與批號追蹤畫面使用。 |
+| [/api/v2/warehouse/inventory/lots/{lotKey}](warehouse_inventory_detail_proposal.md#get-apiv2warehouseinventorylotslotkey) | GET | 查詢單一庫存批號追蹤明細 | Implemented / Pending Runtime Review | [新增] 回傳來源單據、預留、品檢保留、板位異動與 workflow 任務。 |
 
 ## GET /api/v2/warehouse/dashboard
 

@@ -5,8 +5,8 @@ from package.restserver.api.apibase import CAPIBase
 from package.restserver.api.common import URL_PATH_V2
 from package.restserver.api.v2.warehouse import (
     CWarehouseDashboard,
-    CWarehouseInventoryLotDetail,
-    CWarehouseInventoryLots,
+    CWarehouseInventory,
+    CWarehouseTasks,
 )
 
 
@@ -23,17 +23,17 @@ class CWarehouseDashboardURI(CAPIBase):
         return False
 
 
-class CWarehouseInventoryLotsURI(CAPIBase):
+class CWarehouseInventoryURI(CAPIBase):
     def _get_executor(self):
-        return CWarehouseInventoryLots()
+        return CWarehouseInventory()
 
     def _is_vaildate_param(self):
         return False
 
 
-class CWarehouseInventoryLotDetailURI(CAPIBase):
+class CWarehouseTasksURI(CAPIBase):
     def _get_executor(self):
-        return CWarehouseInventoryLotDetail()
+        return CWarehouseTasks()
 
     def _is_vaildate_param(self):
         return False
@@ -45,13 +45,13 @@ def dashboard():
     return obj_uri.run()
 
 
-@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/inventory/lots", methods=["GET"])
-def inventory_lots():
-    obj_uri = CWarehouseInventoryLotsURI()
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/inventory", methods=["GET"])
+def inventory():
+    obj_uri = CWarehouseInventoryURI()
     return obj_uri.run()
 
 
-@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/inventory/lots/<path:str_lot_key>", methods=["GET"])
-def inventory_lot_detail(str_lot_key):
-    obj_uri = CWarehouseInventoryLotDetailURI()
-    return obj_uri.run(str_lot_key)
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/tasks", methods=["GET"])
+def tasks():
+    obj_uri = CWarehouseTasksURI()
+    return obj_uri.run()

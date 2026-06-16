@@ -7,8 +7,8 @@
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | [/api/v2/warehouse/dashboard](#get-api-v2-warehouse-dashboard) | GET | 查詢 Warehouse Dashboard 經營總覽資料 | Need Review | [新增] 依 Warehouse 第一版 UX 需求與工程師確認後之資料庫新增規劃建立；待工程師以實際 MariaDB 測試資料確認。 |
-| [/api/v2/warehouse/inventory/lots](warehouse_inventory_detail_proposal.md#get-apiv2warehouseinventorylots) | GET | 查詢庫存批號明細清單 | Implemented / Pending Runtime Review | [新增] 供 Warehouse Dashboard drill-down、庫存明細與批號追蹤畫面使用。 |
-| [/api/v2/warehouse/inventory/lots/{lotKey}](warehouse_inventory_detail_proposal.md#get-apiv2warehouseinventorylotslotkey) | GET | 查詢單一庫存批號追蹤明細 | Implemented / Pending Runtime Review | [新增] 回傳來源單據、預留、品檢保留、板位異動與 workflow 任務。 |
+| [/api/v2/warehouse/inventory](#get-api-v2-warehouse-inventory) | GET | 查詢 Warehouse 庫存明細資料 | Implemented / Pending Runtime Review | [新增] 工程師已確認之 Warehouse Dashboard 庫存明細 API。 |
+| [/api/v2/warehouse/tasks](#get-api-v2-warehouse-tasks) | GET | 查詢 Warehouse 待處理任務 | Implemented / Pending Runtime Review | [新增] 工程師已確認之 Warehouse Dashboard 待處理入出庫任務 API。 |
 
 ## GET /api/v2/warehouse/dashboard
 
@@ -313,3 +313,261 @@ None
 | ship_wh | 提供倉儲空間容量 |
 | ship_wh_contract | 提供倉儲別名與倉儲空間對應；僅使用 category = 2 的倉儲合約 |
 | ship_wh_alias | 提供倉儲別名名稱與類型 |
+
+## GET /api/v2/warehouse/inventory
+
+<a id="get-api-v2-warehouse-inventory"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/inventory | GET | 查詢 Warehouse 庫存明細資料 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示時區；未提供時以 UTC 回傳 |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準時間，UTC timestamp；未提供時以伺服器目前時間計算 |
+| warehouse_no | String | NO | 倉儲別名 no |
+| itemCategory | Integer | NO | 料品品項類別 |
+| item_no | String | NO | 料品品項編號 |
+| batchNo | String | NO | 批號 |
+| riskType | String | NO | 風險類型；如 TURNOVER_OVER_30_DAYS、SHELF_LIFE_LT_ONE_THIRD、BELOW_SAFETY_STOCK |
+| start | Integer | NO | 分頁起始位置 |
+| count | Integer | NO | 分頁筆數；預設 50 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "total": "Integer",
+    "count": "Integer",
+    "start": "Integer",
+    "results": [
+      {
+        "inventoryId": "String",
+        "warehouseNo": "String",
+        "warehouseName": "String",
+        "itemNo": "String",
+        "itemName": "String",
+        "itemCategory": "Integer",
+        "itemSubCategory": "Integer",
+        "itemType": "Integer",
+        "batchNo": "String",
+        "serialNo": "String",
+        "currentQuantity": "Float",
+        "reservedQuantity": "Float",
+        "availableQuantity": "Float",
+        "qualityHoldQuantity": "Float",
+        "unit": "Integer",
+        "unitCost": "Float",
+        "inventoryValue": "Integer",
+        "reservedValue": "Integer",
+        "availableValue": "Integer",
+        "qualityHoldValue": "Integer",
+        "palletCount": "Float",
+        "safetyStock": "Float",
+        "validDays": "Integer",
+        "validDate": "Integer",
+        "firstInboundTimestamp": "Integer",
+        "daysInStock": "Integer",
+        "sourceType": "String",
+        "sourceNo": "String",
+        "sourceRefCategory": "Integer",
+        "qualityStatus": "String",
+        "riskTypes": ["String"]
+      }
+    ]
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| payload.total | Integer | 符合條件的庫存明細總筆數 |  |
+| payload.count | Integer | 本次回傳筆數 |  |
+| payload.start | Integer | 分頁起始位置 |  |
+| payload.results[].inventoryId | String | 庫存列識別碼，由倉儲、料品、批號、流水號組成 |  |
+| payload.results[].warehouseNo | String | 倉儲別名 no |  |
+| payload.results[].warehouseName | String | 倉儲別名名稱 |  |
+| payload.results[].itemNo | String | 料品品項編號 |  |
+| payload.results[].itemName | String | 料品品項名稱 |  |
+| payload.results[].itemCategory | Integer | 料品品項類別；前端負責轉換顯示文字 | EItemCategory |
+| payload.results[].itemSubCategory | Integer | 料品品項子類別；第一版若來源未提供則回傳 0 |  |
+| payload.results[].itemType | Integer | 料品類型；第一版若來源未提供則回傳 0 |  |
+| payload.results[].batchNo | String | 批號 |  |
+| payload.results[].serialNo | String | 流水號；批號層級資料可為空字串 |  |
+| payload.results[].currentQuantity | Float | 目前庫存量，數量欄位取至小數點第 2 位 |  |
+| payload.results[].reservedQuantity | Float | 有效預留數量 |  |
+| payload.results[].availableQuantity | Float | 可用數量，計算方式為目前庫存量扣除預留與品檢保留量 |  |
+| payload.results[].qualityHoldQuantity | Float | 品檢保留量 |  |
+| payload.results[].unit | Integer | 庫存單位；前端負責轉換顯示文字 | Unit |
+| payload.results[].unitCost | Float | 庫存單位成本，取至小數點第 4 位 |  |
+| payload.results[].inventoryValue | Integer | 目前庫存價值，金額四捨五入取整數 |  |
+| payload.results[].reservedValue | Integer | 預留庫存價值 |  |
+| payload.results[].availableValue | Integer | 可用庫存價值 |  |
+| payload.results[].qualityHoldValue | Integer | 品檢保留庫存價值 |  |
+| payload.results[].palletCount | Float | 佔用板數 |  |
+| payload.results[].safetyStock | Float | 安全水位數量 |  |
+| payload.results[].validDays | Integer | 批號有效天數 |  |
+| payload.results[].validDate | Integer | 批號效期日，UTC timestamp |  |
+| payload.results[].firstInboundTimestamp | Integer | 同倉儲同批號首次入庫時間，UTC timestamp |  |
+| payload.results[].daysInStock | Integer | 庫存迴轉天數 |  |
+| payload.results[].sourceType | String | 來源單據類型，依 sourceRefCategory 轉換為穩定代碼 | PURCHASE、SALE、WORK、OTHER |
+| payload.results[].sourceNo | String | 最近一次入庫來源單號 |  |
+| payload.results[].sourceRefCategory | Integer | 庫存來源類別 | EInventoryRefCategory |
+| payload.results[].qualityStatus | String | 品檢狀態穩定代碼；目前依品檢保留量回傳 released 或 hold |  |
+| payload.results[].riskTypes[] | String | 此庫存列符合的風險類型 | EWarehouseRiskType |
+
+### Processing Flow
+
+1. 讀取庫存篩選條件與分頁參數。
+2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，依倉儲、料品、批號彙總目前庫存量與庫存價值。
+3. 彙總有效預留量、品檢保留量與板位使用量，計算可用數量與可用價值。
+4. 補齊批號效期、首次入庫時間、安全水位與風險類型。
+5. 套用 item_no、batchNo、riskType 與分頁條件後回傳結果。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| inventory_record | 提供庫存異動、目前庫存量與庫存價值彙總基礎 |
+| batch_number | 提供批號效期資訊 |
+| warehouse_inventory_reservation | 提供預留數量與預留價值 |
+| warehouse_quality_hold | 提供品檢保留量與品檢保留價值 |
+| warehouse_pallet_movement | 提供板數佔用狀態 |
+| item_safety_stock | 提供安全水位 |
+| warehouse_risk_rule | 提供風險說明 fallback 規則 |
+
+## GET /api/v2/warehouse/tasks
+
+<a id="get-api-v2-warehouse-tasks"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/tasks | GET | 查詢 Warehouse 待處理任務 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示時區；未提供時以 UTC 回傳 |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準時間，UTC timestamp；提供時回傳到該日結束前仍待處理的任務 |
+| taskType | Integer | NO | 任務類型 |
+| warehouse_no | String | NO | 倉儲別名 no |
+| status | String/Integer | NO | 任務狀態；支援 pending、partial、done、blocked、cancelled 或狀態代碼 |
+| start | Integer | NO | 分頁起始位置 |
+| count | Integer | NO | 分頁筆數；預設 50 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "total": "Integer",
+    "count": "Integer",
+    "start": "Integer",
+    "results": [
+      {
+        "taskId": "String",
+        "taskType": "Integer",
+        "refCategory": "Integer",
+        "sourceNo": "String",
+        "sourceSubNo": "String",
+        "itemNo": "String",
+        "itemName": "String",
+        "itemCategory": "Integer",
+        "batchNo": "String",
+        "expectedQuantity": "Float",
+        "processedQuantity": "Float",
+        "remainingQuantity": "Float",
+        "unit": "Integer",
+        "palletCount": "Float",
+        "warehouseNo": "String",
+        "warehouseName": "String",
+        "dueTimestamp": "Integer",
+        "taskStatus": "Integer",
+        "ownerDepartment": "Integer",
+        "blockReason": "String"
+      }
+    ]
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| payload.total | Integer | 符合條件的任務總筆數 |  |
+| payload.count | Integer | 本次回傳任務筆數 |  |
+| payload.start | Integer | 分頁起始位置 |  |
+| payload.results[].taskId | String | 任務識別碼 |  |
+| payload.results[].taskType | Integer | 任務類型；前端負責轉換顯示文字 | EWorkflowTaskType |
+| payload.results[].refCategory | Integer | 來源類別 |  |
+| payload.results[].sourceNo | String | 來源單號 |  |
+| payload.results[].sourceSubNo | String | 來源明細編號 |  |
+| payload.results[].itemNo | String | 料品品項編號 |  |
+| payload.results[].itemName | String | 料品品項名稱 |  |
+| payload.results[].itemCategory | Integer | 料品品項類別 | EItemCategory |
+| payload.results[].batchNo | String | 批號 |  |
+| payload.results[].expectedQuantity | Float | 預計處理數量 |  |
+| payload.results[].processedQuantity | Float | 已處理數量 |  |
+| payload.results[].remainingQuantity | Float | 剩餘待處理數量 |  |
+| payload.results[].unit | Integer | 任務數量單位 | Unit |
+| payload.results[].palletCount | Float | 任務涉及板數 |  |
+| payload.results[].warehouseNo | String | 任務對應倉儲別名 no |  |
+| payload.results[].warehouseName | String | 任務對應倉儲別名名稱；第一版若任務狀態表未存放名稱則回傳空字串 |  |
+| payload.results[].dueTimestamp | Integer | 任務預計完成時間，UTC timestamp |  |
+| payload.results[].taskStatus | Integer | 任務狀態；前端負責轉換顯示文字 | EWorkflowTaskStatus |
+| payload.results[].ownerDepartment | Integer | 下一步負責部門；前端負責轉換顯示文字 | EDepartment |
+| payload.results[].blockReason | String | 任務阻塞原因或主管人工判斷備註 |  |
+
+### Processing Flow
+
+1. 讀取 date、taskType、warehouse_no、status 與分頁條件。
+2. 若提供 status，依指定狀態查詢；若未提供，預設回傳 pending、partial、blocked。
+3. 若提供 date，回傳該查詢日結束前仍待處理的任務。
+4. 依 dueTimestamp 由早到晚排序，套用分頁。
+5. 計算 remainingQuantity = expectedQuantity - processedQuantity 後回傳任務清單。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| workflow_task_state | 提供待處理任務狀態、數量、來源單號與下一步負責部門 |

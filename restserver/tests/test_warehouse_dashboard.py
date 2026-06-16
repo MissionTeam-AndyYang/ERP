@@ -34,7 +34,8 @@ from package.dbwrapper.table import (
 )
 from package.restserver.api.v2.warehouse import (
     CWarehouseDashboardService,
-    CWarehouseInventoryLotService,
+    CWarehouseInventoryService,
+    CWarehouseTaskService,
 )
 
 
@@ -281,81 +282,101 @@ def test_dashboard_service_builds_risk_alerts():
     ]
 
 
-def test_inventory_lot_service_returns_list_and_detail():
+def test_inventory_service_returns_confirmed_inventory_dataset():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseInventoryLotService().get_lots(
+    dict_payload = CWarehouseInventoryService().get_inventory(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
         n_item_category=EItemCategory.PM,
-        str_sort="inventoryValue",
         obj_session=obj_session,
     )
 
     assert dict_payload["total"] == 1
-    assert dict_payload["summary"]["lotCount"] == 1
-    assert dict_payload["summary"]["totalInventoryValue"] == 900.0
-    assert dict_payload["summary"]["totalAvailableValue"] == 650.0
-    dict_lot = dict_payload["results"][0]
-    assert dict_lot["lotKey"] == "WH-A|RM-001|B-RM-001"
-    assert dict_lot["currentQuantity"] == 90.0
-    assert dict_lot["reservedQuantity"] == 20.0
-    assert dict_lot["qualityHoldQuantity"] == 5.0
-    assert dict_lot["availableQuantity"] == 65.0
-    assert dict_lot["palletCount"] == 2.0
-    assert dict_lot["openTaskCount"] == 2
-    assert EWarehouseRiskType.BELOW_SAFETY_STOCK in dict_lot["riskTypes"]
+    dict_inventory = dict_payload["results"][0]
+    assert dict_inventory["inventoryId"] == "WH-A|RM-001|B-RM-001|"
+    assert dict_inventory["currentQuantity"] == 90.0
+    assert dict_inventory["reservedQuantity"] == 20.0
+    assert dict_inventory["qualityHoldQuantity"] == 5.0
+    assert dict_inventory["availableQuantity"] == 65.0
+    assert dict_inventory["inventoryValue"] == 900.0
+    assert dict_inventory["availableValue"] == 650.0
+    assert dict_inventory["palletCount"] == 2.0
+    assert dict_inventory["qualityStatus"] == "hold"
+    assert EWarehouseRiskType.BELOW_SAFETY_STOCK in dict_inventory["riskTypes"]
 
-    dict_detail = CWarehouseInventoryLotService().get_lot_detail(
-        str_lot_key=dict_lot["lotKey"],
-        n_date=n_now,
+
+def test_task_service_returns_confirmed_task_dataset():
+    obj_session = build_session()
+    seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseTaskService().get_tasks(
         str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
         obj_session=obj_session,
     )
 
-    assert dict_detail["lot"]["lotKey"] == "WH-A|RM-001|B-RM-001"
-    assert len(dict_detail["sourceDocuments"]) == 2
-    assert dict_detail["reservations"][0]["reservationNo"] == "RES-001"
-    assert dict_detail["qualityHolds"][0]["holdNo"] == "QH-001"
-    assert len(dict_detail["palletMovements"]) == 2
-    assert len(dict_detail["workflowTasks"]) == 2
+    assert dict_payload["total"] == 2
+    assert dict_payload["count"] == 2
+    assert dict_payload["results"][0]["taskId"] == "TASK-IN-001"
+    assert dict_payload["results"][0]["remainingQuantity"] == 100.0
+    assert dict_payload["results"][1]["taskId"] == "TASK-OUT-001"
+    assert dict_payload["results"][1]["remainingQuantity"] == 15.0
 
 
-def test_inventory_lot_route_returns_existing_api_envelope(monkeypatch):
+def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     from flask import Flask
 
     from package.restserver.api.v2.warehouse_uri import warehouse_v2
 
-    def fake_get_lots(self, **dict_kwargs):
+    def fake_get_inventory(self, **dict_kwargs):
         return {
             "serverTimestamp": 1700000000,
             "timezone": "Asia/Taipei",
             "total": 1,
             "count": 1,
             "start": 0,
-            "summary": {"lotCount": 1},
-            "results": [{"lotKey": "WH-A|RM-001|B-RM-001"}],
+            "results": [{"inventoryId": "WH-A|RM-001|B-RM-001|"}],
+        }
+
+    def fake_get_tasks(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "timezone": "Asia/Taipei",
+            "total": 1,
+            "count": 1,
+            "start": 0,
+            "results": [{"taskId": "TASK-IN-001"}],
         }
 
     monkeypatch.setenv("TOKEN_ENABLED", "1")
-    monkeypatch.setattr(CWarehouseInventoryLotService, "get_lots", fake_get_lots)
+    monkeypatch.setattr(CWarehouseInventoryService, "get_inventory", fake_get_inventory)
+    monkeypatch.setattr(CWarehouseTaskService, "get_tasks", fake_get_tasks)
 
     obj_app = Flask(__name__)
     obj_app.register_blueprint(warehouse_v2)
     obj_client = obj_app.test_client()
 
-    obj_response = obj_client.get(
-        "/api/v2/warehouse/inventory/lots",
+    obj_inventory_response = obj_client.get(
+        "/api/v2/warehouse/inventory",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_tasks_response = obj_client.get(
+        "/api/v2/warehouse/tasks",
         headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
     )
 
-    assert obj_response.status_code == 200
-    dict_data = json.loads(obj_response.data.decode("utf8"))
-    assert dict_data["code"] == 0
-    assert dict_data["message"] == "success"
-    assert dict_data["payload"]["summary"]["lotCount"] == 1
+    assert obj_inventory_response.status_code == 200
+    dict_inventory_data = json.loads(obj_inventory_response.data.decode("utf8"))
+    assert dict_inventory_data["code"] == 0
+    assert dict_inventory_data["payload"]["results"][0]["inventoryId"] == "WH-A|RM-001|B-RM-001|"
+
+    assert obj_tasks_response.status_code == 200
+    dict_tasks_data = json.loads(obj_tasks_response.data.decode("utf8"))
+    assert dict_tasks_data["code"] == 0
+    assert dict_tasks_data["payload"]["results"][0]["taskId"] == "TASK-IN-001"
 
 
 def test_dashboard_route_returns_existing_api_envelope(monkeypatch):

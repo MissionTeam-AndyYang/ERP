@@ -8,6 +8,7 @@ from package.common.common import (
     EErrorCode,
     EInventoryCategory,
     EItemCategory,
+    EShipWarehouseCat,
     EWarehouseRiskLevel,
     EWarehouseRiskType,
     EWorkflowTaskStatus,
@@ -28,6 +29,12 @@ from package.dbwrapper.table import (
     CTableWorkflowTaskState,
 )
 from package.log.log import CLogger
+from package.util.util import (
+    util_round_amount,
+    util_round_quantity,
+    util_safe_float,
+    util_safe_int,
+)
 
 
 class CWarehouseDashboardService(object):
@@ -192,31 +199,31 @@ class CWarehouseDashboardService(object):
             )
             dict_batch = {
                 obj_row.no: {
-                    "validDays": self.__safe_int(obj_row.validDays),
-                    "validDate": self.__safe_int(obj_row.validDate),
+                    "validDays": util_safe_int(obj_row.validDays),
+                    "validDate": util_safe_int(obj_row.validDate),
                 }
                 for obj_row in lst_batch_rows
             }
 
         lst_results = []
         for obj_row in lst_rows:
-            f_quantity = self.__safe_float(obj_row.currentQuantity)
+            f_quantity = util_safe_float(obj_row.currentQuantity)
             if f_quantity <= 0:
                 continue
             dict_batch_info = dict_batch.get(obj_row.batchNumber, {})
             lst_results.append({
                 "warehouseNo": obj_row.warehouse_no or "",
                 "warehouseName": obj_row.warehouse_displayName or "",
-                "itemCategory": self.__safe_int(obj_row.itemCategory),
+                "itemCategory": util_safe_int(obj_row.itemCategory),
                 "itemNo": obj_row.item_no or "",
                 "itemName": obj_row.item_name or "",
                 "batchNo": obj_row.batchNumber or "",
-                "unit": self.__safe_int(obj_row.unit),
-                "currentQuantity": f_quantity,
-                "inventoryValue": self.__safe_float(obj_row.inventoryValue),
-                "firstInboundTimestamp": self.__safe_int(obj_row.firstInboundTimestamp),
-                "validDays": self.__safe_int(dict_batch_info.get("validDays", 0)),
-                "validDate": self.__safe_int(dict_batch_info.get("validDate", 0)),
+                "unit": util_safe_int(obj_row.unit),
+                "currentQuantity": util_round_quantity(f_quantity),
+                "inventoryValue": util_round_amount(obj_row.inventoryValue),
+                "firstInboundTimestamp": util_safe_int(obj_row.firstInboundTimestamp),
+                "validDays": util_safe_int(dict_batch_info.get("validDays", 0)),
+                "validDate": util_safe_int(dict_batch_info.get("validDate", 0)),
             })
         return lst_results
 
@@ -243,8 +250,8 @@ class CWarehouseDashboardService(object):
         )
         return {
             self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): {
-                "reservedQuantity": self.__safe_float(obj_row.reservedQuantity),
-                "reservedValue": self.__safe_float(obj_row.reservedValue),
+                "reservedQuantity": util_round_quantity(obj_row.reservedQuantity),
+                "reservedValue": util_round_amount(obj_row.reservedValue),
             }
             for obj_row in lst_rows
         }
@@ -268,8 +275,8 @@ class CWarehouseDashboardService(object):
         )
         return {
             self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): {
-                "qualityHoldQuantity": self.__safe_float(obj_row.holdQuantity),
-                "qualityHoldValue": self.__safe_float(obj_row.holdValue),
+                "qualityHoldQuantity": util_round_quantity(obj_row.holdQuantity),
+                "qualityHoldValue": util_round_amount(obj_row.holdValue),
             }
             for obj_row in lst_rows
         }
@@ -298,16 +305,16 @@ class CWarehouseDashboardService(object):
         dict_result = {"byWarehouse": defaultdict(lambda: {"usedPallets": 0.0, "reservedPallets": 0.0}),
                        "byCategory": defaultdict(float)}
         for obj_row in lst_rows:
-            f_pallet_count = self.__safe_float(obj_row.palletCount)
+            f_pallet_count = util_safe_float(obj_row.palletCount)
             if obj_row.palletStatus == self.PALLET_STATUS_USED:
                 dict_result["byWarehouse"][obj_row.warehouse_no]["usedPallets"] += f_pallet_count
-                dict_result["byCategory"][self.__safe_int(obj_row.itemCategory)] += f_pallet_count
+                dict_result["byCategory"][util_safe_int(obj_row.itemCategory)] += f_pallet_count
             elif obj_row.palletStatus == self.PALLET_STATUS_RESERVED:
                 dict_result["byWarehouse"][obj_row.warehouse_no]["reservedPallets"] += f_pallet_count
         return dict_result
 
     def __query_capacity(self, obj_session, str_warehouse_no):
-        lst_filters = []
+        lst_filters = [CTableShipWarehouseContract.category == EShipWarehouseCat.WAREHOUSE]
         if str_warehouse_no:
             lst_filters.append(CTableShipWarehouseContract.sw_alias_no == str_warehouse_no)
         lst_rows = (
@@ -337,8 +344,8 @@ class CWarehouseDashboardService(object):
             obj_row.sw_alias_no: {
                 "warehouseNo": obj_row.sw_alias_no or "",
                 "warehouseName": obj_row.name or "",
-                "warehouseType": self.__safe_int(obj_row.type),
-                "totalPallets": self.__safe_float(obj_row.totalPallets),
+                "warehouseType": util_safe_int(obj_row.type),
+                "totalPallets": util_round_quantity(obj_row.totalPallets),
             }
             for obj_row in lst_rows
         }
@@ -351,13 +358,13 @@ class CWarehouseDashboardService(object):
         )
         dict_result = {}
         for obj_row in lst_rows:
-            n_effective = self.__safe_int(obj_row.effectiveDate)
-            n_expiry = self.__safe_int(obj_row.expiryDate)
+            n_effective = util_safe_int(obj_row.effectiveDate)
+            n_expiry = util_safe_int(obj_row.expiryDate)
             if n_effective and n_effective > n_query_timestamp:
                 continue
             if n_expiry and n_expiry < n_query_timestamp:
                 continue
-            dict_result[(obj_row.item_no or "", obj_row.warehouse_no or "")] = self.__safe_float(obj_row.safetyStock)
+            dict_result[(obj_row.item_no or "", obj_row.warehouse_no or "")] = util_round_quantity(obj_row.safetyStock)
         return dict_result
 
     def __query_risk_rules(self, obj_session):
@@ -368,7 +375,7 @@ class CWarehouseDashboardService(object):
         )
         return {
             obj_row.riskType: {
-                "riskLevel": self.__safe_int(obj_row.riskLevel),
+                "riskLevel": util_safe_int(obj_row.riskLevel),
                 "message": obj_row.messageTemplateZhTw or "",
                 "recommendedAction": obj_row.recommendedActionTemplateZhTw or "",
             }
@@ -444,14 +451,14 @@ class CWarehouseDashboardService(object):
                 "qualityHoldValue": 0.0,
                 "quantity": 0.0,
                 "unit": 0,
-                "palletCount": self.__safe_float(dict_pallets["byCategory"].get(n_category, 0.0)),
+                "palletCount": util_round_quantity(dict_pallets["byCategory"].get(n_category, 0.0)),
                 "itemCount": 0,
                 "valueRatio": 0.0,
                 "trend7Days": 0.0,
             }
         dict_items = defaultdict(set)
         for dict_row in lst_inventory_rows:
-            n_category = self.__safe_int(dict_row.get("itemCategory"))
+            n_category = util_safe_int(dict_row.get("itemCategory"))
             dict_summary = dict_category.setdefault(n_category, {
                 "itemCategory": n_category,
                 "inventoryValue": 0.0,
@@ -460,7 +467,7 @@ class CWarehouseDashboardService(object):
                 "qualityHoldValue": 0.0,
                 "quantity": 0.0,
                 "unit": 0,
-                "palletCount": self.__safe_float(dict_pallets["byCategory"].get(n_category, 0.0)),
+                "palletCount": util_round_quantity(dict_pallets["byCategory"].get(n_category, 0.0)),
                 "itemCount": 0,
                 "valueRatio": 0.0,
                 "trend7Days": 0.0,
@@ -470,12 +477,12 @@ class CWarehouseDashboardService(object):
                 dict_row.get("batchNo"),
                 dict_row.get("warehouseNo"),
             )
-            f_reserved_value = self.__safe_float(dict_reservations.get(str_key, {}).get("reservedValue"))
-            f_quality_value = self.__safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldValue"))
-            dict_summary["inventoryValue"] += self.__safe_float(dict_row.get("inventoryValue"))
+            f_reserved_value = util_safe_float(dict_reservations.get(str_key, {}).get("reservedValue"))
+            f_quality_value = util_safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldValue"))
+            dict_summary["inventoryValue"] += util_safe_float(dict_row.get("inventoryValue"))
             dict_summary["reservedValue"] += f_reserved_value
             dict_summary["qualityHoldValue"] += f_quality_value
-            dict_summary["quantity"] += self.__safe_float(dict_row.get("currentQuantity"))
+            dict_summary["quantity"] += util_safe_float(dict_row.get("currentQuantity"))
             dict_items[n_category].add(dict_row.get("itemNo"))
         f_total_value = sum(dict_row["inventoryValue"] for dict_row in dict_category.values())
         for n_category, dict_summary in dict_category.items():
@@ -485,8 +492,15 @@ class CWarehouseDashboardService(object):
                 - dict_summary["qualityHoldValue"],
                 0.0,
             )
+            dict_summary["inventoryValue"] = util_round_amount(dict_summary["inventoryValue"])
+            dict_summary["reservedValue"] = util_round_amount(dict_summary["reservedValue"])
+            dict_summary["availableValue"] = util_round_amount(dict_summary["availableValue"])
+            dict_summary["qualityHoldValue"] = util_round_amount(dict_summary["qualityHoldValue"])
+            dict_summary["quantity"] = util_round_quantity(dict_summary["quantity"])
+            dict_summary["palletCount"] = util_round_quantity(dict_summary["palletCount"])
             dict_summary["itemCount"] = len(dict_items[n_category])
-            dict_summary["valueRatio"] = round(dict_summary["inventoryValue"] / f_total_value * 100, 2) if f_total_value else 0.0
+            dict_summary["valueRatio"] = util_round_quantity(dict_summary["inventoryValue"] / f_total_value * 100) if f_total_value else 0.0
+            dict_summary["trend7Days"] = util_round_quantity(dict_summary["trend7Days"])
         return dict_category
 
     def __build_capacity_summary(self, dict_capacity, dict_pallets):
@@ -500,19 +514,19 @@ class CWarehouseDashboardService(object):
                 "totalPallets": 0.0,
             })
             dict_pallet = dict_pallets["byWarehouse"].get(str_warehouse_no, {})
-            f_used = self.__safe_float(dict_pallet.get("usedPallets"))
-            f_reserved = self.__safe_float(dict_pallet.get("reservedPallets"))
-            f_total = self.__safe_float(dict_base.get("totalPallets"))
+            f_used = util_safe_float(dict_pallet.get("usedPallets"))
+            f_reserved = util_safe_float(dict_pallet.get("reservedPallets"))
+            f_total = util_safe_float(dict_base.get("totalPallets"))
             f_available = max(f_total - f_used - f_reserved, 0.0)
-            f_rate = round(f_used / f_total * 100, 2) if f_total else 0.0
+            f_rate = util_round_quantity(f_used / f_total * 100) if f_total else 0.0
             lst_results.append({
                 "warehouseNo": dict_base.get("warehouseNo", ""),
                 "warehouseName": dict_base.get("warehouseName", ""),
-                "warehouseType": self.__safe_int(dict_base.get("warehouseType")),
-                "totalPallets": f_total,
-                "usedPallets": f_used,
-                "reservedPallets": f_reserved,
-                "availablePallets": f_available,
+                "warehouseType": util_safe_int(dict_base.get("warehouseType")),
+                "totalPallets": util_round_quantity(f_total),
+                "usedPallets": util_round_quantity(f_used),
+                "reservedPallets": util_round_quantity(f_reserved),
+                "availablePallets": util_round_quantity(f_available),
                 "utilizationRate": f_rate,
                 "riskLevel": self.__capacity_risk_level(f_rate),
             })
@@ -522,18 +536,18 @@ class CWarehouseDashboardService(object):
         f_total_value = sum(dict_row["inventoryValue"] for dict_row in dict_category.values())
         f_reserved_value = sum(dict_row["reservedValue"] for dict_row in dict_category.values())
         f_quality_value = sum(dict_row["qualityHoldValue"] for dict_row in dict_category.values())
-        f_total_pallets = sum(self.__safe_float(dict_row.get("totalPallets")) for dict_row in lst_capacity)
-        f_used_pallets = sum(self.__safe_float(dict_row.get("usedPallets")) for dict_row in lst_capacity)
-        f_reserved_pallets = sum(self.__safe_float(dict_row.get("reservedPallets")) for dict_row in lst_capacity)
+        f_total_pallets = sum(util_safe_float(dict_row.get("totalPallets")) for dict_row in lst_capacity)
+        f_used_pallets = sum(util_safe_float(dict_row.get("usedPallets")) for dict_row in lst_capacity)
+        f_reserved_pallets = sum(util_safe_float(dict_row.get("reservedPallets")) for dict_row in lst_capacity)
         return {
-            "totalInventoryValue": f_total_value,
-            "reservedInventoryValue": f_reserved_value,
-            "availableInventoryValue": max(f_total_value - f_reserved_value - f_quality_value, 0.0),
-            "qualityHoldInventoryValue": f_quality_value,
-            "totalPallets": f_total_pallets,
-            "usedPallets": f_used_pallets,
-            "reservedPallets": f_reserved_pallets,
-            "availablePallets": max(f_total_pallets - f_used_pallets - f_reserved_pallets, 0.0),
+            "totalInventoryValue": util_round_amount(f_total_value),
+            "reservedInventoryValue": util_round_amount(f_reserved_value),
+            "availableInventoryValue": util_round_amount(max(f_total_value - f_reserved_value - f_quality_value, 0.0)),
+            "qualityHoldInventoryValue": util_round_amount(f_quality_value),
+            "totalPallets": util_round_quantity(f_total_pallets),
+            "usedPallets": util_round_quantity(f_used_pallets),
+            "reservedPallets": util_round_quantity(f_reserved_pallets),
+            "availablePallets": util_round_quantity(max(f_total_pallets - f_used_pallets - f_reserved_pallets, 0.0)),
             "riskAlertCount": len(lst_risks),
             "pendingInboundCount": len([dict_row for dict_row in lst_tasks if dict_row.get("taskType") in [EWorkflowTaskType.GOODS_RECEIPT, EWorkflowTaskType.INBOUND]]),
             "pendingOutboundCount": len([dict_row for dict_row in lst_tasks if dict_row.get("taskType") in [EWorkflowTaskType.OUTBOUND, EWorkflowTaskType.SHIPMENT]]),
@@ -543,22 +557,24 @@ class CWarehouseDashboardService(object):
         lst_results = []
         for dict_row in lst_inventory_rows:
             str_key = self.__stock_key(dict_row.get("itemNo"), dict_row.get("batchNo"), dict_row.get("warehouseNo"))
-            f_reserved = self.__safe_float(dict_reservations.get(str_key, {}).get("reservedQuantity"))
-            f_quality = self.__safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldQuantity"))
-            f_quantity = self.__safe_float(dict_row.get("currentQuantity"))
+            f_reserved = util_safe_float(dict_reservations.get(str_key, {}).get("reservedQuantity"))
+            f_quality = util_safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldQuantity"))
+            f_quantity = util_safe_float(dict_row.get("currentQuantity"))
             dict_data = dict(dict_row)
             dict_data.update({
-                "reservedQuantity": f_reserved,
-                "availableQuantity": max(f_quantity - f_reserved - f_quality, 0.0),
-                "qualityHoldQuantity": f_quality,
-                "reservedValue": self.__safe_float(dict_reservations.get(str_key, {}).get("reservedValue")),
-                "availableValue": max(
-                    self.__safe_float(dict_row.get("inventoryValue"))
-                    - self.__safe_float(dict_reservations.get(str_key, {}).get("reservedValue"))
-                    - self.__safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldValue")),
+                "currentQuantity": util_round_quantity(dict_row.get("currentQuantity")),
+                "inventoryValue": util_round_amount(dict_row.get("inventoryValue")),
+                "reservedQuantity": util_round_quantity(f_reserved),
+                "availableQuantity": util_round_quantity(max(f_quantity - f_reserved - f_quality, 0.0)),
+                "qualityHoldQuantity": util_round_quantity(f_quality),
+                "reservedValue": util_round_amount(dict_reservations.get(str_key, {}).get("reservedValue")),
+                "availableValue": util_round_amount(max(
+                    util_safe_float(dict_row.get("inventoryValue"))
+                    - util_safe_float(dict_reservations.get(str_key, {}).get("reservedValue"))
+                    - util_safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldValue")),
                     0.0,
-                ),
-                "qualityHoldValue": self.__safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldValue")),
+                )),
+                "qualityHoldValue": util_round_amount(dict_quality_holds.get(str_key, {}).get("qualityHoldValue")),
             })
             lst_results.append(dict_data)
         return lst_results
@@ -574,20 +590,20 @@ class CWarehouseDashboardService(object):
         lst_results = []
         for dict_row in lst_inventory_rows:
             lst_row_risks = []
-            n_item_category = self.__safe_int(dict_row.get("itemCategory"))
-            n_valid_date = self.__safe_int(dict_row.get("validDate"))
-            n_valid_days = self.__safe_int(dict_row.get("validDays"))
+            n_item_category = util_safe_int(dict_row.get("itemCategory"))
+            n_valid_date = util_safe_int(dict_row.get("validDate"))
+            n_valid_days = util_safe_int(dict_row.get("validDays"))
             if n_valid_date and n_valid_days and n_item_category not in [EItemCategory.MA, EItemCategory.AF]:
                 n_remaining = n_valid_date - n_query_timestamp
                 if n_remaining <= (n_valid_days * 86400 / 3):
                     lst_row_risks.append(EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD)
-            n_first_inbound = self.__safe_int(dict_row.get("firstInboundTimestamp"))
+            n_first_inbound = util_safe_int(dict_row.get("firstInboundTimestamp"))
             if n_first_inbound and (n_query_timestamp - n_first_inbound) > 30 * 86400:
                 lst_row_risks.append(EWarehouseRiskType.TURNOVER_OVER_30_DAYS)
-            f_safety_stock = self.__safe_float(dict_safety_stock.get((dict_row.get("itemNo"), dict_row.get("warehouseNo"))))
+            f_safety_stock = util_safe_float(dict_safety_stock.get((dict_row.get("itemNo"), dict_row.get("warehouseNo"))))
             if not f_safety_stock:
-                f_safety_stock = self.__safe_float(dict_safety_stock.get((dict_row.get("itemNo"), "")))
-            if f_safety_stock and self.__safe_float(dict_row.get("currentQuantity")) < f_safety_stock:
+                f_safety_stock = util_safe_float(dict_safety_stock.get((dict_row.get("itemNo"), "")))
+            if f_safety_stock and util_safe_float(dict_row.get("currentQuantity")) < f_safety_stock:
                 lst_row_risks.append(EWarehouseRiskType.BELOW_SAFETY_STOCK)
             for str_risk_type in lst_row_risks:
                 lst_results.append(
@@ -602,7 +618,7 @@ class CWarehouseDashboardService(object):
         return lst_results
 
     def __risk_to_dict(self, dict_row, str_risk_type, f_safety_stock, n_query_timestamp, dict_risk_rules):
-        n_first_inbound = self.__safe_int(dict_row.get("firstInboundTimestamp"))
+        n_first_inbound = util_safe_int(dict_row.get("firstInboundTimestamp"))
         n_days_in_stock = int((n_query_timestamp - n_first_inbound) / 86400) if n_first_inbound else 0
         dict_rule = dict_risk_rules.get(str_risk_type, {})
         return {
@@ -616,17 +632,17 @@ class CWarehouseDashboardService(object):
             "riskLevel": self.__risk_level_value(dict_rule.get("riskLevel"), str_risk_type),
             "itemNo": dict_row.get("itemNo", ""),
             "itemName": dict_row.get("itemName", ""),
-            "itemCategory": self.__safe_int(dict_row.get("itemCategory")),
+            "itemCategory": util_safe_int(dict_row.get("itemCategory")),
             "batchNo": dict_row.get("batchNo", ""),
             "warehouseNo": dict_row.get("warehouseNo", ""),
             "warehouseName": dict_row.get("warehouseName", ""),
-            "quantity": self.__safe_float(dict_row.get("currentQuantity")),
-            "unit": self.__safe_int(dict_row.get("unit")),
-            "inventoryValue": self.__safe_float(dict_row.get("inventoryValue")),
+            "quantity": util_round_quantity(dict_row.get("currentQuantity")),
+            "unit": util_safe_int(dict_row.get("unit")),
+            "inventoryValue": util_round_amount(dict_row.get("inventoryValue")),
             "daysInStock": n_days_in_stock,
-            "validDate": self.__safe_int(dict_row.get("validDate")),
+            "validDate": util_safe_int(dict_row.get("validDate")),
             "remainingShelfLifeRatio": self.__remaining_shelf_life_ratio(dict_row, n_query_timestamp),
-            "safetyStock": f_safety_stock,
+            "safetyStock": util_round_quantity(f_safety_stock),
             "message": dict_rule.get("message") or self.__risk_message(str_risk_type),
             "recommendedAction": dict_rule.get("recommendedAction") or self.__risk_action(str_risk_type),
         }
@@ -634,27 +650,27 @@ class CWarehouseDashboardService(object):
     def __task_to_dict(self, obj_row):
         return {
             "taskId": obj_row.taskId or "",
-            "taskType": self.__safe_int(obj_row.taskType),
-            "refCategory": self.__safe_int(obj_row.refCategory),
+            "taskType": util_safe_int(obj_row.taskType),
+            "refCategory": util_safe_int(obj_row.refCategory),
             "sourceNo": obj_row.ref_no or "",
             "sourceSubNo": obj_row.ref_sub_no or "",
             "itemNo": obj_row.item_no or "",
             "itemName": obj_row.item_name or "",
-            "itemCategory": self.__safe_int(obj_row.itemCategory),
+            "itemCategory": util_safe_int(obj_row.itemCategory),
             "batchNo": obj_row.batchNumber or "",
-            "expectedQuantity": self.__safe_float(obj_row.expectedQuantity),
-            "processedQuantity": self.__safe_float(obj_row.processedQuantity),
-            "remainingQuantity": max(
-                self.__safe_float(obj_row.expectedQuantity) - self.__safe_float(obj_row.processedQuantity),
+            "expectedQuantity": util_round_quantity(obj_row.expectedQuantity),
+            "processedQuantity": util_round_quantity(obj_row.processedQuantity),
+            "remainingQuantity": util_round_quantity(max(
+                util_safe_float(obj_row.expectedQuantity) - util_safe_float(obj_row.processedQuantity),
                 0.0,
-            ),
-            "unit": self.__safe_int(obj_row.unit),
-            "palletCount": self.__safe_float(obj_row.palletCount),
+            )),
+            "unit": util_safe_int(obj_row.unit),
+            "palletCount": util_round_quantity(obj_row.palletCount),
             "warehouseNo": obj_row.warehouse_no or "",
             "warehouseName": "",
-            "dueTimestamp": self.__safe_int(obj_row.dueTimestamp),
-            "taskStatus": self.__safe_int(obj_row.taskStatus),
-            "ownerDepartment": self.__safe_int(obj_row.ownerDepartment),
+            "dueTimestamp": util_safe_int(obj_row.dueTimestamp),
+            "taskStatus": util_safe_int(obj_row.taskStatus),
+            "ownerDepartment": util_safe_int(obj_row.ownerDepartment),
             "blockReason": obj_row.blockReason or "",
         }
 
@@ -685,40 +701,27 @@ class CWarehouseDashboardService(object):
         return EWarehouseRiskLevel.WARNING
 
     def __remaining_shelf_life_ratio(self, dict_row, n_query_timestamp):
-        n_valid_days = self.__safe_int(dict_row.get("validDays"))
-        n_valid_date = self.__safe_int(dict_row.get("validDate"))
+        n_valid_days = util_safe_int(dict_row.get("validDays"))
+        n_valid_date = util_safe_int(dict_row.get("validDate"))
         if not n_valid_days or not n_valid_date:
             return 0.0
         return round(max(n_valid_date - n_query_timestamp, 0) / float(n_valid_days * 86400), 4)
 
     def __risk_message(self, str_risk_type):
         dict_messages = {
-            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "此批庫存迴轉週期超過 30 天。",
-            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "此批庫存剩餘效期低於三分之一。",
-            EWarehouseRiskType.BELOW_SAFETY_STOCK: "目前可用量低於安全水位。",
+            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "Ã¦Â­Â¤Ã¦â€°Â¹Ã¥ÂºÂ«Ã¥Â­ËœÃ¨Â¿Â´Ã¨Â½â€°Ã©â‚¬Â±Ã¦Å“Å¸Ã¨Â¶â€¦Ã©ÂÅ½ 30 Ã¥Â¤Â©Ã£â‚¬â€š",
+            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "Ã¦Â­Â¤Ã¦â€°Â¹Ã¥ÂºÂ«Ã¥Â­ËœÃ¥â€°Â©Ã©Â¤ËœÃ¦â€¢Ë†Ã¦Å“Å¸Ã¤Â½Å½Ã¦â€“Â¼Ã¤Â¸â€°Ã¥Ë†â€ Ã¤Â¹â€¹Ã¤Â¸â‚¬Ã£â‚¬â€š",
+            EWarehouseRiskType.BELOW_SAFETY_STOCK: "Ã§â€ºÂ®Ã¥â€°ÂÃ¥ÂÂ¯Ã§â€Â¨Ã©â€¡ÂÃ¤Â½Å½Ã¦â€“Â¼Ã¥Â®â€°Ã¥â€¦Â¨Ã¦Â°Â´Ã¤Â½ÂÃ£â‚¬â€š",
         }
         return dict_messages.get(str_risk_type, "")
 
     def __risk_action(self, str_risk_type):
         dict_actions = {
-            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "建議確認是否安排出庫、生產使用或庫存處置。",
-            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "建議優先安排出庫或轉生產使用。",
-            EWarehouseRiskType.BELOW_SAFETY_STOCK: "建議建立請購或確認已下採購單。",
+            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "Ã¥Â»ÂºÃ¨Â­Â°Ã§Â¢ÂºÃ¨ÂªÂÃ¦ËœÂ¯Ã¥ÂÂ¦Ã¥Â®â€°Ã¦Å½â€™Ã¥â€¡ÂºÃ¥ÂºÂ«Ã£â‚¬ÂÃ§â€Å¸Ã§â€Â¢Ã¤Â½Â¿Ã§â€Â¨Ã¦Ë†â€“Ã¥ÂºÂ«Ã¥Â­ËœÃ¨â„¢â€¢Ã§Â½Â®Ã£â‚¬â€š",
+            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "Ã¥Â»ÂºÃ¨Â­Â°Ã¥â€žÂªÃ¥â€¦Ë†Ã¥Â®â€°Ã¦Å½â€™Ã¥â€¡ÂºÃ¥ÂºÂ«Ã¦Ë†â€“Ã¨Â½â€°Ã§â€Å¸Ã§â€Â¢Ã¤Â½Â¿Ã§â€Â¨Ã£â‚¬â€š",
+            EWarehouseRiskType.BELOW_SAFETY_STOCK: "Ã¥Â»ÂºÃ¨Â­Â°Ã¥Â»ÂºÃ§Â«â€¹Ã¨Â«â€¹Ã¨Â³Â¼Ã¦Ë†â€“Ã§Â¢ÂºÃ¨ÂªÂÃ¥Â·Â²Ã¤Â¸â€¹Ã¦Å½Â¡Ã¨Â³Â¼Ã¥â€“Â®Ã£â‚¬â€š",
         }
         return dict_actions.get(str_risk_type, "")
-
-    def __safe_float(self, obj_value):
-        try:
-            return float(obj_value) if obj_value is not None else 0.0
-        except (TypeError, ValueError):
-            return 0.0
-
-    def __safe_int(self, obj_value):
-        try:
-            return int(obj_value) if obj_value is not None else 0
-        except (TypeError, ValueError):
-            return 0
-
 
 class CWarehouseDashboard(object):
     def get(self, str_timezone="", str_id=""):

@@ -159,7 +159,21 @@ def seed_dashboard_base(obj_session):
         ),
         CTableShipWarehouseAlias(no="WH-A", name="A倉", type=1),
         CTableShipWarehouse(no="SW-A", name="A倉板位", maxCapacity=10),
-        CTableShipWarehouseContract(no="SWC-001", date=n_now, sw_alias_no="WH-A", item_no="SW-A"),
+        CTableShipWarehouse(no="SW-SHIP", name="物流板位", maxCapacity=99),
+        CTableShipWarehouseContract(
+            no="SWC-001",
+            date=n_now,
+            sw_alias_no="WH-A",
+            item_no="SW-A",
+            category=2,
+        ),
+        CTableShipWarehouseContract(
+            no="SWC-SHIP-001",
+            date=n_now,
+            sw_alias_no="WH-A",
+            item_no="SW-SHIP",
+            category=1,
+        ),
         CTableWorkflowTaskState(
             taskId="TASK-IN-001",
             module=7,

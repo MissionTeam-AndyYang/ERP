@@ -12,6 +12,14 @@
 
 <a id="get-api-v2-warehouse-dashboard"></a>
 
+### Numeric Format Rules
+
+| Numeric Meaning | Format |
+|----------|----------|
+| 單價 | 四捨五入取至小數點第 4 位 |
+| 重量或數量 | 四捨五入取至小數點第 2 位 |
+| 金額 | 四捨五入取整數 |
+
 ### Basic Information
 
 | URL | Method | Description |
@@ -54,10 +62,10 @@ None
       "endTimestamp": "Integer"
     },
     "summary": {
-      "totalInventoryValue": "Float",
-      "reservedInventoryValue": "Float",
-      "availableInventoryValue": "Float",
-      "qualityHoldInventoryValue": "Float",
+      "totalInventoryValue": "Integer",
+      "reservedInventoryValue": "Integer",
+      "availableInventoryValue": "Integer",
+      "qualityHoldInventoryValue": "Integer",
       "totalPallets": "Float",
       "usedPallets": "Float",
       "reservedPallets": "Float",
@@ -69,10 +77,10 @@ None
     "inventoryValueByCategory": [
       {
         "itemCategory": "Integer",
-        "inventoryValue": "Float",
-        "reservedValue": "Float",
-        "availableValue": "Float",
-        "qualityHoldValue": "Float",
+        "inventoryValue": "Integer",
+        "reservedValue": "Integer",
+        "availableValue": "Integer",
+        "qualityHoldValue": "Integer",
         "quantity": "Float",
         "unit": "Integer",
         "palletCount": "Float",
@@ -107,7 +115,7 @@ None
         "warehouseName": "String",
         "quantity": "Float",
         "unit": "Integer",
-        "inventoryValue": "Float",
+        "inventoryValue": "Integer",
         "daysInStock": "Integer",
         "validDate": "Integer",
         "remainingShelfLifeRatio": "Float",
@@ -154,10 +162,10 @@ None
         "reservedQuantity": "Float",
         "availableQuantity": "Float",
         "qualityHoldQuantity": "Float",
-        "inventoryValue": "Float",
-        "reservedValue": "Float",
-        "availableValue": "Float",
-        "qualityHoldValue": "Float",
+        "inventoryValue": "Integer",
+        "reservedValue": "Integer",
+        "availableValue": "Integer",
+        "qualityHoldValue": "Integer",
         "firstInboundTimestamp": "Integer",
         "validDays": "Integer",
         "validDate": "Integer"
@@ -176,10 +184,10 @@ None
 | payload.range.date | String | 查詢基準日期，格式為 YYYY-MM-DD |  |
 | payload.range.startTimestamp | Integer | 查詢日期起始時間，UTC timestamp |  |
 | payload.range.endTimestamp | Integer | 查詢日期結束時間，UTC timestamp |  |
-| payload.summary.totalInventoryValue | Float | 目前庫存總價值，依 `inventory_record` 入庫金額減出庫金額彙總 |  |
-| payload.summary.reservedInventoryValue | Float | 已被訂單、工單或倉庫任務預留的庫存價值 |  |
-| payload.summary.availableInventoryValue | Float | 可用庫存價值，計算方式為庫存價值扣除預留價值與品檢保留價值 |  |
-| payload.summary.qualityHoldInventoryValue | Float | 品檢保留庫存價值 |  |
+| payload.summary.totalInventoryValue | Integer | 目前庫存總價值，依 `inventory_record` 入庫金額減出庫金額彙總 |  |
+| payload.summary.reservedInventoryValue | Integer | 已被訂單、工單或倉庫任務預留的庫存價值 |  |
+| payload.summary.availableInventoryValue | Integer | 可用庫存價值，計算方式為庫存價值扣除預留價值與品檢保留價值 |  |
+| payload.summary.qualityHoldInventoryValue | Integer | 品檢保留庫存價值 |  |
 | payload.summary.totalPallets | Float | 可管理倉儲空間總板數 |  |
 | payload.summary.usedPallets | Float | 已佔用板數 |  |
 | payload.summary.reservedPallets | Float | 已預留板數 |  |
@@ -188,10 +196,10 @@ None
 | payload.summary.pendingInboundCount | Integer | 今日或待處理進貨/入庫任務數 | EWorkflowTaskType |
 | payload.summary.pendingOutboundCount | Integer | 今日或待處理出庫/出貨任務數 | EWorkflowTaskType |
 | payload.inventoryValueByCategory[].itemCategory | Integer | 料品品項類別 | EItemCategory |
-| payload.inventoryValueByCategory[].inventoryValue | Float | 該類別目前庫存價值 |  |
-| payload.inventoryValueByCategory[].reservedValue | Float | 該類別預留價值 |  |
-| payload.inventoryValueByCategory[].availableValue | Float | 該類別可用價值 |  |
-| payload.inventoryValueByCategory[].qualityHoldValue | Float | 該類別品檢保留價值 |  |
+| payload.inventoryValueByCategory[].inventoryValue | Integer | 該類別目前庫存價值 |  |
+| payload.inventoryValueByCategory[].reservedValue | Integer | 該類別預留價值 |  |
+| payload.inventoryValueByCategory[].availableValue | Integer | 該類別可用價值 |  |
+| payload.inventoryValueByCategory[].qualityHoldValue | Integer | 該類別品檢保留價值 |  |
 | payload.inventoryValueByCategory[].quantity | Float | 該類別目前庫存量彙總；因實務可能混合單位，第一版僅供比較參考 |  |
 | payload.inventoryValueByCategory[].unit | Integer | 數量單位；混合單位彙總時回傳 0 | Unit |
 | payload.inventoryValueByCategory[].palletCount | Float | 該類別已佔用板數 |  |
@@ -218,7 +226,7 @@ None
 | payload.riskAlerts[].warehouseName | String | 倉儲別名名稱 |  |
 | payload.riskAlerts[].quantity | Float | 目前庫存量 |  |
 | payload.riskAlerts[].unit | Integer | 庫存量單位 | Unit |
-| payload.riskAlerts[].inventoryValue | Float | 該批庫存價值 |  |
+| payload.riskAlerts[].inventoryValue | Integer | 該批庫存價值 |  |
 | payload.riskAlerts[].daysInStock | Integer | 該批庫存自首次入庫起算的庫存天數 |  |
 | payload.riskAlerts[].validDate | Integer | 批號效期日，UTC timestamp |  |
 | payload.riskAlerts[].remainingShelfLifeRatio | Float | 剩餘效期比例；0.3333 表示剩餘三分之一效期 |  |
@@ -257,10 +265,10 @@ None
 | payload.inventory[].reservedQuantity | Float | 預留數量；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].availableQuantity | Float | 可用數量；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].qualityHoldQuantity | Float | 品檢保留量；僅 `includeInventory=true` 時回傳 |  |
-| payload.inventory[].inventoryValue | Float | 目前庫存價值；僅 `includeInventory=true` 時回傳 |  |
-| payload.inventory[].reservedValue | Float | 預留價值；僅 `includeInventory=true` 時回傳 |  |
-| payload.inventory[].availableValue | Float | 可用價值；僅 `includeInventory=true` 時回傳 |  |
-| payload.inventory[].qualityHoldValue | Float | 品檢保留價值；僅 `includeInventory=true` 時回傳 |  |
+| payload.inventory[].inventoryValue | Integer | 目前庫存價值；僅 `includeInventory=true` 時回傳 |  |
+| payload.inventory[].reservedValue | Integer | 預留價值；僅 `includeInventory=true` 時回傳 |  |
+| payload.inventory[].availableValue | Integer | 可用價值；僅 `includeInventory=true` 時回傳 |  |
+| payload.inventory[].qualityHoldValue | Integer | 品檢保留價值；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].firstInboundTimestamp | Integer | 該庫存批號首次入庫時間；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].validDays | Integer | 該批號有效天數；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].validDate | Integer | 該批號效期日；僅 `includeInventory=true` 時回傳 |  |
@@ -281,7 +289,7 @@ None
 4. 讀取 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
 5. 讀取 `warehouse_quality_hold` 彙總有效品檢保留量與品檢保留價值。
 6. 讀取 `warehouse_pallet_movement` 彙總各倉儲與各料品品項類別的已佔用板數、預留板數。
-7. 讀取 `ship_wh_contract`、`ship_wh`、`ship_wh_alias` 計算各倉儲空間總板數與可用板數。
+7. 讀取 `ship_wh_contract`、`ship_wh`、`ship_wh_alias` 計算各倉儲空間總板數與可用板數；因 `ship_wh_contract` 同時存放物流與倉庫合約，僅納入 `ship_wh_contract.category = 2` 的倉儲合約。
 8. 讀取 `item_safety_stock` 判斷低於安全水位之庫存風險。
 9. 讀取 `warehouse_risk_rule` 補齊風險等級、風險說明文字與建議處理方式；若尚未設定規則，使用 API 內建預設文字。
 10. 依庫存迴轉超過 30 天、效期剩餘低於三分之一、安全水位不足建立 `riskAlerts`。
@@ -301,5 +309,5 @@ None
 | warehouse_risk_rule | 提供風險等級、風險說明文字與建議處理方式 |
 | workflow_task_state | 提供待處理任務狀態與下一步負責部門 |
 | ship_wh | 提供倉儲空間容量 |
-| ship_wh_contract | 提供倉儲別名與倉儲空間對應 |
+| ship_wh_contract | 提供倉儲別名與倉儲空間對應；僅使用 category = 2 的倉儲合約 |
 | ship_wh_alias | 提供倉儲別名名稱與類型 |

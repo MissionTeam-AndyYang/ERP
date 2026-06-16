@@ -3,6 +3,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 import time
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import class_mapper
 from package.common.common import *
@@ -170,6 +171,51 @@ def util_new_get_item_info( str_item_no):
                         n_unitWarehouse = obj_goods.unitWarehouse
                         n_unitProduct = obj_goods.unitProduct
     return  str_name, n_category, n_subCategory, n_unitWarehouse, n_unitProduct
+
+
+# ------------------------------------------------------------
+# Common value conversion and numeric output helpers
+# ------------------------------------------------------------
+
+def util_safe_float(obj_value):
+    try:
+        return float(obj_value) if obj_value is not None else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def util_safe_int(obj_value):
+    try:
+        return int(obj_value) if obj_value is not None else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+def util_round_price(obj_value):
+    return float(
+        Decimal(str(util_safe_float(obj_value))).quantize(
+            Decimal("0.0001"),
+            rounding=ROUND_HALF_UP,
+        )
+    )
+
+
+def util_round_quantity(obj_value):
+    return float(
+        Decimal(str(util_safe_float(obj_value))).quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
+    )
+
+
+def util_round_amount(obj_value):
+    return int(
+        Decimal(str(util_safe_float(obj_value))).quantize(
+            Decimal("1"),
+            rounding=ROUND_HALF_UP,
+        )
+    )
 
 
 

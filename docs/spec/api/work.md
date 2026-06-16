@@ -6,11 +6,11 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [/api/v1/work/assignment](#get-api-v1-work-assignment) | GET | 查詢製造作業 / 作業分派 | OK | OK |
-| [/api/v1/work/process](#get-api-v1-work-process) | GET | 查詢製造作業 / 製程 | OK | OK |
-| [/api/v1/work/process](#post-api-v1-work-process) | POST | 新增製造作業 / 製程 | OK | OK |
-| [/api/v1/work/productdata](#get-api-v1-work-productdata) | GET | 查詢製造作業 / 生產數據 | OK | OK |
-| [/api/v1/work/progress](#get-api-v1-work-progress) | GET | 查詢製造作業 / 作業進度 | OK | OK |
+| [/api/v1/work/assignment](#get-api-v1-work-assignment) | GET | 取得產製製令分派 | OK | OK |
+| [/api/v1/work/process](#get-api-v1-work-process) | GET | 查詢領退餘廢產單 | OK | OK |
+| [/api/v1/work/process](#post-api-v1-work-process) | POST | 新增領退餘廢產單 | OK | OK |
+| [/api/v1/work/productdata](#get-api-v1-work-productdata) | GET | 查詢訂單生產數據 | OK | OK |
+| [/api/v1/work/progress](#get-api-v1-work-progress) | GET | 查詢訂單製造進度 | OK | OK |
 
 ## GET /api/v1/work/assignment
 
@@ -20,7 +20,7 @@
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/work/assignment | GET | 查詢製造作業 / 作業分派 |
+| /api/v1/work/assignment | GET | 取得產製製令分派 |
 
 ### Request Header
 
@@ -52,80 +52,80 @@ None
       {
         "input": [
           {
-            "workOrderDate": "String",
+           "workOrderDate": "Integer",
             "production_line_no": "String",
             "productionLineName": "String",
-            "processDate": "String",
+            "processDate": "Integer",
             "item_no": "String",
             "item_name": "String",
-            "itemCategory": "String",
-            "itemSubCategory": "String",
-            "batch_number": "String",
-            "unit": "String",
-            "count": "Integer",
+            "itemCategory": "Integer",
+            "itemSubCategory": "Integer",
             "itemType": "String",
-            "validDate": "String"
+            "batch_number": "String",
+            "validDate": "Integer",
+            "unit": "Integer",
+            "count": "Float"
           }
         ],
         "output": [
           {
-            "workOrderDate": "String",
+            "workOrderDate": "Integer",
             "production_line_no": "String",
             "productionLineName": "String",
-            "processDate": "String",
+            "processDate": "Integer",
             "item_no": "String",
             "item_name": "String",
-            "itemCategory": "String",
-            "itemSubCategory": "String",
+            "itemCategory": "Integer",
+            "itemSubCategory": "Integer",
             "itemType": "String",
             "batch_number": "String",
-            "validDate": "String",
-            "unit": "String",
-            "count": "Integer"
+            "validDate": "Integer",
+            "unit": "Integer",
+            "count": "Float"
           }
         ],
         "reuse": [
           {
-            "workOrderDate": "String",
+           "workOrderDate": "Integer",
             "production_line_no": "String",
             "productionLineName": "String",
-            "processDate": "String",
+            "processDate": "Integer",
             "item_no": "String",
             "item_name": "String",
-            "itemCategory": "String",
-            "itemSubCategory": "String",
+            "itemCategory": "Integer",
+            "itemSubCategory": "Integer",
             "itemType": "String",
             "batch_number": "String",
-            "validDate": "String",
-            "unit": "String",
-            "count": "Integer"
+            "validDate": "Integer",
+            "unit": "Integer",
+            "count": "Float"
           }
         ],
         "labors": [
           {
-            "workOrderDate": "String",
-            "processDate": "String",
+            "workOrderDate": "Integer",
+            "processDate": "Integer",
             "production_line_no": "String",
             "productionLineName": "String",
             "station_no": "String",
             "stationName": "String",
-            "stationStage": "String",
+            "stationStage": "Integer",
             "employee_no": "String",
             "employeeName": "String",
-            "employeeType": "String",
+            "employeeType": "Integer",
             "employeeJobTitle": "String"
           }
         ],
         "machines": [
           {
-            "time": "String",
-            "workOrderDate": "String",
+            "time": "Integer",
+            "workOrderDate": "Integer",
             "production_line_no": "String",
             "productionLineName": "String",
-            "processDate": "String",
+            "processDate": "Integer",
             "station_no": "String",
             "stationName": "String",
-            "stationStage": "String",
+            "stationStage": "Integer",
             "equipment_no": "String",
             "equipmentName": "String"
           }
@@ -142,66 +142,68 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].input[].workOrderDate | String | work Order Date 的業務資料 |  |
+| payload.results[].input[].workOrderDate | Integer | 派工日期 |  |
 | payload.results[].input[].production_line_no | String | 產線編號 |  |
 | payload.results[].input[].productionLineName | String | 產線名稱 |  |
-| payload.results[].input[].processDate | String | process Date 的業務資料 |  |
-| payload.results[].input[].item_no | String | 料品/品項編號 |  |
-| payload.results[].input[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].input[].itemCategory | String | 料品類別 |  |
-| payload.results[].input[].itemSubCategory | String | 料品子類別 |  |
+| payload.results[].input[].processDate | Integer | 產製日期 |  |
+| payload.results[].input[].item_no | String | 「料品品項」編號 |  |
+| payload.results[].input[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].input[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].input[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.results[].input[].itemType | Integer | 「料品品項」型態 |  |
 | payload.results[].input[].batch_number | String | 批號 |  |
-| payload.results[].input[].unit | String | 單位 |  |
-| payload.results[].input[].count | Integer | 本次回傳筆數 |  |
-| payload.results[].input[].itemType | String | 料品類型 |  |
+| payload.results[].input[].unit | Integer | 單位 |  |
+| payload.results[].input[].count | Integer | 數量 |  |
 | payload.results[].input[].validDate | String | 效期日期 |  |
-| payload.results[].output[].workOrderDate | String | work Order Date 的業務資料 |  |
+| payload.results[].output[].workOrderDate |Integer | 派工日期 |  |
 | payload.results[].output[].production_line_no | String | 產線編號 |  |
 | payload.results[].output[].productionLineName | String | 產線名稱 |  |
-| payload.results[].output[].processDate | String | process Date 的業務資料 |  |
-| payload.results[].output[].item_no | String | 料品/品項編號 |  |
-| payload.results[].output[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].output[].itemCategory | String | 料品類別 |  |
-| payload.results[].output[].itemSubCategory | String | 料品子類別 |  |
-| payload.results[].output[].itemType | String | 料品類型 |  |
+| payload.results[].output[].processDate | Integer | 產製日期 |  |
+| payload.results[].output[].item_no | String | 「料品品項」編號 |  |
+| payload.results[].output[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].output[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].output[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.results[].output[].itemType | Integer | 「料品品項」型態 |  |
 | payload.results[].output[].batch_number | String | 批號 |  |
 | payload.results[].output[].validDate | String | 效期日期 |  |
-| payload.results[].output[].unit | String | 單位 |  |
-| payload.results[].output[].count | Integer | 本次回傳筆數 |  |
-| payload.results[].reuse[].workOrderDate | String | work Order Date 的業務資料 |  |
+| payload.results[].output[].unit | Integer | 單位 |  |
+| payload.results[].output[].count | Float | 數量 |  |
+| payload.results[].reuse[].workOrderDate | Integer | 派工日期 |  |
 | payload.results[].reuse[].production_line_no | String | 產線編號 |  |
 | payload.results[].reuse[].productionLineName | String | 產線名稱 |  |
-| payload.results[].reuse[].processDate | String | process Date 的業務資料 |  |
-| payload.results[].reuse[].item_no | String | 料品/品項編號 |  |
-| payload.results[].reuse[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].reuse[].itemCategory | String | 料品類別 |  |
-| payload.results[].reuse[].itemSubCategory | String | 料品子類別 |  |
-| payload.results[].reuse[].itemType | String | 料品類型 |  |
+| payload.results[].reuse[].processDate | Integer | 產製日期 |  |
+| payload.results[].reuse[].item_no | String | 「料品品項」編號 |  |
+| payload.results[].reuse[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].reuse[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].reuse[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.results[].reuse[].itemType | Integer | 「料品品項」型態 |  |
 | payload.results[].reuse[].batch_number | String | 批號 |  |
 | payload.results[].reuse[].validDate | String | 效期日期 |  |
-| payload.results[].reuse[].unit | String | 單位 |  |
-| payload.results[].reuse[].count | Integer | 本次回傳筆數 |  |
-| payload.results[].labors[].workOrderDate | String | work Order Date 的業務資料 |  |
-| payload.results[].labors[].processDate | String | process Date 的業務資料 |  |
+| payload.results[].reuse[].unit | Integer | 單位 |  |
+| payload.results[].reuse[].count | Float | 數量 |  |
+| payload.results[].labors[].workOrderDate | Integer | 派工日期 |  |
+| payload.results[].labors[].processDate |  Integer | 產製日期 |  |
 | payload.results[].labors[].production_line_no | String | 產線編號 |  |
 | payload.results[].labors[].productionLineName | String | 產線名稱 |  |
-| payload.results[].labors[].station_no | String | 站點，關連至station資料表 |  |
-| payload.results[].labors[].stationName | String | station Name 的業務資料 |  |
-| payload.results[].labors[].stationStage | String | 製程階段 |  |
-| payload.results[].labors[].employee_no | String | 員工編號，關連至employee資料表 |  |
-| payload.results[].labors[].employeeName | String | employee Name 的業務資料 |  |
-| payload.results[].labors[].employeeType | String | employee Type 的業務資料 |  |
-| payload.results[].labors[].employeeJobTitle | String | employee Job Title 的業務資料 |  |
-| payload.results[].machines[].time | String | 作業時間 |  |
-| payload.results[].machines[].workOrderDate | String | work Order Date 的業務資料 |  |
+| payload.results[].labors[].station_no | String | 站點編號 |  |
+| payload.results[].labors[].stationName | String | 站點名稱 |  |
+| payload.results[].labors[].stationStage | Integer | 製程階段 | 前段 (1)、後段 (2) |
+| payload.results[].labors[].employee_no | String | 員工編號 |  |
+| payload.results[].labors[].employeeName | String | 員工名稱 |  |
+| payload.results[].labors[].employeeType | Integer | 員工型態 | 正職 (1)、兼職 (2) |
+| payload.results[].labors[].employeeJobTitle | String | 員工職稱 |  |
+| payload.results[].machines[].time | Integer | 時間 |  |
+| payload.results[].machines[].workOrderDate | Integer | 派工日期 |  |
+| payload.results[].machines[].action | Integer | 機具狀態 | 啟動 (1) 、暫停(2)、停止 (3) |
+| payload.results[].machines[].equipment_no | String | 機具編號 |  |
+| payload.results[].machines[].equipmentName | String | 機具名稱 |  |
 | payload.results[].machines[].production_line_no | String | 產線編號 |  |
 | payload.results[].machines[].productionLineName | String | 產線名稱 |  |
-| payload.results[].machines[].processDate | String | process Date 的業務資料 |  |
-| payload.results[].machines[].station_no | String | 站點，關連至station資料表 |  |
-| payload.results[].machines[].stationName | String | station Name 的業務資料 |  |
-| payload.results[].machines[].stationStage | String | 製程階段 |  |
-| payload.results[].machines[].equipment_no | String | 機具no，關連至equipment資料表 |  |
-| payload.results[].machines[].equipmentName | String | equipment Name 的業務資料 |  |
+| payload.results[].machines[].processDate | Integer | 產製日期 |  |
+| payload.results[].machines[].station_no | String | 站點編號 |  |
+| payload.results[].machines[].stationName | String | 站點名稱 |  |
+| payload.results[].machines[].stationStage | Integer | 製程階段 | 前段 (1)、後段 (2) |
+
 
 ### Failed Response Data
 
@@ -239,7 +241,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/work/process | GET | 查詢製造作業 / 製程 |
+| /api/v1/work/process | GET | 查詢領退餘廢產單 |
 
 ### Request Header
 
@@ -304,15 +306,15 @@ None
 | payload.results[].refProcess | Integer | 派工製程 |  |
 | payload.results[].date | Integer | 日期時間 |  |
 | payload.results[].category | Integer | 類別 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].itemCategory | Integer | 料品類別 |  |
-| payload.results[].itemSubCategory | Integer | 料品子類別 |  |
+| payload.results[].item_no | String | 料「料品品項」編號 |  |
+| payload.results[].item_name | String | 「料品品項」項名稱 |  |
+| payload.results[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].itemSubCategory | Integer | 「料品品項」子類別 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
 | payload.results[].unit | Integer | 單位 |  |
 | payload.results[].expectedCount | Float | 預期數量 |  |
-| payload.results[].count | Float | 本次回傳筆數 |  |
+| payload.results[].count | Float | 實際數量 |  |
 | payload.results[].comment | String | 備註 |  |
 | payload.results[].creationTime | Integer | 資料建立時間 |  |
 
@@ -346,7 +348,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/work/process | POST | 新增製造作業 / 製程 |
+| /api/v1/work/process | POST | 新增領退餘廢產單 |
 
 ### Request Header
 
@@ -416,7 +418,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/work/productdata | GET | 查詢製造作業 / 生產數據 |
+| /api/v1/work/productdata | GET | 查詢訂單生產數據 |
 
 ### Request Header
 
@@ -428,10 +430,8 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| count | Integer | NO | 分頁筆數 |
-| start | Integer | NO | 分頁起始位置 |
-| type | String | NO | 類型篩選 |
-
+| product_order_no | String | YES | 訂單編號 |
+| oneProcess | Integer | YES | 主製程 |
 ### Request Body
 
 None
@@ -442,155 +442,119 @@ None
 {
   "code": "Integer",
   "message": "String",
-  "payload": {
-    "total": "Integer",
-    "count": "Integer",
-    "results": [
-      {
-        "no": "String",
-        "date": "String",
-        "production_line_no": "String",
-        "productionLineName": "String",
-        "output_item_no": "String",
-        "output_item_name": "String",
-        "oneProcess": "String",
-        "secProcess": "String",
-        "input": [
+    "payload": {
+        "productLine": [
           {
-            "id": "Integer",
-            "no": "String",
-            "name": "String",
-            "sex": "Integer",
-            "department": "Integer",
-            "level": "Integer",
-            "jobTitle": "String",
-            "joinedDate": "Integer",
-            "leftDate": "Integer",
-            "identityId": "String",
-            "country": "String",
-            "birthday": "Integer",
-            "phone": "String",
-            "address": "String",
-            "type": "Integer",
-            "category": "Integer",
-            "comment": "String",
-            "creationTime": "Integer"
+              "name": "String",
+              "count": "Integer",
           }
         ],
-        "output": [
+        "productData": [
           {
-            "id": "Integer",
-            "no": "String",
-            "name": "String",
-            "sex": "Integer",
-            "department": "Integer",
-            "level": "Integer",
-            "jobTitle": "String",
-            "joinedDate": "Integer",
-            "leftDate": "Integer",
-            "identityId": "String",
-            "country": "String",
-            "birthday": "Integer",
-            "phone": "String",
-            "address": "String",
-            "type": "Integer",
-            "category": "Integer",
-            "comment": "String",
-            "creationTime": "Integer"
+            "oneProcess": "Integer",
+            "secProcess": "Integer",
+            "input": [
+              {
+                "item_name": "String",
+                "itemCategory": "Integer",
+                "itemSubCategory": "Integer",
+                "count": "Float",
+                "bomCount": "Float",
+                "loss": "Float",
+                "bomLoss": "Float"
+              }
+            ],
+            "output": [
+              {
+                "item_name": "String",
+                "itemCategory": "Integer",
+                "itemSubCategory": "Integer",
+                "bom": {
+                    "count": "Float",
+                    "price": "Float",
+                    "hours": "Float", 
+                    "hourlyCount": "Float",
+                    "rawMaterialCost": "Float",
+                    "materialCost": "Float",
+                    "laborCost": "Float",
+                },
+                "product": {
+                    "count": "Float",
+                    "price": "Float",
+                    "hours": "Float", 
+                    "hourlyCount": "Float",
+                    "rawMaterialCost": "Float",
+                    "materialCost": "Float",
+                    "laborCost": "Float",
+                }
+              }
+            ],
+            "labors": [
+              {
+                "workPreHours": "Float",
+                "workPostHours": "Float",
+                "workPreCount": "Integer",
+                "workPostCount": "Integer",
+                "restPreHours": "Float",
+                "restPostHours":"Float",
+                "restPreCount": "Integer",
+                "restPostCount": "Integer",
+                "cleanPreHours": "Float",
+                "cleanPostHours": "Float",
+                "cleanPreCount": "Integer",
+                "cleanPostCount": "Integer",
+                "employeeLevel":  "Integer"
+              }
+            ]
           }
         ],
-        "reuse": [
-          {
-            "id": "Integer",
-            "no": "String",
-            "name": "String",
-            "sex": "Integer",
-            "department": "Integer",
-            "level": "Integer",
-            "jobTitle": "String",
-            "joinedDate": "Integer",
-            "leftDate": "Integer",
-            "identityId": "String",
-            "country": "String",
-            "birthday": "Integer",
-            "phone": "String",
-            "address": "String",
-            "type": "Integer",
-            "category": "Integer",
-            "comment": "String",
-            "creationTime": "Integer"
-          }
-        ],
-        "labor": [
-          {
-            "id": "Integer",
-            "no": "String",
-            "name": "String",
-            "sex": "Integer",
-            "department": "Integer",
-            "level": "Integer",
-            "jobTitle": "String",
-            "joinedDate": "Integer",
-            "leftDate": "Integer",
-            "identityId": "String",
-            "country": "String",
-            "birthday": "Integer",
-            "phone": "String",
-            "address": "String",
-            "type": "Integer",
-            "category": "Integer",
-            "comment": "String",
-            "creationTime": "Integer"
-          }
-        ],
-        "labors": {},
-        "machine": [
-          {
-            "id": "Integer",
-            "no": "String",
-            "name": "String",
-            "sex": "Integer",
-            "department": "Integer",
-            "level": "Integer",
-            "jobTitle": "String",
-            "joinedDate": "Integer",
-            "leftDate": "Integer",
-            "identityId": "String",
-            "country": "String",
-            "birthday": "Integer",
-            "phone": "String",
-            "address": "String",
-            "type": "Integer",
-            "category": "Integer",
-            "comment": "String",
-            "creationTime": "Integer"
-          }
-        ],
-        "machineRec": [
-          {
-            "id": "Integer",
-            "no": "String",
-            "name": "String",
-            "sex": "Integer",
-            "department": "Integer",
-            "level": "Integer",
-            "jobTitle": "String",
-            "joinedDate": "Integer",
-            "leftDate": "Integer",
-            "identityId": "String",
-            "country": "String",
-            "birthday": "Integer",
-            "phone": "String",
-            "address": "String",
-            "type": "Integer",
-            "category": "Integer",
-            "comment": "String",
-            "creationTime": "Integer"
-          }
-        ]
-      }
-    ]
-  }
+        "records": {
+            "input": [
+              {
+                "workOrderDate": "Integer",
+                "item_no": "String",
+                "item_name": "String",
+                "itemCategory": "Integer",
+                "itemSubCategory": "Integer",
+                "batch_number": "String",
+                "itemType": "Integer",
+                "validDate": "Integer",
+                "warehouses": [
+                    {
+                        "date": "Integer",
+                        "warehouse_no": "String",
+                        "warehouse_displayName": "String",
+                        "unit": "Integer",
+                        "count": "Float",
+                        "packCount": "Integer"
+                    }
+                ]
+              }
+            ],
+            "output": [
+              {
+                "workOrderDate": "Integer",
+                "item_no": "String",
+                "item_name": "String",
+                "itemCategory": "Integer",
+                "itemSubCategory": "Integer",
+                "batch_number": "String",
+                "itemType": "Integer",
+                "validDate": "Integer",
+                "warehouses": [
+                    {
+                        "date": "Integer",
+                        "warehouse_no": "String",
+                        "warehouse_displayName": "String",
+                        "unit": "Integer",
+                        "count": "Float",
+                        "packCount": "Integer",
+                    }
+                ]
+              }       
+            ]
+        }
+    }
 }
 ```
 
@@ -598,124 +562,76 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload.total | Integer | 符合條件的總筆數 |  |
-| payload.count | Integer | 本次回傳筆數 |  |
-| payload.results[].no | String | 資料編號 |  |
-| payload.results[].date | String | 日期時間 |  |
-| payload.results[].production_line_no | String | 產線編號 |  |
-| payload.results[].productionLineName | String | 產線名稱 |  |
-| payload.results[].output_item_no | String | 產出品項編號 |  |
-| payload.results[].output_item_name | String | 產出品項名稱 |  |
-| payload.results[].oneProcess | String | 主製程 |  |
-| payload.results[].secProcess | String | 次製程 |  |
-| payload.results[].input[].id | Integer | 資料 ID |  |
-| payload.results[].input[].no | String | 資料編號 |  |
-| payload.results[].input[].name | String | 名稱 |  |
-| payload.results[].input[].sex | Integer | 性別 |  |
-| payload.results[].input[].department | Integer | 部門 |  |
-| payload.results[].input[].level | Integer | 職等 |  |
-| payload.results[].input[].jobTitle | String | 職稱 |  |
-| payload.results[].input[].joinedDate | Integer | 到職日期 |  |
-| payload.results[].input[].leftDate | Integer | 離職日期 |  |
-| payload.results[].input[].identityId | String | 身分證號或識別碼 |  |
-| payload.results[].input[].country | String | 國籍 |  |
-| payload.results[].input[].birthday | Integer | 生日 |  |
-| payload.results[].input[].phone | String | 電話 |  |
-| payload.results[].input[].address | String | 地址 |  |
-| payload.results[].input[].type | Integer | 類型 |  |
-| payload.results[].input[].category | Integer | 類別 |  |
-| payload.results[].input[].comment | String | 備註 |  |
-| payload.results[].input[].creationTime | Integer | 資料建立時間 |  |
-| payload.results[].output[].id | Integer | 資料 ID |  |
-| payload.results[].output[].no | String | 資料編號 |  |
-| payload.results[].output[].name | String | 名稱 |  |
-| payload.results[].output[].sex | Integer | 性別 |  |
-| payload.results[].output[].department | Integer | 部門 |  |
-| payload.results[].output[].level | Integer | 職等 |  |
-| payload.results[].output[].jobTitle | String | 職稱 |  |
-| payload.results[].output[].joinedDate | Integer | 到職日期 |  |
-| payload.results[].output[].leftDate | Integer | 離職日期 |  |
-| payload.results[].output[].identityId | String | 身分證號或識別碼 |  |
-| payload.results[].output[].country | String | 國籍 |  |
-| payload.results[].output[].birthday | Integer | 生日 |  |
-| payload.results[].output[].phone | String | 電話 |  |
-| payload.results[].output[].address | String | 地址 |  |
-| payload.results[].output[].type | Integer | 類型 |  |
-| payload.results[].output[].category | Integer | 類別 |  |
-| payload.results[].output[].comment | String | 備註 |  |
-| payload.results[].output[].creationTime | Integer | 資料建立時間 |  |
-| payload.results[].reuse[].id | Integer | 資料 ID |  |
-| payload.results[].reuse[].no | String | 資料編號 |  |
-| payload.results[].reuse[].name | String | 名稱 |  |
-| payload.results[].reuse[].sex | Integer | 性別 |  |
-| payload.results[].reuse[].department | Integer | 部門 |  |
-| payload.results[].reuse[].level | Integer | 職等 |  |
-| payload.results[].reuse[].jobTitle | String | 職稱 |  |
-| payload.results[].reuse[].joinedDate | Integer | 到職日期 |  |
-| payload.results[].reuse[].leftDate | Integer | 離職日期 |  |
-| payload.results[].reuse[].identityId | String | 身分證號或識別碼 |  |
-| payload.results[].reuse[].country | String | 國籍 |  |
-| payload.results[].reuse[].birthday | Integer | 生日 |  |
-| payload.results[].reuse[].phone | String | 電話 |  |
-| payload.results[].reuse[].address | String | 地址 |  |
-| payload.results[].reuse[].type | Integer | 類型 |  |
-| payload.results[].reuse[].category | Integer | 類別 |  |
-| payload.results[].reuse[].comment | String | 備註 |  |
-| payload.results[].reuse[].creationTime | Integer | 資料建立時間 |  |
-| payload.results[].labor[].id | Integer | 資料 ID |  |
-| payload.results[].labor[].no | String | 資料編號 |  |
-| payload.results[].labor[].name | String | 名稱 |  |
-| payload.results[].labor[].sex | Integer | 性別 |  |
-| payload.results[].labor[].department | Integer | 部門 |  |
-| payload.results[].labor[].level | Integer | 職等 |  |
-| payload.results[].labor[].jobTitle | String | 職稱 |  |
-| payload.results[].labor[].joinedDate | Integer | 到職日期 |  |
-| payload.results[].labor[].leftDate | Integer | 離職日期 |  |
-| payload.results[].labor[].identityId | String | 身分證號或識別碼 |  |
-| payload.results[].labor[].country | String | 國籍 |  |
-| payload.results[].labor[].birthday | Integer | 生日 |  |
-| payload.results[].labor[].phone | String | 電話 |  |
-| payload.results[].labor[].address | String | 地址 |  |
-| payload.results[].labor[].type | Integer | 類型 |  |
-| payload.results[].labor[].category | Integer | 類別 |  |
-| payload.results[].labor[].comment | String | 備註 |  |
-| payload.results[].labor[].creationTime | Integer | 資料建立時間 |  |
-| payload.results[].machine[].id | Integer | 資料 ID |  |
-| payload.results[].machine[].no | String | 資料編號 |  |
-| payload.results[].machine[].name | String | 名稱 |  |
-| payload.results[].machine[].sex | Integer | 性別 |  |
-| payload.results[].machine[].department | Integer | 部門 |  |
-| payload.results[].machine[].level | Integer | 職等 |  |
-| payload.results[].machine[].jobTitle | String | 職稱 |  |
-| payload.results[].machine[].joinedDate | Integer | 到職日期 |  |
-| payload.results[].machine[].leftDate | Integer | 離職日期 |  |
-| payload.results[].machine[].identityId | String | 身分證號或識別碼 |  |
-| payload.results[].machine[].country | String | 國籍 |  |
-| payload.results[].machine[].birthday | Integer | 生日 |  |
-| payload.results[].machine[].phone | String | 電話 |  |
-| payload.results[].machine[].address | String | 地址 |  |
-| payload.results[].machine[].type | Integer | 類型 |  |
-| payload.results[].machine[].category | Integer | 類別 |  |
-| payload.results[].machine[].comment | String | 備註 |  |
-| payload.results[].machine[].creationTime | Integer | 資料建立時間 |  |
-| payload.results[].machineRec[].id | Integer | 資料 ID |  |
-| payload.results[].machineRec[].no | String | 資料編號 |  |
-| payload.results[].machineRec[].name | String | 名稱 |  |
-| payload.results[].machineRec[].sex | Integer | 性別 |  |
-| payload.results[].machineRec[].department | Integer | 部門 |  |
-| payload.results[].machineRec[].level | Integer | 職等 |  |
-| payload.results[].machineRec[].jobTitle | String | 職稱 |  |
-| payload.results[].machineRec[].joinedDate | Integer | 到職日期 |  |
-| payload.results[].machineRec[].leftDate | Integer | 離職日期 |  |
-| payload.results[].machineRec[].identityId | String | 身分證號或識別碼 |  |
-| payload.results[].machineRec[].country | String | 國籍 |  |
-| payload.results[].machineRec[].birthday | Integer | 生日 |  |
-| payload.results[].machineRec[].phone | String | 電話 |  |
-| payload.results[].machineRec[].address | String | 地址 |  |
-| payload.results[].machineRec[].type | Integer | 類型 |  |
-| payload.results[].machineRec[].category | Integer | 類別 |  |
-| payload.results[].machineRec[].comment | String | 備註 |  |
-| payload.results[].machineRec[].creationTime | Integer | 資料建立時間 |  |
+| payload.productLine[].name | String | 產線名稱 |  |
+| payload.productLine[].count | Integer | 產製次數 |  |
+| payload.productData[].oneProcess | Integer | 主製程 |  |
+| payload.productData[].secProcess | Integer | 次製程 |  |
+| payload.productData[].input[].item_name | String | 「料品品項」名稱 |  |
+| payload.productData[].input[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.productData[].input[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.productData[].input[].count | Float | 數量 |  |
+| payload.productData[].input[].bomCount | Float | 配方;數量 |  |
+| payload.productData[].input[].loss | Float | 損耗 |  |
+| payload.productData[].input[].bomLoss | Float | 配方;損耗 |  |
+| payload.productData[].output[].item_name | String | 「料品品項」名稱 |  |
+| payload.productData[].output[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.productData[].output[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.productData[].output[].bom.count | Float | 配方;產出量 |  |
+| payload.productData[].output[].bom.price | Float | 配方;單價 |  |
+| payload.productData[].output[].bom.hours | Float | 配方;總時數 |  |
+| payload.productData[].output[].bom.hourlyCount | Float | 配方;時產量 |  |
+| payload.productData[].output[].bom.rawMaterialCost | Float | 配方;原料費 |  |
+| payload.productData[].output[].bom.materialCost | Float | 配方;物料費 |  |
+| payload.productData[].output[].bom.laborCost | Float | 配方;人工費 |  |
+| payload.productData[].output[].product.count | Float | 量產;產出量 |  |
+| payload.productData[].output[].product.price | Float | 量產;單價 |  |
+| payload.productData[].output[].product.hours | Float | 量產;總時數 |  |
+| payload.productData[].output[].product.hourlyCount | Float | 量產;時產量 |  |
+| payload.productData[].output[].product.rawMaterialCost | Float | 量產;原料費 |  |
+| payload.productData[].output[].product.materialCost | Float | 量產;物料費 |  |
+| payload.productData[].output[].product.laborCost | Float | 量產;人工費 |  |
+| payload.productData[].labors[].workPreHours | Float | 前段工作時數 |  |
+| payload.productData[].labors[].workPostHours | Float | 後段工作時數 |  |
+| payload.productData[].labors[].workPreCount | Integer | 前段工作人數 | |
+| payload.productData[].labors[].workPostCount | Integer | 後段工作人數 |  |
+| payload.productData[].labors[].restPreHours | Float | 前段休息時數 |  |
+| payload.productData[].labors[].restPostHours | Float | 後段休息時數 |  |
+| payload.productData[].labors[].restPreCount | Integer | 前段休息人數 | |
+| payload.productData[].labors[].restPostCount | Integer | 後段休息人數 |  |
+| payload.productData[].labors[].cleanPreHours | Float | 前段清潔時數 |  |
+| payload.productData[].labors[].cleanPostHours | Float | 後段清潔時數 |  |
+| payload.productData[].labors[].cleanPreCount | Integer | 前段清潔人數 | |
+| payload.productData[].labors[].cleanPostCount | Integer | 後段清潔人數 |  |
+| payload.productData[].labors[].employeeLevel | Integer | 員工階級 |  |
+| payload.records[].input[].workOrderDate | Integer | 派工日期 |  |
+| payload.records[].input[].item_no | String | 「料品品項」編號 |  |
+| payload.records[].input[].item_name | String | 「料品品項」名稱 |  |
+| payload.records[].input[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.records[].input[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.records[].input[].itemType | Integer | 「料品品項」型態 |  |
+| payload.records[].input[].batch_number | String | 批號 |  |
+| payload.records[].input[].validDate | Integer | 效期日期 |  |
+| payload.records[].input[].warehouses[].date | Integer | 日期 |  |
+| payload.records[].input[].warehouses[].warehouse_no | String | 倉儲編號 |  |
+| payload.records[].input[].warehouses[].warehouse_displayName | String | 倉儲簡稱 |  |
+| payload.records[].input[].warehouses[].unit | Integer | 單位 |  |
+| payload.records[].input[].warehouses[].count | Float | 數量 |  |
+| payload.records[].input[].warehouses[].packCount | Integer | 板數 |  |
+| payload.records[].ourput[].workOrderDate | Integer | 派工日期 |  |
+| payload.records[].ourput[].item_no | String | 「料品品項」編號 |  |
+| payload.records[].ourput[].item_name | String | 「料品品項」名稱 |  |
+| payload.records[].ourput[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.records[].ourput[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.records[].ourput[].itemType | Integer | 「料品品項」型態 |  |
+| payload.records[].ourput[].batch_number | String | 批號 |  |
+| payload.records[].ourput[].validDate | Integer | 效期日期 |  |
+| payload.records[].ourput[].warehouses[].date | Integer | 日期 |  |
+| payload.records[].ourput[].warehouses[].warehouse_no | String | 倉儲編號 |  |
+| payload.records[].ourput[].warehouses[].warehouse_displayName | String | 倉儲簡稱 |  |
+| payload.records[].ourput[].warehouses[].unit | Integer | 單位 |  |
+| payload.records[].ourput[].warehouses[].count | Float | 數量 |  |
+| payload.records[].ourput[].warehouses[].packCount | Integer | 板數 |  |
+
 
 ### Failed Response Data
 
@@ -749,7 +665,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/work/progress | GET | 查詢製造作業 / 作業進度 |
+| /api/v1/work/progress | GET | 查詢訂單製造進度 |
 
 ### Request Header
 
@@ -777,20 +693,20 @@ None
   "payload": {
     "results": [
       {
-        "oneProcess": "String",
-        "secProcess": "String",
+        "oneProcess": "Integer",
+        "secProcess": "Integer",
         "item_name": "String",
-        "itemCategory": "String",
-        "itemSubCategory": "String",
+        "itemCategory": "Integer",
+        "itemSubCategory": "Integer",
         "bom": {
           "count": "Integer",
-          "amount": "String",
-          "hours": "String"
+          "amount": "Float",
+          "hours": "Float"
         },
         "product": {
           "count": "Integer",
-          "amount": "String",
-          "hours": "String"
+          "amount": "Float",
+          "hours": "Float"
         }
       }
     ]
@@ -802,17 +718,17 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-| payload.results[].oneProcess | String | 主製程 |  |
-| payload.results[].secProcess | String | 次製程 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].itemCategory | String | 料品類別 |  |
-| payload.results[].itemSubCategory | String | 料品子類別 |  |
-| payload.results[].bom.count | Integer | 本次回傳筆數 |  |
-| payload.results[].bom.amount | String | 金額或需求量 |  |
-| payload.results[].bom.hours | String | 工時 |  |
-| payload.results[].product.count | Integer | 本次回傳筆數 |  |
-| payload.results[].product.amount | String | 金額或需求量 |  |
-| payload.results[].product.hours | String | 工時 |  |
+| payload.results[].oneProcess | Integer | 主製程 |  |
+| payload.results[].secProcess | Integer | 次製程 |  |
+| payload.results[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].itemSubCategory | Integer | 「料品品項」子類別 |  |
+| payload.results[].bom.count | Integer | 排定;總產次 |  |
+| payload.results[].bom.amount | Float | 排定;總產量 |  |
+| payload.results[].bom.hours | Float | 排定;總時數 |  |
+| payload.results[].product.count | Integer | 進度;已產次 |  |
+| payload.results[].product.amount | Float | 進度;已產量 |  |
+| payload.results[].product.hours | Float | 進度;已產時 |  |
 
 ### Failed Response Data
 

@@ -6,8 +6,8 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [/api/v1/batchtrace](#get-api-v1-batchtrace) | GET | 查詢批號追蹤 | OK | OK |
-| [/api/v1/batchtrace/record](#get-api-v1-batchtrace-record) | GET | 查詢批號追蹤 / 紀錄 | OK | OK |
+| [/api/v1/batchtrace](#get-api-v1-batchtrace) | GET | 依日期或訂單編號取得批號 | OK | OK |
+| [/api/v1/batchtrace/record](#get-api-v1-batchtrace-record) | GET | 取得批號溯源 | OK | OK |
 
 ## GET /api/v1/batchtrace
 
@@ -17,7 +17,7 @@
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/batchtrace | GET | 查詢批號追蹤 |
+| /api/v1/batchtrace | GET | 依日期或訂單編號取得批號 |
 
 ### Request Header
 
@@ -147,7 +147,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/batchtrace/record | GET | 查詢批號追蹤 / 紀錄 |
+| /api/v1/batchtrace/record | GET | 取得批號溯源 |
 
 ### Request Header
 
@@ -175,41 +175,41 @@ None
   "payload": {
     "stock": [
         {
-          "warehouse_no": "WH4250218PDL",
-          "warehouse_displayName": "恆旺_台中",
-          "itemCategory": 1,
-          "itemType": 1,
-          "item_no": "PMB0034005",
-          "item_name": "米蛋白穀粒原料",
-          "batchNumber": "BN1124071001",
-          "validDate": 1751472000,
-          "amount": -0.0,
-          "count": -0.0,
-          "nearExpiryAmount": 0,
-          "nearExpiryCount": 0,
-          "expiredAmount": -0.0,
-          "expiredCount": -0.0,
-          "unit": 3,
-          "firstInDate": 1720540800
+          "warehouse_no": "String",
+          "warehouse_displayName": "String",
+          "itemCategory": "Integer",
+          "itemType": "Integer",
+          "item_no": "String",
+          "item_name": "String",
+          "batchNumber": "String",
+          "validDate": "Integer",
+          "amount": "Float",
+          "count": "Float",
+          "nearExpiryAmount": "Float",
+          "nearExpiryCount": "Float",
+          "expiredAmount": "Float",
+          "expiredCount": "Float",
+          "unit": "Integer",
+          "firstInDate": "Integer"
         }
       ],
      "nonWork": [
         {
-          "date": 1720540800,
-          "source": 1,
-          "warehouse_no": "WH4250218PDL",
-          "warehouse_displayName": "恆旺_台中",
-          "itemCategory": 1,
-          "itemType": 1,
-          "item_no": "PMB0034005",
-          "item_name": "米蛋白穀粒原料",
-          "batchNumber": "BN1124071001",
-          "serialNo": "00000",
-          "validDate": 1751472000,
-          "count": 1625.0,
-          "amount": 511875.0,
-          "unit": 3,
-          "order": ""
+          "date": "Integer",
+          "source": "Integer",
+          "warehouse_no": "String",
+          "warehouse_displayName": "String",
+          "itemCategory": "Integer",
+          "itemType": "Integer",
+          "item_no": "String",
+          "item_name": "String",
+          "batchNumber": "String",
+          "serialNo": "String",
+          "validDate": "Integer",
+          "count": "Float",
+          "amount": "Float",
+          "unit": "Integer",
+          "order": "String"
         }
     ],
     "work": [
@@ -217,33 +217,33 @@ None
         "name": "String",
         "records": [
           {
-            "date": 1736870400,
-            "order": "Z140115002",
+            "date": "Integer",
+            "order": "String",
             "data": {
-                "oneProcess": 2,
-                "secProcess": 2,
+                "oneProcess": "Integer",
+                "secProcess": "Integer",
                 "input": [
                     {
-                        "source": 2,
-                        "itemCategory": 1,
-                        "itemType": 1,
-                        "item_no": "PMB0034005",
-                        "item_name": "米蛋白穀粒原料",
-                        "batch_number": "BN1124071001",
-                        "validDate": 1751472000,
-                        "count": 31.75,
-                        "unit": 3
+                        "source": "Integer",
+                        "itemCategory": "Integer",
+                        "itemType": "Integer",
+                        "item_no": "String",
+                        "item_name": "String",
+                        "batch_number": "String",
+                        "validDate": "Integer",
+                        "count": "Float",
+                        "unit": "Integer"
                     }
                 ],
                 "output": [
                     {
-                        "output_batch_no": "BN1425011502",
-                        "output_item_no": "SFE0052002",
-                        "output_item_name": "阿華田米蛋白穀物一口脆",
-                        "output_itemType": 1,
-                        "output_validDate": 1760284800,
-                        "output_unit": 3,
-                        "output_count": 431.8
+                        "output_batch_no": "String",
+                        "output_item_no": "String",
+                        "output_item_name": "String",
+                        "output_itemType": "Integer",
+                        "output_validDate": "Integer",
+                        "output_unit": "Integer",
+                        "output_count": "Float",
                     }
                 ]
             }
@@ -259,8 +259,6 @@ None
 |----------|----------|------|---|
 | code | Integer | API 回傳代碼 |  |
 | message | String | API 回傳訊息 |  |
-
-
 | payload.stock[].warehouse_no | String | 倉儲別名編號 |  |
 | payload.stock[].warehouse_displayName | String | 倉儲別名名稱 |  |
 | payload.stock[].itemCategory | Integer | 「料品品項」類別 |  |
@@ -276,7 +274,6 @@ None
 | payload.stock[].nearExpiryCount | Float | 即期數量 |  |
 | payload.stock[].expiredAmount | Float | 過期金額 |  |
 | payload.stock[].expiredCount | Float | 過期數量 |  |
-
 | payload.nonWork[].date | Integer | 日期 |  |
 | payload.nonWork[].source | Integer | 來源| 採購 (1)、訂購 (2) |
 | payload.nonWork[].warehouse_no | String | 倉儲別名編號 |  |
@@ -291,22 +288,25 @@ None
 | payload.nonWork[].amount | Float | 金額 |  |
 | payload.nonWork[].count | Float | 數量 |  |
 | payload.nonWork[].order | String | 進貨單/銷貨單 |  |
-
-
-
 | payload.work[].name | String | 產出「料品品項」名稱 |  |
 | payload.work[].records[].data.oneProcess | Integer | 主製程 |  |
 | payload.work[].records[].data.secProcess | Integer | 次製程 |  |
 | payload.work[].records[].data.input[].source | Integer | input 的業務資料 |  |
 | payload.work[].records[].data.input[].itemCategory | Integer | 「料品品項」類別 |  |
 | payload.work[].records[].data.input[].itemType | Integer | 「料品品項」類型 | 新料 (1)、餘料 (2)、廢料 (3) 、其他 (0) |
-| payload.work[].records[].data.input[].item_no | String | 「料品品項」編號 |  |
-| payload.work[].records[].data.input[].item_name | String | 「料品品項」名稱 |  |
-| payload.work[].records[].data.input[].batch_number | String | 批號 |  |
-| payload.work[].records[].data.input[].validDate | Integer | 效期日期 |  |
-| payload.work[].records[].data.input[].unit | Integer | 單位 |  |
-| payload..work[].records[].data.input[].count | Float | 數量 |  |
-| payload.work[].records[].data.output | String | output 的業務資料 |  |
+| payload.work[].records[].data.input[].item_no | String | 投入「料品品項」編號 |  |
+| payload.work[].records[].data.input[].item_name | String |  投入「料品品項」名稱 |  |
+| payload.work[].records[].data.input[].batch_number | String | 投入「料品品項」批號 |  |
+| payload.work[].records[].data.input[].validDate | Integer | 投入「料品品項」效期 |  |
+| payload.work[].records[].data.input[].unit | Integer | 投入「料品品項」單位 |  |
+| payload.work[].records[].data.input[].count | Float | 投入「料品品項」數量 |  |
+| payload.work[].records[].data.output[].output_batch_no | String | 產出「料品品項」批號 |  |
+| payload.work[].records[].data.output[].output_item_no | String | 產出「料品品項」編號 |  |
+| payload.work[].records[].data.output[].output_item_name | String | 產出「料品品項」名稱 |  |
+| payload.work[].records[].data.output[].itemType | Integer | 產出「料品品項」類型 | 新料 (1)、餘料 (2)、廢料 (3) 、其他 (0) |
+| payload.work[].records[].data.output[].validDate | Integer | 產出「料品品項」效期 |  |
+| payload.work[].records[].data.output[].unit | Integer | 產出「料品品項」單位 |  |
+| payload.work[].records[].data.output[].count | Float | 產出「料品品項」數量 |  |
 
 ### Failed Response Data
 

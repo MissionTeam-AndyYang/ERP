@@ -30,8 +30,7 @@
 |----------|----------|------|-----|
 | count | Integer | NO | 分頁筆數 |
 | start | Integer | NO | 分頁起始位置 |
-| type | String | NO | 類型篩選 |
-
+| type | String | NO | 類型篩選 | 訂購 (1)、採購-貨品/材料 (2)、採購-耗品 (3) 採購-設備 (4)、物流 (5)、倉儲 (6)
 ### Request Body
 
 None

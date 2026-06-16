@@ -57,21 +57,40 @@ None
         "totalAmount": "Float",
         "dueDate": "Integer",
         "records": [
-          {
-            "time": "Integer",
-            "action": "Integer",
+          {  
+            "group": "String",
+            "creator_no": "String",
+            "refCategory": "Integer",
+            "ref_no": "String",
+            "warehouse_no": "String",
+            "warehouse_displayName": "String",
+            "date": "Integer",
+            "source": "Integer",
+            "category": "Integer",
+            "batchNumber": "String",
+            "serialNo": "String",
             "item_no": "String",
             "item_name": "String",
-            "batch_number": "String",
-            "serial_no": "String",
+            "item_ref_no": "String",
+            "item_ref_displayName": "String",
+            "itemCategory": "Integer",
+            "itemType": "Integer",
             "unit": "Integer",
-            "count": "Float"
+            "count": "Float",
+            "price": "Float",
+            "amount":"Float",
+            "comment": "String",
+            "registerDevId": "String",
+            "validDate": "Integer",
+            "return": "boolean"
           }
         ]
       }
     ]
   }
 }
+
+
 ```
 
 | Field Path | Type | Description | Enum |
@@ -81,18 +100,35 @@ None
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.results[].no | String | 資料編號 |  |
 | payload.results[].month | String | 月份 |  |
-| payload.results[].companyName | String | company Name 的業務資料 |  |
+| payload.results[].companyName | String | 客戶/廠商名稱 |  |
 | payload.results[].subOrderNos[] | String | 子單號清單 |  |
 | payload.results[].totalAmount | Float | 總金額 |  |
 | payload.results[].dueDate | Integer | 預計收付款日期 |  |
-| payload.results[].records[].time | Integer | 作業時間 |  |
-| payload.results[].records[].action | Integer | 作業方向 |  |
-| payload.results[].records[].item_no | String | 料品/品項編號 |  |
-| payload.results[].records[].item_name | String | 料品/品項名稱 |  |
-| payload.results[].records[].batch_number | String | 批號 |  |
+| payload.results[].records[].creator_no | String | 製單人員編號 |  |
+| payload.results[].records[].group | String | 群組編號 |  |
+| payload.results[].records[].ref_no | String | 來源單號 |  |
+| payload.results[].records[].refCategory | Integer | 來源單號類別 |  |
+| payload.results[].records[].warehouse_no | String | 倉庫no，關連至ship_wh_alias |  |
+| payload.results[].records[].warehouse_displayName | String | 倉儲別名名稱，關聯至ship_wh_alias資料表 |  |
+| payload.results[].records[].item_no | String | 「料品品項」項編號 |  |
+| payload.results[].records[].item_name | String | 「料品品項」名稱 |  |
+| payload.results[].records[].item_ref_no | String | 交易對象編號 |  |
+| payload.results[].records[].item_ref_displayName | String | 交易對象顯示名稱 |  |
+| payload.results[].records[].date | Integer | 日期時間 |  |
+| payload.results[].records[].source | Integer | 日期時間 |  |
+| payload.results[].records[].category | Integer | 庫存型態 | 入庫(1)、 出庫(2) |
+| payload.results[].records[].batch_number | String | 庫存源由 | 庫存型態為 <br>1.入庫: 採購(1)、退料(2)、餘料(3)、廢料(4)、產品(5) 、銷售退回(6)、其他 (0) <br>2.出庫: 領料(1)、銷售(2)、採購退回(3) 、報廢(4) 、其他 (0) |
 | payload.results[].records[].serial_no | String | 流水號 |  |
+| payload.results[].records[].itemCategory | Integer | 「料品品項」類別 |  |
+| payload.results[].records[].itemType | Integer | 「料品品項」類型 | 新料 (1)、餘料 (2)、廢料 (3) 、其他 (0) |
 | payload.results[].records[].unit | Integer | 單位 |  |
-| payload.results[].records[].count | Float | 本次回傳筆數 |  |
+| payload.results[].records[].count | Float | 數量 |  |
+| payload.results[].records[].price | Float | 單價 |  |
+| payload.results[].records[].amount | Float | 金額 |  |
+| payload.results[].records[].comment | String | 備註 |  |
+| payload.results[].records[].registerDevId | String | 設備ID |  |
+| payload.results[].records[].validDate | Integer | 效期 |  |
+| payload.results[].records[].return | boolean | 日期時間 | 是否為退貨 |
 
 ### Failed Response Data
 
@@ -270,29 +306,9 @@ None
       "realAmount": "Integer",
       "returnAmount": "Integer",
       "itemCategoryAmount": [
-        {
-          "id": "Integer",
-          "no": "String",
-          "ref_no": "String",
-          "creator_no": "String",
-          "date": "Integer",
-          "displayName": "String",
+       {
           "category": "Integer",
-          "type": "Integer",
-          "itemStyle": "Integer",
-          "item_no": "String",
-          "item_name": "String",
-          "itemCategory": "Integer",
-          "itemSubCategory": "Integer",
-          "item_ref_no": "String",
-          "item_ref_displayName": "String",
-          "payment_id": "Integer",
-          "unit": "Integer",
-          "price": "Float",
-          "shippingPrice": "Float",
-          "unitConversion": "Float",
-          "comment": "String",
-          "creationTime": "Integer"
+          "amount":  "Float"
         }
       ]
     },
@@ -342,28 +358,8 @@ None
 | payload.sum.amount | Integer | 金額或需求量 |  |
 | payload.sum.realAmount | Integer | real Amount 的業務資料 |  |
 | payload.sum.returnAmount | Integer | 退回金額 |  |
-| payload.sum.itemCategoryAmount[].id | Integer | 資料 ID |  |
-| payload.sum.itemCategoryAmount[].no | String | 資料編號 |  |
-| payload.sum.itemCategoryAmount[].ref_no | String | 來源單號 |  |
-| payload.sum.itemCategoryAmount[].creator_no | String | 製單人員編號 |  |
-| payload.sum.itemCategoryAmount[].date | Integer | 日期時間 |  |
-| payload.sum.itemCategoryAmount[].displayName | String | 顯示名稱 |  |
-| payload.sum.itemCategoryAmount[].category | Integer | 類別 |  |
-| payload.sum.itemCategoryAmount[].type | Integer | 類型 |  |
-| payload.sum.itemCategoryAmount[].itemStyle | Integer | 品項樣式 |  |
-| payload.sum.itemCategoryAmount[].item_no | String | 料品/品項編號 |  |
-| payload.sum.itemCategoryAmount[].item_name | String | 料品/品項名稱 |  |
-| payload.sum.itemCategoryAmount[].itemCategory | Integer | 料品類別 |  |
-| payload.sum.itemCategoryAmount[].itemSubCategory | Integer | 料品子類別 |  |
-| payload.sum.itemCategoryAmount[].item_ref_no | String | 交易對象編號 |  |
-| payload.sum.itemCategoryAmount[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.sum.itemCategoryAmount[].payment_id | Integer | 帳款資料id，關連至payment資料表 |  |
-| payload.sum.itemCategoryAmount[].unit | Integer | 單位 |  |
-| payload.sum.itemCategoryAmount[].price | Float | 單價 |  |
-| payload.sum.itemCategoryAmount[].shippingPrice | Float | 物流價格 |  |
-| payload.sum.itemCategoryAmount[].unitConversion | Float | 規格轉換 |  |
-| payload.sum.itemCategoryAmount[].comment | String | 備註 |  |
-| payload.sum.itemCategoryAmount[].creationTime | Integer | 資料建立時間 |  |
+| payload.sum.itemCategoryAmount[].category | Integer | 類別 | 採購: 原料 (1)、物料 (2)、膠捲 (3)  <br> 訂購: 在製品 / 製成品 (1) 、製成品 (2)|
+| payload.sum.itemCategoryAmount[].count | Float | 數量 |  |
 | payload.total | Integer | 符合條件的總筆數 |  |
 | payload.count | Integer | 本次回傳筆數 |  |
 | payload.results[].id | Integer | 資料 ID |  |
@@ -373,8 +369,8 @@ None
 | payload.results[].ref_no | String | 來源單號 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].item_no | String | 「交易品項」編號 |  |
+| payload.results[].item_name | String | 「交易品項」名稱 |  |
 | payload.results[].unit | Integer | 單位 |  |
 | payload.results[].price | Float | 單價 |  |
 | payload.results[].count | Float | 本次回傳筆數 |  |
@@ -393,6 +389,10 @@ None
 | payload.results[].contract.type | String | 類型 |  |
 | payload.results[].contract.date | String | 日期時間 |  |
 | payload.results[].contract.comment | String | 備註 |  |
+| payload.results[].itemCategory | Integer | 「交易品項」類別 |  |
+| payload.results[].itemSubCategory | Integer | 「交易品項」子類別 |  |
+| payload.results[].realCount | Integer | 銷貨數量 |  |
+| payload.results[].realAmount | Integer | 銷貨金額 |  |
 
 ### Failed Response Data
 
@@ -465,7 +465,7 @@ None
         "id": "Integer",
         "no": "String",
         "creator_no": "String",
-        "product_order_no": "String",
+        "purchase_order_no": "String",
         "date": "Integer",
         "category": "Integer",
         "item_ref_no": "String",
@@ -482,7 +482,10 @@ None
         "amount": "Integer",
         "addDeleteAmount": "Integer",
         "comment": "String",
-        "creationTime": "Integer"
+        "creationTime": "Integer",
+        "payment_type": "Integer",
+        "inventory": [],
+        "refRecords": []
       }
     ]
   }
@@ -500,13 +503,13 @@ None
 | payload.results[].id | Integer | 資料 ID |  |
 | payload.results[].no | String | 資料編號 |  |
 | payload.results[].creator_no | String | 製單人員編號 |  |
-| payload.results[].product_order_no | String | 訂購單號 |  |
+| payload.results[].purchase_order_no | String | 訂購單號 |  |
 | payload.results[].date | Integer | 日期時間 |  |
 | payload.results[].category | Integer | 類別 |  |
 | payload.results[].item_ref_no | String | 交易對象編號 |  |
 | payload.results[].item_ref_displayName | String | 交易對象顯示名稱 |  |
-| payload.results[].item_no | String | 料品/品項編號 |  |
-| payload.results[].item_name | String | 料品/品項名稱 |  |
+| payload.results[].item_no | String | 「交易品項」編號 |  |
+| payload.results[].item_name | String | 「交易品項」名稱 |  |
 | payload.results[].itemCategory | Integer | 料品類別 |  |
 | payload.results[].itemSubCategory | Integer | 料品子類別 |  |
 | payload.results[].unit | Integer | 單位 |  |
@@ -514,10 +517,12 @@ None
 | payload.results[].expectedCount | Float | 預期數量 |  |
 | payload.results[].checkedCount | Float | 已確認數量 |  |
 | payload.results[].feeCount | Float | 計價數量 (小數點2位) |  |
-| payload.results[].amount | Integer | 金額或需求量 |  |
+| payload.results[].amount | Integer | 金額 |  |
 | payload.results[].addDeleteAmount | Integer | 加扣金額 |  |
 | payload.results[].comment | String | 備註 |  |
 | payload.results[].creationTime | Integer | 資料建立時間 |  |
+| payload.sum.amount | Integer | 總數量 |  |
+| payload.sum.returnAmount | Integer | 退回數量 |  |
 
 ### Failed Response Data
 

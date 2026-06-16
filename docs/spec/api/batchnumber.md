@@ -28,9 +28,9 @@
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
+| start | Integer | NO | 分頁起始位置 |
 | count | Integer | NO | 分頁筆數 |
 | info | Boolean | NO | 是否附加倉庫詳細資訊 |
-| start | Integer | NO | 分頁起始位置 |
 | type | Integer | NO | 類型篩選: 1. 批號流水號資訊 |
 
 ### Request Body

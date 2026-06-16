@@ -16,7 +16,7 @@
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v1/aps/quantity | GET | 查詢APS 資料 / 製造需求數量 |
+| /api/v1/aps/quantity | GET | 擷取採購訂單中，各製程所需的製造需求數量 |
 
 ### Request Header
 

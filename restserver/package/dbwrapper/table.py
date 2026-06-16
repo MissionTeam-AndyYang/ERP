@@ -1620,3 +1620,190 @@ class CTableRWItems (Base):
     __table_args__ = (
         UniqueConstraint('item_no', name='uq_rw_items_composite'),
     )
+
+
+# ------------------------------------------------------------
+# Warehouse Dashboard API extension tables
+# ------------------------------------------------------------
+
+class CTableWarehouseInventoryReservation(Base):
+    __tablename__ = "warehouse_inventory_reservation"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    date = Column(Integer)
+    refCategory = Column(Integer)
+    ref_no = Column(String(length=60))
+    ref_sub_no = Column(String(length=60))
+    warehouse_no = Column(String(length=60))
+    warehouse_displayName = Column(String(length=60))
+    itemCategory = Column(Integer)
+    item_no = Column(String(length=60))
+    item_name = Column(String(length=255))
+    batchNumber = Column(String(length=60))
+    unit = Column(Integer)
+    reservedQuantity = Column(Float)
+    unitCost = Column(Float)
+    reservedValue = Column(Float)
+    status = Column(Integer)
+    releaseTime = Column(Integer)
+    comment = Column(Text)
+    creationTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("no", name="uq_warehouse_inventory_reservation_composite"),
+    )
+
+
+class CTableWarehouseQualityHold(Base):
+    __tablename__ = "warehouse_quality_hold"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    date = Column(Integer)
+    refCategory = Column(Integer)
+    ref_no = Column(String(length=60))
+    ref_sub_no = Column(String(length=60))
+    inspection_no = Column(String(length=60))
+    warehouse_no = Column(String(length=60))
+    warehouse_displayName = Column(String(length=60))
+    itemCategory = Column(Integer)
+    item_no = Column(String(length=60))
+    item_name = Column(String(length=255))
+    batchNumber = Column(String(length=60))
+    unit = Column(Integer)
+    holdQuantity = Column(Float)
+    unitCost = Column(Float)
+    holdValue = Column(Float)
+    status = Column(Integer)
+    releaseTime = Column(Integer)
+    reason = Column(String(length=255))
+    comment = Column(Text)
+    creationTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("no", name="uq_warehouse_quality_hold_composite"),
+    )
+
+
+class CTableWarehousePalletMovement(Base):
+    __tablename__ = "warehouse_pallet_movement"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    date = Column(Integer)
+    inventory_record_id = Column(Integer)
+    refCategory = Column(Integer)
+    ref_no = Column(String(length=60))
+    warehouse_no = Column(String(length=60))
+    pallet_group_no = Column(String(length=60))
+    batchNumber = Column(String(length=60))
+    serialNo = Column(String(length=60))
+    itemCategory = Column(Integer)
+    item_no = Column(String(length=60))
+    palletStatus = Column(Integer)
+    palletCount = Column(Float)
+    creationTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("no", name="uq_warehouse_pallet_movement_composite"),
+    )
+
+
+class CTableItemSafetyStock(Base):
+    __tablename__ = "item_safety_stock"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    itemCategory = Column(Integer)
+    item_no = Column(String(length=60))
+    item_name = Column(String(length=255))
+    warehouse_no = Column(String(length=60))
+    unit = Column(Integer)
+    safetyStock = Column(Float)
+    effectiveDate = Column(Integer)
+    expiryDate = Column(Integer)
+    status = Column(Integer)
+    comment = Column(Text)
+    creationTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("no", name="uq_item_safety_stock_composite"),
+    )
+
+
+class CTableWarehouseRiskRule(Base):
+    __tablename__ = "warehouse_risk_rule"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    riskType = Column(String(length=60))
+    riskLevel = Column(Integer)
+    messageCode = Column(String(length=80))
+    messageTemplateZhTw = Column(String(length=255))
+    recommendedActionCode = Column(String(length=80))
+    recommendedActionTemplateZhTw = Column(String(length=255))
+    thresholdValue = Column(Float)
+    excludedItemCategories = Column(Text)
+    status = Column(Integer)
+    creationTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("riskType", name="uq_warehouse_risk_rule_composite"),
+    )
+
+
+class CTableWorkflowTaskState(Base):
+    __tablename__ = "workflow_task_state"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    taskId = Column(String(length=80))
+    module = Column(Integer)
+    taskType = Column(Integer)
+    refCategory = Column(Integer)
+    ref_no = Column(String(length=60))
+    ref_sub_no = Column(String(length=60))
+    itemCategory = Column(Integer)
+    item_no = Column(String(length=60))
+    item_name = Column(String(length=255))
+    batchNumber = Column(String(length=60))
+    warehouse_no = Column(String(length=60))
+    expectedQuantity = Column(Float)
+    processedQuantity = Column(Float)
+    acceptedQuantity = Column(Float)
+    rejectedQuantity = Column(Float)
+    cancelledQuantity = Column(Float)
+    unit = Column(Integer)
+    palletCount = Column(Float)
+    dueTimestamp = Column(Integer)
+    taskStatus = Column(Integer)
+    ownerDepartment = Column(Integer)
+    blockReasonCode = Column(String(length=80))
+    blockReason = Column(String(length=255))
+    updateTime = Column(Integer)
+    creationTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("taskId", name="uq_workflow_task_state_composite"),
+    )
+
+
+class CTableWorkflowNextOwnerRule(Base):
+    __tablename__ = "workflow_next_owner_rule"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    module = Column(Integer)
+    taskType = Column(Integer)
+    refCategory = Column(Integer)
+    taskStatus = Column(Integer)
+    blockReasonCode = Column(String(length=80))
+    fromDepartment = Column(Integer)
+    ownerDepartment = Column(Integer)
+    rulePriority = Column(Integer)
+    status = Column(Integer)
+    comment = Column(Text)
+    creationTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("no", name="uq_workflow_next_owner_rule_composite"),
+    )

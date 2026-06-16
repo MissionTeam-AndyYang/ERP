@@ -377,6 +377,43 @@ class EDepartment():
     FINANCE=  11
 
 
+# ------------------------------------------------------------
+# Warehouse Dashboard API extension enums
+# ------------------------------------------------------------
+
+class EWarehouseRiskType(object):
+    TURNOVER_OVER_30_DAYS = "TURNOVER_OVER_30_DAYS"
+    SHELF_LIFE_LT_ONE_THIRD = "SHELF_LIFE_LT_ONE_THIRD"
+    BELOW_SAFETY_STOCK = "BELOW_SAFETY_STOCK"
+
+
+class EWarehouseRiskLevel(object):
+    NORMAL = 1
+    NOTICE = 2
+    WARNING = 3
+    DANGER = 4
+
+
+class EWorkflowTaskStatus(object):
+    PENDING = 1
+    PARTIAL = 2
+    DONE = 3
+    BLOCKED = 4
+    CANCELLED = 5
+
+
+class EWorkflowTaskType(object):
+    PURCHASE_REQUEST = 1
+    PURCHASE = 2
+    GOODS_RECEIPT = 3
+    INBOUND = 4
+    OUTBOUND = 5
+    TRANSFER = 6
+    PRODUCTION = 7
+    QUALITY = 8
+    SHIPMENT = 9
+
+
 class EShipWarehouseCat(object):
     SHIP = 1  #物流
     WAREHOUSE = 2 #倉儲

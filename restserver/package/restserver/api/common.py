@@ -3,6 +3,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 URL_PATH = '/api/v1'
+URL_PATH_V2 = '/api/v2'
 URL_PATH_V0 = '/api/v0'
 URL_PATH_DEVICE = '/'
 from package.common.common import *

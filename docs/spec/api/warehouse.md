@@ -69,7 +69,6 @@ None
     "inventoryValueByCategory": [
       {
         "itemCategory": "Integer",
-        "categoryName": "String",
         "inventoryValue": "Float",
         "reservedValue": "Float",
         "availableValue": "Float",
@@ -92,14 +91,14 @@ None
         "reservedPallets": "Float",
         "availablePallets": "Float",
         "utilizationRate": "Float",
-        "riskLevel": "String"
+        "riskLevel": "Integer"
       }
     ],
     "riskAlerts": [
       {
         "alertId": "String",
         "riskType": "String",
-        "riskLevel": "String",
+        "riskLevel": "Integer",
         "itemNo": "String",
         "itemName": "String",
         "itemCategory": "Integer",
@@ -136,8 +135,8 @@ None
         "warehouseNo": "String",
         "warehouseName": "String",
         "dueTimestamp": "Integer",
-        "status": "String",
-        "ownerDepartment": "String",
+        "taskStatus": "Integer",
+        "ownerDepartment": "Integer",
         "blockReason": "String"
       }
     ],
@@ -189,7 +188,6 @@ None
 | payload.summary.pendingInboundCount | Integer | 今日或待處理進貨/入庫任務數 | EWorkflowTaskType |
 | payload.summary.pendingOutboundCount | Integer | 今日或待處理出庫/出貨任務數 | EWorkflowTaskType |
 | payload.inventoryValueByCategory[].itemCategory | Integer | 料品品項類別 | EItemCategory |
-| payload.inventoryValueByCategory[].categoryName | String | 前端顯示用類別名稱：原料、物料、膠捲、在製品、製成品 |  |
 | payload.inventoryValueByCategory[].inventoryValue | Float | 該類別目前庫存價值 |  |
 | payload.inventoryValueByCategory[].reservedValue | Float | 該類別預留價值 |  |
 | payload.inventoryValueByCategory[].availableValue | Float | 該類別可用價值 |  |
@@ -208,10 +206,10 @@ None
 | payload.capacityByWarehouse[].reservedPallets | Float | 該倉儲已預留板數 |  |
 | payload.capacityByWarehouse[].availablePallets | Float | 該倉儲剩餘可用板數 |  |
 | payload.capacityByWarehouse[].utilizationRate | Float | 該倉儲板位使用率百分比 |  |
-| payload.capacityByWarehouse[].riskLevel | String | 倉儲使用率風險等級 | normal、warning、danger |
+| payload.capacityByWarehouse[].riskLevel | Integer | 倉儲使用率風險等級；前端負責轉換顯示文字與樣式 | EWarehouseRiskLevel |
 | payload.riskAlerts[].alertId | String | 風險警示唯一識別字串 |  |
 | payload.riskAlerts[].riskType | String | 風險類型 | TURNOVER_OVER_30_DAYS、SHELF_LIFE_LT_ONE_THIRD、BELOW_SAFETY_STOCK |
-| payload.riskAlerts[].riskLevel | String | 風險嚴重度 | warning、danger |
+| payload.riskAlerts[].riskLevel | Integer | 風險嚴重度；前端負責轉換顯示文字與樣式 | EWarehouseRiskLevel |
 | payload.riskAlerts[].itemNo | String | 料品品項編號 |  |
 | payload.riskAlerts[].itemName | String | 料品品項名稱 |  |
 | payload.riskAlerts[].itemCategory | Integer | 料品品項類別 | EItemCategory |
@@ -244,8 +242,8 @@ None
 | payload.pendingTasks[].warehouseNo | String | 任務對應倉儲別名 no |  |
 | payload.pendingTasks[].warehouseName | String | 任務對應倉儲別名名稱；第一版若任務狀態表未存放名稱則回傳空字串 |  |
 | payload.pendingTasks[].dueTimestamp | Integer | 任務預計完成時間，UTC timestamp |  |
-| payload.pendingTasks[].status | String | 任務狀態顯示代碼 | pending、partial、blocked |
-| payload.pendingTasks[].ownerDepartment | String | 下一步負責部門顯示名稱 | EDepartment |
+| payload.pendingTasks[].taskStatus | Integer | 任務狀態；前端負責轉換顯示文字 | EWorkflowTaskStatus |
+| payload.pendingTasks[].ownerDepartment | Integer | 下一步負責部門；前端負責轉換顯示文字 | EDepartment |
 | payload.pendingTasks[].blockReason | String | 任務阻塞原因或主管人工判斷備註 |  |
 | payload.valueTrend | Array | 庫存價值趨勢；第一版保留空陣列，待交易歷史需求確認後擴充 |  |
 | payload.inventory[].warehouseNo | String | 倉儲別名 no；僅 `includeInventory=true` 時回傳 |  |

@@ -11,26 +11,28 @@ RESTSERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(RESTSERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(RESTSERVER_ROOT))
 
-from package.common.common import EDepartment, EInventoryCategory, EItemCategory
+from package.common.common import (
+    EDepartment,
+    EInventoryCategory,
+    EItemCategory,
+    EWarehouseRiskType,
+    EWorkflowTaskStatus,
+    EWorkflowTaskType,
+)
 from package.dbwrapper.table import (
     CTableBatchNumber,
     CTableInventoryRec,
+    CTableItemSafetyStock,
     CTableShipWarehouse,
     CTableShipWarehouseAlias,
     CTableShipWarehouseContract,
-)
-from package.warehouse.dashboard import (
-    CTableItemSafetyStock,
     CTableWarehouseInventoryReservation,
     CTableWarehousePalletMovement,
     CTableWarehouseQualityHold,
     CTableWarehouseRiskRule,
     CTableWorkflowTaskState,
-    CWarehouseDashboardService,
-    EWarehouseRiskType,
-    EWorkflowTaskStatus,
-    EWorkflowTaskType,
 )
+from package.restserver.api.v2.warehouse import CWarehouseDashboardService
 
 
 def build_session():
@@ -210,7 +212,7 @@ def test_dashboard_service_builds_warehouse_summary():
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
         n_item_category=EItemCategory.PM,
-        f_include_inventory=True,
+        b_include_inventory=True,
         obj_session=obj_session,
     )
 
@@ -226,7 +228,6 @@ def test_dashboard_service_builds_warehouse_summary():
     assert dict_payload["summary"]["pendingOutboundCount"] == 1
 
     dict_category = dict_payload["inventoryValueByCategory"][0]
-    assert dict_category["categoryName"] == "原料"
     assert dict_category["inventoryValue"] == 900.0
     assert dict_category["availableValue"] == 650.0
     assert dict_category["palletCount"] == 2.0

@@ -25,15 +25,15 @@ GET /api/v2/warehouse/tasks
 ## 本次發現並已修正項目
 
 | 項目 | 原狀態 | 修正結果 |
-| --- | --- | --- |
+| --- | --- | --- | 
 | 查詢營業日 | `range` 以 UTC 日切分，未依 `x-timezone` 換算。 | 已依 `x-timezone` 將 `date` 換算為本地營業日，再轉 UTC 起訖 timestamp。 |
-| 目前庫存量與庫存價值 | `inventory_record` 彙總未限制查詢時間。 | 已只納入 `inventory_record.date <= queryTimestamp`。 |
-| 預留、品檢、板位 | 未排除查詢時間之後的資料。 | 已對 `warehouse_inventory_reservation.date`、`warehouse_quality_hold.date`、`warehouse_pallet_movement.date` 加上查詢時間限制。 |
-| 安全水位風險 | 使用 `currentQuantity < safetyStock`。 | 已改為 `availableQuantity < safetyStock`。 |
-| 風險文字 | 已移除 fallback，但需確認文件一致。 | 程式與文件皆改為只回傳 `messageCode`、`messageParams`、`recommendedActionCode`。 |
-| Dashboard 待處理任務 | 未依今日/逾期範圍限制。 | 已只回傳查詢營業日結束前仍未完成的任務。 |
-| 任務倉儲名稱 | `warehouseName` 固定空字串。 | 已由 `ship_wh_alias.name` 回填，查無才回傳空字串。 |
-| `riskOnly` | 參數未影響回傳。 | 聚合資料保持完整；若 `includeInventory=true`，`inventory` 只回傳有風險的列。 |
+| 目前庫存量與庫存價值 | `inventory_record` 彙總未限制查詢時間。 | 已只納入 `inventory_record.date <= queryTimestamp`。 |  
+| 預留、品檢、板位 | 未排除查詢時間之後的資料。 | 已對 `warehouse_inventory_reservation.date`、`warehouse_quality_hold.date`、`warehouse_pallet_movement.date` 加上查詢時間限制。 |  
+| 安全水位風險 | 使用 `currentQuantity < safetyStock`。 | 已改為 `availableQuantity < safetyStock`。 |   
+| 風險文字 | 已移除 fallback，但需確認文件一致。 | 程式與文件皆改為只回傳 `messageCode`、`messageParams`、`recommendedActionCode`。 |   
+| Dashboard 待處理任務 | 未依今日/逾期範圍限制。 | 已只回傳查詢營業日結束前仍未完成的任務。 |  
+| 任務倉儲名稱 | `warehouseName` 固定空字串。 | 已由 `ship_wh_alias.name` 回填，查無才回傳空字串。 |  
+| `riskOnly` | 參數未影響回傳。 | 聚合資料保持完整；若 `includeInventory=true`，`inventory` 只回傳有風險的列。 |  
 
 ## Dashboard 欄位檢視
 
@@ -185,12 +185,14 @@ Tasks API 欄位來源與 Dashboard `pendingTasks` 相同；差異如下：
 
 ## 仍需工程師確認
 
-| 項目 | 說明 |
-| --- | --- |
-| 月結統計表使用時機 | 目前第一版實作以 `inventory_record` 直接彙總，符合正式 API 文件；`inventory_item_month_statistic` / `inventory_delta` 可作為後續效能優化或大量資料情境。 |
-| `sourceType` 對應 | 目前依 `refCategory` 簡化轉為 PURCHASE / SALE / WORK / OTHER，需工程師確認是否與所有來源單據 enum 完全一致。 |
-| `valueTrend` / `trend7Days` | 目前為保留欄位，尚未計算。若前端第一版需要趨勢，需另訂資料來源與演算法。 |
-| 批號流水號層級 | 目前庫存明細為批號層級，`serialNo` 保留空字串；若需流水號層級，需擴充 group by 與資料集。 |
+| 項目 | 說明 | 工程師回覆 |
+| --- | --- | --- |
+| 月結統計表使用時機 | 目前第一版實作以 `inventory_record` 直接彙總，符合正式 API 文件；`inventory_item_month_statistic` / `inventory_delta` 可作為後續效能優化或大量資料情境。 | 第一版實作直接採用月結統計表計算。(`inventory_item_month_statistic` / `inventory_delta`)|
+| `sourceType` 對應 | 目前依 `refCategory` 簡化轉為 PURCHASE / SALE / WORK / OTHER，需工程師確認是否與所有來源單據 enum 完全一致。 |正確; <br>PURCHASE: 關聯至`goods_receipt_note`資料表 <br>SALE: 關聯至`shipping_order`資料表<br>WORK: 關聯至`process_order`資料表<br>OTHER: 關聯至`inventory_record`資料表|
+| `valueTrend` / `trend7Days` | 目前為保留欄位，尚未計算。若前端第一版需要趨勢，需另訂資料來源與演算法。 |請規劃 資料來源 與 演算法設計，並撰寫對應的提案文件，提案文件放置docs\spec\api-proposal\下，以便工程師檢視。|
+| 批號流水號層級 | 目前庫存明細為批號層級，`serialNo` 保留空字串；若需流水號層級，需擴充 group by 與資料集。 |請確認目前畫面是否已有呈現流水號層級。若已有呈現，則需進一步擴充至完整的流水號層級，並同步檢查程式邏輯與 API 文件是否一致|
+
+
 
 ## 驗證結果
 

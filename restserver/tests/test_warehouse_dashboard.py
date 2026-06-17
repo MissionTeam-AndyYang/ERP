@@ -66,6 +66,8 @@ def seed_dashboard_base(obj_session):
         CTableInventoryRec(
             warehouse_no="WH-A",
             warehouse_displayName="A倉",
+            ref_no="GRN-001",
+            refCategory=1,
             date=n_now - 40 * 86400,
             category=EInventoryCategory.IN,
             batchNumber="B-RM-001",
@@ -76,6 +78,22 @@ def seed_dashboard_base(obj_session):
             unit=1,
             count=100,
             amount=1000,
+        ),
+        CTableInventoryRec(
+            warehouse_no="WH-A",
+            warehouse_displayName="A倉",
+            ref_no="GRN-FUTURE",
+            refCategory=1,
+            date=n_now + 86400,
+            category=EInventoryCategory.IN,
+            batchNumber="B-RM-001",
+            item_no="RM-001",
+            item_name="原料A",
+            itemCategory=EItemCategory.PM,
+            itemType=1,
+            unit=1,
+            count=500,
+            amount=5000,
         ),
         CTableInventoryRec(
             warehouse_no="WH-A",
@@ -170,7 +188,7 @@ def seed_dashboard_base(obj_session):
             item_name="原料A",
             warehouse_no="WH-A",
             unit=1,
-            safetyStock=95,
+            safetyStock=80,
             effectiveDate=n_now - 86400,
             status=1,
         ),
@@ -257,6 +275,9 @@ def test_dashboard_service_builds_warehouse_summary():
     assert dict_payload["summary"]["availablePallets"] == 7.0
     assert dict_payload["summary"]["pendingInboundCount"] == 1
     assert dict_payload["summary"]["pendingOutboundCount"] == 1
+    assert dict_payload["range"]["date"] == "2023-11-15"
+    assert dict_payload["range"]["startTimestamp"] == 1699977600
+    assert dict_payload["range"]["endTimestamp"] == 1700063999
 
     dict_category = dict_payload["inventoryValueByCategory"][0]
     assert dict_category["inventoryValue"] == 900.0
@@ -318,6 +339,7 @@ def test_inventory_service_returns_confirmed_inventory_dataset():
     assert dict_inventory["availableValue"] == 650.0
     assert dict_inventory["palletCount"] == 2.0
     assert dict_inventory["qualityStatus"] == "hold"
+    assert dict_inventory["sourceNo"] == "GRN-001"
     assert EWarehouseRiskType.BELOW_SAFETY_STOCK in dict_inventory["riskTypes"]
 
 
@@ -334,6 +356,7 @@ def test_task_service_returns_confirmed_task_dataset():
     assert dict_payload["total"] == 2
     assert dict_payload["count"] == 2
     assert dict_payload["results"][0]["taskId"] == "TASK-IN-001"
+    assert dict_payload["results"][0]["warehouseName"] == "A倉"
     assert dict_payload["results"][0]["remainingQuantity"] == 100.0
     assert dict_payload["results"][1]["taskId"] == "TASK-OUT-001"
     assert dict_payload["results"][1]["remainingQuantity"] == 15.0

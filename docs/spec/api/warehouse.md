@@ -39,11 +39,11 @@
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| date | Integer | NO | 查詢基準時間，UTC timestamp；未提供時以伺服器目前時間計算 |
+| date | Integer | NO | 查詢基準時間，UTC timestamp；後端依 `x-timezone` 換算查詢營業日，未提供時以伺服器目前時間計算 |
 | warehouse_no | String | NO | 倉儲別名 no；提供時只回傳指定倉儲資料 |
 | itemCategory | Integer | NO | 料品品項類別；原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5) |
 | includeInventory | Boolean/String | NO | 是否回傳庫存明細；支援 `1`、`true`、`yes` |
-| riskOnly | Boolean/String | NO | 是否僅聚焦風險警示情境；第一版保留參數，聚合資料仍完整回傳 |
+| riskOnly | Boolean/String | NO | 是否僅聚焦風險警示情境；聚合資料仍完整回傳，`includeInventory=true` 時庫存明細只回傳有風險的列 |
 
 ### Request Body
 
@@ -163,6 +163,8 @@ None
         "warehouseNo": "String",
         "warehouseName": "String",
         "itemCategory": "Integer",
+        "itemSubCategory": "Integer",
+        "itemType": "Integer",
         "itemNo": "String",
         "itemName": "String",
         "batchNo": "String",
@@ -190,9 +192,9 @@ None
 | message | String | API 回傳訊息 |  |
 | payload.serverTimestamp | Integer | API 查詢基準時間，UTC timestamp |  |
 | payload.timezone | String | 前端指定或系統預設的顯示時區 |  |
-| payload.range.date | String | 查詢基準日期，格式為 YYYY-MM-DD |  |
-| payload.range.startTimestamp | Integer | 查詢日期起始時間，UTC timestamp |  |
-| payload.range.endTimestamp | Integer | 查詢日期結束時間，UTC timestamp |  |
+| payload.range.date | String | 依 `x-timezone` 換算後的查詢營業日期，格式為 YYYY-MM-DD |  |
+| payload.range.startTimestamp | Integer | 查詢營業日起始時間，UTC timestamp |  |
+| payload.range.endTimestamp | Integer | 查詢營業日結束時間，UTC timestamp |  |
 | payload.summary.totalInventoryValue | Integer | 目前庫存總價值，依 `inventory_record` 入庫金額減出庫金額彙總 |  |
 | payload.summary.reservedInventoryValue | Integer | 已被訂單、工單或倉庫任務預留的庫存價值 |  |
 | payload.summary.availableInventoryValue | Integer | 可用庫存價值，計算方式為庫存價值扣除預留價值與品檢保留價值 |  |
@@ -262,7 +264,7 @@ None
 | payload.pendingTasks[].unit | Integer | 任務數量單位 | Unit |
 | payload.pendingTasks[].palletCount | Float | 任務涉及板數 |  |
 | payload.pendingTasks[].warehouseNo | String | 任務對應倉儲別名 no |  |
-| payload.pendingTasks[].warehouseName | String | 任務對應倉儲別名名稱；第一版若任務狀態表未存放名稱則回傳空字串 |  |
+| payload.pendingTasks[].warehouseName | String | 任務對應倉儲別名名稱，來源為 `ship_wh_alias.name`；若查無則回傳空字串 |  |
 | payload.pendingTasks[].dueTimestamp | Integer | 任務預計完成時間，UTC timestamp |  |
 | payload.pendingTasks[].taskStatus | Integer | 任務狀態；前端負責轉換顯示文字 | EWorkflowTaskStatus |
 | payload.pendingTasks[].ownerDepartment | Integer | 下一步負責部門；前端負責轉換顯示文字 | EDepartment |
@@ -271,6 +273,8 @@ None
 | payload.inventory[].warehouseNo | String | 倉儲別名 no；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].warehouseName | String | 倉儲別名名稱；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].itemCategory | Integer | 料品品項類別；僅 `includeInventory=true` 時回傳 | EItemCategory |
+| payload.inventory[].itemSubCategory | Integer | 料品品項子類別；僅 `includeInventory=true` 時回傳 |  |
+| payload.inventory[].itemType | Integer | 料品類型；僅 `includeInventory=true` 時回傳 | EItemType |
 | payload.inventory[].itemNo | String | 料品品項編號；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].itemName | String | 料品品項名稱；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].batchNo | String | 批號；僅 `includeInventory=true` 時回傳 |  |
@@ -297,24 +301,24 @@ None
 
 ### Processing Flow
 
-1. 讀取 `date`、`warehouse_no`、`itemCategory`、`includeInventory`、`riskOnly` 查詢條件，並取得 `x-timezone` 作為前端顯示時區。
-2. 以 `inventory_record` 依倉儲、料品品項類別、料品、批號、單位彙總目前庫存量與庫存價值；入庫類別加總，出庫類別扣除。
+1. 讀取 `date`、`warehouse_no`、`itemCategory`、`includeInventory`、`riskOnly` 查詢條件，並取得 `x-timezone` 換算查詢營業日起訖 UTC timestamp。
+2. 以 `inventory_record` 依倉儲、料品品項類別、料品、批號、料品型態、單位彙總目前庫存量與庫存價值；僅納入 `inventory_record.date <= date` 的資料，入庫類別加總，出庫類別扣除。
 3. 讀取 `batch_number` 補齊批號效期資訊，用於效期警示與庫存迴轉天數分析。
 4. 讀取 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
 5. 讀取 `warehouse_quality_hold` 彙總有效品檢保留量與品檢保留價值。
 6. 讀取 `warehouse_pallet_movement` 彙總各倉儲與各料品品項類別的已佔用板數、預留板數。
 7. 讀取 `ship_wh_contract`、`ship_wh`、`ship_wh_alias` 計算各倉儲空間總板數與可用板數；因 `ship_wh_contract` 同時存放物流與倉庫合約，僅納入 `ship_wh_contract.category = 2` 的倉儲合約。
-8. 讀取 `item_safety_stock` 判斷低於安全水位之庫存風險。
+8. 讀取 `item_safety_stock`，以可用數量 `availableQuantity` 判斷低於安全水位之庫存風險。
 9. 讀取 `warehouse_risk_rule` 補齊風險等級、`messageCode` 與 `recommendedActionCode`；後端不回傳繁中 fallback 文字，前端依 code 與 params 轉換顯示。
 10. 依庫存迴轉超過 30 天、效期剩餘低於三分之一、安全水位不足建立 `riskAlerts`。
-11. 讀取 `workflow_task_state` 取得待處理進貨、入庫、出庫、移倉、品檢、出貨等任務，並依 `ownerDepartment` 回傳下一步負責部門。
-12. 整合 `summary`、`inventoryValueByCategory`、`capacityByWarehouse`、`riskAlerts`、`pendingTasks`；若 `includeInventory=true`，額外回傳批號層級庫存明細。
+11. 讀取 `workflow_task_state` 取得查詢營業日結束前仍未完成的進貨、入庫、出庫、移倉、品檢、出貨等任務，並依 `ownerDepartment` 回傳下一步負責部門。
+12. 整合 `summary`、`inventoryValueByCategory`、`capacityByWarehouse`、`riskAlerts`、`pendingTasks`；若 `includeInventory=true`，額外回傳批號層級庫存明細；若同時 `riskOnly=true`，庫存明細只回傳有風險的列。
 
 ### Database Tables Used
 
 | Table | Purpose |
 |----------|------|
-| inventory_record | 提供目前庫存量與庫存價值彙總基礎 |
+| inventory_record | 提供查詢時間以前的目前庫存量與庫存價值彙總基礎 |
 | batch_number | 提供批號效期與有效天數 |
 | warehouse_inventory_reservation | 提供預留數量、預留價值 |
 | warehouse_quality_hold | 提供品檢保留量、品檢保留價值 |
@@ -347,7 +351,7 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| date | Integer | NO | 查詢基準時間，UTC timestamp；未提供時以伺服器目前時間計算 |
+| date | Integer | NO | 查詢基準時間，UTC timestamp；後端只納入此時間以前的庫存、預留、品檢與板位資料，未提供時以伺服器目前時間計算 |
 | warehouse_no | String | NO | 倉儲別名 no |
 | itemCategory | Integer | NO | 料品品項類別 |
 | item_no | String | NO | 料品品項編號 |
@@ -453,7 +457,7 @@ None
 ### Processing Flow
 
 1. 讀取庫存篩選條件與分頁參數。
-2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，依倉儲、料品、批號與料品型態彙總目前庫存量與庫存價值。
+2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，依倉儲、料品、批號與料品型態彙總查詢時間以前的目前庫存量與庫存價值。
 3. 由 `batch_number` 補齊 `itemSubCategory`、`itemType`、有效天數與效期日；若批號資料缺漏，`itemSubCategory` 依料品類別回查料品主檔，`itemType` 則回退至 `inventory_record.itemType`。
 4. 彙總有效預留量、品檢保留量與板位使用量，計算可用數量與可用價值。
 5. 補齊首次入庫時間、安全水位與風險類型。
@@ -566,7 +570,7 @@ None
 | payload.results[].unit | Integer | 任務數量單位 | Unit |
 | payload.results[].palletCount | Float | 任務涉及板數 |  |
 | payload.results[].warehouseNo | String | 任務對應倉儲別名 no |  |
-| payload.results[].warehouseName | String | 任務對應倉儲別名名稱；第一版若任務狀態表未存放名稱則回傳空字串 |  |
+| payload.results[].warehouseName | String | 任務對應倉儲別名名稱，來源為 `ship_wh_alias.name`；若查無則回傳空字串 |  |
 | payload.results[].dueTimestamp | Integer | 任務預計完成時間，UTC timestamp |  |
 | payload.results[].taskStatus | Integer | 任務狀態；前端負責轉換顯示文字 | EWorkflowTaskStatus |
 | payload.results[].ownerDepartment | Integer | 下一步負責部門；前端負責轉換顯示文字 | EDepartment |
@@ -576,7 +580,7 @@ None
 
 1. 讀取 date、taskType、warehouse_no、status 與分頁條件。
 2. 若提供 status，依指定狀態查詢；若未提供，預設回傳 pending、partial、blocked。
-3. 若提供 date，回傳該查詢日結束前仍待處理的任務。
+3. 若提供 date，依 `x-timezone` 換算查詢營業日，回傳該營業日結束前仍待處理的任務。
 4. 依 dueTimestamp 由早到晚排序，套用分頁。
 5. 計算 remainingQuantity = expectedQuantity - processedQuantity 後回傳任務清單。
 

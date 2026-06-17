@@ -1,6 +1,8 @@
 # coding=utf8
 import time
 from collections import defaultdict
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from sqlalchemy import case, func
 
 from package.common.common import (
@@ -94,23 +96,29 @@ class CWarehouseDashboardService(object):
         dict_range = self.__build_range(n_query_timestamp, str_timezone)
         lst_inventory_rows = self.__query_inventory_rows(
             obj_session,
+            n_query_timestamp,
             str_warehouse_no,
             n_item_category,
         )
         dict_reservations = self.__query_reservations(obj_session, n_query_timestamp)
-        dict_quality_holds = self.__query_quality_holds(obj_session)
-        dict_pallets = self.__query_pallets(obj_session, str_warehouse_no, n_item_category)
+        dict_quality_holds = self.__query_quality_holds(obj_session, n_query_timestamp)
+        dict_pallets = self.__query_pallets(obj_session, n_query_timestamp, str_warehouse_no, n_item_category)
         dict_capacity = self.__query_capacity(obj_session, str_warehouse_no)
         dict_safety_stock = self.__query_safety_stock(obj_session, n_query_timestamp)
         dict_risk_rules = self.__query_risk_rules(obj_session)
-        lst_risks = self.__build_risk_alerts(
+        lst_inventory_detail = self.__build_inventory_detail(
             lst_inventory_rows,
+            dict_reservations,
+            dict_quality_holds,
+        )
+        lst_risks = self.__build_risk_alerts(
+            lst_inventory_detail,
             dict_safety_stock,
             dict_risk_rules,
             n_query_timestamp,
             b_risk_only,
         )
-        lst_tasks = self.__query_pending_tasks(obj_session, str_warehouse_no)
+        lst_tasks = self.__query_pending_tasks(obj_session, str_warehouse_no, dict_range["endTimestamp"])
         dict_payload = self.__build_payload(
             n_query_timestamp,
             str_timezone,
@@ -122,21 +130,32 @@ class CWarehouseDashboardService(object):
             dict_capacity,
             lst_risks,
             lst_tasks,
+            lst_inventory_detail,
             b_include_inventory,
+            b_risk_only,
         )
         return dict_payload
 
     def __build_range(self, n_timestamp, str_timezone):
-        n_start = n_timestamp - (n_timestamp % 86400)
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
+        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
         n_end = n_start + 86399
         return {
-            "date": time.strftime("%Y-%m-%d", time.gmtime(n_timestamp)),
+            "date": obj_local.strftime("%Y-%m-%d"),
             "startTimestamp": n_start,
             "endTimestamp": n_end,
         }
 
-    def __query_inventory_rows(self, obj_session, str_warehouse_no, n_item_category):
-        lst_filters = [CTableInventoryRec.itemCategory.in_(self.__target_categories())]
+    def __query_inventory_rows(self, obj_session, n_query_timestamp, str_warehouse_no, n_item_category):
+        lst_filters = [
+            CTableInventoryRec.itemCategory.in_(self.__target_categories()),
+            CTableInventoryRec.date <= n_query_timestamp,
+        ]
         if str_warehouse_no:
             lst_filters.append(CTableInventoryRec.warehouse_no == str_warehouse_no)
         if n_item_category:
@@ -327,6 +346,7 @@ class CWarehouseDashboardService(object):
                 func.sum(CTableWarehouseInventoryReservation.reservedValue).label("reservedValue"),
             )
             .filter(CTableWarehouseInventoryReservation.status == self.RESERVATION_STATUS_ACTIVE)
+            .filter(CTableWarehouseInventoryReservation.date <= n_query_timestamp)
             .filter(
                 (CTableWarehouseInventoryReservation.releaseTime == None)
                 | (CTableWarehouseInventoryReservation.releaseTime > n_query_timestamp)
@@ -346,7 +366,7 @@ class CWarehouseDashboardService(object):
             for obj_row in lst_rows
         }
 
-    def __query_quality_holds(self, obj_session):
+    def __query_quality_holds(self, obj_session, n_query_timestamp):
         lst_rows = (
             obj_session.query(
                 CTableWarehouseQualityHold.item_no,
@@ -356,6 +376,7 @@ class CWarehouseDashboardService(object):
                 func.sum(CTableWarehouseQualityHold.holdValue).label("holdValue"),
             )
             .filter(CTableWarehouseQualityHold.status == self.QUALITY_HOLD_STATUS_ACTIVE)
+            .filter(CTableWarehouseQualityHold.date <= n_query_timestamp)
             .group_by(
                 CTableWarehouseQualityHold.item_no,
                 CTableWarehouseQualityHold.batchNumber,
@@ -371,8 +392,8 @@ class CWarehouseDashboardService(object):
             for obj_row in lst_rows
         }
 
-    def __query_pallets(self, obj_session, str_warehouse_no, n_item_category):
-        lst_filters = []
+    def __query_pallets(self, obj_session, n_query_timestamp, str_warehouse_no, n_item_category):
+        lst_filters = [CTableWarehousePalletMovement.date <= n_query_timestamp]
         if str_warehouse_no:
             lst_filters.append(CTableWarehousePalletMovement.warehouse_no == str_warehouse_no)
         if n_item_category:
@@ -472,13 +493,14 @@ class CWarehouseDashboardService(object):
             for obj_row in lst_rows
         }
 
-    def __query_pending_tasks(self, obj_session, str_warehouse_no):
+    def __query_pending_tasks(self, obj_session, str_warehouse_no, n_end_timestamp):
         lst_filters = [
             CTableWorkflowTaskState.taskStatus.in_([
                 EWorkflowTaskStatus.PENDING,
                 EWorkflowTaskStatus.PARTIAL,
                 EWorkflowTaskStatus.BLOCKED,
-            ])
+            ]),
+            CTableWorkflowTaskState.dueTimestamp <= n_end_timestamp,
         ]
         if str_warehouse_no:
             lst_filters.append(CTableWorkflowTaskState.warehouse_no == str_warehouse_no)
@@ -489,7 +511,22 @@ class CWarehouseDashboardService(object):
             .limit(20)
             .all()
         )
-        return [self.__task_to_dict(obj_row) for obj_row in lst_rows]
+        dict_warehouse_names = self.__query_warehouse_names(
+            obj_session,
+            [obj_row.warehouse_no for obj_row in lst_rows],
+        )
+        return [self.__task_to_dict(obj_row, dict_warehouse_names) for obj_row in lst_rows]
+
+    def __query_warehouse_names(self, obj_session, lst_warehouse_nos):
+        lst_values = [str_no for str_no in set(lst_warehouse_nos) if str_no]
+        if not lst_values:
+            return {}
+        lst_rows = (
+            obj_session.query(CTableShipWarehouseAlias.no, CTableShipWarehouseAlias.name)
+            .filter(CTableShipWarehouseAlias.no.in_(lst_values))
+            .all()
+        )
+        return {obj_row.no: obj_row.name or "" for obj_row in lst_rows}
 
     def __build_payload(
         self,
@@ -503,7 +540,9 @@ class CWarehouseDashboardService(object):
         dict_capacity,
         lst_risks,
         lst_tasks,
+        lst_inventory_detail,
         b_include_inventory,
+        b_risk_only,
     ):
         dict_category = self.__build_category_summary(
             lst_inventory_rows,
@@ -523,11 +562,10 @@ class CWarehouseDashboardService(object):
             "riskAlerts": lst_risks,
             "pendingTasks": lst_tasks,
             "valueTrend": [],
-            "inventory": self.__build_inventory_detail(
-                lst_inventory_rows,
-                dict_reservations,
-                dict_quality_holds,
-            ) if b_include_inventory else [],
+            "inventory": self.__filter_inventory_by_risk(
+                lst_inventory_detail,
+                lst_risks,
+            ) if b_include_inventory and b_risk_only else (lst_inventory_detail if b_include_inventory else []),
         }
 
     def __build_category_summary(self, lst_inventory_rows, dict_reservations, dict_quality_holds, dict_pallets):
@@ -693,7 +731,7 @@ class CWarehouseDashboardService(object):
             f_safety_stock = util_safe_float(dict_safety_stock.get((dict_row.get("itemNo"), dict_row.get("warehouseNo"))))
             if not f_safety_stock:
                 f_safety_stock = util_safe_float(dict_safety_stock.get((dict_row.get("itemNo"), "")))
-            if f_safety_stock and util_safe_float(dict_row.get("currentQuantity")) < f_safety_stock:
+            if f_safety_stock and util_safe_float(dict_row.get("availableQuantity")) < f_safety_stock:
                 lst_row_risks.append(EWarehouseRiskType.BELOW_SAFETY_STOCK)
             for str_risk_type in lst_row_risks:
                 lst_results.append(
@@ -748,7 +786,27 @@ class CWarehouseDashboardService(object):
             ),
         }
 
-    def __task_to_dict(self, obj_row):
+    def __filter_inventory_by_risk(self, lst_inventory_detail, lst_risks):
+        set_risk_keys = {
+            self.__stock_key(
+                dict_risk.get("itemNo"),
+                dict_risk.get("batchNo"),
+                dict_risk.get("warehouseNo"),
+            )
+            for dict_risk in lst_risks
+        }
+        return [
+            dict_row
+            for dict_row in lst_inventory_detail
+            if self.__stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            ) in set_risk_keys
+        ]
+
+    def __task_to_dict(self, obj_row, dict_warehouse_names=None):
+        dict_warehouse_names = dict_warehouse_names or {}
         return {
             "taskId": obj_row.taskId or "",
             "taskType": util_safe_int(obj_row.taskType),
@@ -768,7 +826,7 @@ class CWarehouseDashboardService(object):
             "unit": util_safe_int(obj_row.unit),
             "palletCount": util_round_quantity(obj_row.palletCount),
             "warehouseNo": obj_row.warehouse_no or "",
-            "warehouseName": "",
+            "warehouseName": dict_warehouse_names.get(obj_row.warehouse_no, ""),
             "dueTimestamp": util_safe_int(obj_row.dueTimestamp),
             "taskStatus": util_safe_int(obj_row.taskStatus),
             "ownerDepartment": util_safe_int(obj_row.ownerDepartment),
@@ -890,8 +948,8 @@ class CWarehouseInventoryService(object):
             obj_session=obj_session,
         )
         dict_risks = self.__group_risks(dict_dashboard.get("riskAlerts", []))
-        dict_pallets = self.__query_pallet_counts(obj_session)
-        dict_sources = self.__query_latest_sources(obj_session)
+        dict_pallets = self.__query_pallet_counts(obj_session, n_query_timestamp)
+        dict_sources = self.__query_latest_sources(obj_session, n_query_timestamp)
         lst_results = []
 
         for dict_row in dict_dashboard.get("inventory", []):
@@ -992,7 +1050,7 @@ class CWarehouseInventoryService(object):
                 dict_result[str_key]["safetyStock"] = util_round_quantity(dict_risk.get("safetyStock"))
         return dict_result
 
-    def __query_pallet_counts(self, obj_session):
+    def __query_pallet_counts(self, obj_session, n_query_timestamp):
         lst_rows = (
             obj_session.query(
                 CTableWarehousePalletMovement.item_no,
@@ -1001,6 +1059,7 @@ class CWarehouseInventoryService(object):
                 func.sum(CTableWarehousePalletMovement.palletCount).label("palletCount"),
             )
             .filter(CTableWarehousePalletMovement.palletStatus == CWarehouseDashboardService.PALLET_STATUS_USED)
+            .filter(CTableWarehousePalletMovement.date <= n_query_timestamp)
             .group_by(
                 CTableWarehousePalletMovement.item_no,
                 CTableWarehousePalletMovement.batchNumber,
@@ -1013,10 +1072,11 @@ class CWarehouseInventoryService(object):
             for obj_row in lst_rows
         }
 
-    def __query_latest_sources(self, obj_session):
+    def __query_latest_sources(self, obj_session, n_query_timestamp):
         lst_rows = (
             obj_session.query(CTableInventoryRec)
             .filter(CTableInventoryRec.category == EInventoryCategory.IN)
+            .filter(CTableInventoryRec.date <= n_query_timestamp)
             .order_by(CTableInventoryRec.date.desc(), CTableInventoryRec.id.desc())
             .all()
         )
@@ -1108,9 +1168,8 @@ class CWarehouseTaskService(object):
         if str_warehouse_no:
             lst_filters.append(CTableWorkflowTaskState.warehouse_no == str_warehouse_no)
         if n_date:
-            n_start_day = n_date - (n_date % 86400)
-            n_end_day = n_start_day + 86399
-            lst_filters.append(CTableWorkflowTaskState.dueTimestamp <= n_end_day)
+            dict_range = self.__build_range(n_date, str_timezone)
+            lst_filters.append(CTableWorkflowTaskState.dueTimestamp <= dict_range["endTimestamp"])
 
         lst_rows = (
             obj_session.query(CTableWorkflowTaskState)
@@ -1123,16 +1182,46 @@ class CWarehouseTaskService(object):
         if n_count <= 0:
             n_count = 50
         lst_page = lst_rows[n_start:n_start + n_count]
+        dict_warehouse_names = self.__query_warehouse_names(
+            obj_session,
+            [obj_row.warehouse_no for obj_row in lst_page],
+        )
         return {
             "serverTimestamp": n_date if n_date else int(time.time()),
             "timezone": str_timezone or "UTC",
             "total": len(lst_rows),
             "count": len(lst_page),
             "start": n_start,
-            "results": [self.__task_to_dict(obj_row) for obj_row in lst_page],
+            "results": [self.__task_to_dict(obj_row, dict_warehouse_names) for obj_row in lst_page],
         }
 
-    def __task_to_dict(self, obj_row):
+    def __build_range(self, n_timestamp, str_timezone):
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
+        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
+        return {
+            "date": obj_local.strftime("%Y-%m-%d"),
+            "startTimestamp": n_start,
+            "endTimestamp": n_start + 86399,
+        }
+
+    def __query_warehouse_names(self, obj_session, lst_warehouse_nos):
+        lst_values = [str_no for str_no in set(lst_warehouse_nos) if str_no]
+        if not lst_values:
+            return {}
+        lst_rows = (
+            obj_session.query(CTableShipWarehouseAlias.no, CTableShipWarehouseAlias.name)
+            .filter(CTableShipWarehouseAlias.no.in_(lst_values))
+            .all()
+        )
+        return {obj_row.no: obj_row.name or "" for obj_row in lst_rows}
+
+    def __task_to_dict(self, obj_row, dict_warehouse_names=None):
+        dict_warehouse_names = dict_warehouse_names or {}
         return {
             "taskId": obj_row.taskId or "",
             "taskType": util_safe_int(obj_row.taskType),
@@ -1152,7 +1241,7 @@ class CWarehouseTaskService(object):
             "unit": util_safe_int(obj_row.unit),
             "palletCount": util_round_quantity(obj_row.palletCount),
             "warehouseNo": obj_row.warehouse_no or "",
-            "warehouseName": "",
+            "warehouseName": dict_warehouse_names.get(obj_row.warehouse_no, ""),
             "dueTimestamp": util_safe_int(obj_row.dueTimestamp),
             "taskStatus": util_safe_int(obj_row.taskStatus),
             "ownerDepartment": util_safe_int(obj_row.ownerDepartment),

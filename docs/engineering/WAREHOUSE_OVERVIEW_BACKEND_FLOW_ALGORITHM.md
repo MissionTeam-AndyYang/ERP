@@ -113,11 +113,11 @@ inventoryValue = monthEndAmount + deltaInAmount - deltaOutAmount
 若查詢需批號或明細層級：
 
 ```txt
-currentQuantity = sum(inventory_record.count where category = IN)
-                - sum(inventory_record.count where category = OUT)
+currentQuantity = sum(inventory_record.count where category = IN and date <= queryTimestamp)
+                - sum(inventory_record.count where category = OUT and date <= queryTimestamp)
 
-inventoryValue = sum(inventory_record.amount where category = IN)
-               - sum(inventory_record.amount where category = OUT)
+inventoryValue = sum(inventory_record.amount where category = IN and date <= queryTimestamp)
+               - sum(inventory_record.amount where category = OUT and date <= queryTimestamp)
 ```
 
 注意：
@@ -299,6 +299,10 @@ if availableQuantity < safetyStock:
     riskType = BELOW_SAFETY_STOCK
 ```
 
+注意：
+
+- 低於安全水位需以 `availableQuantity` 判斷，而不是 `currentQuantity`。因為已預留或品檢保留的庫存雖然仍在倉內，但不可視為可立即使用。
+
 ### Step 8：計算效期風險
 
 來源：
@@ -399,6 +403,13 @@ taskStatus 由各部門主管人工判斷與確認。
 ```txt
 processedQuantity = sum(inventory_record.count matched by ref_no, item_no, batchNumber, warehouse_no)
 remainingQuantity = expectedQuantity - processedQuantity
+```
+
+Dashboard 待處理任務篩選：
+
+```txt
+taskStatus in (待處理, 部分完成, 阻塞)
+and dueTimestamp <= queryBusinessDayEndTimestamp
 ```
 
 參考結案資訊：

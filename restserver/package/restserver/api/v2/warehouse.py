@@ -170,21 +170,40 @@ class CWarehouseDashboardService(object):
         n_item_category,
         str_timezone="",
     ):
-        lst_results = self.__query_inventory_rows_from_statistics(
+        lst_stat_rows = self.__query_inventory_rows_from_statistics(
             obj_session,
             n_query_timestamp,
             str_warehouse_no,
             n_item_category,
             str_timezone,
         )
-        if lst_results:
-            return lst_results
-        return self.__query_inventory_rows_from_records(
+        lst_record_rows = self.__query_inventory_rows_from_records(
             obj_session,
             n_query_timestamp,
             str_warehouse_no,
             n_item_category,
         )
+        if not lst_stat_rows:
+            return lst_record_rows
+
+        dict_existing_keys = {
+            self.__stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            for dict_row in lst_stat_rows
+        }
+        for dict_row in lst_record_rows:
+            str_key = self.__stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            if str_key not in dict_existing_keys:
+                lst_stat_rows.append(dict_row)
+                dict_existing_keys.add(str_key)
+        return lst_stat_rows
 
     def __query_inventory_rows_from_records(self, obj_session, n_query_timestamp, str_warehouse_no, n_item_category):
         lst_filters = [

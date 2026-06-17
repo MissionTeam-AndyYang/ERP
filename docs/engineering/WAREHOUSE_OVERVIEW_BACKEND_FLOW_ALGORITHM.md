@@ -100,7 +100,7 @@ riskOnly
 
 1. 月底基準：第一版直接採用 `inventory_item_month_statistic` 的批號層級月結結存。
 2. 月底後異動：採用 `inventory_delta` 補算月結日後至查詢營業日的每日異動。
-3. 明細輔助：`inventory_record` 保留作為首次入庫日、最近來源單據與統計資料尚未建立時的防護性補算依據。
+3. 明細輔助：`inventory_record` 保留作為首次入庫日、最近來源單據與統計資料未涵蓋特定庫存列時的防護性補算依據。
 4. 工程師最新回覆：第一版實作直接採用月結統計表計算。(`inventory_item_month_statistic` / `inventory_delta`)
 
 建議演算法：
@@ -113,17 +113,19 @@ inventoryValue = monthEndAmount + deltaInAmount - deltaOutAmount
 防護性補算：
 
 ```txt
-currentQuantity = sum(inventory_record.count where category = IN and date <= queryTimestamp)
-                - sum(inventory_record.count where category = OUT and date <= queryTimestamp)
+if stockKey not in statisticResult:
+    currentQuantity = sum(inventory_record.count where category = IN and date <= queryTimestamp)
+                    - sum(inventory_record.count where category = OUT and date <= queryTimestamp)
 
-inventoryValue = sum(inventory_record.amount where category = IN and date <= queryTimestamp)
-               - sum(inventory_record.amount where category = OUT and date <= queryTimestamp)
+    inventoryValue = sum(inventory_record.amount where category = IN and date <= queryTimestamp)
+                   - sum(inventory_record.amount where category = OUT and date <= queryTimestamp)
 ```
 
 注意：
 
 - 正式第一版主路徑以 `inventory_item_month_statistic` 搭配 `inventory_delta` 為準。
-- 若測試環境或過渡資料尚未建立統計表，程式可保留 `inventory_record` 彙總作為防護性回退，但正式資料應優先補齊統計表。
+- 若測試環境或過渡資料尚未建立統計表，或統計表只涵蓋部分料品/批號，程式會以 `warehouseNo + itemNo + batchNo` 作為庫存鍵，僅針對統計結果缺漏的庫存列使用 `inventory_record` 彙總補上。
+- 防護性補算不得覆蓋已由月結統計表與每日異動產生的庫存列，以避免同一批號重複計算。
 - 單位成本可由 `inventoryValue / currentQuantity` 推導；若需標準成本，可參考 `item_price.costPriceWeight`。
 
 ### Step 3：計算預留數量與預留價值

@@ -338,6 +338,67 @@ def test_dashboard_service_builds_warehouse_summary():
     assert dict_inventory["availableQuantity"] == 65.0
 
 
+def test_dashboard_service_uses_record_fallback_for_missing_stat_rows():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+    obj_session.add_all([
+        CTableInventoryRec(
+            warehouse_no="WH-A",
+            warehouse_displayName="Aå€‰",
+            ref_no="GRN-002",
+            refCategory=1,
+            date=n_now - 2 * 86400,
+            category=EInventoryCategory.IN,
+            batchNumber="B-RM-002",
+            item_no="RM-002",
+            item_name="Fallback Material",
+            itemCategory=EItemCategory.PM,
+            itemType=1,
+            unit=1,
+            count=30,
+            amount=300,
+        ),
+        CTableBatchNumber(
+            no="B-RM-002",
+            ref_no="PO-002",
+            item_no="RM-002",
+            item_name="Fallback Material",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=12,
+            itemType=1,
+            unit=1,
+            validDays=120,
+            validDate=n_now + 80 * 86400,
+        ),
+        CTableMaterial(
+            no="RM-002",
+            category=EItemCategory.PM,
+            subCategory=12,
+            name="Fallback Material",
+            unitWarehouse=1,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CWarehouseDashboardService().get_dashboard(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        b_include_inventory=True,
+        obj_session=obj_session,
+    )
+
+    assert dict_payload["summary"]["totalInventoryValue"] == 1200.0
+    dict_inventory_by_item = {
+        dict_row["itemNo"]: dict_row
+        for dict_row in dict_payload["inventory"]
+    }
+    assert dict_inventory_by_item["RM-001"]["currentQuantity"] == 90.0
+    assert dict_inventory_by_item["RM-002"]["currentQuantity"] == 30.0
+    assert dict_inventory_by_item["RM-002"]["inventoryValue"] == 300.0
+
+
 def test_dashboard_service_builds_risk_alerts():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)

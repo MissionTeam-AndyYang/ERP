@@ -1,6 +1,7 @@
 # coding=utf8
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -14,6 +15,7 @@ if str(RESTSERVER_ROOT) not in sys.path:
 from package.common.common import (
     EDepartment,
     EInventoryCategory,
+    EInventoryDeltaKind,
     EItemCategory,
     EWarehouseRiskType,
     EWorkflowTaskStatus,
@@ -21,6 +23,8 @@ from package.common.common import (
 )
 from package.dbwrapper.table import (
     CTableBatchNumber,
+    CTableInventoryDelta,
+    CTableInventoryItemMonthStatistic,
     CTableInventoryRec,
     CTableItemSafetyStock,
     CTableMaterial,
@@ -44,6 +48,8 @@ def build_session():
     obj_engine = create_engine("sqlite:///:memory:")
     for obj_table in [
         CTableInventoryRec.__table__,
+        CTableInventoryDelta.__table__,
+        CTableInventoryItemMonthStatistic.__table__,
         CTableBatchNumber.__table__,
         CTableMaterial.__table__,
         CTableShipWarehouseAlias.__table__,
@@ -108,6 +114,47 @@ def seed_dashboard_base(obj_session):
             unit=1,
             count=10,
             amount=100,
+        ),
+        CTableInventoryItemMonthStatistic(
+            warehouse_no="WH-A",
+            warehouse_displayName="Aå€‰",
+            date=date(2023, 10, 31),
+            timezone="Asia/Taipei",
+            kind=EInventoryDeltaKind.BATCHNO,
+            category=EItemCategory.PM,
+            specified_no="B-RM-001",
+            specified_name="B-RM-001",
+            specified_ref_no="RM-001",
+            specified_ref_name="åŽŸæ–™A",
+            unit=1,
+            startCount=0,
+            startAmount=0,
+            inCount=80,
+            inAmount=800,
+            endCount=80,
+            endAmount=800,
+            creationTime=n_now,
+        ),
+        CTableInventoryDelta(
+            warehouse_no="WH-A",
+            warehouse_displayName="Aå€‰",
+            date=date(2023, 11, 15),
+            timezone="Asia/Taipei",
+            kind=EInventoryDeltaKind.BATCHNO,
+            category=EItemCategory.PM,
+            specified_no="B-RM-001",
+            specified_name="B-RM-001",
+            specified_ref_no="RM-001",
+            specified_ref_name="åŽŸæ–™A",
+            in_ref_id=["GRN-001"],
+            out_ref_id=["WO-001"],
+            inPurchaseCount=0,
+            inPurchaseAmount=0,
+            inCount=20,
+            inAmount=200,
+            outCount=10,
+            outAmount=100,
+            creationTime=n_now,
         ),
         CTableBatchNumber(
             no="B-RM-001",

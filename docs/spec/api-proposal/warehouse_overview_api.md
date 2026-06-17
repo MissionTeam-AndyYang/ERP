@@ -19,7 +19,7 @@
 | 項目 | 更新結果 |
 | --- | --- |
 | API route | 工程師建議建立新的 Warehouse route，實作目標調整為 `/api/v2/warehouse/*`。 |
-| 庫存價值 | 工程師確認以 `inventory_record.amount` 為主要基準；統計表與 delta 可作為彙總與補算來源。 |
+| 庫存價值 | 工程師最新確認第一版直接採用月結統計表與每日異動計算；主路徑為 `inventory_item_month_statistic` 搭配 `inventory_delta`。 |
 | 單位成本 | 工程師建議取自 `item_price.costPriceWeight`。 |
 | Enum 多國語言 | 料品品項類別、風險類型、任務狀態等 enum 顯示文字由前端轉換。 |
 | 類別庫存量顯示 | 以「料品品項」類別分類顯示庫存量時，因可能混合單位，前端不顯示庫存單位。 |
@@ -43,7 +43,7 @@
 | 製成品 | `itemCategory = 5` | 可供出貨或銷售的完成品。 | 正確 |
 | 貨品 | `itemCategory = 6` | DB 文件保留類別；Warehouse V1 第一版暫不作為主要統計分類。 | 正確 |
 | 倉儲別名 | `ship_wh_alias` | 前端顯示的倉庫/倉位/物流倉儲別名。 | 正確 |
-| 庫存價值 | `inventory_record.amount`、`inventory_delta`、`inventory_item_month_statistic`、`inventory_month_statistic` | 實際使用來源待工程師確認。 | 注意事項: 資料庫的date/time/creationTime欄位記載的是UTC時間; 若資料表中出現timezone欄位, 此時date紀載的是用戶端的日期。<br>`inventory_record.amount`: 記錄每筆出入庫的「料品品項」金額。<br>`inventory_delta`: 記錄「料品品項」每日入庫累積數量/金額 、採購累積數量/金額 、 出庫累積數量/金額。<br>`inventory_item_month_statistic`:記載每個月底結算的各個倉儲中的各個「料品品項」和 各個「批號」 的庫存量與庫存價值。<br>`inventory_month_statistic`: 記載每個月底結算的各個倉儲中的各個「料品品項」類別的庫存量與庫存價值。 |
+| 庫存價值 | `inventory_item_month_statistic`、`inventory_delta`、`inventory_record` | 已確認第一版以月結統計表搭配每日異動為主。 | 注意事項: 資料庫的date/time/creationTime欄位記載的是UTC時間; 若資料表中出現timezone欄位, 此時date紀載的是用戶端的日期。<br>`inventory_item_month_statistic`: 記載每個月底結算的各個倉儲中的各個「料品品項」和各個「批號」的庫存量與庫存價值，作為主計算基準。<br>`inventory_delta`: 記錄「料品品項」每日入庫累積數量/金額、採購累積數量/金額、出庫累積數量/金額，用於補算月結日後至查詢營業日的異動。<br>`inventory_record`: 保留作為首次入庫日、最近來源單據與統計資料尚未建立時的防護性補算依據。 |
 | 佔用板數 | `batchno_serialno_group.group` 候選 | 是否以棧板編號計算佔用板數待工程師確認。 | `batchno_serialno_group.group`: 記錄棧板與批號之間的對應關係，設計上允許多個批號存放於同一個棧板。<br> 目前只規劃棧板與批號對應關係，出入庫紀錄與棧板對應關係尚未規劃與實作。 |
 | 安全水位 | 尚待確認 | 目前 DB 文件尚未確認明確來源欄位。 | 尚未規劃與實作 |
 | 效期 | `batch_number.validDays`、`batch_number.validDate` | 批號有效天數與有效期限。 | 正確 |
@@ -267,7 +267,7 @@ None
 | payload.summary.pendingInboundCount | Integer | 今日與逾期待處理入庫任務數。 | 任務來源與狀態見 `warehouse_task_state` 規劃 | 尚未規劃與實作 |
 | payload.summary.pendingOutboundCount | Integer | 今日與逾期待處理出庫任務數。 | 任務來源與狀態見 `warehouse_task_state` 規劃 | 尚未規劃與實作 |
 | payload.inventoryValueByCategory[].itemCategory | Integer | 料品品項類別代碼。 | 原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5)、貨品(6)、其他(0) | 前端依 enum code 轉換多國語言顯示文字 |
-| payload.inventoryValueByCategory[].inventoryValue | Float | 該類別目前庫存價值。 | 以 `inventory_record.amount` 為主要基準，統計表與 delta 支援彙總補算 | 已確認方向 |
+| payload.inventoryValueByCategory[].inventoryValue | Float | 該類別目前庫存價值。 | 以 `inventory_item_month_statistic` 月結結存搭配 `inventory_delta` 補算至查詢營業日 | 已確認方向 |
 | payload.inventoryValueByCategory[].reservedValue | Float | 該類別已預留庫存價值。 | 待確認 | 尚未規劃與實作 |
 | payload.inventoryValueByCategory[].availableValue | Float | 該類別可用庫存價值。 | 待確認 | 尚未規劃與實作 |
 | payload.inventoryValueByCategory[].qualityHoldValue | Float | 該類別品檢保留庫存價值。 | 待確認 | 尚未規劃與實作 |
@@ -276,7 +276,7 @@ None
 | payload.inventoryValueByCategory[].palletCount | Integer | 該類別佔用板數。 | 待確認計算來源 | 尚未規劃與實作 |
 | payload.inventoryValueByCategory[].itemCount | Integer | 該類別不同料品品項數。 |  |  |
 | payload.inventoryValueByCategory[].valueRatio | Float | 該類別庫存價值佔總庫存價值比例。 |  |  |
-| payload.inventoryValueByCategory[].trend7Days | Float | 該類別近 7 日庫存價值變化率。 | 待確認是否由後端計算 | 由後端計算, 尚未規劃與實作 |
+| payload.inventoryValueByCategory[].trend7Days | Float | 該類別近 7 日庫存價值變化率。 | 建議由後端依統計表與 delta 計算 | 提案文件見 `docs/spec/api-proposal/warehouse_value_trend_proposal.md`，待工程師確認 |
 | payload.capacityByWarehouse[].warehouseNo | String | 倉儲別名編號。 | `ship_wh_alias.no` |  |
 | payload.capacityByWarehouse[].warehouseName | String | 倉儲別名名稱。 | `ship_wh_alias.name` 或統計表 displayName |  |
 | payload.capacityByWarehouse[].warehouseType | Integer | 倉儲別名類型。 | 自有(1)、合約(2)、客供(3)、其他(0) |  |
@@ -354,7 +354,7 @@ None
 
 | Table | 用途 | 工程師回覆 |
 | --- | --- | --- |
-| inventory_record | 取得入庫/出庫紀錄、目前庫存數量、倉儲別名、料品、批號、來源單據、單價與金額。 | 正確 |
+| inventory_record | 取得入庫/出庫紀錄、首次入庫時間、來源單據、單價與金額；目前庫存主計算已改採月結統計表加每日異動。 | 正確 |
 | inventory_delta | 取得每日庫存異動彙總，可支援趨勢與即時補算。 |正確 |
 | inventory_item_month_statistic | 取得每月料品或批號層級庫存數量與庫存價值。 | 正確 |
 | inventory_month_statistic | 取得每月類別層級庫存價值。 | 正確 |
@@ -375,8 +375,8 @@ None
 
 | 項目 | 建議規則 | 狀態 | 工程師回覆 |
 | --- | --- | --- | --- |
-| 目前庫存數量 | 以月結統計搭配每日異動補算；明細必要時以 `inventory_record` 入庫數量減出庫數量，依倉儲、料品、批號分組。 | 已確認方向 | 建議採用每月的庫存數量與庫存價值(`inventory_month_statistic` 或 `inventory_item_month_statistic`) 搭配每日庫存異動彙總 `inventory_delta` 進行目前庫存數量計算。 |
-| 庫存價值 | 以 `inventory_record.amount` 為主要基準；統計表與 delta 可支援彙總與補算。 | 已確認方向 | 庫存價值以 `inventory_record.amount`。 |
+| 目前庫存數量 | 以月結統計搭配每日異動補算；明細必要時以 `inventory_record` 作為防護性補算。 | 已確認方向 | 第一版採用 `inventory_item_month_statistic` 搭配 `inventory_delta` 進行目前庫存數量計算。 |
+| 庫存價值 | 以月結統計搭配每日異動補算；`inventory_record.amount` 保留作為明細來源與防護性補算依據。 | 已確認方向 | 第一版採用 `inventory_item_month_statistic.endAmount` 搭配 `inventory_delta.inAmount - inventory_delta.outAmount`。 |
 | 料品類別 | 使用 DB 文件與 `EItemCategory`：原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5)。 | OK |  |
 | 少於三分之一效期 | 使用 `batch_number.validDays` 與 `batch_number.validDate`。 | OK，但需確認物料、膠捲排除規則 | 將物料、膠捲排除 |
 | 迴轉週期 | 使用同倉儲同批號最早入庫日計算。 | 基本可行 | |
@@ -512,7 +512,7 @@ None
 ### Processing Flow
 
 1. 讀取庫存篩選條件與分頁參數。
-2. 依倉儲、料品、批號、流水號彙總 `inventory_record`，只納入 `inventory_record.date <= 查詢基準時間` 的資料。
+2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，以 `inventory_item_month_statistic` 月結批號層級結存搭配 `inventory_delta` 每日異動補算目前庫存量與庫存價值。
 3. 以查詢時間以前的入庫數量減出庫數量計算目前庫存數量。
 4. 關聯 `batch_number` 取得有效天數、有效期限、料品資料與來源單據。
 5. 關聯 `ship_wh_alias` 取得倉儲別名名稱與類型。
@@ -524,7 +524,9 @@ None
 
 | Table | 用途 |
 | --- | --- |
-| inventory_record | 取得庫存異動與目前庫存數量。 |
+| inventory_item_month_statistic | 取得批號層級月結庫存量與庫存價值。 |
+| inventory_delta | 取得月結日後每日入庫/出庫數量與金額異動。 |
+| inventory_record | 取得首次入庫時間、最近來源單據，以及統計資料尚未建立時的防護性補算依據。 |
 | batch_number | 取得批號、料品、效期與來源資料。 |
 | batchno_serialno | 取得批號流水號明細。 |
 | batchno_serialno_group | 取得棧板編號與佔用板數候選資料。 |
@@ -664,7 +666,7 @@ None
 | 問題 | 影響 | 狀態 | 工程師回覆 | 
 | --- | --- | --- | --- |
 | 倉庫經營總覽是否建立新的 `/api/v2/warehouse/*` route，或擴充現有 `/api/v1/inventory/*`、`/api/v1/shipwarehouse/*`？ | 影響 API group 與 route ownership。 | 已確認 | 建立新的 route，並將版本升級為 v2 `/api/v2/warehouse/*`。 |
-| 庫存價值以 `inventory_record.amount`、統計表，還是 `item_price` 重新計算為準？ | 影響財務數字一致性。 | 已確認 | 庫存價值以 `inventory_record.amount`。 |
+| 庫存價值以 `inventory_record.amount`、統計表，還是 `item_price` 重新計算為準？ | 影響財務數字一致性。 | 已確認 | 第一版庫存總值與明細價值以 `inventory_item_month_statistic` 月結結存搭配 `inventory_delta` 補算；`inventory_record.amount` 保留作為來源明細與防護性補算依據。 |
 | 預留數量的正式來源是訂單、工單、倉庫任務中的哪些資料？ | 影響可用庫存。 | 需新增規劃 | 尚未規劃與實作；建議新增 `warehouse_inventory_reservation`。 |
 | 安全水位來源 table/field 是哪一個？ | 影響低於安全水位警示。 | 需新增規劃 | 尚未規劃與實作；建議新增 `item_safety_stock`。 |
 | 品檢放行/保留狀態來源是哪些 table/field？ | 影響可用量與品檢保留量。 | 需新增規劃 | 尚未規劃與實作；建議新增 `warehouse_quality_hold`。 |

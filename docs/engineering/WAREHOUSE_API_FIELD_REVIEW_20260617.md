@@ -27,7 +27,7 @@ GET /api/v2/warehouse/tasks
 | 項目 | 原狀態 | 修正結果 |
 | --- | --- | --- | 
 | 查詢營業日 | `range` 以 UTC 日切分，未依 `x-timezone` 換算。 | 已依 `x-timezone` 將 `date` 換算為本地營業日，再轉 UTC 起訖 timestamp。 |
-| 目前庫存量與庫存價值 | `inventory_record` 彙總未限制查詢時間。 | 已只納入 `inventory_record.date <= queryTimestamp`。 |  
+| 目前庫存量與庫存價值 | 原先以 `inventory_record` 直接彙總。 | 已依工程師最新確認改為 `inventory_item_month_statistic` 月結結存搭配 `inventory_delta` 補算；`inventory_record` 保留作為來源單據、首次入庫日與防護性補算依據。 |  
 | 預留、品檢、板位 | 未排除查詢時間之後的資料。 | 已對 `warehouse_inventory_reservation.date`、`warehouse_quality_hold.date`、`warehouse_pallet_movement.date` 加上查詢時間限制。 |  
 | 安全水位風險 | 使用 `currentQuantity < safetyStock`。 | 已改為 `availableQuantity < safetyStock`。 |   
 | 風險文字 | 已移除 fallback，但需確認文件一致。 | 程式與文件皆改為只回傳 `messageCode`、`messageParams`、`recommendedActionCode`。 |   
@@ -51,7 +51,7 @@ GET /api/v2/warehouse/tasks
 
 | Field | 來源 / 計算 | 狀態 |
 | --- | --- | --- |
-| `totalInventoryValue` | `inventory_record.amount` 入庫加總減出庫加總，限制 `date <= queryTimestamp`。 | OK |
+| `totalInventoryValue` | `inventory_item_month_statistic.endAmount` 加上月結日後 `inventory_delta.inAmount - inventory_delta.outAmount`。 | OK |
 | `reservedInventoryValue` | 有效 `warehouse_inventory_reservation.reservedValue` 加總。 | OK |
 | `availableInventoryValue` | `totalInventoryValue - reservedInventoryValue - qualityHoldInventoryValue`，低於 0 則回 0。 | OK |
 | `qualityHoldInventoryValue` | 有效 `warehouse_quality_hold.holdValue` 加總。 | OK |
@@ -67,7 +67,7 @@ GET /api/v2/warehouse/tasks
 
 | Field | 來源 / 計算 | 狀態 |
 | --- | --- | --- |
-| `itemCategory` | `inventory_record.itemCategory`，只統計原料、物料、膠捲、在製品、製成品。 | OK |
+| `itemCategory` | `inventory_item_month_statistic.category` / `inventory_delta.category`，只統計原料、物料、膠捲、在製品、製成品。 | OK |
 | `inventoryValue` | 同類別 `inventoryValue` 加總。 | OK |
 | `reservedValue` | 同類別有效預留價值加總。 | OK |
 | `availableValue` | `inventoryValue - reservedValue - qualityHoldValue`。 | OK |
@@ -77,7 +77,7 @@ GET /api/v2/warehouse/tasks
 | `palletCount` | 同類別已佔用板數加總。 | OK |
 | `itemCount` | 同類別 distinct `itemNo` 筆數。 | OK |
 | `valueRatio` | `inventoryValue / totalInventoryValue * 100`。 | OK |
-| `trend7Days` | 第一版保留欄位，固定回傳 `0.0`。 | Pending Future |
+| `trend7Days` | 第一版保留欄位，固定回傳 `0.0`；趨勢演算法另提案。 | Pending Future |
 
 ### capacityByWarehouse
 
@@ -101,10 +101,10 @@ GET /api/v2/warehouse/tasks
 | `riskType` | 迴轉、效期、安全水位三類規則產生。 | OK |
 | `riskLevel` | 優先 `warehouse_risk_rule.riskLevel`，缺漏時依風險類型 fallback。 | OK |
 | `itemNo` / `itemName` / `itemCategory` | 庫存彙總列來源。 | OK |
-| `batchNo` | `inventory_record.batchNumber`。 | OK |
-| `warehouseNo` / `warehouseName` | `inventory_record.warehouse_no` / `warehouse_displayName`。 | OK |
+| `batchNo` | `inventory_item_month_statistic.specified_no` / `inventory_delta.specified_no`，防護性補算時取 `inventory_record.batchNumber`。 | OK |
+| `warehouseNo` / `warehouseName` | `inventory_item_month_statistic.warehouse_no` / `warehouse_displayName`，防護性補算時取 `inventory_record`。 | OK |
 | `quantity` | 目前庫存量。 | OK |
-| `unit` | `inventory_record.unit`。 | OK |
+| `unit` | `inventory_item_month_statistic.unit`，防護性補算時取 `inventory_record.unit`。 | OK |
 | `inventoryValue` | 目前庫存價值。 | OK |
 | `daysInStock` | `queryTimestamp - firstInboundTimestamp` 換算天數。 | OK |
 | `validDate` | `batch_number.validDate`。 | OK |
@@ -152,22 +152,22 @@ GET /api/v2/warehouse/tasks
 | `warehouseNo` / `warehouseName` | 庫存彙總列來源。 | OK |
 | `itemNo` / `itemName` / `itemCategory` | 庫存彙總列來源。 | OK |
 | `itemSubCategory` | 優先 `batch_number.itemSubCategory`，缺漏時依料品類別回查 `material / inproduct / product / goods`。 | OK |
-| `itemType` | 優先 `batch_number.itemType`，缺漏時取 `inventory_record.itemType`。 | OK |
+| `itemType` | 優先 `batch_number.itemType`，缺漏時取最近一筆 `inventory_record.itemType` 作為回退。 | OK |
 | `batchNo` / `serialNo` | 批號層級回傳 `batchNo`，`serialNo` 第一版為空字串。 | OK |
-| `currentQuantity` | 查詢時間以前入庫減出庫。 | OK |
+| `currentQuantity` | `inventory_item_month_statistic.endCount` 加上月結日後 `inventory_delta.inCount - inventory_delta.outCount`。 | OK |
 | `reservedQuantity` | 有效預留量。 | OK |
 | `availableQuantity` | `currentQuantity - reservedQuantity - qualityHoldQuantity`。 | OK |
 | `qualityHoldQuantity` | 有效品檢保留量。 | OK |
-| `unit` | `inventory_record.unit`。 | OK |
+| `unit` | `inventory_item_month_statistic.unit`，防護性補算時取 `inventory_record.unit`。 | OK |
 | `unitCost` | `inventoryValue / currentQuantity`，取至小數點第 4 位。 | OK |
-| `inventoryValue` | 查詢時間以前入庫金額減出庫金額。 | OK |
+| `inventoryValue` | `inventory_item_month_statistic.endAmount` 加上月結日後 `inventory_delta.inAmount - inventory_delta.outAmount`。 | OK |
 | `reservedValue` / `availableValue` / `qualityHoldValue` | 預留、可用、品檢保留價值。 | OK |
 | `palletCount` | 查詢時間以前已佔用板數。 | OK |
 | `safetyStock` | 對應風險資訊中的安全水位。 | OK |
 | `validDays` / `validDate` | `batch_number`。 | OK |
 | `firstInboundTimestamp` | 同倉儲、料品、批號最早入庫時間。 | OK |
 | `daysInStock` | 查詢時間減首次入庫時間。 | OK |
-| `sourceType` | 依最近一次入庫 `refCategory` 轉為穩定字串。 | Need Review |
+| `sourceType` | 依最近一次入庫 `refCategory` 轉為穩定字串；工程師已確認 PURCHASE=`goods_receipt_note`、SALE=`shipping_order`、WORK=`process_order`、OTHER=`inventory_order`。 | OK |
 | `sourceNo` | 查詢時間以前最近一次入庫 `inventory_record.ref_no`。 | OK |
 | `sourceRefCategory` | 查詢時間以前最近一次入庫 `inventory_record.refCategory`。 | OK |
 | `qualityStatus` | `qualityHoldQuantity > 0` 回 `hold`，否則 `released`。 | OK |
@@ -185,12 +185,12 @@ Tasks API 欄位來源與 Dashboard `pendingTasks` 相同；差異如下：
 
 ## 仍需工程師確認
 
-| 項目 | 說明 | 工程師回覆 |
-| --- | --- | --- |
-| 月結統計表使用時機 | 目前第一版實作以 `inventory_record` 直接彙總，符合正式 API 文件；`inventory_item_month_statistic` / `inventory_delta` 可作為後續效能優化或大量資料情境。 | 第一版實作直接採用月結統計表計算。(`inventory_item_month_statistic` / `inventory_delta`)|
-| `sourceType` 對應 | 目前依 `refCategory` 簡化轉為 PURCHASE / SALE / WORK / OTHER，需工程師確認是否與所有來源單據 enum 完全一致。 |正確; <br>PURCHASE: 關聯至`goods_receipt_note`資料表 <br>SALE: 關聯至`shipping_order`資料表<br>WORK: 關聯至`process_order`資料表<br>OTHER: 關聯至`inventory_order`資料表|
-| `valueTrend` / `trend7Days` | 目前為保留欄位，尚未計算。若前端第一版需要趨勢，需另訂資料來源與演算法。 |請規劃 資料來源 與 演算法設計，並撰寫對應的提案文件，提案文件放置docs\spec\api-proposal\下，以便工程師檢視。|
-| 批號流水號層級 | 目前庫存明細為批號層級，`serialNo` 保留空字串；若需流水號層級，需擴充 group by 與資料集。 |請確認目前畫面是否已有呈現流水號層級。若已有呈現，則需進一步擴充至完整的流水號層級，並同步檢查程式邏輯與 API 文件是否一致|
+| 項目 | 說明 | 工程師回覆 | Codex 理解與回覆 | 後續處理 |
+| --- | --- | --- | --- | --- |
+| 月結統計表使用時機 | 目前第一版實作以 `inventory_record` 直接彙總，符合正式 API 文件；`inventory_item_month_statistic` / `inventory_delta` 可作為後續效能優化或大量資料情境。 | 第一版實作直接採用月結統計表計算。(`inventory_item_month_statistic` / `inventory_delta`)| 已理解並接受。Warehouse Dashboard / Inventory 的目前庫存量與庫存價值改以 `inventory_item_month_statistic` 批號層級月結結存為基準，再以 `inventory_delta` 補算月結日後至查詢營業日的每日異動。`inventory_record` 保留作為首次入庫日、最近來源單據與統計資料尚未建立時的防護性補算依據。 | 已修改程式碼與 API 文件，並補 pytest 驗證月結加 delta 的主計算路徑。 |
+| `sourceType` 對應 | 目前依 `refCategory` 簡化轉為 PURCHASE / SALE / WORK / OTHER，需工程師確認是否與所有來源單據 enum 完全一致。 |正確; <br>PURCHASE: 關聯至`goods_receipt_note`資料表 <br>SALE: 關聯至`shipping_order`資料表<br>WORK: 關聯至`process_order`資料表<br>OTHER: 關聯至`inventory_order`資料表| 已理解。現有 API 回傳穩定代碼維持 PURCHASE / SALE / WORK / OTHER；其中 OTHER 明確代表關聯 `inventory_order`。 | 已同步更新 API 文件說明；程式代碼映射維持不變。 |
+| `valueTrend` / `trend7Days` | 目前為保留欄位，尚未計算。若前端第一版需要趨勢，需另訂資料來源與演算法。 |請規劃 資料來源 與 演算法設計，並撰寫對應的提案文件，提案文件放置docs\spec\api-proposal\下，以便工程師檢視。| 已理解。此項尚未進入實作，應先提交資料來源與演算法提案，避免在已確認 API 中加入未審核邏輯。 | 已新增 `docs/spec/api-proposal/warehouse_value_trend_proposal.md`。 |
+| 批號流水號層級 | 目前庫存明細為批號層級，`serialNo` 保留空字串；若需流水號層級，需擴充 group by 與資料集。 |請確認目前畫面是否已有呈現流水號層級。若已有呈現，則需進一步擴充至完整的流水號層級，並同步檢查程式邏輯與 API 文件是否一致| 已確認目前 Warehouse 第一版畫面與靜態預覽以料號、批號與批號追蹤為主，尚未呈現流水號層級操作或欄位。第一版維持批號層級，`serialNo` 保留空字串。 | 暫不修改程式邏輯；若後續 UX 明確加入流水號追蹤，再另提 API 與資料集擴充。 |
 
 
 

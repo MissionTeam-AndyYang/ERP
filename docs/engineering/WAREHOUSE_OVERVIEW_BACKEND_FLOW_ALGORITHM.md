@@ -98,10 +98,10 @@ riskOnly
 
 建議來源：
 
-1. 月底基準：`inventory_item_month_statistic` 或 `inventory_month_statistic`。
-2. 月底後異動：`inventory_delta`。
-3. 即時明細或補算：`inventory_record`。
-4. 工程師回覆：庫存價值以 `inventory_record.amount` 為準。
+1. 月底基準：第一版直接採用 `inventory_item_month_statistic` 的批號層級月結結存。
+2. 月底後異動：採用 `inventory_delta` 補算月結日後至查詢營業日的每日異動。
+3. 明細輔助：`inventory_record` 保留作為首次入庫日、最近來源單據與統計資料尚未建立時的防護性補算依據。
+4. 工程師最新回覆：第一版實作直接採用月結統計表計算。(`inventory_item_month_statistic` / `inventory_delta`)
 
 建議演算法：
 
@@ -110,7 +110,7 @@ currentQuantity = monthEndQuantity + deltaInCount - deltaOutCount
 inventoryValue = monthEndAmount + deltaInAmount - deltaOutAmount
 ```
 
-若查詢需批號或明細層級：
+防護性補算：
 
 ```txt
 currentQuantity = sum(inventory_record.count where category = IN and date <= queryTimestamp)
@@ -122,7 +122,8 @@ inventoryValue = sum(inventory_record.amount where category = IN and date <= que
 
 注意：
 
-- 若統計表與即時計算不同步，需以 `inventory_record` 補算到查詢時間。
+- 正式第一版主路徑以 `inventory_item_month_statistic` 搭配 `inventory_delta` 為準。
+- 若測試環境或過渡資料尚未建立統計表，程式可保留 `inventory_record` 彙總作為防護性回退，但正式資料應優先補齊統計表。
 - 單位成本可由 `inventoryValue / currentQuantity` 推導；若需標準成本，可參考 `item_price.costPriceWeight`。
 
 ### Step 3：計算預留數量與預留價值

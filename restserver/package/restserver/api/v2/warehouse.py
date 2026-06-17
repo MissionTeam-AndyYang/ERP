@@ -7,6 +7,7 @@ from sqlalchemy import case, func
 
 from package.common.common import (
     EErrorCode,
+    EInventoryDeltaKind,
     EInventoryCategory,
     EItemCategory,
     EShipWarehouseCat,
@@ -19,6 +20,8 @@ from package.dbwrapper.dbmgr import CDBMgr
 from package.dbwrapper.table import (
     CTableBatchNumber,
     CTableGoods,
+    CTableInventoryDelta,
+    CTableInventoryItemMonthStatistic,
     CTableInproduct,
     CTableInventoryRec,
     CTableItemSafetyStock,
@@ -99,6 +102,7 @@ class CWarehouseDashboardService(object):
             n_query_timestamp,
             str_warehouse_no,
             n_item_category,
+            str_timezone,
         )
         dict_reservations = self.__query_reservations(obj_session, n_query_timestamp)
         dict_quality_holds = self.__query_quality_holds(obj_session, n_query_timestamp)
@@ -151,7 +155,38 @@ class CWarehouseDashboardService(object):
             "endTimestamp": n_end,
         }
 
-    def __query_inventory_rows(self, obj_session, n_query_timestamp, str_warehouse_no, n_item_category):
+    def __query_local_date(self, n_timestamp, str_timezone):
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        return datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz).date()
+
+    def __query_inventory_rows(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_warehouse_no,
+        n_item_category,
+        str_timezone="",
+    ):
+        lst_results = self.__query_inventory_rows_from_statistics(
+            obj_session,
+            n_query_timestamp,
+            str_warehouse_no,
+            n_item_category,
+            str_timezone,
+        )
+        if lst_results:
+            return lst_results
+        return self.__query_inventory_rows_from_records(
+            obj_session,
+            n_query_timestamp,
+            str_warehouse_no,
+            n_item_category,
+        )
+
+    def __query_inventory_rows_from_records(self, obj_session, n_query_timestamp, str_warehouse_no, n_item_category):
         lst_filters = [
             CTableInventoryRec.itemCategory.in_(self.__target_categories()),
             CTableInventoryRec.date <= n_query_timestamp,
@@ -270,6 +305,208 @@ class CWarehouseDashboardService(object):
                 "validDate": util_safe_int(dict_batch_info.get("validDate", 0)),
             })
         return lst_results
+
+    def __query_inventory_rows_from_statistics(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_warehouse_no,
+        n_item_category,
+        str_timezone,
+    ):
+        obj_query_date = self.__query_local_date(n_query_timestamp, str_timezone)
+        str_stat_timezone = str_timezone or "UTC"
+        lst_filters = [
+            CTableInventoryItemMonthStatistic.kind == EInventoryDeltaKind.BATCHNO,
+            CTableInventoryItemMonthStatistic.category.in_(self.__target_categories()),
+            CTableInventoryItemMonthStatistic.date <= obj_query_date,
+            CTableInventoryItemMonthStatistic.timezone == str_stat_timezone,
+        ]
+        if str_warehouse_no:
+            lst_filters.append(CTableInventoryItemMonthStatistic.warehouse_no == str_warehouse_no)
+        if n_item_category:
+            lst_filters.append(CTableInventoryItemMonthStatistic.category == n_item_category)
+
+        lst_stat_rows = (
+            obj_session.query(CTableInventoryItemMonthStatistic)
+            .filter(*lst_filters)
+            .order_by(CTableInventoryItemMonthStatistic.date.asc(), CTableInventoryItemMonthStatistic.id.asc())
+            .all()
+        )
+
+        dict_inventory = {}
+        dict_latest_stat_date = {}
+        for obj_row in lst_stat_rows:
+            str_key = self.__stock_key(obj_row.specified_ref_no, obj_row.specified_no, obj_row.warehouse_no)
+            dict_inventory[str_key] = {
+                "warehouseNo": obj_row.warehouse_no or "",
+                "warehouseName": obj_row.warehouse_displayName or "",
+                "itemCategory": util_safe_int(obj_row.category),
+                "itemNo": obj_row.specified_ref_no or "",
+                "itemName": obj_row.specified_ref_name or "",
+                "batchNo": obj_row.specified_no or "",
+                "unit": util_safe_int(obj_row.unit),
+                "currentQuantity": util_safe_float(obj_row.endCount),
+                "inventoryValue": util_safe_float(obj_row.endAmount),
+            }
+            dict_latest_stat_date[str_key] = obj_row.date
+
+        lst_delta_filters = [
+            CTableInventoryDelta.kind == EInventoryDeltaKind.BATCHNO,
+            CTableInventoryDelta.category.in_(self.__target_categories()),
+            CTableInventoryDelta.date <= obj_query_date,
+            CTableInventoryDelta.timezone == str_stat_timezone,
+        ]
+        if str_warehouse_no:
+            lst_delta_filters.append(CTableInventoryDelta.warehouse_no == str_warehouse_no)
+        if n_item_category:
+            lst_delta_filters.append(CTableInventoryDelta.category == n_item_category)
+
+        lst_delta_rows = (
+            obj_session.query(CTableInventoryDelta)
+            .filter(*lst_delta_filters)
+            .all()
+        )
+        for obj_row in lst_delta_rows:
+            str_key = self.__stock_key(obj_row.specified_ref_no, obj_row.specified_no, obj_row.warehouse_no)
+            obj_latest_date = dict_latest_stat_date.get(str_key)
+            if obj_latest_date and obj_row.date <= obj_latest_date:
+                continue
+            if str_key not in dict_inventory:
+                dict_inventory[str_key] = {
+                    "warehouseNo": obj_row.warehouse_no or "",
+                    "warehouseName": obj_row.warehouse_displayName or "",
+                    "itemCategory": util_safe_int(obj_row.category),
+                    "itemNo": obj_row.specified_ref_no or "",
+                    "itemName": obj_row.specified_ref_name or "",
+                    "batchNo": obj_row.specified_no or "",
+                    "unit": 0,
+                    "currentQuantity": 0.0,
+                    "inventoryValue": 0.0,
+                }
+            dict_inventory[str_key]["currentQuantity"] += (
+                util_safe_float(obj_row.inCount) - util_safe_float(obj_row.outCount)
+            )
+            dict_inventory[str_key]["inventoryValue"] += (
+                util_safe_float(obj_row.inAmount) - util_safe_float(obj_row.outAmount)
+            )
+
+        if not dict_inventory:
+            return []
+
+        lst_inventory_rows = list(dict_inventory.values())
+        lst_batch_numbers = [dict_row.get("batchNo") for dict_row in lst_inventory_rows if dict_row.get("batchNo")]
+        dict_batch = self.__query_batch_metadata(obj_session, lst_batch_numbers)
+        dict_item_metadata = self.__query_item_metadata(
+            obj_session,
+            [(dict_row.get("itemNo"), dict_row.get("itemCategory")) for dict_row in lst_inventory_rows],
+        )
+        dict_first_inbound = self.__query_first_inbound_timestamps(obj_session, n_query_timestamp)
+        dict_record_metadata = self.__query_latest_record_metadata(obj_session, n_query_timestamp)
+
+        lst_results = []
+        for dict_row in lst_inventory_rows:
+            f_quantity = util_safe_float(dict_row.get("currentQuantity"))
+            if f_quantity <= 0:
+                continue
+            str_item_no = dict_row.get("itemNo") or ""
+            str_batch_no = dict_row.get("batchNo") or ""
+            str_warehouse_no = dict_row.get("warehouseNo") or ""
+            n_item_category = util_safe_int(dict_row.get("itemCategory"))
+            dict_batch_info = dict_batch.get(str_batch_no, {})
+            dict_item_info = dict_item_metadata.get((str_item_no, n_item_category), {})
+            dict_record_info = dict_record_metadata.get(self.__stock_key(str_item_no, str_batch_no, str_warehouse_no), {})
+            lst_results.append({
+                "warehouseNo": str_warehouse_no,
+                "warehouseName": dict_row.get("warehouseName") or "",
+                "itemCategory": n_item_category,
+                "itemSubCategory": util_safe_int(
+                    dict_batch_info.get("itemSubCategory")
+                    or dict_item_info.get("itemSubCategory")
+                    or 0
+                ),
+                "itemType": util_safe_int(
+                    dict_batch_info.get("itemType")
+                    or dict_record_info.get("itemType")
+                    or 0
+                ),
+                "itemNo": str_item_no,
+                "itemName": dict_row.get("itemName") or "",
+                "batchNo": str_batch_no,
+                "unit": util_safe_int(dict_row.get("unit") or dict_record_info.get("unit")),
+                "currentQuantity": util_round_quantity(f_quantity),
+                "inventoryValue": util_round_amount(dict_row.get("inventoryValue")),
+                "firstInboundTimestamp": util_safe_int(
+                    dict_first_inbound.get(self.__stock_key(str_item_no, str_batch_no, str_warehouse_no))
+                ),
+                "validDays": util_safe_int(dict_batch_info.get("validDays", 0)),
+                "validDate": util_safe_int(dict_batch_info.get("validDate", 0)),
+            })
+        return lst_results
+
+    def __query_batch_metadata(self, obj_session, lst_batch_numbers):
+        dict_batch = {}
+        if not lst_batch_numbers:
+            return dict_batch
+        lst_batch_rows = (
+            obj_session.query(
+                CTableBatchNumber.no,
+                CTableBatchNumber.itemSubCategory,
+                CTableBatchNumber.itemType,
+                CTableBatchNumber.validDays,
+                CTableBatchNumber.validDate,
+            )
+            .filter(CTableBatchNumber.no.in_(lst_batch_numbers))
+            .all()
+        )
+        return {
+            obj_row.no: {
+                "itemSubCategory": util_safe_int(obj_row.itemSubCategory),
+                "itemType": util_safe_int(obj_row.itemType),
+                "validDays": util_safe_int(obj_row.validDays),
+                "validDate": util_safe_int(obj_row.validDate),
+            }
+            for obj_row in lst_batch_rows
+        }
+
+    def __query_first_inbound_timestamps(self, obj_session, n_query_timestamp):
+        lst_rows = (
+            obj_session.query(
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.warehouse_no,
+                func.min(CTableInventoryRec.date).label("firstInboundTimestamp"),
+            )
+            .filter(CTableInventoryRec.category == EInventoryCategory.IN)
+            .filter(CTableInventoryRec.date <= n_query_timestamp)
+            .group_by(
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.warehouse_no,
+            )
+            .all()
+        )
+        return {
+            self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): util_safe_int(obj_row.firstInboundTimestamp)
+            for obj_row in lst_rows
+        }
+
+    def __query_latest_record_metadata(self, obj_session, n_query_timestamp):
+        lst_rows = (
+            obj_session.query(CTableInventoryRec)
+            .filter(CTableInventoryRec.date <= n_query_timestamp)
+            .order_by(CTableInventoryRec.date.desc(), CTableInventoryRec.id.desc())
+            .all()
+        )
+        dict_result = {}
+        for obj_row in lst_rows:
+            str_key = self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no)
+            if str_key not in dict_result:
+                dict_result[str_key] = {
+                    "itemType": util_safe_int(obj_row.itemType),
+                    "unit": util_safe_int(obj_row.unit),
+                }
+        return dict_result
 
     def __query_item_metadata(self, obj_session, lst_item_refs):
         dict_result = {}

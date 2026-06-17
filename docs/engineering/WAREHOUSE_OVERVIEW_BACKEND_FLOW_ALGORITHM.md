@@ -61,8 +61,8 @@ v1 文件可保留為討論歷史；實作時以 v2 route 為準。
 
 1. 後端回傳 enum code 或穩定 code，例如 `itemCategory = 1`、`riskType = TURNOVER_OVER_30_DAYS`。
 2. 前端負責 enum 到多國語言字串的轉換，例如 `1 -> 原料`。
-3. 後端可回傳 `messageCode`、`recommendedActionCode` 與參數，前端依語系組成顯示文字。
-4. 若第一版需要快速展示，可同時回傳繁中 fallback `message` 與 `recommendedAction`，但不得把它視為唯一語系來源。
+3. 後端回傳 `messageCode`、`messageParams`、`recommendedActionCode`，前端依語系組成顯示文字。
+4. 第一版不回傳繁中 fallback `message` 與 `recommendedAction`，避免後端與前端多國語言職責重疊。
 
 ## 類別庫存量顯示規則
 
@@ -340,7 +340,7 @@ if daysInStock > 30:
     riskType = TURNOVER_OVER_30_DAYS
 ```
 
-### Step 10：產生風險說明文字與建議處理方式
+### Step 10：產生風險訊息代碼與建議處理方式代碼
 
 建議來源：
 
@@ -358,16 +358,14 @@ warehouse_risk_rule
     "currentQuantity": 3200,
     "safetyStock": 6000
   },
-  "recommendedActionCode": "warehouse.action.createPurchaseRequest",
-  "message": "目前可用量低於安全水位。",
-  "recommendedAction": "建議建立請購或確認已下採購單。"
+  "recommendedActionCode": "warehouse.action.createPurchaseRequest"
 }
 ```
 
 多國語言原則：
 
 1. 前端依 code 與 params 產生多語文字。
-2. 後端 `message` 與 `recommendedAction` 作為繁中 fallback。
+2. 後端不回傳 `message` 與 `recommendedAction` 繁中 fallback。
 
 ### Step 11：計算任務處理狀態
 

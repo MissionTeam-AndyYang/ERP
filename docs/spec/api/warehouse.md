@@ -122,8 +122,15 @@ None
         "validDate": "Integer",
         "remainingShelfLifeRatio": "Float",
         "safetyStock": "Float",
-        "message": "String",
-        "recommendedAction": "String"
+        "messageCode": "String",
+        "messageParams": {
+          "currentQuantity": "Float",
+          "daysInStock": "Integer",
+          "validDate": "Integer",
+          "remainingShelfLifeRatio": "Float",
+          "safetyStock": "Float"
+        },
+        "recommendedActionCode": "String"
       }
     ],
     "pendingTasks": [
@@ -233,8 +240,13 @@ None
 | payload.riskAlerts[].validDate | Integer | 批號效期日，UTC timestamp |  |
 | payload.riskAlerts[].remainingShelfLifeRatio | Float | 剩餘效期比例；0.3333 表示剩餘三分之一效期 |  |
 | payload.riskAlerts[].safetyStock | Float | 安全水位數量 |  |
-| payload.riskAlerts[].message | String | 風險說明文字 |  |
-| payload.riskAlerts[].recommendedAction | String | 建議處理方式 |  |
+| payload.riskAlerts[].messageCode | String | 風險說明多國語言代碼；前端依 code 與 params 產生顯示文字 |  |
+| payload.riskAlerts[].messageParams.currentQuantity | Float | 風險訊息參數：目前庫存量 |  |
+| payload.riskAlerts[].messageParams.daysInStock | Integer | 風險訊息參數：庫存天數 |  |
+| payload.riskAlerts[].messageParams.validDate | Integer | 風險訊息參數：效期日 |  |
+| payload.riskAlerts[].messageParams.remainingShelfLifeRatio | Float | 風險訊息參數：剩餘效期比例 |  |
+| payload.riskAlerts[].messageParams.safetyStock | Float | 風險訊息參數：安全水位 |  |
+| payload.riskAlerts[].recommendedActionCode | String | 建議處理方式多國語言代碼；前端依 code 轉換顯示文字 |  |
 | payload.pendingTasks[].taskId | String | 流程任務識別碼 |  |
 | payload.pendingTasks[].taskType | Integer | 任務類型 | 請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9) |
 | payload.pendingTasks[].refCategory | Integer | 來源類別；與資料表欄位 `refCategory` 保持一致 |  |
@@ -293,7 +305,7 @@ None
 6. 讀取 `warehouse_pallet_movement` 彙總各倉儲與各料品品項類別的已佔用板數、預留板數。
 7. 讀取 `ship_wh_contract`、`ship_wh`、`ship_wh_alias` 計算各倉儲空間總板數與可用板數；因 `ship_wh_contract` 同時存放物流與倉庫合約，僅納入 `ship_wh_contract.category = 2` 的倉儲合約。
 8. 讀取 `item_safety_stock` 判斷低於安全水位之庫存風險。
-9. 讀取 `warehouse_risk_rule` 補齊風險等級、風險說明文字與建議處理方式；若尚未設定規則，使用 API 內建預設文字。
+9. 讀取 `warehouse_risk_rule` 補齊風險等級、`messageCode` 與 `recommendedActionCode`；後端不回傳繁中 fallback 文字，前端依 code 與 params 轉換顯示。
 10. 依庫存迴轉超過 30 天、效期剩餘低於三分之一、安全水位不足建立 `riskAlerts`。
 11. 讀取 `workflow_task_state` 取得待處理進貨、入庫、出庫、移倉、品檢、出貨等任務，並依 `ownerDepartment` 回傳下一步負責部門。
 12. 整合 `summary`、`inventoryValueByCategory`、`capacityByWarehouse`、`riskAlerts`、`pendingTasks`；若 `includeInventory=true`，額外回傳批號層級庫存明細。
@@ -308,7 +320,7 @@ None
 | warehouse_quality_hold | 提供品檢保留量、品檢保留價值 |
 | warehouse_pallet_movement | 提供各倉儲與各料品品項類別板數佔用狀態 |
 | item_safety_stock | 提供料品安全水位 |
-| warehouse_risk_rule | 提供風險等級、風險說明文字與建議處理方式 |
+| warehouse_risk_rule | 提供風險等級、風險訊息代碼與建議處理方式代碼 |
 | workflow_task_state | 提供待處理任務狀態與下一步負責部門 |
 | ship_wh | 提供倉儲空間容量 |
 | ship_wh_contract | 提供倉儲別名與倉儲空間對應；僅使用 category = 2 的倉儲合約 |
@@ -412,8 +424,8 @@ None
 | payload.results[].itemNo | String | 料品品項編號 |  |
 | payload.results[].itemName | String | 料品品項名稱 |  |
 | payload.results[].itemCategory | Integer | 料品品項類別；前端負責轉換顯示文字 | EItemCategory |
-| payload.results[].itemSubCategory | Integer | 料品品項子類別；第一版若來源未提供則回傳 0 |  |
-| payload.results[].itemType | Integer | 料品類型；第一版若來源未提供則回傳 0 |  |
+| payload.results[].itemSubCategory | Integer | 料品品項子類別；優先取 `batch_number.itemSubCategory`，不足時依料品類別取 `material.subCategory`、`inproduct.category`、`product.category` 或 `goods.subCategory` |  |
+| payload.results[].itemType | Integer | 料品類型；優先取 `batch_number.itemType`，不足時取 `inventory_record.itemType`，前端負責轉換顯示文字 | EItemType |
 | payload.results[].batchNo | String | 批號 |  |
 | payload.results[].serialNo | String | 流水號；批號層級資料可為空字串 |  |
 | payload.results[].currentQuantity | Float | 目前庫存量，數量欄位取至小數點第 2 位 |  |
@@ -441,22 +453,24 @@ None
 ### Processing Flow
 
 1. 讀取庫存篩選條件與分頁參數。
-2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，依倉儲、料品、批號彙總目前庫存量與庫存價值。
-3. 彙總有效預留量、品檢保留量與板位使用量，計算可用數量與可用價值。
-4. 補齊批號效期、首次入庫時間、安全水位與風險類型。
-5. 套用 item_no、batchNo、riskType 與分頁條件後回傳結果。
+2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，依倉儲、料品、批號與料品型態彙總目前庫存量與庫存價值。
+3. 由 `batch_number` 補齊 `itemSubCategory`、`itemType`、有效天數與效期日；若批號資料缺漏，`itemSubCategory` 依料品類別回查料品主檔，`itemType` 則回退至 `inventory_record.itemType`。
+4. 彙總有效預留量、品檢保留量與板位使用量，計算可用數量與可用價值。
+5. 補齊首次入庫時間、安全水位與風險類型。
+6. 套用 item_no、batchNo、riskType 與分頁條件後回傳結果。
 
 ### Database Tables Used
 
 | Table | Purpose |
 |----------|------|
 | inventory_record | 提供庫存異動、目前庫存量與庫存價值彙總基礎 |
-| batch_number | 提供批號效期資訊 |
+| batch_number | 提供批號效期資訊、料品品項子類別與料品類型 |
 | warehouse_inventory_reservation | 提供預留數量與預留價值 |
 | warehouse_quality_hold | 提供品檢保留量與品檢保留價值 |
 | warehouse_pallet_movement | 提供板數佔用狀態 |
 | item_safety_stock | 提供安全水位 |
-| warehouse_risk_rule | 提供風險說明 fallback 規則 |
+| warehouse_risk_rule | 提供風險訊息代碼與建議處理方式代碼 |
+| material / inproduct / product / goods | 當 `batch_number.itemSubCategory` 缺漏時，依料品類別補齊料品品項子類別 |
 
 ## GET /api/v2/warehouse/tasks
 

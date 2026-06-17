@@ -23,6 +23,7 @@ from package.dbwrapper.table import (
     CTableBatchNumber,
     CTableInventoryRec,
     CTableItemSafetyStock,
+    CTableMaterial,
     CTableShipWarehouse,
     CTableShipWarehouseAlias,
     CTableShipWarehouseContract,
@@ -44,6 +45,7 @@ def build_session():
     for obj_table in [
         CTableInventoryRec.__table__,
         CTableBatchNumber.__table__,
+        CTableMaterial.__table__,
         CTableShipWarehouseAlias.__table__,
         CTableShipWarehouse.__table__,
         CTableShipWarehouseContract.__table__,
@@ -70,6 +72,7 @@ def seed_dashboard_base(obj_session):
             item_no="RM-001",
             item_name="原料A",
             itemCategory=EItemCategory.PM,
+            itemType=1,
             unit=1,
             count=100,
             amount=1000,
@@ -83,6 +86,7 @@ def seed_dashboard_base(obj_session):
             item_no="RM-001",
             item_name="原料A",
             itemCategory=EItemCategory.PM,
+            itemType=1,
             unit=1,
             count=10,
             amount=100,
@@ -93,9 +97,18 @@ def seed_dashboard_base(obj_session):
             item_no="RM-001",
             item_name="原料A",
             itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            itemType=1,
             unit=1,
             validDays=90,
             validDate=n_now + 20 * 86400,
+        ),
+        CTableMaterial(
+            no="RM-001",
+            category=EItemCategory.PM,
+            subCategory=11,
+            name="原料A",
+            unitWarehouse=1,
         ),
         CTableWarehouseInventoryReservation(
             no="RES-001",
@@ -273,13 +286,11 @@ def test_dashboard_service_builds_risk_alerts():
     assert EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD in lst_risk_types
     assert EWarehouseRiskType.BELOW_SAFETY_STOCK in lst_risk_types
     for dict_risk in dict_payload["riskAlerts"]:
-        assert "Ã" not in dict_risk["message"]
-        assert "Â" not in dict_risk["message"]
-        assert "Ã" not in dict_risk["recommendedAction"]
-        assert "Â" not in dict_risk["recommendedAction"]
-    assert "此批庫存迴轉週期超過 30 天。" in [
-        dict_risk["message"] for dict_risk in dict_payload["riskAlerts"]
-    ]
+        assert "message" not in dict_risk
+        assert "recommendedAction" not in dict_risk
+        assert dict_risk["messageCode"].startswith("warehouse.risk.")
+        assert dict_risk["recommendedActionCode"].startswith("warehouse.action.")
+        assert "currentQuantity" in dict_risk["messageParams"]
 
 
 def test_inventory_service_returns_confirmed_inventory_dataset():
@@ -297,6 +308,8 @@ def test_inventory_service_returns_confirmed_inventory_dataset():
     assert dict_payload["total"] == 1
     dict_inventory = dict_payload["results"][0]
     assert dict_inventory["inventoryId"] == "WH-A|RM-001|B-RM-001|"
+    assert dict_inventory["itemSubCategory"] == 11
+    assert dict_inventory["itemType"] == 1
     assert dict_inventory["currentQuantity"] == 90.0
     assert dict_inventory["reservedQuantity"] == 20.0
     assert dict_inventory["qualityHoldQuantity"] == 5.0

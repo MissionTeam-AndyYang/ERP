@@ -16,8 +16,12 @@ from package.common.common import (
 from package.dbwrapper.dbmgr import CDBMgr
 from package.dbwrapper.table import (
     CTableBatchNumber,
+    CTableGoods,
+    CTableInproduct,
     CTableInventoryRec,
     CTableItemSafetyStock,
+    CTableMaterial,
+    CTableProduct,
     CTableShipWarehouse,
     CTableShipWarehouseAlias,
     CTableShipWarehouseContract,
@@ -166,6 +170,7 @@ class CWarehouseDashboardService(object):
                 CTableInventoryRec.itemCategory,
                 CTableInventoryRec.item_no,
                 CTableInventoryRec.item_name,
+                CTableInventoryRec.itemType,
                 CTableInventoryRec.batchNumber,
                 CTableInventoryRec.unit,
                 obj_signed_count,
@@ -179,6 +184,7 @@ class CWarehouseDashboardService(object):
                 CTableInventoryRec.itemCategory,
                 CTableInventoryRec.item_no,
                 CTableInventoryRec.item_name,
+                CTableInventoryRec.itemType,
                 CTableInventoryRec.batchNumber,
                 CTableInventoryRec.unit,
             )
@@ -191,6 +197,8 @@ class CWarehouseDashboardService(object):
             lst_batch_rows = (
                 obj_session.query(
                     CTableBatchNumber.no,
+                    CTableBatchNumber.itemSubCategory,
+                    CTableBatchNumber.itemType,
                     CTableBatchNumber.validDays,
                     CTableBatchNumber.validDate,
                 )
@@ -199,22 +207,39 @@ class CWarehouseDashboardService(object):
             )
             dict_batch = {
                 obj_row.no: {
+                    "itemSubCategory": util_safe_int(obj_row.itemSubCategory),
+                    "itemType": util_safe_int(obj_row.itemType),
                     "validDays": util_safe_int(obj_row.validDays),
                     "validDate": util_safe_int(obj_row.validDate),
                 }
                 for obj_row in lst_batch_rows
             }
 
+        dict_item_metadata = self.__query_item_metadata(
+            obj_session,
+            [(obj_row.item_no, obj_row.itemCategory) for obj_row in lst_rows],
+        )
         lst_results = []
         for obj_row in lst_rows:
             f_quantity = util_safe_float(obj_row.currentQuantity)
             if f_quantity <= 0:
                 continue
             dict_batch_info = dict_batch.get(obj_row.batchNumber, {})
+            dict_item_info = dict_item_metadata.get((obj_row.item_no or "", util_safe_int(obj_row.itemCategory)), {})
             lst_results.append({
                 "warehouseNo": obj_row.warehouse_no or "",
                 "warehouseName": obj_row.warehouse_displayName or "",
                 "itemCategory": util_safe_int(obj_row.itemCategory),
+                "itemSubCategory": util_safe_int(
+                    dict_batch_info.get("itemSubCategory")
+                    or dict_item_info.get("itemSubCategory")
+                    or 0
+                ),
+                "itemType": util_safe_int(
+                    dict_batch_info.get("itemType")
+                    or obj_row.itemType
+                    or 0
+                ),
                 "itemNo": obj_row.item_no or "",
                 "itemName": obj_row.item_name or "",
                 "batchNo": obj_row.batchNumber or "",
@@ -226,6 +251,71 @@ class CWarehouseDashboardService(object):
                 "validDate": util_safe_int(dict_batch_info.get("validDate", 0)),
             })
         return lst_results
+
+    def __query_item_metadata(self, obj_session, lst_item_refs):
+        dict_result = {}
+        dict_items_by_category = defaultdict(set)
+        for str_item_no, n_item_category in lst_item_refs:
+            if str_item_no:
+                dict_items_by_category[util_safe_int(n_item_category)].add(str_item_no)
+
+        self.__append_item_metadata(
+            obj_session,
+            CTableMaterial,
+            [EItemCategory.PM, EItemCategory.MA, EItemCategory.AF],
+            dict_items_by_category,
+            dict_result,
+            "subCategory",
+        )
+        self.__append_item_metadata(
+            obj_session,
+            CTableInproduct,
+            [EItemCategory.INPRODUCT],
+            dict_items_by_category,
+            dict_result,
+            "category",
+        )
+        self.__append_item_metadata(
+            obj_session,
+            CTableProduct,
+            [EItemCategory.PRODUCT],
+            dict_items_by_category,
+            dict_result,
+            "category",
+        )
+        self.__append_item_metadata(
+            obj_session,
+            CTableGoods,
+            [EItemCategory.GOODS],
+            dict_items_by_category,
+            dict_result,
+            "subCategory",
+        )
+        return dict_result
+
+    def __append_item_metadata(
+        self,
+        obj_session,
+        obj_table,
+        lst_categories,
+        dict_items_by_category,
+        dict_result,
+        str_sub_category_field,
+    ):
+        for n_category in lst_categories:
+            lst_item_nos = list(dict_items_by_category.get(n_category, []))
+            if not lst_item_nos:
+                continue
+            obj_sub_category = getattr(obj_table, str_sub_category_field)
+            lst_rows = (
+                obj_session.query(obj_table.no, obj_sub_category.label("itemSubCategory"))
+                .filter(obj_table.no.in_(lst_item_nos))
+                .all()
+            )
+            for obj_row in lst_rows:
+                dict_result[(obj_row.no or "", n_category)] = {
+                    "itemSubCategory": util_safe_int(obj_row.itemSubCategory),
+                }
 
     def __query_reservations(self, obj_session, n_query_timestamp):
         lst_rows = (
@@ -376,8 +466,8 @@ class CWarehouseDashboardService(object):
         return {
             obj_row.riskType: {
                 "riskLevel": util_safe_int(obj_row.riskLevel),
-                "message": obj_row.messageTemplateZhTw or "",
-                "recommendedAction": obj_row.recommendedActionTemplateZhTw or "",
+                "messageCode": obj_row.messageCode or "",
+                "recommendedActionCode": obj_row.recommendedActionCode or "",
             }
             for obj_row in lst_rows
         }
@@ -621,8 +711,7 @@ class CWarehouseDashboardService(object):
         n_first_inbound = util_safe_int(dict_row.get("firstInboundTimestamp"))
         n_days_in_stock = int((n_query_timestamp - n_first_inbound) / 86400) if n_first_inbound else 0
         dict_rule = dict_risk_rules.get(str_risk_type, {})
-        str_default_message = self.__risk_message(str_risk_type)
-        str_default_action = self.__risk_action(str_risk_type)
+        f_remaining_shelf_life_ratio = self.__remaining_shelf_life_ratio(dict_row, n_query_timestamp)
         return {
             "alertId": "%s-%s-%s-%s" % (
                 str_risk_type,
@@ -643,10 +732,20 @@ class CWarehouseDashboardService(object):
             "inventoryValue": util_round_amount(dict_row.get("inventoryValue")),
             "daysInStock": n_days_in_stock,
             "validDate": util_safe_int(dict_row.get("validDate")),
-            "remainingShelfLifeRatio": self.__remaining_shelf_life_ratio(dict_row, n_query_timestamp),
+            "remainingShelfLifeRatio": f_remaining_shelf_life_ratio,
             "safetyStock": util_round_quantity(f_safety_stock),
-            "message": self.__safe_risk_text(dict_rule.get("message"), str_default_message),
-            "recommendedAction": self.__safe_risk_text(dict_rule.get("recommendedAction"), str_default_action),
+            "messageCode": dict_rule.get("messageCode") or self.__risk_message_code(str_risk_type),
+            "messageParams": {
+                "currentQuantity": util_round_quantity(dict_row.get("currentQuantity")),
+                "daysInStock": n_days_in_stock,
+                "validDate": util_safe_int(dict_row.get("validDate")),
+                "remainingShelfLifeRatio": f_remaining_shelf_life_ratio,
+                "safetyStock": util_round_quantity(f_safety_stock),
+            },
+            "recommendedActionCode": (
+                dict_rule.get("recommendedActionCode")
+                or self.__risk_action_code(str_risk_type)
+            ),
         }
 
     def __task_to_dict(self, obj_row):
@@ -709,28 +808,21 @@ class CWarehouseDashboardService(object):
             return 0.0
         return round(max(n_valid_date - n_query_timestamp, 0) / float(n_valid_days * 86400), 4)
 
-    def __risk_message(self, str_risk_type):
+    def __risk_message_code(self, str_risk_type):
         dict_messages = {
-            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "此批庫存迴轉週期超過 30 天。",
-            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "此批庫存剩餘效期低於三分之一。",
-            EWarehouseRiskType.BELOW_SAFETY_STOCK: "目前可用量低於安全水位。",
+            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "warehouse.risk.turnoverOver30Days",
+            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "warehouse.risk.shelfLifeLtOneThird",
+            EWarehouseRiskType.BELOW_SAFETY_STOCK: "warehouse.risk.belowSafetyStock",
         }
         return dict_messages.get(str_risk_type, "")
 
-    def __risk_action(self, str_risk_type):
+    def __risk_action_code(self, str_risk_type):
         dict_actions = {
-            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "建議確認是否安排出庫、生產使用或庫存處置。",
-            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "建議優先安排出庫或轉生產使用。",
-            EWarehouseRiskType.BELOW_SAFETY_STOCK: "建議建立請購或確認已下採購單。",
+            EWarehouseRiskType.TURNOVER_OVER_30_DAYS: "warehouse.action.reviewSlowMovingStock",
+            EWarehouseRiskType.SHELF_LIFE_LT_ONE_THIRD: "warehouse.action.prioritizeIssueOrProduction",
+            EWarehouseRiskType.BELOW_SAFETY_STOCK: "warehouse.action.createPurchaseRequest",
         }
         return dict_actions.get(str_risk_type, "")
-
-    def __safe_risk_text(self, str_value, str_default):
-        if not str_value:
-            return str_default
-        if any(str_marker in str_value for str_marker in ["Ã", "Â", "�"]):
-            return str_default
-        return str_value
 
 
 class CWarehouseInventoryService(object):

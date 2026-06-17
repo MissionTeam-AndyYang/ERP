@@ -2,6 +2,7 @@
 
 > Status: Proposal / Pending Engineer Review
 > Target UI Preview: `docs/frontend/preview/warehouse_inventory_detail_static_preview.html`
+> Flow / Algorithm: `docs/spec/api-proposal/warehouse_inventory_detail_flow_algorithm.md`
 > Purpose: 承接 Warehouse Dashboard 的類別、風險警示與待處理任務點擊情境，提供「庫存明細與批號追蹤」畫面所需 API 規格提案。
 
 ## API Summary

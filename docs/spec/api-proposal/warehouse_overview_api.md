@@ -375,8 +375,8 @@ None
 
 | 項目 | 建議規則 | 狀態 | 工程師回覆 |
 | --- | --- | --- | --- |
-| 目前庫存數量 | 以月結統計搭配每日異動補算；若特定 `warehouseNo + itemNo + batchNo` 未出現在統計結果中，才以 `inventory_record` 作為防護性補算。 | 已確認方向 | 第一版採用 `inventory_item_month_statistic` 搭配 `inventory_delta` 進行目前庫存數量計算；防護性補算不得覆蓋已由統計表產生的庫存列。 |
-| 庫存價值 | 以月結統計搭配每日異動補算；若特定庫存列缺漏統計資料，才以 `inventory_record.amount` 作為防護性補算。 | 已確認方向 | 第一版採用 `inventory_item_month_statistic.endAmount` 搭配 `inventory_delta.inAmount - inventory_delta.outAmount`；缺漏庫存列以 `inventory_record.amount` 入庫減出庫補上。 |
+| 目前庫存數量 | 以月結統計搭配每日異動補算；若統計結果為空、delta 日期未覆蓋查詢營業日，或特定 `warehouseNo + itemNo + batchNo` 缺漏，才觸發 `inventory_record` 防護性補算。 | 已確認方向 | 第一版採用 `inventory_item_month_statistic` 搭配 `inventory_delta` 進行目前庫存數量計算；正常情境不再完整重算 `inventory_record`，僅查詢 stock key 判斷缺漏。 |
+| 庫存價值 | 以月結統計搭配每日異動補算；若 delta 日期落後或特定庫存列缺漏統計資料，才以 `inventory_record.amount` 作為防護性補算。 | 已確認方向 | 第一版採用 `inventory_item_month_statistic.endAmount` 搭配 `inventory_delta.inAmount - inventory_delta.outAmount`；缺漏日期改用 `inventory_record` 即時計算，缺漏庫存列只補該 stock key。 |
 | 料品類別 | 使用 DB 文件與 `EItemCategory`：原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5)。 | OK |  |
 | 少於三分之一效期 | 使用 `batch_number.validDays` 與 `batch_number.validDate`。 | OK，但需確認物料、膠捲排除規則 | 將物料、膠捲排除 |
 | 迴轉週期 | 使用同倉儲同批號最早入庫日計算。 | 基本可行 | |
@@ -513,7 +513,7 @@ None
 
 1. 讀取庫存篩選條件與分頁參數。
 2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，以 `inventory_item_month_statistic` 月結批號層級結存搭配 `inventory_delta` 每日異動補算目前庫存量與庫存價值。
-3. 以查詢時間以前的入庫數量減出庫數量計算目前庫存數量。
+3. 若統計結果為空、`inventory_delta` 最新日期早於查詢營業日，或 `inventory_record` 存在統計結果未涵蓋的 stock key，依後端流程演算法文件觸發防護性補算。
 4. 關聯 `batch_number` 取得有效天數、有效期限、料品資料與來源單據。
 5. 關聯 `ship_wh_alias` 取得倉儲別名名稱與類型。
 6. 依確認後規則計算預留量、品檢保留量、可用量、庫存價值、佔用板數、安全水位與風險類型；低於安全水位以 `availableQuantity < safetyStock` 判斷。
@@ -526,7 +526,7 @@ None
 | --- | --- |
 | inventory_item_month_statistic | 取得批號層級月結庫存量與庫存價值。 |
 | inventory_delta | 取得月結日後每日入庫/出庫數量與金額異動。 |
-| inventory_record | 取得首次入庫時間、最近來源單據，以及統計資料未涵蓋特定庫存列時的防護性補算依據。 |
+| inventory_record | 取得首次入庫時間、最近來源單據；在統計結果為空、delta 日期未覆蓋查詢營業日，或統計資料未涵蓋特定庫存列時作為防護性補算依據。 |
 | batch_number | 取得批號、料品、效期與來源資料。 |
 | batchno_serialno | 取得批號流水號明細。 |
 | batchno_serialno_group | 取得棧板編號與佔用板數候選資料。 |

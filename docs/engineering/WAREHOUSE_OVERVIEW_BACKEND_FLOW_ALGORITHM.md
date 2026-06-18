@@ -110,23 +110,50 @@ currentQuantity = monthEndQuantity + deltaInCount - deltaOutCount
 inventoryValue = monthEndAmount + deltaInAmount - deltaOutAmount
 ```
 
-防護性補算：
+最佳化後的補算觸發流程：
 
 ```txt
-if stockKey not in statisticResult:
-    currentQuantity = sum(inventory_record.count where category = IN and date <= queryTimestamp)
-                    - sum(inventory_record.count where category = OUT and date <= queryTimestamp)
+statisticResult = inventory_item_month_statistic + inventory_delta
 
-    inventoryValue = sum(inventory_record.amount where category = IN and date <= queryTimestamp)
-                   - sum(inventory_record.amount where category = OUT and date <= queryTimestamp)
+if statisticResult is empty:
+    return inventory_record aggregate result
+
+if latestStatisticDate < queryDate and latestDeltaDate < queryDate:
+    return inventory_record aggregate result
+
+recordStockKeys = distinct warehouseNo + itemNo + batchNo from inventory_record
+missingStockKeys = recordStockKeys - statisticResult.stockKeys
+
+if missingStockKeys is not empty:
+    append inventory_record aggregate result for missingStockKeys only
+
+return statisticResult
 ```
 
 注意：
 
 - 正式第一版主路徑以 `inventory_item_month_statistic` 搭配 `inventory_delta` 為準。
+- 正常資料完整時，不再同時完整計算 `inventory_record`；僅先查詢 `inventory_record` 的 distinct stock key，用於判斷是否有統計結果缺漏的庫存列。
+- 若 `inventory_delta` 最新日期早於查詢營業日，例如查詢 2026/06/17 但 delta 僅到 2026/06/15，視為統計覆蓋不足，該次查詢改以 `inventory_record` 即時計算，避免少算缺漏日期。
 - 若測試環境或過渡資料尚未建立統計表，或統計表只涵蓋部分料品/批號，程式會以 `warehouseNo + itemNo + batchNo` 作為庫存鍵，僅針對統計結果缺漏的庫存列使用 `inventory_record` 彙總補上。
-- 防護性補算不得覆蓋已由月結統計表與每日異動產生的庫存列，以避免同一批號重複計算。
+- 防護性補算不得覆蓋已由月結統計表與每日異動產生且日期覆蓋完整的庫存列，以避免同一批號重複計算。
 - 單位成本可由 `inventoryValue / currentQuantity` 推導；若需標準成本，可參考 `item_price.costPriceWeight`。
+
+缺漏情境與處理策略：
+
+| 情境 | 範例 | 處理策略 |
+| --- | --- | --- |
+| 無月結統計資料 | 查無 `inventory_item_month_statistic` | 改用 `inventory_record` 依查詢時間即時彙總。 |
+| delta 日期落後 | 查詢 2026/06/17，但 `inventory_delta` 只到 2026/06/15 | 改用 `inventory_record` 依查詢時間即時彙總，確保 2026/06/16 至 2026/06/17 的異動被納入。 |
+| 月結日期較舊但 delta 完整 | 月結到 2026/02/01 或 2026/05/01，delta 到 2026/06/17 | 使用月結加 delta，不需改用 `inventory_record`。 |
+| 統計結果缺漏特定庫存列 | 某批號存在於 `inventory_record`，但不存在於統計結果 | 僅針對缺漏的 `warehouseNo + itemNo + batchNo` 使用 `inventory_record` 補算。 |
+| 月結與 delta 交錯缺漏 | 部分批號有月結無 delta，部分批號有 delta 無月結 | 若 delta 整體日期覆蓋不足，改用 `inventory_record`；若日期覆蓋完整，統計結果缺漏的 stock key 才補算。 |
+| 跨月份查詢 | 月結在 2026/05/01，查詢 2026/06/17 | delta 覆蓋到查詢日則使用統計路徑；delta 未覆蓋到查詢日則改用 `inventory_record`。 |
+| 統計批次異常中斷 | 月結或 delta 更新程序中斷 | 以最新 delta 日期判斷覆蓋度；不足時改用 `inventory_record`，並應由排程監控另行告警。 |
+
+共用封裝評估：
+
+目前 `GET /api/v2/warehouse/dashboard` 與 `GET /api/v2/warehouse/inventory` 都會使用目前庫存快照計算；後續 `valueTrend` / `trend7Days` 若實作，也會需要同一套庫存快照或短區間即時計算邏輯。建議後續將此邏輯抽出為共用物件，例如 `CWarehouseInventorySnapshotCalculator`，統一提供「統計路徑、補算觸發、缺漏 stock key 補算、日期覆蓋檢查」等功能，避免 Dashboard、Inventory Detail 與 Trend 各自實作不同版本。
 
 ### Step 3：計算預留數量與預留價值
 

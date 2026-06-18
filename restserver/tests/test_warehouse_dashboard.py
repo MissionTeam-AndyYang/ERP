@@ -399,6 +399,25 @@ def test_dashboard_service_uses_record_fallback_for_missing_stat_rows():
     assert dict_inventory_by_item["RM-002"]["inventoryValue"] == 300.0
 
 
+def test_dashboard_service_uses_record_refresh_when_delta_date_is_stale():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseDashboardService().get_dashboard(
+        n_date=n_now + 2 * 86400,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        b_include_inventory=True,
+        obj_session=obj_session,
+    )
+
+    assert dict_payload["summary"]["totalInventoryValue"] == 5900.0
+    dict_inventory = dict_payload["inventory"][0]
+    assert dict_inventory["currentQuantity"] == 590.0
+    assert dict_inventory["inventoryValue"] == 5900.0
+
+
 def test_dashboard_service_builds_risk_alerts():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)

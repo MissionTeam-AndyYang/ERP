@@ -303,7 +303,7 @@ None
 
 1. 讀取 `date`、`warehouse_no`、`itemCategory`、`includeInventory`、`riskOnly` 查詢條件，並取得 `x-timezone` 換算查詢營業日起訖 UTC timestamp。
 2. 以 `inventory_item_month_statistic` 取得查詢營業日以前最新的批號層級月結庫存量與庫存價值，並以 `inventory_delta` 加總月結日後至查詢營業日的入庫/出庫數量與金額，補算目前庫存量與庫存價值。
-3. 讀取 `inventory_record` 取得批號最早入庫時間與最近入庫來源單據；若特定 `warehouseNo + itemNo + batchNo` 未出現在月結統計與每日異動結果中，才以 `inventory_record` 作為防護性補算依據。
+3. 讀取 `inventory_record` 取得批號最早入庫時間與最近入庫來源單據；若統計結果為空、`inventory_delta` 最新日期早於查詢營業日，或特定 `warehouseNo + itemNo + batchNo` 未出現在月結統計與每日異動結果中，才以 `inventory_record` 作為防護性補算依據。
 4. 讀取 `batch_number` 補齊批號效期資訊，用於效期警示與庫存迴轉天數分析。
 5. 讀取 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
 6. 讀取 `warehouse_quality_hold` 彙總有效品檢保留量與品檢保留價值。
@@ -321,7 +321,7 @@ None
 |----------|------|
 | inventory_item_month_statistic | 提供批號層級月結庫存量與庫存價值，作為第一版目前庫存主計算基準 |
 | inventory_delta | 提供月結日後每日入庫/出庫數量與金額異動，補算至查詢營業日 |
-| inventory_record | 提供批號最早入庫時間、最近入庫來源單據，以及統計資料未涵蓋特定庫存列時的防護性補算依據 |
+| inventory_record | 提供批號最早入庫時間、最近入庫來源單據；在統計結果為空、delta 日期未覆蓋查詢營業日，或統計資料未涵蓋特定庫存列時作為防護性補算依據 |
 | batch_number | 提供批號效期與有效天數 |
 | warehouse_inventory_reservation | 提供預留數量、預留價值 |
 | warehouse_quality_hold | 提供品檢保留量、品檢保留價值 |
@@ -472,7 +472,7 @@ None
 |----------|------|
 | inventory_item_month_statistic | 提供批號層級月結庫存量與庫存價值，作為目前庫存主計算基準 |
 | inventory_delta | 提供月結日後每日入庫/出庫數量與金額異動，補算至查詢營業日 |
-| inventory_record | 提供首次入庫時間、最近入庫來源單據，以及統計資料未涵蓋特定庫存列時的防護性補算依據 |
+| inventory_record | 提供首次入庫時間、最近入庫來源單據；在統計結果為空、delta 日期未覆蓋查詢營業日，或統計資料未涵蓋特定庫存列時作為防護性補算依據 |
 | batch_number | 提供批號效期資訊、料品品項子類別與料品類型 |
 | warehouse_inventory_reservation | 提供預留數量與預留價值 |
 | warehouse_quality_hold | 提供品檢保留量與品檢保留價值 |

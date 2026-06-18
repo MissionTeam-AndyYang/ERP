@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from sqlalchemy import case, func
+from sqlalchemy import and_, case, func, or_
 
 from package.common.common import (
     EErrorCode,
@@ -170,42 +170,64 @@ class CWarehouseDashboardService(object):
         n_item_category,
         str_timezone="",
     ):
-        lst_stat_rows = self.__query_inventory_rows_from_statistics(
+        lst_stat_rows, dict_stat_coverage = self.__query_inventory_rows_from_statistics(
             obj_session,
             n_query_timestamp,
             str_warehouse_no,
             n_item_category,
             str_timezone,
         )
-        lst_record_rows = self.__query_inventory_rows_from_records(
-            obj_session,
-            n_query_timestamp,
-            str_warehouse_no,
-            n_item_category,
-        )
         if not lst_stat_rows:
-            return lst_record_rows
+            return self.__query_inventory_rows_from_records(
+                obj_session,
+                n_query_timestamp,
+                str_warehouse_no,
+                n_item_category,
+            )
 
-        dict_existing_keys = {
-            self.__stock_key(
+        if dict_stat_coverage.get("needsRecordRefresh"):
+            return self.__query_inventory_rows_from_records(
+                obj_session,
+                n_query_timestamp,
+                str_warehouse_no,
+                n_item_category,
+            )
+
+        set_stat_tuples = {
+            self.__stock_tuple(
                 dict_row.get("itemNo"),
                 dict_row.get("batchNo"),
                 dict_row.get("warehouseNo"),
             )
             for dict_row in lst_stat_rows
         }
-        for dict_row in lst_record_rows:
-            str_key = self.__stock_key(
-                dict_row.get("itemNo"),
-                dict_row.get("batchNo"),
-                dict_row.get("warehouseNo"),
-            )
-            if str_key not in dict_existing_keys:
-                lst_stat_rows.append(dict_row)
-                dict_existing_keys.add(str_key)
+        set_record_tuples = self.__query_record_stock_tuples(
+            obj_session,
+            n_query_timestamp,
+            str_warehouse_no,
+            n_item_category,
+        )
+        set_missing_tuples = set_record_tuples - set_stat_tuples
+        if not set_missing_tuples:
+            return lst_stat_rows
+
+        lst_stat_rows.extend(self.__query_inventory_rows_from_records(
+            obj_session,
+            n_query_timestamp,
+            str_warehouse_no,
+            n_item_category,
+            set_missing_tuples,
+        ))
         return lst_stat_rows
 
-    def __query_inventory_rows_from_records(self, obj_session, n_query_timestamp, str_warehouse_no, n_item_category):
+    def __query_inventory_rows_from_records(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_warehouse_no,
+        n_item_category,
+        set_stock_tuples=None,
+    ):
         lst_filters = [
             CTableInventoryRec.itemCategory.in_(self.__target_categories()),
             CTableInventoryRec.date <= n_query_timestamp,
@@ -214,6 +236,8 @@ class CWarehouseDashboardService(object):
             lst_filters.append(CTableInventoryRec.warehouse_no == str_warehouse_no)
         if n_item_category:
             lst_filters.append(CTableInventoryRec.itemCategory == n_item_category)
+        if set_stock_tuples:
+            lst_filters.append(self.__stock_tuple_filter(CTableInventoryRec, set_stock_tuples))
 
         obj_signed_count = func.sum(
             case(
@@ -325,6 +349,35 @@ class CWarehouseDashboardService(object):
             })
         return lst_results
 
+    def __query_record_stock_tuples(self, obj_session, n_query_timestamp, str_warehouse_no, n_item_category):
+        lst_filters = [
+            CTableInventoryRec.itemCategory.in_(self.__target_categories()),
+            CTableInventoryRec.date <= n_query_timestamp,
+        ]
+        if str_warehouse_no:
+            lst_filters.append(CTableInventoryRec.warehouse_no == str_warehouse_no)
+        if n_item_category:
+            lst_filters.append(CTableInventoryRec.itemCategory == n_item_category)
+
+        lst_rows = (
+            obj_session.query(
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.warehouse_no,
+            )
+            .filter(*lst_filters)
+            .group_by(
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.warehouse_no,
+            )
+            .all()
+        )
+        return {
+            self.__stock_tuple(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no)
+            for obj_row in lst_rows
+        }
+
     def __query_inventory_rows_from_statistics(
         self,
         obj_session,
@@ -386,6 +439,14 @@ class CWarehouseDashboardService(object):
             .filter(*lst_delta_filters)
             .all()
         )
+        obj_latest_stat_date = max(dict_latest_stat_date.values()) if dict_latest_stat_date else None
+        obj_latest_delta_date = max([obj_row.date for obj_row in lst_delta_rows], default=None)
+        b_needs_record_refresh = False
+        if obj_latest_stat_date and obj_latest_stat_date < obj_query_date:
+            b_needs_record_refresh = not obj_latest_delta_date or obj_latest_delta_date < obj_query_date
+        elif obj_latest_delta_date and obj_latest_delta_date < obj_query_date and not obj_latest_stat_date:
+            b_needs_record_refresh = True
+
         for obj_row in lst_delta_rows:
             str_key = self.__stock_key(obj_row.specified_ref_no, obj_row.specified_no, obj_row.warehouse_no)
             obj_latest_date = dict_latest_stat_date.get(str_key)
@@ -411,7 +472,7 @@ class CWarehouseDashboardService(object):
             )
 
         if not dict_inventory:
-            return []
+            return [], {"needsRecordRefresh": True}
 
         lst_inventory_rows = list(dict_inventory.values())
         lst_batch_numbers = [dict_row.get("batchNo") for dict_row in lst_inventory_rows if dict_row.get("batchNo")]
@@ -461,7 +522,11 @@ class CWarehouseDashboardService(object):
                 "validDays": util_safe_int(dict_batch_info.get("validDays", 0)),
                 "validDate": util_safe_int(dict_batch_info.get("validDate", 0)),
             })
-        return lst_results
+        return lst_results, {
+            "latestStatDate": obj_latest_stat_date,
+            "latestDeltaDate": obj_latest_delta_date,
+            "needsRecordRefresh": b_needs_record_refresh,
+        }
 
     def __query_batch_metadata(self, obj_session, lst_batch_numbers):
         dict_batch = {}
@@ -1100,6 +1165,24 @@ class CWarehouseDashboardService(object):
 
     def __stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
         return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
+
+    def __stock_tuple(self, str_item_no, str_batch_no, str_warehouse_no):
+        return (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
+
+    def __stock_tuple_filter(self, obj_table, set_stock_tuples):
+        lst_conditions = []
+        for str_item_no, str_batch_no, str_warehouse_no in set_stock_tuples:
+            lst_conditions.append(and_(
+                self.__text_value_filter(obj_table.item_no, str_item_no),
+                self.__text_value_filter(obj_table.batchNumber, str_batch_no),
+                self.__text_value_filter(obj_table.warehouse_no, str_warehouse_no),
+            ))
+        return or_(*lst_conditions)
+
+    def __text_value_filter(self, obj_column, str_value):
+        if str_value:
+            return obj_column == str_value
+        return or_(obj_column == "", obj_column.is_(None))
 
     def __capacity_risk_level(self, f_rate):
         if f_rate >= 90:

@@ -114,8 +114,11 @@ trend7Days = ((inventoryValue(queryDate) - inventoryValue(baseDate)) / inventory
 
 | 項目 | 說明 | 工程師回覆 |
 | --- | --- | --- |
-| 類別層級基準表 | 第一版是否同意使用 `inventory_month_statistic` 作為 Dashboard 類別趨勢基準。 |  |
-| 批號層級需求 | 第一版趨勢是否不需要展開至批號或料品層級。 |  |
-| `trend7Days` 除以 0 | 是否同意 base value 為 0 時回傳 `0.0`。 |  |
-| `trendDays` query parameter | 第一版是否固定 7 日，暫不新增 query parameter。 |  |
-| 查無月結資料 | 是否同意第一版回傳空趨勢或 `0.0`，不改用 `inventory_record` 即時計算長區間趨勢。 |  |
+| 類別層級基準表 | 第一版是否同意使用 `inventory_month_statistic` 作為 Dashboard 類別趨勢基準。 | 同意 |
+| 批號層級需求 | 第一版趨勢是否不需要展開至批號或料品層級。 | 請確認目前畫面是否已有呈現批號或料品層級。若已有呈現，則需進一步擴充至完整的批號或料品層級，並同步檢查程式邏輯與 API 文件是否一致 |
+| `trend7Days` 除以 0 | 是否同意 base value 為 0 時回傳 `0.0`。 | 同意 |
+| `trendDays` query parameter | 第一版是否固定 7 日，暫不新增 query parameter。 | 目前第一版僅顯示 7 日趨勢。建議新增 query parameter，並將查詢參數固定為 7。|
+| 查無月結資料 | 是否同意第一版回傳空趨勢或 `0.0`，不改用 `inventory_record` 即時計算長區間趨勢。 | 目前第一版僅顯示 7 日趨勢。建議改採用`inventory_record`進行即時計算。待未來查詢區間進一步拉長，再進行效能最佳化與演算法優化。 |
+
+
+

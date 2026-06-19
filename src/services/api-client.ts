@@ -1,6 +1,7 @@
 export type ApiClientOptions = {
   baseUrl?: string;
   timeoutMs?: number;
+  headers?: Record<string, string>;
 };
 
 export class ApiClientError extends Error {
@@ -25,16 +26,27 @@ function buildUrl(path: string, baseUrl?: string) {
   return normalizedBaseUrl ? `${normalizedBaseUrl}${normalizedPath}` : normalizedPath;
 }
 
+function buildHeaders(headers?: Record<string, string>) {
+  const token = process.env.NEXT_PUBLIC_API_TOKEN;
+  const timezone = process.env.NEXT_PUBLIC_API_TIMEZONE ?? "Asia/Taipei";
+  return {
+    Accept: "application/json",
+    "x-timezone": timezone,
+    ...(token ? { "x-auth-token": token } : {}),
+    ...(headers ?? {})
+  };
+}
+
 export async function apiGet<T>(
   path: string,
-  { baseUrl, timeoutMs = DEFAULT_TIMEOUT_MS }: ApiClientOptions = {}
+  { baseUrl, timeoutMs = DEFAULT_TIMEOUT_MS, headers }: ApiClientOptions = {}
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(buildUrl(path, baseUrl), {
-      headers: { Accept: "application/json" },
+      headers: buildHeaders(headers),
       signal: controller.signal
     });
 

@@ -1,7 +1,7 @@
 # coding=utf8
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from sqlalchemy import and_, case, func, or_
 
@@ -22,6 +22,7 @@ from package.dbwrapper.table import (
     CTableGoods,
     CTableInventoryDelta,
     CTableInventoryItemMonthStatistic,
+    CTableInventoryMonthStatistic,
     CTableInproduct,
     CTableInventoryRec,
     CTableItemSafetyStock,
@@ -46,6 +47,70 @@ from package.util.util import (
 )
 
 
+class CWarehouseInventorySnapshotCalculator(object):
+    def query_inventory_rows(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_warehouse_no,
+        n_item_category,
+        str_timezone,
+        fn_query_statistics,
+        fn_query_records,
+        fn_query_record_stock_tuples,
+        fn_stock_tuple,
+    ):
+        lst_stat_rows, dict_stat_coverage = fn_query_statistics(
+            obj_session,
+            n_query_timestamp,
+            str_warehouse_no,
+            n_item_category,
+            str_timezone,
+        )
+        if not lst_stat_rows:
+            return fn_query_records(
+                obj_session,
+                n_query_timestamp,
+                str_warehouse_no,
+                n_item_category,
+            )
+
+        if dict_stat_coverage.get("needsRecordRefresh"):
+            return fn_query_records(
+                obj_session,
+                n_query_timestamp,
+                str_warehouse_no,
+                n_item_category,
+            )
+
+        set_stat_tuples = {
+            fn_stock_tuple(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            for dict_row in lst_stat_rows
+        }
+        set_record_tuples = fn_query_record_stock_tuples(
+            obj_session,
+            n_query_timestamp,
+            str_warehouse_no,
+            n_item_category,
+        )
+        set_missing_tuples = set_record_tuples - set_stat_tuples
+        if not set_missing_tuples:
+            return lst_stat_rows
+
+        lst_stat_rows.extend(fn_query_records(
+            obj_session,
+            n_query_timestamp,
+            str_warehouse_no,
+            n_item_category,
+            set_missing_tuples,
+        ))
+        return lst_stat_rows
+
+
 class CWarehouseDashboardService(object):
     RESERVATION_STATUS_ACTIVE = 1
     QUALITY_HOLD_STATUS_ACTIVE = 1
@@ -61,6 +126,7 @@ class CWarehouseDashboardService(object):
         n_item_category=0,
         b_include_inventory=False,
         b_risk_only=False,
+        n_trend_days=7,
         obj_session=None,
     ):
         if obj_session:
@@ -72,6 +138,7 @@ class CWarehouseDashboardService(object):
                 n_item_category,
                 b_include_inventory,
                 b_risk_only,
+                n_trend_days,
             )
 
         with CDBMgr() as obj_dbmgr:
@@ -83,6 +150,7 @@ class CWarehouseDashboardService(object):
                 n_item_category,
                 b_include_inventory,
                 b_risk_only,
+                n_trend_days,
             )
 
     def __get_dashboard_with_session(
@@ -94,6 +162,7 @@ class CWarehouseDashboardService(object):
         n_item_category,
         b_include_inventory,
         b_risk_only,
+        n_trend_days,
     ):
         n_query_timestamp = n_date if n_date else int(time.time())
         dict_range = self.__build_range(n_query_timestamp, str_timezone)
@@ -123,6 +192,14 @@ class CWarehouseDashboardService(object):
             b_risk_only,
         )
         lst_tasks = self.__query_pending_tasks(obj_session, str_warehouse_no, dict_range["endTimestamp"])
+        dict_trend = self.__query_value_trend(
+            obj_session,
+            n_query_timestamp,
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+            n_trend_days,
+        )
         dict_payload = self.__build_payload(
             n_query_timestamp,
             str_timezone,
@@ -137,6 +214,7 @@ class CWarehouseDashboardService(object):
             lst_inventory_detail,
             b_include_inventory,
             b_risk_only,
+            dict_trend,
         )
         return dict_payload
 
@@ -170,55 +248,17 @@ class CWarehouseDashboardService(object):
         n_item_category,
         str_timezone="",
     ):
-        lst_stat_rows, dict_stat_coverage = self.__query_inventory_rows_from_statistics(
+        return CWarehouseInventorySnapshotCalculator().query_inventory_rows(
             obj_session,
             n_query_timestamp,
             str_warehouse_no,
             n_item_category,
             str_timezone,
+            self.__query_inventory_rows_from_statistics,
+            self.__query_inventory_rows_from_records,
+            self.__query_record_stock_tuples,
+            self.__stock_tuple,
         )
-        if not lst_stat_rows:
-            return self.__query_inventory_rows_from_records(
-                obj_session,
-                n_query_timestamp,
-                str_warehouse_no,
-                n_item_category,
-            )
-
-        if dict_stat_coverage.get("needsRecordRefresh"):
-            return self.__query_inventory_rows_from_records(
-                obj_session,
-                n_query_timestamp,
-                str_warehouse_no,
-                n_item_category,
-            )
-
-        set_stat_tuples = {
-            self.__stock_tuple(
-                dict_row.get("itemNo"),
-                dict_row.get("batchNo"),
-                dict_row.get("warehouseNo"),
-            )
-            for dict_row in lst_stat_rows
-        }
-        set_record_tuples = self.__query_record_stock_tuples(
-            obj_session,
-            n_query_timestamp,
-            str_warehouse_no,
-            n_item_category,
-        )
-        set_missing_tuples = set_record_tuples - set_stat_tuples
-        if not set_missing_tuples:
-            return lst_stat_rows
-
-        lst_stat_rows.extend(self.__query_inventory_rows_from_records(
-            obj_session,
-            n_query_timestamp,
-            str_warehouse_no,
-            n_item_category,
-            set_missing_tuples,
-        ))
-        return lst_stat_rows
 
     def __query_inventory_rows_from_records(
         self,
@@ -849,6 +889,245 @@ class CWarehouseDashboardService(object):
         )
         return {obj_row.no: obj_row.name or "" for obj_row in lst_rows}
 
+    def __query_value_trend(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_timezone,
+        str_warehouse_no,
+        n_item_category,
+        n_trend_days,
+    ):
+        n_trend_days = 7 if util_safe_int(n_trend_days) != 7 else 7
+        obj_query_date = self.__query_local_date(n_query_timestamp, str_timezone)
+        obj_start_date = obj_query_date - timedelta(days=n_trend_days - 1)
+        obj_base_date = obj_query_date - timedelta(days=n_trend_days)
+
+        dict_stat_trend = self.__query_value_trend_from_statistics(
+            obj_session,
+            obj_base_date,
+            obj_start_date,
+            obj_query_date,
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+        )
+        if dict_stat_trend.get("canUse"):
+            return dict_stat_trend
+
+        return self.__query_value_trend_from_records(
+            obj_session,
+            obj_base_date,
+            obj_start_date,
+            obj_query_date,
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+        )
+
+    def __query_value_trend_from_statistics(
+        self,
+        obj_session,
+        obj_base_date,
+        obj_start_date,
+        obj_query_date,
+        str_timezone,
+        str_warehouse_no,
+        n_item_category,
+    ):
+        str_stat_timezone = str_timezone or "UTC"
+        lst_filters = [
+            CTableInventoryMonthStatistic.category.in_(self.__target_categories()),
+            CTableInventoryMonthStatistic.date <= obj_base_date,
+            CTableInventoryMonthStatistic.timezone == str_stat_timezone,
+        ]
+        if str_warehouse_no:
+            lst_filters.append(CTableInventoryMonthStatistic.warehouse_no == str_warehouse_no)
+        if n_item_category:
+            lst_filters.append(CTableInventoryMonthStatistic.category == n_item_category)
+
+        lst_stat_rows = (
+            obj_session.query(CTableInventoryMonthStatistic)
+            .filter(*lst_filters)
+            .order_by(CTableInventoryMonthStatistic.date.asc(), CTableInventoryMonthStatistic.id.asc())
+            .all()
+        )
+        if not lst_stat_rows:
+            return {"canUse": False}
+
+        dict_base_by_key = {}
+        for obj_row in lst_stat_rows:
+            tuple_key = (obj_row.warehouse_no or "", util_safe_int(obj_row.category))
+            dict_base_by_key[tuple_key] = {
+                "date": obj_row.date,
+                "value": util_safe_float(obj_row.endAmount),
+            }
+
+        lst_delta_filters = [
+            CTableInventoryDelta.category.in_(self.__target_categories()),
+            CTableInventoryDelta.date <= obj_query_date,
+            CTableInventoryDelta.timezone == str_stat_timezone,
+        ]
+        if str_warehouse_no:
+            lst_delta_filters.append(CTableInventoryDelta.warehouse_no == str_warehouse_no)
+        if n_item_category:
+            lst_delta_filters.append(CTableInventoryDelta.category == n_item_category)
+
+        lst_delta_rows = (
+            obj_session.query(CTableInventoryDelta)
+            .filter(*lst_delta_filters)
+            .all()
+        )
+        obj_latest_delta_date = max([obj_row.date for obj_row in lst_delta_rows], default=None)
+        if obj_latest_delta_date and obj_latest_delta_date < obj_query_date:
+            return {"canUse": False}
+        if not obj_latest_delta_date and obj_base_date < obj_query_date:
+            return {"canUse": False}
+
+        dict_values = defaultdict(float)
+        dict_base_values = defaultdict(float)
+        for tuple_key, dict_base in dict_base_by_key.items():
+            n_category = tuple_key[1]
+            dict_values[n_category] += util_safe_float(dict_base.get("value"))
+            dict_base_values[n_category] += util_safe_float(dict_base.get("value"))
+
+        dict_daily_delta = defaultdict(lambda: defaultdict(float))
+        for obj_row in lst_delta_rows:
+            tuple_key = (obj_row.warehouse_no or "", util_safe_int(obj_row.category))
+            dict_base = dict_base_by_key.get(tuple_key)
+            if not dict_base or obj_row.date <= dict_base.get("date"):
+                continue
+            dict_daily_delta[obj_row.date][tuple_key[1]] += (
+                util_safe_float(obj_row.inAmount) - util_safe_float(obj_row.outAmount)
+            )
+
+        lst_value_trend = []
+        dict_query_values = {}
+        for obj_date in self.__date_range(obj_base_date + timedelta(days=1), obj_query_date):
+            for n_category, f_delta in dict_daily_delta.get(obj_date, {}).items():
+                dict_values[n_category] += f_delta
+            if obj_date >= obj_start_date:
+                for n_category in self.__target_categories():
+                    if n_item_category and n_category != n_item_category:
+                        continue
+                    lst_value_trend.append({
+                        "date": obj_date.strftime("%Y-%m-%d"),
+                        "itemCategory": n_category,
+                        "inventoryValue": util_round_amount(dict_values.get(n_category, 0.0)),
+                    })
+            if obj_date == obj_query_date:
+                dict_query_values = dict(dict_values)
+
+        return {
+            "canUse": True,
+            "valueTrend": lst_value_trend,
+            "trendByCategory": self.__build_trend_ratio(dict_base_values, dict_query_values),
+        }
+
+    def __query_value_trend_from_records(
+        self,
+        obj_session,
+        obj_base_date,
+        obj_start_date,
+        obj_query_date,
+        str_timezone,
+        str_warehouse_no,
+        n_item_category,
+    ):
+        dict_values_by_date = {}
+        for obj_date in self.__date_range(obj_base_date, obj_query_date):
+            n_end_timestamp = self.__business_day_end_timestamp(obj_date, str_timezone)
+            dict_values_by_date[obj_date] = self.__query_record_value_by_category(
+                obj_session,
+                n_end_timestamp,
+                str_warehouse_no,
+                n_item_category,
+            )
+
+        lst_value_trend = []
+        for obj_date in self.__date_range(obj_start_date, obj_query_date):
+            dict_values = dict_values_by_date.get(obj_date, {})
+            for n_category in self.__target_categories():
+                if n_item_category and n_category != n_item_category:
+                    continue
+                lst_value_trend.append({
+                    "date": obj_date.strftime("%Y-%m-%d"),
+                    "itemCategory": n_category,
+                    "inventoryValue": util_round_amount(dict_values.get(n_category, 0.0)),
+                })
+
+        return {
+            "canUse": True,
+            "valueTrend": lst_value_trend,
+            "trendByCategory": self.__build_trend_ratio(
+                dict_values_by_date.get(obj_base_date, {}),
+                dict_values_by_date.get(obj_query_date, {}),
+            ),
+        }
+
+    def __query_record_value_by_category(self, obj_session, n_end_timestamp, str_warehouse_no, n_item_category):
+        lst_filters = [
+            CTableInventoryRec.itemCategory.in_(self.__target_categories()),
+            CTableInventoryRec.date <= n_end_timestamp,
+        ]
+        if str_warehouse_no:
+            lst_filters.append(CTableInventoryRec.warehouse_no == str_warehouse_no)
+        if n_item_category:
+            lst_filters.append(CTableInventoryRec.itemCategory == n_item_category)
+
+        obj_signed_amount = func.sum(
+            case(
+                (CTableInventoryRec.category == EInventoryCategory.IN, CTableInventoryRec.amount),
+                (CTableInventoryRec.category == EInventoryCategory.OUT, -CTableInventoryRec.amount),
+                else_=0,
+            )
+        ).label("inventoryValue")
+        lst_rows = (
+            obj_session.query(CTableInventoryRec.itemCategory, obj_signed_amount)
+            .filter(*lst_filters)
+            .group_by(CTableInventoryRec.itemCategory)
+            .all()
+        )
+        return {
+            util_safe_int(obj_row.itemCategory): util_safe_float(obj_row.inventoryValue)
+            for obj_row in lst_rows
+        }
+
+    def __build_trend_ratio(self, dict_base_values, dict_query_values):
+        dict_result = {}
+        for n_category in self.__target_categories():
+            f_base_value = util_safe_float(dict_base_values.get(n_category))
+            f_query_value = util_safe_float(dict_query_values.get(n_category))
+            if not f_base_value:
+                dict_result[n_category] = 0.0
+            else:
+                dict_result[n_category] = util_round_quantity(
+                    (f_query_value - f_base_value) / f_base_value * 100
+                )
+        return dict_result
+
+    def __date_range(self, obj_start_date, obj_end_date):
+        obj_current = obj_start_date
+        while obj_current <= obj_end_date:
+            yield obj_current
+            obj_current = obj_current + timedelta(days=1)
+
+    def __business_day_end_timestamp(self, obj_date, str_timezone):
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        obj_local = datetime(
+            obj_date.year,
+            obj_date.month,
+            obj_date.day,
+            23,
+            59,
+            59,
+            tzinfo=obj_tz,
+        )
+        return int(obj_local.astimezone(timezone.utc).timestamp())
+
     def __build_payload(
         self,
         n_query_timestamp,
@@ -864,12 +1143,14 @@ class CWarehouseDashboardService(object):
         lst_inventory_detail,
         b_include_inventory,
         b_risk_only,
+        dict_trend,
     ):
         dict_category = self.__build_category_summary(
             lst_inventory_rows,
             dict_reservations,
             dict_quality_holds,
             dict_pallets,
+            dict_trend.get("trendByCategory", {}),
         )
         lst_capacity = self.__build_capacity_summary(dict_capacity, dict_pallets)
         dict_summary = self.__build_summary(dict_category, lst_capacity, lst_risks, lst_tasks)
@@ -882,14 +1163,22 @@ class CWarehouseDashboardService(object):
             "capacityByWarehouse": lst_capacity,
             "riskAlerts": lst_risks,
             "pendingTasks": lst_tasks,
-            "valueTrend": [],
+            "valueTrend": dict_trend.get("valueTrend", []),
             "inventory": self.__filter_inventory_by_risk(
                 lst_inventory_detail,
                 lst_risks,
             ) if b_include_inventory and b_risk_only else (lst_inventory_detail if b_include_inventory else []),
         }
 
-    def __build_category_summary(self, lst_inventory_rows, dict_reservations, dict_quality_holds, dict_pallets):
+    def __build_category_summary(
+        self,
+        lst_inventory_rows,
+        dict_reservations,
+        dict_quality_holds,
+        dict_pallets,
+        dict_trend_by_category=None,
+    ):
+        dict_trend_by_category = dict_trend_by_category or {}
         dict_category = {}
         for n_category in self.__target_categories():
             dict_category[n_category] = {
@@ -949,7 +1238,7 @@ class CWarehouseDashboardService(object):
             dict_summary["palletCount"] = util_round_quantity(dict_summary["palletCount"])
             dict_summary["itemCount"] = len(dict_items[n_category])
             dict_summary["valueRatio"] = util_round_quantity(dict_summary["inventoryValue"] / f_total_value * 100) if f_total_value else 0.0
-            dict_summary["trend7Days"] = util_round_quantity(dict_summary["trend7Days"])
+            dict_summary["trend7Days"] = util_round_quantity(dict_trend_by_category.get(n_category, 0.0))
         return dict_category
 
     def __build_capacity_summary(self, dict_capacity, dict_pallets):
@@ -1614,6 +1903,7 @@ class CWarehouseDashboard(object):
             n_item_category = request.args.get("itemCategory", 0, type=int)
             b_include_inventory = request.args.get("includeInventory", "false").lower() in ["1", "true", "yes"]
             b_risk_only = request.args.get("riskOnly", "false").lower() in ["1", "true", "yes"]
+            n_trend_days = request.args.get("trendDays", 7, type=int)
             dict_extra_data = CWarehouseDashboardService().get_dashboard(
                 n_date=n_date,
                 str_timezone=str_timezone,
@@ -1621,6 +1911,7 @@ class CWarehouseDashboard(object):
                 n_item_category=n_item_category,
                 b_include_inventory=b_include_inventory,
                 b_risk_only=b_risk_only,
+                n_trend_days=n_trend_days,
             )
         except Exception as obj_error:
             n_status_code = 400

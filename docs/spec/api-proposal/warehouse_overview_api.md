@@ -276,7 +276,7 @@ None
 | payload.inventoryValueByCategory[].palletCount | Integer | 該類別佔用板數。 | 待確認計算來源 | 尚未規劃與實作 |
 | payload.inventoryValueByCategory[].itemCount | Integer | 該類別不同料品品項數。 |  |  |
 | payload.inventoryValueByCategory[].valueRatio | Float | 該類別庫存價值佔總庫存價值比例。 |  |  |
-| payload.inventoryValueByCategory[].trend7Days | Float | 該類別近 7 日庫存價值變化率。 | 建議由後端依統計表與 delta 計算 | 提案文件見 `docs/spec/api-proposal/warehouse_value_trend_proposal.md`，待工程師確認 |
+| payload.inventoryValueByCategory[].trend7Days | Float | 該類別近 7 日庫存價值變化率。 | 由後端依統計表與 delta 計算；若月結或 delta 覆蓋不足，第一版以 `inventory_record` 進行 7 日短區間即時計算 | 已實作 |
 | payload.capacityByWarehouse[].warehouseNo | String | 倉儲別名編號。 | `ship_wh_alias.no` |  |
 | payload.capacityByWarehouse[].warehouseName | String | 倉儲別名名稱。 | `ship_wh_alias.name` 或統計表 displayName |  |
 | payload.capacityByWarehouse[].warehouseType | Integer | 倉儲別名類型。 | 自有(1)、合約(2)、客供(3)、其他(0) |  |

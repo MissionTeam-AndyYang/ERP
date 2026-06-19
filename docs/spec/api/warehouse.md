@@ -157,7 +157,13 @@ None
         "blockReason": "String"
       }
     ],
-    "valueTrend": [],
+    "valueTrend": [
+      {
+        "date": "String",
+        "itemCategory": "Integer",
+        "inventoryValue": "Integer"
+      }
+    ],
     "inventory": [
       {
         "warehouseNo": "String",
@@ -216,7 +222,7 @@ None
 | payload.inventoryValueByCategory[].palletCount | Float | 該類別已佔用板數 |  |
 | payload.inventoryValueByCategory[].itemCount | Integer | 該類別不同料品品項數 |  |
 | payload.inventoryValueByCategory[].valueRatio | Float | 該類別庫存價值佔總庫存價值百分比 |  |
-| payload.inventoryValueByCategory[].trend7Days | Float | 最近 7 日價值趨勢；第一版保留欄位，演算法另見 `docs/spec/api-proposal/warehouse_value_trend_proposal.md`，待工程師確認後實作 |  |
+| payload.inventoryValueByCategory[].trend7Days | Float | 最近 7 日庫存價值變化率；第一版固定以 7 日計算，base value 為 0 時回傳 0.0 |  |
 | payload.capacityByWarehouse[].warehouseNo | String | 倉儲別名 no |  |
 | payload.capacityByWarehouse[].warehouseName | String | 倉儲別名名稱 |  |
 | payload.capacityByWarehouse[].warehouseType | Integer | 倉儲空間類型 | ship_wh_alias.type |
@@ -269,7 +275,7 @@ None
 | payload.pendingTasks[].taskStatus | Integer | 任務狀態；前端負責轉換顯示文字 | EWorkflowTaskStatus |
 | payload.pendingTasks[].ownerDepartment | Integer | 下一步負責部門；前端負責轉換顯示文字 | EDepartment |
 | payload.pendingTasks[].blockReason | String | 任務阻塞原因或主管人工判斷備註 |  |
-| payload.valueTrend | Array | 庫存價值趨勢；第一版保留空陣列，資料來源與演算法另提案後再實作 |  |
+| payload.valueTrend | Array | 庫存價值趨勢，第一版回傳 7 日類別層級趨勢資料 |  |
 | payload.inventory[].warehouseNo | String | 倉儲別名 no；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].warehouseName | String | 倉儲別名名稱；僅 `includeInventory=true` 時回傳 |  |
 | payload.inventory[].itemCategory | Integer | 料品品項類別；僅 `includeInventory=true` 時回傳 | EItemCategory |

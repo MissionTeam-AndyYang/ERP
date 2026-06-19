@@ -25,6 +25,7 @@ from package.dbwrapper.table import (
     CTableBatchNumber,
     CTableInventoryDelta,
     CTableInventoryItemMonthStatistic,
+    CTableInventoryMonthStatistic,
     CTableInventoryRec,
     CTableItemSafetyStock,
     CTableMaterial,
@@ -50,6 +51,7 @@ def build_session():
         CTableInventoryRec.__table__,
         CTableInventoryDelta.__table__,
         CTableInventoryItemMonthStatistic.__table__,
+        CTableInventoryMonthStatistic.__table__,
         CTableBatchNumber.__table__,
         CTableMaterial.__table__,
         CTableShipWarehouseAlias.__table__,
@@ -330,6 +332,11 @@ def test_dashboard_service_builds_warehouse_summary():
     assert dict_category["inventoryValue"] == 900.0
     assert dict_category["availableValue"] == 650.0
     assert dict_category["palletCount"] == 2.0
+    assert dict_category["trend7Days"] == -10.0
+    assert len(dict_payload["valueTrend"]) == 7
+    assert dict_payload["valueTrend"][0]["date"] == "2023-11-09"
+    assert dict_payload["valueTrend"][-1]["date"] == "2023-11-15"
+    assert dict_payload["valueTrend"][-1]["inventoryValue"] == 900.0
 
     dict_inventory = dict_payload["inventory"][0]
     assert dict_inventory["currentQuantity"] == 90.0

@@ -2,16 +2,16 @@
 
 ## 文件目的
 
-本文件針對 Warehouse Dashboard 中尚未實作的 `valueTrend` 與 `inventoryValueByCategory[].trend7Days` 欄位，提出資料來源與演算法設計，供工程師 review。
+本文件針對 Warehouse Dashboard 中的 `valueTrend` 與 `inventoryValueByCategory[].trend7Days` 欄位，整理資料來源、演算法設計與第一版實作結果。
 
-本提案尚未代表 API 已確認或已實作。待工程師確認資料來源、演算法與效能風險後，再更新正式 API 文件並開始程式實作。
+本提案已經工程師確認，第一版已依本文件方向完成程式實作；後續若趨勢查詢區間拉長，再進行效能最佳化與演算法優化。
 
 ## 受影響 API
 
 | API | 欄位 | 目前狀態 |
 | --- | --- | --- |
-| GET `/api/v2/warehouse/dashboard` | `payload.valueTrend[]` | 第一版保留空陣列 |
-| GET `/api/v2/warehouse/dashboard` | `payload.inventoryValueByCategory[].trend7Days` | 第一版固定回傳 `0.0` |
+| GET `/api/v2/warehouse/dashboard` | `payload.valueTrend[]` | 第一版回傳 7 日類別層級庫存價值趨勢 |
+| GET `/api/v2/warehouse/dashboard` | `payload.inventoryValueByCategory[].trend7Days` | 第一版回傳最近 7 日庫存價值變化率，base value 為 0 時回傳 `0.0` |
 
 ## 建議資料來源
 
@@ -121,7 +121,7 @@ trend7Days = ((inventoryValue(queryDate) - inventoryValue(baseDate)) / inventory
    - `warehouse_no`
    - `category`
 
-## 待工程師確認
+## 工程師確認紀錄
 
 | 項目 | 說明 | 工程師回覆 |
 | --- | --- | --- |

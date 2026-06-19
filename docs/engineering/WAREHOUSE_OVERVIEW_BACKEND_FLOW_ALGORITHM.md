@@ -153,7 +153,7 @@ return statisticResult
 
 共用封裝評估：
 
-目前 `GET /api/v2/warehouse/dashboard` 與 `GET /api/v2/warehouse/inventory` 都會使用目前庫存快照計算；後續 `valueTrend` / `trend7Days` 若實作，也會需要同一套庫存快照或短區間即時計算邏輯。建議後續將此邏輯抽出為共用物件，例如 `CWarehouseInventorySnapshotCalculator`，統一提供「統計路徑、補算觸發、缺漏 stock key 補算、日期覆蓋檢查」等功能，避免 Dashboard、Inventory Detail 與 Trend 各自實作不同版本。
+目前 `GET /api/v2/warehouse/dashboard` 與 `GET /api/v2/warehouse/inventory` 都會使用目前庫存快照計算；`valueTrend` / `trend7Days` 也需要同一套庫存快照或短區間即時計算邏輯。程式已新增 `CWarehouseInventorySnapshotCalculator`，集中處理「統計路徑、補算觸發、缺漏 stock key 補算、日期覆蓋檢查」等決策，避免 Dashboard、Inventory Detail 與 Trend 各自實作不同版本。
 
 ### Step 3：計算預留數量與預留價值
 

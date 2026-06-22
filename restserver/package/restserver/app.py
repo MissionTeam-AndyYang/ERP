@@ -37,10 +37,25 @@ from package.restserver.api.quotation_uri import quotation
 from package.restserver.api.plstatistics_uri import plstatistics
 from package.restserver.api.item_uri import item
 from package.restserver.api.v2.warehouse_uri import warehouse_v2
+from flask_cors import CORS
 
 def create_app():
     app = Flask(__name__)
-
+    CORS(app)
+    '''
+    CORS(
+        app,
+        origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+        ],
+        allow_headers=["Content-Type", "Accept", "x-timezone", "x-auth-token"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        supports_credentials=True,
+    )
+    '''
     lst_blueprints = [
         enterprise,
         sale,

@@ -183,16 +183,33 @@ const SOURCE_TYPE_LABELS: Record<string, WarehouseSourceType> = {
 };
 
 const UNIT_LABELS: Record<number, string> = {
-  1: "kg",
-  2: "g",
-  3: "L",
-  4: "ml",
-  5: "箱",
-  6: "盒",
-  7: "包",
-  8: "袋",
-  9: "瓶",
-  10: "pcs"
+  0: "其他",
+  1: "公克",
+  2: "公斤",
+  3: "台斤",
+  51: "公分",
+  52: "公尺",
+  101: "個",
+  102: "條",
+  103: "片",
+  104: "張",
+  105: "罐",
+  106: "包",
+  107: "捲",
+  108: "桶",
+  109: "盒",
+  110: "組",
+  111: "箱",
+  112: "支",
+  113: "式",
+  114: "入",
+  115: "袋",
+  116: "顆",
+  117: "瓶",
+  201: "板",
+  202: "件",
+  203: "車",
+  204: "次"
 };
 
 const RECOMMENDED_ACTION_LABELS: Record<string, string> = {
@@ -219,7 +236,7 @@ function categoryLabel(value?: number): InventoryCategory {
 }
 
 function unitLabel(value?: number) {
-  return value ? (UNIT_LABELS[value] ?? `單位 ${value}`) : "";
+  return value === undefined || value === null ? "" : (UNIT_LABELS[value] ?? `單位 ${value}`);
 }
 
 function toneByRiskLevel(value?: number): StatusTone {

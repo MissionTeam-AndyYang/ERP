@@ -70,6 +70,38 @@ unit number -> display unit
 recommendedActionCode -> display recommendation
 ```
 
+Unit mapping must follow `docs/spec/database/index.md` `Unit單位定義`, including:
+
+```txt
+0  -> 其他
+1  -> 公克
+2  -> 公斤
+3  -> 台斤
+51 -> 公分
+52 -> 公尺
+101 -> 個
+102 -> 條
+103 -> 片
+104 -> 張
+105 -> 罐
+106 -> 包
+107 -> 捲
+108 -> 桶
+109 -> 盒
+110 -> 組
+111 -> 箱
+112 -> 支
+113 -> 式
+114 -> 入
+115 -> 袋
+116 -> 顆
+117 -> 瓶
+201 -> 板
+202 -> 件
+203 -> 車
+204 -> 次
+```
+
 Initial action code mappings:
 
 | Backend code | Frontend display |

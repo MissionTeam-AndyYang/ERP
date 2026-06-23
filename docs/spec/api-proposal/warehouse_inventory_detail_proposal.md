@@ -27,6 +27,15 @@
 | Detail response 欄位說明 | `/api/v2/warehouse/inventory/lots/{lotKey}` 遺漏 Field Description。 | 已調整 detail API 為階層化路徑 `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`，並補齊 `lot`、`sourceDocuments`、`reservations`、`qualityHolds`、`palletMovements`、`workflowTasks` 欄位說明。 |
 | lotKey 與路徑設計 | 建議採用階層化路徑，並評估是否仍需保留 `lotKey`。 | Detail API 採用階層化 path parameters 作為後端查詢入口，避免 `|` 組合字串在 URL encoding、路由與人工檢查上產生歧義。`lotKey` 保留在 list response 中，僅作前端 table row key / drill-down key，不作 detail API 必要查詢參數。 |
 
+## 工程師提問
+
+| 工程師提問 | 理解與回覆 | 提案文件更新 |
+| --- | --- | --- |
+| `lotKey` 是否使用組合字串，或後端需新增穩定 inventory lot id？ | 採用工程師建議的階層化路徑作為 detail API 查詢入口，避免 `|` 組合字串造成 URL encoding、路由解析與人工檢查上的歧義。`lotKey` 不作後端必要查詢參數，只保留作前端 row key。 | Detail API 改為 `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`；list response 仍回傳 `lotKey`。 |
+| `unitCost` 成本算法採用目前 `inventory_record.amount / count`，或需指定加權平均/批次成本？ | 採用工程師回覆：第一版以「總庫存價值 / 庫存數量」計算成本單價，並依數字規則取至小數點第 4 位。此算法可與共用庫存快照的 `inventoryValue/currentQuantity` 保持一致。 | `payload.results[].unitCost` 與 `payload.lot.unitCost` 欄位說明已明確寫入 `inventoryValue / currentQuantity`。 |
+| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 採用工程師回覆：第一版只顯示 `inventory_record.ref_no/refCategory`，不 join 來源單據名稱，以降低查詢複雜度；來源名稱與來源明細待後續模組整合。 | `sourceDocuments[]` 欄位說明維持 `refCategory/refNo/refSubNo`，其中 `refSubNo` 第一版無穩定來源時回傳空字串。 |
+| `quality_holds` 是否先使用 `warehouse_quality_hold`，未來再串接 Quality 模組檢驗單？ | 採用工程師回覆：第一版先使用 `warehouse_quality_hold` 作為品檢保留資料來源；Quality 模組檢驗單號若尚未串接，`inspectionNo` 可回傳空字串。 | `qualityHolds[]` 欄位說明已標示 `inspectionNo` 第一版可為空字串，資料集來源維持 `warehouse_quality_hold`。 |
+
 ## API Summary
 
 | URL | Method | Description | Status | Review Note |
@@ -175,7 +184,7 @@ None
 | `payload.results[].reservedQuantity` | Float | 預留數量 | Unit |
 | `payload.results[].qualityHoldQuantity` | Float | 品檢保留量 | Unit |
 | `payload.results[].availableQuantity` | Float | 可用數量，計算方式為目前庫存量扣除預留數量與品檢保留量 | Unit |
-| `payload.results[].unitCost` | Float | 此批庫存計價用單價，取至小數點第 4 位 |  |
+| `payload.results[].unitCost` | Float | 此批庫存計價用單價，計算方式為 `inventoryValue / currentQuantity`，取至小數點第 4 位 |  |
 | `payload.results[].inventoryValue` | Integer | 目前庫存價值 |  |
 | `payload.results[].reservedValue` | Integer | 預留庫存價值 |  |
 | `payload.results[].qualityHoldValue` | Integer | 品檢保留庫存價值 |  |
@@ -407,15 +416,6 @@ None
 |----------|----------|
 | 從 Dashboard 點選某個料品類別 | 呼叫 list API，帶入 `itemCategory` |
 | 從 Dashboard 點選風險警示 | 呼叫 list API，帶入 `riskType`；再選第一筆或使用者點選後呼叫 detail API |
-| 從 Dashboard 點選待處理任務 | 呼叫 list API，帶入 `taskType` 或 `keyword=sourceNo` |
+| 從 Dashboard 點選待處理任務 | 呼叫 list API，帶入 `taskType` 或 `keyword=<來源單號>` |
 | 使用者點選明細列 | 呼叫 detail API 顯示右側追蹤面板 |
 | 使用者切換語系 | 前端依 enum code 轉換顯示文字，API 不需回傳翻譯字串 |
-
-## Engineer Review Questions
-
-| Question | Impact | 工程師回覆 |
-|----------|------|------|
-| `lotKey` 是否使用組合字串，或後端需新增穩定 inventory lot id？ | 影響 detail API path 設計與前端路由。 | 已採用階層化路徑 `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` 作為 detail API 查詢入口；`lotKey` 保留於 list response，僅作前端 row key / drill-down key，不作後端必要查詢參數。 |
-| `unitCost` 成本算法採用目前 `inventory_record.amount / count`，或需指定加權平均/批次成本？ | 影響金額、預留價值、可用價值。 | 建議採用公式：總庫存價值 / 庫存數量，以計算並取得 成本單價 |
-| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 影響查詢成本與右側面板資訊完整度。 | 第一版只顯示 `inventory_record.ref_no/refCategory`；來源名稱與來源明細 join 留待後續模組整合。 |
-| `quality_holds` 是否先使用 `warehouse_quality_hold`，未來再串接 Quality 模組檢驗單？ | 影響品保釋放流程整合。 |第一版先使用 `warehouse_quality_hold`|

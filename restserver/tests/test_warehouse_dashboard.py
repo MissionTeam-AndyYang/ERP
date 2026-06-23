@@ -159,8 +159,10 @@ def seed_dashboard_base(obj_session):
             creationTime=n_now,
         ),
         CTableBatchNumber(
+            date=n_now - 40 * 86400,
             no="B-RM-001",
             ref_no="PO-001",
+            refCategory=1,
             item_no="RM-001",
             item_name="原料A",
             itemCategory=EItemCategory.PM,
@@ -473,8 +475,83 @@ def test_inventory_service_returns_confirmed_inventory_dataset():
     assert dict_inventory["availableValue"] == 650.0
     assert dict_inventory["palletCount"] == 2.0
     assert dict_inventory["qualityStatus"] == "hold"
-    assert dict_inventory["sourceNo"] == "GRN-001"
+    assert "sourceType" not in dict_inventory
+    assert dict_inventory["sourceNo"] == "PO-001"
+    assert dict_inventory["sourceRefCategory"] == 1
     assert EWarehouseRiskType.BELOW_SAFETY_STOCK in dict_inventory["riskTypes"]
+
+
+def test_zero_quantity_batches_are_filtered_from_inventory_and_risks():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+    obj_session.add_all([
+        CTableInventoryItemMonthStatistic(
+            warehouse_no="WH-A",
+            warehouse_displayName="Aå€‰",
+            date=date(2023, 10, 31),
+            timezone="Asia/Taipei",
+            kind=EInventoryDeltaKind.BATCHNO,
+            category=EItemCategory.PM,
+            specified_no="B-ZERO",
+            specified_name="B-ZERO",
+            specified_ref_no="RM-ZERO",
+            specified_ref_name="Zero Material",
+            unit=1,
+            startCount=0,
+            startAmount=0,
+            inCount=0,
+            inAmount=0,
+            endCount=0,
+            endAmount=0,
+            creationTime=n_now,
+        ),
+        CTableBatchNumber(
+            date=n_now - 40 * 86400,
+            no="B-ZERO",
+            ref_no="PO-ZERO",
+            refCategory=1,
+            item_no="RM-ZERO",
+            item_name="Zero Material",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            itemType=1,
+            unit=1,
+            validDays=90,
+            validDate=n_now + 20 * 86400,
+        ),
+        CTableItemSafetyStock(
+            no="SS-ZERO",
+            itemCategory=EItemCategory.PM,
+            item_no="RM-ZERO",
+            item_name="Zero Material",
+            warehouse_no="WH-A",
+            unit=1,
+            safetyStock=80,
+            effectiveDate=n_now - 86400,
+            status=1,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_dashboard = CWarehouseDashboardService().get_dashboard(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        b_include_inventory=True,
+        obj_session=obj_session,
+    )
+    assert all(dict_row["batchNo"] != "B-ZERO" for dict_row in dict_dashboard["inventory"])
+    assert all(dict_row["batchNo"] != "B-ZERO" for dict_row in dict_dashboard["riskAlerts"])
+
+    dict_inventory = CWarehouseInventoryService().get_inventory(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        obj_session=obj_session,
+    )
+    assert all(dict_row["batchNo"] != "B-ZERO" for dict_row in dict_inventory["results"])
 
 
 def test_task_service_returns_confirmed_task_dataset():

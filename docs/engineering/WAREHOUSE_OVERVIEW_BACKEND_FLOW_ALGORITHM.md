@@ -27,6 +27,8 @@
 | --- | --- |
 | `sourceType` 命名 | 更名為 `refCategory`，用於表示 `ref_no` 指向的業務來源類別。 |
 | 來源欄位命名 | 使用 `ref_no` / `ref_sub_no`，以符合既有資料庫命名規則。 |
+| Inventory API 來源欄位 | `sourceType` 與 `sourceRefCategory` 為同一來源類別的不同表示；正式回傳保留 `sourceRefCategory`，並以 `batch_number.refCategory` / `batch_number.ref_no` 作為來源。 |
+| 零庫存批號 | `currentQuantity <= 0` 的批號庫存列不回傳於庫存明細，也不產生風險警示。 |
 | `id` 與 `no` | 維持原設計：`id` 作 PK，`no` 作 UK 與業務識別碼。 |
 | `warehouse_pallet_movement` | 維持原設計，不分散整合至其他表。 |
 | 倉儲容量來源 | 取消新增 `warehouse_capacity`，改由 `ship_wh.maxCapacity` 搭配 `ship_wh_contract`、`ship_wh_alias` 取得。 |
@@ -100,7 +102,7 @@ riskOnly
 
 1. 月底基準：第一版直接採用 `inventory_item_month_statistic` 的批號層級月結結存。
 2. 月底後異動：採用 `inventory_delta` 補算月結日後至查詢營業日的每日異動。
-3. 明細輔助：`inventory_record` 保留作為首次入庫日、最近來源單據與統計資料未涵蓋特定庫存列時的防護性補算依據。
+3. 明細輔助：`inventory_record` 保留作為首次入庫日與統計資料未涵蓋特定庫存列時的防護性補算依據；批號來源單據改以 `batch_number.ref_no` / `batch_number.refCategory` 為準。
 4. 工程師最新回覆：第一版實作直接採用月結統計表計算。(`inventory_item_month_statistic` / `inventory_delta`)
 
 建議演算法：
@@ -137,6 +139,7 @@ return statisticResult
 - 若 `inventory_delta` 最新日期早於查詢營業日，例如查詢 2026/06/17 但 delta 僅到 2026/06/15，視為統計覆蓋不足，該次查詢改以 `inventory_record` 即時計算，避免少算缺漏日期。
 - 若測試環境或過渡資料尚未建立統計表，或統計表只涵蓋部分料品/批號，程式會以 `warehouseNo + itemNo + batchNo` 作為庫存鍵，僅針對統計結果缺漏的庫存列使用 `inventory_record` 彙總補上。
 - 防護性補算不得覆蓋已由月結統計表與每日異動產生且日期覆蓋完整的庫存列，以避免同一批號重複計算。
+- 庫存快照彙總後需過濾 `currentQuantity <= 0` 的批號庫存列；後續 `inventory detail` 與 `riskAlerts` 均以過濾後資料為準。
 - 單位成本可由 `inventoryValue / currentQuantity` 推導；若需標準成本，可參考 `item_price.costPriceWeight`。
 
 缺漏情境與處理策略：

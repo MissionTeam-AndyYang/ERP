@@ -1298,6 +1298,8 @@ class CWarehouseDashboardService(object):
             f_reserved = util_safe_float(dict_reservations.get(str_key, {}).get("reservedQuantity"))
             f_quality = util_safe_float(dict_quality_holds.get(str_key, {}).get("qualityHoldQuantity"))
             f_quantity = util_safe_float(dict_row.get("currentQuantity"))
+            if f_quantity <= 0:
+                continue
             dict_data = dict(dict_row)
             dict_data.update({
                 "currentQuantity": util_round_quantity(dict_row.get("currentQuantity")),
@@ -1327,6 +1329,8 @@ class CWarehouseDashboardService(object):
     ):
         lst_results = []
         for dict_row in lst_inventory_rows:
+            if util_safe_float(dict_row.get("currentQuantity")) <= 0:
+                continue
             lst_row_risks = []
             n_item_category = util_safe_int(dict_row.get("itemCategory"))
             n_valid_date = util_safe_int(dict_row.get("validDate"))
@@ -1577,17 +1581,22 @@ class CWarehouseInventoryService(object):
         )
         dict_risks = self.__group_risks(dict_dashboard.get("riskAlerts", []))
         dict_pallets = self.__query_pallet_counts(obj_session, n_query_timestamp)
-        dict_sources = self.__query_latest_sources(obj_session, n_query_timestamp)
+        dict_sources = self.__query_batch_sources(
+            obj_session,
+            [dict_row.get("batchNo") for dict_row in dict_dashboard.get("inventory", [])],
+        )
         lst_results = []
 
         for dict_row in dict_dashboard.get("inventory", []):
+            if util_safe_float(dict_row.get("currentQuantity")) <= 0:
+                continue
             str_key = self.__stock_key(
                 dict_row.get("itemNo"),
                 dict_row.get("batchNo"),
                 dict_row.get("warehouseNo"),
             )
             dict_risk = dict_risks.get(str_key, {"riskTypes": [], "safetyStock": 0.0})
-            dict_source = dict_sources.get(str_key, {})
+            dict_source = dict_sources.get(dict_row.get("batchNo") or "", {})
             dict_inventory = self.__inventory_to_dict(
                 dict_row,
                 dict_risk,
@@ -1647,7 +1656,6 @@ class CWarehouseInventoryService(object):
             "validDate": util_safe_int(dict_row.get("validDate")),
             "firstInboundTimestamp": n_first_inbound,
             "daysInStock": int((n_query_timestamp - n_first_inbound) / 86400) if n_first_inbound else 0,
-            "sourceType": self.__source_type(util_safe_int(dict_source.get("refCategory"))),
             "sourceNo": dict_source.get("refNo", ""),
             "sourceRefCategory": util_safe_int(dict_source.get("refCategory")),
             "qualityStatus": "hold" if util_safe_float(dict_row.get("qualityHoldQuantity")) else "released",
@@ -1700,19 +1708,25 @@ class CWarehouseInventoryService(object):
             for obj_row in lst_rows
         }
 
-    def __query_latest_sources(self, obj_session, n_query_timestamp):
+    def __query_batch_sources(self, obj_session, lst_batch_numbers):
+        lst_batch_numbers = list({str_batch_no for str_batch_no in lst_batch_numbers if str_batch_no})
+        if not lst_batch_numbers:
+            return {}
         lst_rows = (
-            obj_session.query(CTableInventoryRec)
-            .filter(CTableInventoryRec.category == EInventoryCategory.IN)
-            .filter(CTableInventoryRec.date <= n_query_timestamp)
-            .order_by(CTableInventoryRec.date.desc(), CTableInventoryRec.id.desc())
+            obj_session.query(CTableBatchNumber)
+            .filter(CTableBatchNumber.no.in_(lst_batch_numbers))
+            .order_by(
+                CTableBatchNumber.date.desc(),
+                CTableBatchNumber.creationTime.desc(),
+                CTableBatchNumber.id.desc(),
+            )
             .all()
         )
         dict_result = {}
         for obj_row in lst_rows:
-            str_key = self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no)
-            if str_key not in dict_result:
-                dict_result[str_key] = {
+            str_batch_no = obj_row.no or ""
+            if str_batch_no and str_batch_no not in dict_result:
+                dict_result[str_batch_no] = {
                     "refNo": obj_row.ref_no or "",
                     "refCategory": util_safe_int(obj_row.refCategory),
                 }
@@ -1723,15 +1737,6 @@ class CWarehouseInventoryService(object):
 
     def __inventory_id(self, str_warehouse_no, str_item_no, str_batch_no, str_serial_no):
         return "%s|%s|%s|%s" % (str_warehouse_no or "", str_item_no or "", str_batch_no or "", str_serial_no or "")
-
-    def __source_type(self, n_ref_category):
-        dict_source_type = {
-            1: "PURCHASE",
-            2: "SALE",
-            3: "WORK",
-            4: "OTHER",
-        }
-        return dict_source_type.get(n_ref_category, "OTHER")
 
 
 class CWarehouseTaskService(object):

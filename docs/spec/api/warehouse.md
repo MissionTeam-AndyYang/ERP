@@ -309,17 +309,18 @@ None
 
 1. 讀取 `date`、`warehouse_no`、`itemCategory`、`includeInventory`、`riskOnly` 查詢條件，並取得 `x-timezone` 換算查詢營業日起訖 UTC timestamp。
 2. 以 `inventory_item_month_statistic` 取得查詢營業日以前最新的批號層級月結庫存量與庫存價值，並以 `inventory_delta` 加總月結日後至查詢營業日的入庫/出庫數量與金額，補算目前庫存量與庫存價值。
-3. 讀取 `inventory_record` 取得批號最早入庫時間與最近入庫來源單據；若統計結果為空、`inventory_delta` 最新日期早於查詢營業日，或特定 `warehouseNo + itemNo + batchNo` 未出現在月結統計與每日異動結果中，才以 `inventory_record` 作為防護性補算依據。
-4. 讀取 `batch_number` 補齊批號效期資訊，用於效期警示與庫存迴轉天數分析。
-5. 讀取 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
-6. 讀取 `warehouse_quality_hold` 彙總有效品檢保留量與品檢保留價值。
-7. 讀取 `warehouse_pallet_movement` 彙總各倉儲與各料品品項類別的已佔用板數、預留板數。
-8. 讀取 `ship_wh_contract`、`ship_wh`、`ship_wh_alias` 計算各倉儲空間總板數與可用板數；因 `ship_wh_contract` 同時存放物流與倉庫合約，僅納入 `ship_wh_contract.category = 2` 的倉儲合約。
-9. 讀取 `item_safety_stock`，以可用數量 `availableQuantity` 判斷低於安全水位之庫存風險。
-10. 讀取 `warehouse_risk_rule` 補齊風險等級、`messageCode` 與 `recommendedActionCode`；後端不回傳繁中 fallback 文字，前端依 code 與 params 轉換顯示。
-11. 依庫存迴轉超過 30 天、效期剩餘低於三分之一、安全水位不足建立 `riskAlerts`。
-12. 讀取 `workflow_task_state` 取得查詢營業日結束前仍未完成的進貨、入庫、出庫、移倉、品檢、出貨等任務，並依 `ownerDepartment` 回傳下一步負責部門。
-13. 整合 `summary`、`inventoryValueByCategory`、`capacityByWarehouse`、`riskAlerts`、`pendingTasks`；若 `includeInventory=true`，額外回傳批號層級庫存明細；若同時 `riskOnly=true`，庫存明細只回傳有風險的列。
+3. 讀取 `inventory_record` 取得批號最早入庫時間；若統計結果為空、`inventory_delta` 最新日期早於查詢營業日，或特定 `warehouseNo + itemNo + batchNo` 未出現在月結統計與每日異動結果中，才以 `inventory_record` 作為防護性補算依據。
+4. 過濾 `currentQuantity <= 0` 的批號庫存列；此類批號不回傳於庫存明細，也不產生風險警示。
+5. 讀取 `batch_number` 補齊批號效期資訊，用於效期警示與庫存迴轉天數分析。
+6. 讀取 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
+7. 讀取 `warehouse_quality_hold` 彙總有效品檢保留量與品檢保留價值。
+8. 讀取 `warehouse_pallet_movement` 彙總各倉儲與各料品品項類別的已佔用板數、預留板數。
+9. 讀取 `ship_wh_contract`、`ship_wh`、`ship_wh_alias` 計算各倉儲空間總板數與可用板數；因 `ship_wh_contract` 同時存放物流與倉庫合約，僅納入 `ship_wh_contract.category = 2` 的倉儲合約。
+10. 讀取 `item_safety_stock`，以可用數量 `availableQuantity` 判斷低於安全水位之庫存風險。
+11. 讀取 `warehouse_risk_rule` 補齊風險等級、`messageCode` 與 `recommendedActionCode`；後端不回傳繁中 fallback 文字，前端依 code 與 params 轉換顯示。
+12. 依庫存迴轉超過 30 天、效期剩餘低於三分之一、安全水位不足建立 `riskAlerts`。
+13. 讀取 `workflow_task_state` 取得查詢營業日結束前仍未完成的進貨、入庫、出庫、移倉、品檢、出貨等任務，並依 `ownerDepartment` 回傳下一步負責部門。
+14. 整合 `summary`、`inventoryValueByCategory`、`capacityByWarehouse`、`riskAlerts`、`pendingTasks`；若 `includeInventory=true`，額外回傳批號層級庫存明細；若同時 `riskOnly=true`，庫存明細只回傳有風險的列。
 
 ### Database Tables Used
 
@@ -327,8 +328,8 @@ None
 |----------|------|
 | inventory_item_month_statistic | 提供批號層級月結庫存量與庫存價值，作為第一版目前庫存主計算基準 |
 | inventory_delta | 提供月結日後每日入庫/出庫數量與金額異動，補算至查詢營業日 |
-| inventory_record | 提供批號最早入庫時間、最近入庫來源單據；在統計結果為空、delta 日期未覆蓋查詢營業日，或統計資料未涵蓋特定庫存列時作為防護性補算依據 |
-| batch_number | 提供批號效期與有效天數 |
+| inventory_record | 提供批號最早入庫時間；在統計結果為空、delta 日期未覆蓋查詢營業日，或統計資料未涵蓋特定庫存列時作為防護性補算依據 |
+| batch_number | 提供批號效期、有效天數與批號來源資料 |
 | warehouse_inventory_reservation | 提供預留數量、預留價值 |
 | warehouse_quality_hold | 提供品檢保留量、品檢保留價值 |
 | warehouse_pallet_movement | 提供各倉儲與各料品品項類別板數佔用狀態 |
@@ -413,7 +414,6 @@ None
         "validDate": "Integer",
         "firstInboundTimestamp": "Integer",
         "daysInStock": "Integer",
-        "sourceType": "String",
         "sourceNo": "String",
         "sourceRefCategory": "Integer",
         "qualityStatus": "String",
@@ -457,9 +457,8 @@ None
 | payload.results[].validDate | Integer | 批號效期日，UTC timestamp |  |
 | payload.results[].firstInboundTimestamp | Integer | 同倉儲同批號首次入庫時間，UTC timestamp |  |
 | payload.results[].daysInStock | Integer | 庫存迴轉天數 |  |
-| payload.results[].sourceType | String | 來源單據類型，依 sourceRefCategory 轉換為穩定代碼；PURCHASE 對應 `goods_receipt_note`、SALE 對應 `shipping_order`、WORK 對應 `process_order`、OTHER 對應 `inventory_order` | PURCHASE、SALE、WORK、OTHER |
-| payload.results[].sourceNo | String | 最近一次入庫來源單號 |  |
-| payload.results[].sourceRefCategory | Integer | 庫存來源類別 | EInventoryRefCategory |
+| payload.results[].sourceNo | String | 批號來源單號，來源為 `batch_number.ref_no` |  |
+| payload.results[].sourceRefCategory | Integer | 批號來源類別，來源為 `batch_number.refCategory`；與舊欄位 `sourceType` 為同一來源語意，正式回傳僅保留此數值 enum | EInventoryRefCategory |
 | payload.results[].qualityStatus | String | 品檢狀態穩定代碼；目前依品檢保留量回傳 released 或 hold |  |
 | payload.results[].riskTypes[] | String | 此庫存列符合的風險類型 | EWarehouseRiskType |
 
@@ -467,10 +466,11 @@ None
 
 1. 讀取庫存篩選條件與分頁參數。
 2. 沿用 Warehouse Dashboard 已確認的庫存彙總邏輯，以 `inventory_item_month_statistic` 月結批號層級結存搭配 `inventory_delta` 每日異動補算目前庫存量與庫存價值。
-3. 由 `batch_number` 補齊 `itemSubCategory`、`itemType`、有效天數與效期日；若批號資料缺漏，`itemSubCategory` 依料品類別回查料品主檔。
-4. 彙總有效預留量、品檢保留量與板位使用量，計算可用數量與可用價值。
-5. 補齊首次入庫時間、安全水位與風險類型。
-6. 套用 item_no、batchNo、riskType 與分頁條件後回傳結果。
+3. 過濾 `currentQuantity <= 0` 的批號庫存列；此類批號不回傳於庫存明細，也不產生風險警示。
+4. 由 `batch_number` 補齊 `itemSubCategory`、`itemType`、有效天數、效期日、`sourceNo` 與 `sourceRefCategory`；若批號資料缺漏，`itemSubCategory` 依料品類別回查料品主檔。
+5. 彙總有效預留量、品檢保留量與板位使用量，計算可用數量與可用價值。
+6. 補齊首次入庫時間、安全水位與風險類型。
+7. 套用 item_no、batchNo、riskType 與分頁條件後回傳結果。
 
 ### Database Tables Used
 
@@ -478,8 +478,8 @@ None
 |----------|------|
 | inventory_item_month_statistic | 提供批號層級月結庫存量與庫存價值，作為目前庫存主計算基準 |
 | inventory_delta | 提供月結日後每日入庫/出庫數量與金額異動，補算至查詢營業日 |
-| inventory_record | 提供首次入庫時間、最近入庫來源單據；在統計結果為空、delta 日期未覆蓋查詢營業日，或統計資料未涵蓋特定庫存列時作為防護性補算依據 |
-| batch_number | 提供批號效期資訊、料品品項子類別與料品類型 |
+| inventory_record | 提供首次入庫時間；在統計結果為空、delta 日期未覆蓋查詢營業日，或統計資料未涵蓋特定庫存列時作為防護性補算依據 |
+| batch_number | 提供批號效期資訊、料品品項子類別、料品類型與批號來源單據；`sourceNo/sourceRefCategory` 以 `batch_number.ref_no/refCategory` 為準 |
 | warehouse_inventory_reservation | 提供預留數量與預留價值 |
 | warehouse_quality_hold | 提供品檢保留量與品檢保留價值 |
 | warehouse_pallet_movement | 提供板數佔用狀態 |

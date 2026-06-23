@@ -5,19 +5,21 @@
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_inventory_detail_flow_algorithm.md`
 > Purpose: 承接 Warehouse Dashboard 的類別、風險警示與待處理任務點擊情境，提供「庫存明細與批號追蹤」畫面所需 API 規格提案。
 
-## 工程師建議
-1. 請評估 `availability` 、 `sort` 、 `order` 欄位的資料型態是否適合採用 ENUM。若改用 String，是否有其他設計上的考量（例如：可擴充性、跨語系顯示、與前端對接的便利性）？請說明兩者的優缺點，並提出具體建議。
-2. /api/v2/warehouse/inventory/lots 的 Success Response Data 資料結構目前與 Field Description 欄位說明不相符。請確認並提供最終的 資料結構定義。
-3. /api/v2/warehouse/inventory/lots/{lotKey} 目前遺漏了 Field Description。請補齊並確認最終的 欄位說明。
+## 工程師建議與回覆
 
-
+| 項目 | 工程師建議 | 工程師回覆 / 規格調整 |
+| --- | --- | --- |
+| Query enum 設計 | 請評估 `availability`、`sort`、`order` 欄位是否適合採用 ENUM；若改用 String，需說明可擴充性、跨語系顯示與前端對接考量。 | 採用 String + 後端白名單驗證。原因是這三個欄位是查詢控制參數，不需要回傳多國語言文字；前端可直接傳固定英文代碼，後端以 allow-list 驗證並拒絕未定義值。優點是 API 易讀、URL 友善、未來新增排序欄位時不需調整資料庫 enum；缺點是需在文件與後端驗證中維持同一份允許值。 |
+| List response 結構 | `/api/v2/warehouse/inventory/lots` 的 Success Response Data 與 Field Description 不相符，需確認最終資料結構。 | 已以本文件 Success Response Data 為最終第一版結構，並補齊所有 `summary` 與 `results[]` 欄位說明。 |
+| Detail response 欄位說明 | `/api/v2/warehouse/inventory/lots/{lotKey}` 遺漏 Field Description。 | 已調整 detail API 為階層化路徑 `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`，並補齊 `lot`、`sourceDocuments`、`reservations`、`qualityHolds`、`palletMovements`、`workflowTasks` 欄位說明。 |
+| lotKey 與路徑設計 | 建議採用階層化路徑，並評估是否仍需保留 `lotKey`。 | Detail API 採用階層化 path parameters 作為後端查詢入口，避免 `|` 組合字串在 URL encoding、路由與人工檢查上產生歧義。`lotKey` 保留在 list response 中，僅作前端 table row key / drill-down key，不作 detail API 必要查詢參數。 |
 
 ## API Summary
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | `/api/v2/warehouse/inventory/lots` | GET | 查詢庫存批號明細清單 | Proposal / Pending Engineer Review | 供明細列表、篩選、排序、分頁與 Dashboard drill-down 使用。 |
-| `/api/v2/warehouse/inventory/lots/{lotKey}` | GET | 查詢單一庫存批號追蹤明細 | Proposal / Pending Engineer Review | 供右側明細面板顯示來源、預留、品檢、板位、任務與風險。 |
+| `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` | GET | 查詢單一庫存批號追蹤明細 | Proposal / Pending Engineer Review | 供右側明細面板顯示來源、預留、品檢、板位、任務與風險。 |
 
 ## Numeric Format Rules
 
@@ -62,10 +64,10 @@
 | `batchNo` | String | NO | 批號 |
 | `riskType` | String | NO | 風險類型；`TURNOVER_OVER_30_DAYS`、`SHELF_LIFE_LT_ONE_THIRD`、`BELOW_SAFETY_STOCK` |
 | `taskType` | Integer | NO | 任務類型；請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9) |
-| `availability` | String | NO | 可用狀態；`available`、`reserved`、`quality_hold`、`blocked` |
+| `availability` | String | NO | 可用狀態代碼；後端以白名單驗證，允許值：`available`、`reserved`、`quality_hold`、`blocked` |
 | `keyword` | String | NO | 模糊搜尋：料號、品名、批號、來源單號、倉儲名稱 |
-| `sort` | String | NO | 排序欄位；建議支援 `inventoryValue`、`availableQuantity`、`validDate`、`daysInStock` |
-| `order` | String | NO | `asc` 或 `desc` |
+| `sort` | String | NO | 排序欄位代碼；後端以白名單驗證，允許值：`inventoryValue`、`availableQuantity`、`validDate`、`daysInStock` |
+| `order` | String | NO | 排序方向代碼；後端以白名單驗證，允許值：`asc`、`desc` |
 | `start` | Integer | NO | 分頁起始位置 |
 | `count` | Integer | NO | 分頁筆數；建議預設 50 |
 
@@ -135,45 +137,70 @@ None
 
 | Field Path | Type | Description | Enum |
 |----------|----------|------|---|
+| `payload.serverTimestamp` | Integer | 後端產生資料的 UTC timestamp |  |
+| `payload.timezone` | String | 本次查詢使用的時區；來源為 `x-timezone`，未提供時為 UTC |  |
+| `payload.total` | Integer | 符合篩選條件且分頁前的總筆數 |  |
+| `payload.count` | Integer | 本次回傳筆數 |  |
+| `payload.start` | Integer | 本次分頁起始位置 |  |
+| `payload.summary.lotCount` | Integer | 清單篩選條件下的批號庫存列數 |  |
+| `payload.summary.itemCount` | Integer | 清單篩選條件下的不同料品品項數 |  |
 | `payload.summary.totalQuantity` | Float | 清單篩選條件下的目前庫存量合計 | Unit |
 | `payload.summary.totalInventoryValue` | Integer | 清單篩選條件下的庫存價值合計 |  |
 | `payload.summary.totalAvailableQuantity` | Float | 清單篩選條件下的可用數量合計 | Unit |
 | `payload.summary.totalAvailableValue` | Integer | 清單篩選條件下的可用價值合計 |  |
+| `payload.summary.riskLotCount` | Integer | 清單篩選條件下命中任一風險類型的批號庫存列數 |  |
+| `payload.summary.pendingTaskCount` | Integer | 清單篩選條件下未完成 workflow 任務數合計 |  |
 | `payload.results[].lotKey` | String | 前端 drill-down 使用的批號庫存識別鍵；建議由 warehouseNo、itemNo、batchNo 組成穩定 key |  |
 | `payload.results[].warehouseNo` | String | 倉儲別名 no |  |
+| `payload.results[].warehouseName` | String | 倉儲別名名稱 |  |
 | `payload.results[].itemCategory` | Integer | 料品品項類別；前端負責轉換顯示文字 | EItemCategory |
+| `payload.results[].itemNo` | String | 料品品項編號 |  |
+| `payload.results[].itemName` | String | 料品品項名稱 |  |
+| `payload.results[].batchNo` | String | 批號 |  |
+| `payload.results[].unit` | Integer | 庫存數量單位；前端負責轉換顯示文字 | Unit |
 | `payload.results[].currentQuantity` | Float | 目前庫存量 | Unit |
 | `payload.results[].reservedQuantity` | Float | 預留數量 | Unit |
 | `payload.results[].qualityHoldQuantity` | Float | 品檢保留量 | Unit |
 | `payload.results[].availableQuantity` | Float | 可用數量，計算方式為目前庫存量扣除預留數量與品檢保留量 | Unit |
 | `payload.results[].unitCost` | Float | 此批庫存計價用單價，取至小數點第 4 位 |  |
 | `payload.results[].inventoryValue` | Integer | 目前庫存價值 |  |
+| `payload.results[].reservedValue` | Integer | 預留庫存價值 |  |
+| `payload.results[].qualityHoldValue` | Integer | 品檢保留庫存價值 |  |
+| `payload.results[].availableValue` | Integer | 可用庫存價值 |  |
 | `payload.results[].palletCount` | Float | 此批庫存佔用板數 |  |
+| `payload.results[].firstInboundTimestamp` | Integer | 此批庫存在此倉儲的首次入庫時間，UTC timestamp |  |
+| `payload.results[].daysInStock` | Integer | 從首次入庫日至查詢日的庫存天數 |  |
+| `payload.results[].validDays` | Integer | 批號有效天數；來源為 `batch_number.validDays` |  |
+| `payload.results[].validDate` | Integer | 批號效期日，UTC timestamp；來源為 `batch_number.validDate` |  |
 | `payload.results[].remainingShelfLifeRatio` | Float | 剩餘效期比例；物料與膠捲可回傳 0 或空值，由前端依類別忽略效期警示 |  |
+| `payload.results[].safetyStock` | Float | 此料品於此倉儲或全倉通用的安全水位數量 |  |
 | `payload.results[].riskTypes[]` | String | 此批庫存命中的風險類型 | EWarehouseRiskType |
 | `payload.results[].openTaskCount` | Integer | 此批庫存尚未完成的 workflow 任務數 |  |
-| `payload.results[].lastSourceNo` | String | 最近一次入庫或異動來源單號 |  |
-| `payload.results[].lastSourceCategory` | Integer | 最近一次來源類別 |  |
+| `payload.results[].lastSourceNo` | String | 批號來源單號；來源為 `batch_number.ref_no` |  |
+| `payload.results[].lastSourceCategory` | Integer | 批號來源類別；來源為 `batch_number.refCategory` | EInventoryRefCategory |
 
 ### Processing Flow
 
 1. 讀取查詢條件與分頁條件，建立料品、倉儲、批號、風險、任務與可用狀態篩選。
-2. 從 `inventory_record` 依倉儲、料品、批號彙總目前庫存量與庫存價值。
-3. 從 `batch_number` 補充有效天數、效期日與批號來源資料。
-4. 從 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
-5. 從 `warehouse_quality_hold` 彙總品檢保留量與品檢保留價值。
-6. 從 `warehouse_pallet_movement` 彙總此批庫存佔用板數。
-7. 從 `item_safety_stock` 判斷是否低於安全水位。
-8. 從 `workflow_task_state` 彙總未完成任務數，並支援 `taskType` 篩選。
-9. 套用風險判斷：迴轉超過 30 天、剩餘效期低於三分之一、低於安全水位。
-10. 回傳 summary 與分頁後 results；所有 enum 顯示文字由前端轉換。
+2. 透過 `CWarehouseInventorySnapshotCalculator` 取得目前庫存快照；主路徑以 `inventory_item_month_statistic` 搭配 `inventory_delta` 補算目前庫存量與庫存價值，當統計資料缺漏或日期覆蓋不足時才由 `inventory_record` 防護性補算。
+3. 過濾 `currentQuantity == 0` 的批號庫存列；`currentQuantity < 0` 視為資料異常但保留回傳，方便開發與測試階段追查。
+4. 從 `batch_number` 補充有效天數、效期日與批號來源資料；`lastSourceNo/lastSourceCategory` 以 `batch_number.ref_no/refCategory` 為準。
+5. 從 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
+6. 從 `warehouse_quality_hold` 彙總品檢保留量與品檢保留價值。
+7. 從 `warehouse_pallet_movement` 彙總此批庫存佔用板數。
+8. 從 `item_safety_stock` 判斷是否低於安全水位。
+9. 從 `workflow_task_state` 彙總未完成任務數，並支援 `taskType` 篩選。
+10. 套用風險判斷：迴轉超過 30 天、剩餘效期低於三分之一、低於安全水位。
+11. 回傳 summary 與分頁後 results；所有 enum 顯示文字由前端轉換。
 
 ### Database Tables Used
 
 | Table | Purpose |
 |----------|------|
-| `inventory_record` | 彙總批號庫存量與庫存價值 |
-| `batch_number` | 提供批號、效期與來源資訊 |
+| `inventory_item_month_statistic` | 提供批號層級月結庫存量與庫存價值，作為目前庫存主計算基準 |
+| `inventory_delta` | 提供月結日後每日入庫/出庫數量與金額異動，補算至查詢營業日 |
+| `inventory_record` | 提供首次入庫時間；在統計資料缺漏或日期覆蓋不足時作為防護性補算依據；detail 時間線可用於列出來源與異動紀錄 |
+| `batch_number` | 提供批號、效期與批號來源資訊；`lastSourceNo/lastSourceCategory` 以 `batch_number.ref_no/refCategory` 為準 |
 | `warehouse_inventory_reservation` | 提供預留數量與預留價值 |
 | `warehouse_quality_hold` | 提供品檢保留量與品檢保留價值 |
 | `warehouse_pallet_movement` | 提供板位佔用狀態 |
@@ -181,19 +208,21 @@ None
 | `workflow_task_state` | 提供未完成任務與下一步負責部門 |
 | `ship_wh_alias` | 提供倉儲別名與名稱 |
 
-## GET /api/v2/warehouse/inventory/lots/{lotKey}
+## GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}
 
 ### Basic Information
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| `/api/v2/warehouse/inventory/lots/{lotKey}` | GET | 查詢單一庫存批號追蹤明細 |
+| `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` | GET | 查詢單一庫存批號追蹤明細 |
 
 ### Path Parameters
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| `lotKey` | String | YES | 批號庫存識別鍵；需與清單 API 回傳一致 |
+| `warehouseNo` | String | YES | 倉儲別名 no |
+| `itemNo` | String | YES | 料品品項編號 |
+| `batchNo` | String | YES | 批號 |
 
 ### Query Parameters
 
@@ -234,8 +263,11 @@ None
         "refNo": "String",
         "refSubNo": "String",
         "date": "Integer",
+        "direction": "String",
         "quantity": "Float",
-        "amount": "Integer"
+        "signedQuantity": "Float",
+        "amount": "Integer",
+        "signedAmount": "Integer"
       }
     ],
     "reservations": [
@@ -287,11 +319,72 @@ None
 }
 ```
 
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| `payload.lot.lotKey` | String | 前端 row key；由 warehouseNo、itemNo、batchNo 組成，僅供前端識別與選取狀態使用 |  |
+| `payload.lot.warehouseNo` | String | 倉儲別名 no |  |
+| `payload.lot.warehouseName` | String | 倉儲別名名稱 |  |
+| `payload.lot.itemCategory` | Integer | 料品品項類別；前端負責轉換顯示文字 | EItemCategory |
+| `payload.lot.itemNo` | String | 料品品項編號 |  |
+| `payload.lot.itemName` | String | 料品品項名稱 |  |
+| `payload.lot.batchNo` | String | 批號 |  |
+| `payload.lot.unit` | Integer | 庫存數量單位；前端負責轉換顯示文字 | Unit |
+| `payload.lot.currentQuantity` | Float | 目前庫存量；`0` 不回傳 detail，負數於開發階段保留以利 debug |  |
+| `payload.lot.reservedQuantity` | Float | 有效預留數量 |  |
+| `payload.lot.qualityHoldQuantity` | Float | 品檢保留數量 |  |
+| `payload.lot.availableQuantity` | Float | 可用數量，計算方式為 `max(currentQuantity - reservedQuantity - qualityHoldQuantity, 0)` |  |
+| `payload.lot.unitCost` | Float | 成本單價，計算方式為 `inventoryValue / currentQuantity`，單價取至小數點第 4 位 |  |
+| `payload.lot.inventoryValue` | Integer | 目前庫存價值，金額四捨五入取整數 |  |
+| `payload.lot.availableValue` | Integer | 可用庫存價值 |  |
+| `payload.lot.palletCount` | Float | 此批庫存目前佔用板數 |  |
+| `payload.lot.validDate` | Integer | 批號效期日，UTC timestamp |  |
+| `payload.lot.riskTypes[]` | String | 此批庫存命中的風險類型 | EWarehouseRiskType |
+| `payload.sourceDocuments[].refCategory` | Integer | 來源或異動單據類別；來源為 `inventory_record.refCategory` | EInventoryRefCategory |
+| `payload.sourceDocuments[].refNo` | String | 來源或異動單號；來源為 `inventory_record.ref_no` |  |
+| `payload.sourceDocuments[].refSubNo` | String | 來源或異動明細編號；第一版若無穩定來源則回傳空字串 |  |
+| `payload.sourceDocuments[].date` | Integer | 異動時間，UTC timestamp |  |
+| `payload.sourceDocuments[].direction` | String | 異動方向，入庫回傳 `IN`，出庫回傳 `OUT` | IN、OUT |
+| `payload.sourceDocuments[].quantity` | Float | 異動數量絕對值，前端時間線可直接顯示數量 |  |
+| `payload.sourceDocuments[].signedQuantity` | Float | 帶方向的異動數量；入庫為正數，出庫為負數，用於前端趨勢或餘量計算 |  |
+| `payload.sourceDocuments[].amount` | Integer | 異動金額絕對值 |  |
+| `payload.sourceDocuments[].signedAmount` | Integer | 帶方向的異動金額；入庫為正數，出庫為負數，用於前端顯示金額流向 |  |
+| `payload.reservations[].reservationNo` | String | 預留單識別碼 |  |
+| `payload.reservations[].refCategory` | Integer | 預留來源類別 | EInventoryRefCategory |
+| `payload.reservations[].refNo` | String | 預留來源單號 |  |
+| `payload.reservations[].reservedQuantity` | Float | 預留數量 |  |
+| `payload.reservations[].reservedValue` | Integer | 預留庫存價值 |  |
+| `payload.reservations[].releaseTime` | Integer | 預留釋放時間，UTC timestamp；無釋放時間可回傳 0 |  |
+| `payload.reservations[].status` | Integer | 預留狀態 |  |
+| `payload.qualityHolds[].holdNo` | String | 品檢保留識別碼 |  |
+| `payload.qualityHolds[].inspectionNo` | String | 對應檢驗單號；第一版若尚未串接 Quality 模組可回傳空字串 |  |
+| `payload.qualityHolds[].holdQuantity` | Float | 品檢保留數量 |  |
+| `payload.qualityHolds[].holdValue` | Integer | 品檢保留庫存價值 |  |
+| `payload.qualityHolds[].reason` | String | 品檢保留原因或備註 |  |
+| `payload.qualityHolds[].status` | Integer | 品檢保留狀態 |  |
+| `payload.palletMovements[].movementNo` | String | 板位異動識別碼 |  |
+| `payload.palletMovements[].date` | Integer | 板位異動時間，UTC timestamp |  |
+| `payload.palletMovements[].palletGroupNo` | String | 棧板或板位群組編號；若資料表未提供穩定欄位可回傳空字串 |  |
+| `payload.palletMovements[].palletStatus` | Integer | 板位狀態 |  |
+| `payload.palletMovements[].palletCount` | Float | 板數 |  |
+| `payload.palletMovements[].refCategory` | Integer | 板位異動來源類別 | EInventoryRefCategory |
+| `payload.palletMovements[].refNo` | String | 板位異動來源單號 |  |
+| `payload.workflowTasks[].taskId` | String | workflow 任務識別碼 |  |
+| `payload.workflowTasks[].taskType` | Integer | 任務類型 | EWorkflowTaskType |
+| `payload.workflowTasks[].taskStatus` | Integer | 任務狀態；第一版僅回傳未完成任務 | EWorkflowTaskStatus |
+| `payload.workflowTasks[].ownerDepartment` | Integer | 下一步負責部門；前端負責轉換顯示文字 | EDepartment |
+| `payload.workflowTasks[].expectedQuantity` | Float | 預計處理數量 |  |
+| `payload.workflowTasks[].processedQuantity` | Float | 已處理數量 |  |
+| `payload.workflowTasks[].remainingQuantity` | Float | 剩餘待處理數量，計算方式為 `max(expectedQuantity - processedQuantity, 0)` |  |
+| `payload.workflowTasks[].dueTimestamp` | Integer | 任務預計完成時間，UTC timestamp |  |
+| `payload.workflowTasks[].blockReason` | String | 任務阻塞原因或主管人工判斷備註 |  |
+
 ### Processing Flow
 
-1. 解析 `lotKey`，取得 warehouseNo、itemNo、batchNo 或等價查詢鍵。
+1. 解析 path parameters，取得 warehouseNo、itemNo、batchNo。
 2. 重新彙總該批庫存目前數量與價值，避免使用前端帶入的暫存值。
-3. 查詢該批來源與異動紀錄，組成 `sourceDocuments`。
+3. 查詢該批來源與異動紀錄，組成 `sourceDocuments`；入庫資料 `direction=IN` 且 signed 欄位為正數，出庫資料 `direction=OUT` 且 signed 欄位為負數。
 4. 查詢有效預留、品檢保留、板位異動與未完成 workflow 任務。
 5. 回傳 enum code，不回傳多國語言顯示文字。
 
@@ -309,7 +402,7 @@ None
 
 | Question | Impact | 工程師回覆 |
 |----------|------|------|
-| `lotKey` 是否使用組合字串，或後端需新增穩定 inventory lot id？ | 影響 detail API path 設計與前端路由。 | 建議採用階層化路徑，例如: GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}, 請評估在此設計下，是否仍需要保留 `lotKey` 作為查詢或識別參數。|
+| `lotKey` 是否使用組合字串，或後端需新增穩定 inventory lot id？ | 影響 detail API path 設計與前端路由。 | 已採用階層化路徑 `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` 作為 detail API 查詢入口；`lotKey` 保留於 list response，僅作前端 row key / drill-down key，不作後端必要查詢參數。 |
 | `unitCost` 成本算法採用目前 `inventory_record.amount / count`，或需指定加權平均/批次成本？ | 影響金額、預留價值、可用價值。 | 建議採用公式：總庫存價值 / 庫存數量，以計算並取得 成本單價 |
-| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 影響查詢成本與右側面板資訊完整度。 | 第一版只顯示 `inventory_record.ref_no/refCategory`|
+| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 影響查詢成本與右側面板資訊完整度。 | 第一版只顯示 `inventory_record.ref_no/refCategory`；來源名稱與來源明細 join 留待後續模組整合。 |
 | `quality_holds` 是否先使用 `warehouse_quality_hold`，未來再串接 Quality 模組檢驗單？ | 影響品保釋放流程整合。 |第一版先使用 `warehouse_quality_hold`|

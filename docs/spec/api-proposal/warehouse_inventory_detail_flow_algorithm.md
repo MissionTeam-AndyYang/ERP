@@ -21,12 +21,17 @@ GET /api/v2/warehouse/tasks
 
 ```txt
 GET /api/v2/warehouse/inventory/lots
-GET /api/v2/warehouse/inventory/lots/{lotKey}
+GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}
 ```
 
-## 工程師建議
-1. Step 2：彙總目前庫存量與庫存價值
-   請評估是否適合由 CWarehouseInventorySnapshotCalculator 物件來取得 目前庫存數量 與 庫存價值
+## 工程師建議與回覆
+
+| 項目 | 工程師建議 | 工程師回覆 / 規格調整 |
+| --- | --- | --- |
+| Step 2 庫存快照計算 | 請評估是否適合由 `CWarehouseInventorySnapshotCalculator` 物件取得目前庫存數量與庫存價值。 | 採用。Inventory Detail list/detail 與 Warehouse Dashboard / Inventory API 應共用同一個庫存快照計算物件，避免統計表、delta 與防護性補算邏輯分裂。 |
+| `currentQuantity <= 0` 過濾 | 請說明為何不回傳 `currentQuantity <= 0`，並建議 `currentQuantity < 0` 可回傳。 | 調整為只過濾 `currentQuantity == 0`。零庫存批號不具備管理者畫面上的可操作庫存意義，且會干擾風險警示；負庫存代表資料異常或補登落差，開發與測試階段應保留回傳，方便工程師追查。 |
+| `sourceDocuments.quantity` 正負方向 | 請說明出庫是否以負數表示，如何影響前端時間線與金額方向，並提出建議處理方式。 | 建議同時回傳 `direction`、`quantity/amount` 絕對值與 `signedQuantity/signedAmount` 帶方向值。前端時間線用 `direction` 呈現入庫/出庫標籤，數量顯示使用絕對值；若要畫趨勢或計算餘量，使用 signed 欄位。 |
+| workflow task 範圍 | 第一版 workflowTasks 是否只顯示未完成任務。 | 採用。第一版只顯示未完成任務；歷史任務後續可透過查詢參數擴充。 |
 
 ## 共用規則
 
@@ -39,9 +44,17 @@ GET /api/v2/warehouse/inventory/lots/{lotKey}
    - 金額四捨五入取整數。
 5. 尚未能從資料庫取得的資料不得以假資料回傳；需回傳 0、空字串或空陣列，並在文件標示限制。
 
-## lotKey 建議
+## lotKey 與階層化路徑建議
 
-第一版建議使用可讀、可解析的組合 key：
+Detail API 第一版採用階層化路徑：
+
+```txt
+GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}
+```
+
+`lotKey` 仍可由 list API 回傳，但僅作為前端 table row key / drill-down key，不作 detail API 必要查詢參數。
+
+第一版 `lotKey` 建議使用可讀、可解析的組合 key：
 
 ```txt
 lotKey = warehouseNo + "|" + itemNo + "|" + batchNo
@@ -97,13 +110,21 @@ count
 
 ### Step 2：彙總目前庫存量與庫存價值
 
-主要資料表：
+主要物件：
 
 ```txt
+CWarehouseInventorySnapshotCalculator
+```
+
+主要資料來源：
+
+```txt
+inventory_item_month_statistic
+inventory_delta
 inventory_record
 ```
 
-彙總維度：
+庫存鍵維度：
 
 ```txt
 warehouse_no
@@ -119,19 +140,22 @@ unit
 演算法：
 
 ```txt
-currentQuantity = sum(count where category = IN)
-                - sum(count where category = OUT)
+snapshotRows = CWarehouseInventorySnapshotCalculator.query_inventory_rows(...)
 
-inventoryValue = sum(amount where category = IN)
-               - sum(amount where category = OUT)
+主路徑：
+currentQuantity = monthEndQuantity + deltaInCount - deltaOutCount
+inventoryValue = monthEndAmount + deltaInAmount - deltaOutAmount
 
-firstInboundTimestamp = min(date where category = IN)
+fallback：
+若統計資料為空、delta 覆蓋不足，或統計結果缺漏特定 stock key，
+才使用 inventory_record 依 warehouse_no + item_no + batchNumber 防護性補算。
 ```
 
 保護規則：
 
-1. `currentQuantity <= 0` 的列不回傳。
-2. `inventoryValue < 0` 時仍保留原計算結果供工程師檢查；若前端不適合顯示負值，可由 API review 再確認是否歸零。
+1. `currentQuantity == 0` 的列不回傳，因為零庫存批號不具備第一版管理者畫面的可操作庫存意義，也不應產生風險警示。
+2. `currentQuantity < 0` 的列保留回傳，因為負庫存通常代表補登、沖銷或資料異常，開發與測試階段需要直接呈現以利工程師追查。
+3. `inventoryValue < 0` 時仍保留原計算結果供工程師檢查；若前端不適合顯示負值，可由 API review 再確認是否歸零或加註異常樣式。
 
 ### Step 3：補齊批號與料品資訊
 
@@ -153,6 +177,8 @@ goods
 | itemType | `batch_number.itemType` | `inventory_record.itemType`。 |
 | validDays | `batch_number.validDays` | 無資料時回傳 0。 |
 | validDate | `batch_number.validDate` | 無資料時回傳 0。 |
+| lastSourceNo | `batch_number.ref_no` | 無資料時回傳空字串。 |
+| lastSourceCategory | `batch_number.refCategory` | 無資料時回傳 0。 |
 
 ### Step 4：彙總預留與品檢保留
 
@@ -286,13 +312,13 @@ riskLotCount = count(rows where riskTypes is not empty)
 pendingTaskCount = sum(openTaskCount)
 ```
 
-## GET /api/v2/warehouse/inventory/lots/{lotKey} 流程
+## GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo} 流程
 
-### Step 1：解析 lotKey
+### Step 1：解析 path parameters
 
-1. 依 `|` 分割 `lotKey`。
-2. 若格式不足三段，回傳參數錯誤。
-3. 取得 `warehouseNo`、`itemNo`、`batchNo` 後，不採信前端其他暫存資料，重新查詢後端資料。
+1. 從 path parameters 取得 `warehouseNo`、`itemNo`、`batchNo`。
+2. 任一必要參數為空時回傳參數錯誤。
+3. 不採信前端其他暫存資料，重新查詢後端資料。
 
 ### Step 2：重算 lot 主資料
 
@@ -322,8 +348,17 @@ batchNumber = batchNo
 | refNo | `inventory_record.ref_no` |
 | refSubNo | 第一版若無來源明細欄位，回傳空字串 |
 | date | `inventory_record.date` |
-| quantity | `inventory_record.count`，出庫可用負數或另由 category 判斷，待 review 確認 |
-| amount | `inventory_record.amount` |
+| direction | 由 `inventory_record.category` 轉換；入庫為 `IN`，出庫為 `OUT` |
+| quantity | `abs(inventory_record.count)`，給前端時間線直接顯示數量 |
+| signedQuantity | 入庫為 `inventory_record.count`，出庫為 `-inventory_record.count`，給前端趨勢或餘量計算 |
+| amount | `abs(inventory_record.amount)`，給前端時間線直接顯示金額 |
+| signedAmount | 入庫為 `inventory_record.amount`，出庫為 `-inventory_record.amount`，給前端顯示資金方向或計算餘額 |
+
+設計理由：
+
+1. 前端時間線通常以「事件」呈現，使用 `direction` 搭配正數 `quantity/amount` 可避免使用者看到負數而誤解。
+2. 分析圖、累計餘量與金額流向需要方向，使用 `signedQuantity/signedAmount` 可避免前端自行推導造成邏輯不一致。
+3. 若未來需顯示退貨、沖銷或調整，可擴充 `direction` 值，而不破壞既有正數顯示欄位。
 
 ### Step 4：查詢預留、品檢、板位與任務
 
@@ -345,7 +380,7 @@ batchNumber = batchNo
 
 | 項目 | 需確認原因 | 工程師回覆 |
 | --- | --- | --- |
-| `lotKey` 是否採組合 key | 影響 API path、前端路由與未來流水號層級擴充。 |建議採用階層化路徑，例如: GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo} |
-| `sourceDocuments.quantity` 出庫是否以負數表示 | 影響前端時間線呈現與金額方向。 |請詳細說明此邏輯如何影響 前端時間線的呈現 與 金額方向的顯示，並請提出你建議的 處理方式。|
-| `inventoryValue < 0` 是否保留 | 影響資料異常時的呈現方式。 |目前處於開發階段，先保留 原始資料的呈現，以方便進行 debug。待進入後續測試或正式上線階段，再依需求調整資料顯示方式。另外， 請說明為什麼`currentQuantity <= 0` 的列不回傳? 是否有其他設計上的考量? 建議`currentQuantity < 0` 的列可回傳。|
-| `workflowTasks` 是否只顯示未完成任務 | 第一版建議只顯示未完成；歷史任務可後續加參數。 |第一版先實作顯示未完成|
+| `lotKey` 是否採組合 key | 影響 API path、前端路由與未來流水號層級擴充。 | 採用工程師建議：detail API 改為階層化路徑 `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`；`lotKey` 僅保留為前端 row key。 |
+| `sourceDocuments.quantity` 出庫是否以負數表示 | 影響前端時間線呈現與金額方向。 | 採用雙欄位策略：`quantity/amount` 回傳絕對值供時間線顯示，`signedQuantity/signedAmount` 回傳帶方向值供趨勢與餘量計算，並以 `direction` 明確標示 `IN/OUT`。 |
+| `inventoryValue < 0` 是否保留 | 影響資料異常時的呈現方式。 | 採用工程師建議：開發階段保留負值以利 debug；同時調整為只過濾 `currentQuantity == 0`，`currentQuantity < 0` 保留回傳供資料異常追查。 |
+| `workflowTasks` 是否只顯示未完成任務 | 第一版建議只顯示未完成；歷史任務可後續加參數。 | 採用工程師建議：第一版只顯示未完成任務。 |

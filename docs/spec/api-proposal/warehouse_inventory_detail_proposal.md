@@ -5,6 +5,19 @@
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_inventory_detail_flow_algorithm.md`
 > Purpose: 承接 Warehouse Dashboard 的類別、風險警示與待處理任務點擊情境，提供「庫存明細與批號追蹤」畫面所需 API 規格提案。
 
+## 工程師提問與建議
+1. 針對 `/api/v2/warehouse/inventory/lots` 
+  - payload.results[].lastSourceNo 更名為 payload.results[].refNo
+  - payload.results[].lastSourceCategory 更名為 payload.results[].refCategory
+
+2. 針對 `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` 
+
+  - 在 payload.sourceDocuments[] 中，為什麼需要同時定義 quantity/amount 的絕對值，以及 signedQuantity/signedAmount 的帶方向值？請說明此設計的考量。是否可改為僅保留 direction 搭配 quantity/amount，由前端畫面呈現或數據統計時再透過 direction 與 quantity/amount 轉換成帶方向的數值？
+  - payload.sourceDocuments[] 更名為 payload.inventoryRecords[]
+  - payload.sourceDocuments[].direction 更名為 payload.inventoryRecords[].category
+  - 針對 payload.reservations[].refCategory 欄位 與 payload.reservations[].refNo 欄位，詳細說明其資料分別取自哪一個資料表。並請確認 refCategory 欄位的 Enum 定義是否與 Field Description 描述相符合，若有差異請修正。
+| - 針對 payload.palletMovements[].refCategory 欄位 與 payload.palletMovements[].refNo 欄位，詳細說明其資料分別取自哪一個資料表。並請確認 refCategory 欄位的 Enum 定義是否與 Field Description 描述相符合，若有差異請修正。
+
 ## 工程師建議與回覆
 
 | 項目 | 工程師建議 | 工程師回覆 / 規格調整 |

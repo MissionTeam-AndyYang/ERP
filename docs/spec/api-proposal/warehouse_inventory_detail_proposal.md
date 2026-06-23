@@ -5,7 +5,7 @@
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_inventory_detail_flow_algorithm.md`
 > Purpose: 承接 Warehouse Dashboard 的類別、風險警示與待處理任務點擊情境，提供「庫存明細與批號追蹤」畫面所需 API 規格提案。
 
-## 工程師提問
+## 工程師提問 V2
 1. 針對 `/api/v2/warehouse/inventory/lots` 
   - payload.results[].lastSourceNo 更名為 payload.results[].refNo
   - payload.results[].lastSourceCategory 更名為 payload.results[].refCategory

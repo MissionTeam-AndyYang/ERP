@@ -6,17 +6,15 @@
 > Purpose: 承接 Warehouse Dashboard 的類別、風險警示與待處理任務點擊情境，提供「庫存明細與批號追蹤」畫面所需 API 規格提案。
 
 ## 工程師提問 V2
-1. 針對 `/api/v2/warehouse/inventory/lots` 
-  - payload.results[].lastSourceNo 更名為 payload.results[].refNo
-  - payload.results[].lastSourceCategory 更名為 payload.results[].refCategory
 
-2. 針對 `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` 
-
-  - 在 payload.sourceDocuments[] 中，為什麼需要同時定義 quantity/amount 的絕對值，以及 signedQuantity/signedAmount 的帶方向值？請說明此設計的考量。是否可改為僅保留 direction 搭配 quantity/amount，由前端畫面呈現或數據統計時再透過 direction 與 quantity/amount 轉換成帶方向的數值？
-  - payload.sourceDocuments[] 更名為 payload.inventoryRecords[]
-  - payload.sourceDocuments[].direction 更名為 payload.inventoryRecords[].category
-  - 針對 payload.reservations[].refCategory 欄位 與 payload.reservations[].refNo 欄位，詳細說明其資料分別取自哪一個資料表。並請確認 refCategory 欄位的 Enum 定義是否與 Field Description 描述相符合，若有差異請修正。
-| - 針對 payload.palletMovements[].refCategory 欄位 與 payload.palletMovements[].refNo 欄位，詳細說明其資料分別取自哪一個資料表。並請確認 refCategory 欄位的 Enum 定義是否與 Field Description 描述相符合，若有差異請修正。
+| 工程師提問 | 理解與回覆 | 提案文件更新 |
+| --- | --- | --- |
+| `/api/v2/warehouse/inventory/lots` 的 `payload.results[].lastSourceNo`、`payload.results[].lastSourceCategory` 是否應更名為 `refNo`、`refCategory`。 | 採用。此清單欄位描述的是批號來源單據，來源為 `batch_number.ref_no/refCategory`；使用 `refNo/refCategory` 可與資料庫命名一致，也避免與「最近異動」語意混淆。 | List API JSON 與 Field Description 已更名為 `payload.results[].refNo`、`payload.results[].refCategory`。 |
+| Detail API 的 `payload.sourceDocuments[]` 是否應更名為 `payload.inventoryRecords[]`。 | 採用。此資料集實際來源為 `inventory_record`，內容是庫存入出異動紀錄，而非一般來源文件摘要；更名為 `inventoryRecords[]` 更貼近資料表與業務語意。 | Detail API JSON、Field Description 與 Processing Flow 已將 `sourceDocuments[]` 改為 `inventoryRecords[]`。 |
+| 是否需要同時回傳 `quantity/amount` 絕對值與 `signedQuantity/signedAmount` 帶方向值；是否可改為只保留方向欄位搭配 `quantity/amount`。 | 採用工程師建議，移除 signed 欄位。第一版只回傳 `category` 與 `quantity/amount`，由前端在畫面呈現或統計時依 `category` 判斷入庫/出庫方向。這可降低 API 欄位重複與正負值不一致的風險。 | Detail API 已移除 `signedQuantity/signedAmount`；`direction` 更名為 `category`，來源為 `inventory_record.category`，enum 為 `EInventoryCategory`。 |
+| Detail API 的 `payload.sourceDocuments[].direction` 是否應更名為 `payload.inventoryRecords[].category`。 | 採用。資料庫欄位本身為 `inventory_record.category`，用於表示入庫/出庫方向；文件以 `category` 命名可降低轉換層語意差異。 | Detail API 已改為 `payload.inventoryRecords[].category`，值定義為入庫(1)、出庫(2)。 |
+| `payload.reservations[].refCategory/refNo` 的資料來源與 enum 定義需說明清楚。 | 採用。兩欄分別取自 `warehouse_inventory_reservation.refCategory/ref_no`；其 refCategory 值定義不是通用 `EInventoryRefCategory`，而是預留來源類別：銷售/訂購(1)、生產/工單(2)、倉庫任務(3)、其他(0)。 | `reservations[]` Field Description 已補上來源資料表與專屬 enum 說明。 |
+| `payload.palletMovements[].refCategory/refNo` 的資料來源與 enum 定義需說明清楚。 | 採用。兩欄分別取自 `warehouse_pallet_movement.refCategory/ref_no`；其 refCategory 值定義是板位異動來源類別：入庫(1)、出庫(2)、移倉(3)、預留(4)、品檢保留(5)、釋放(6)。 | `palletMovements[]` Field Description 已補上來源資料表與專屬 enum 說明。 |
 
 ## 工程師建議與回覆
 
@@ -24,7 +22,7 @@
 | --- | --- | --- |
 | Query enum 設計 | 請評估 `availability`、`sort`、`order` 欄位是否適合採用 ENUM；若改用 String，需說明可擴充性、跨語系顯示與前端對接考量。 | 採用 String + 後端白名單驗證。原因是這三個欄位是查詢控制參數，不需要回傳多國語言文字；前端可直接傳固定英文代碼，後端以 allow-list 驗證並拒絕未定義值。優點是 API 易讀、URL 友善、未來新增排序欄位時不需調整資料庫 enum；缺點是需在文件與後端驗證中維持同一份允許值。 |
 | List response 結構 | `/api/v2/warehouse/inventory/lots` 的 Success Response Data 與 Field Description 不相符，需確認最終資料結構。 | 已以本文件 Success Response Data 為最終第一版結構，並補齊所有 `summary` 與 `results[]` 欄位說明。 |
-| Detail response 欄位說明 | `/api/v2/warehouse/inventory/lots/{lotKey}` 遺漏 Field Description。 | 已調整 detail API 為階層化路徑 `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`，並補齊 `lot`、`sourceDocuments`、`reservations`、`qualityHolds`、`palletMovements`、`workflowTasks` 欄位說明。 |
+| Detail response 欄位說明 | `/api/v2/warehouse/inventory/lots/{lotKey}` 遺漏 Field Description。 | 已調整 detail API 為階層化路徑 `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`，並補齊 `lot`、`inventoryRecords`、`reservations`、`qualityHolds`、`palletMovements`、`workflowTasks` 欄位說明。 |
 | lotKey 與路徑設計 | 建議採用階層化路徑，並評估是否仍需保留 `lotKey`。 | Detail API 採用階層化 path parameters 作為後端查詢入口，避免 `|` 組合字串在 URL encoding、路由與人工檢查上產生歧義。`lotKey` 保留在 list response 中，僅作前端 table row key / drill-down key，不作 detail API 必要查詢參數。 |
 
 ## 工程師提問
@@ -33,7 +31,7 @@
 | --- | --- | --- |
 | `lotKey` 是否使用組合字串，或後端需新增穩定 inventory lot id？ | 採用工程師建議的階層化路徑作為 detail API 查詢入口，避免 `|` 組合字串造成 URL encoding、路由解析與人工檢查上的歧義。`lotKey` 不作後端必要查詢參數，只保留作前端 row key。 | Detail API 改為 `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`；list response 仍回傳 `lotKey`。 |
 | `unitCost` 成本算法採用目前 `inventory_record.amount / count`，或需指定加權平均/批次成本？ | 採用工程師回覆：第一版以「總庫存價值 / 庫存數量」計算成本單價，並依數字規則取至小數點第 4 位。此算法可與共用庫存快照的 `inventoryValue/currentQuantity` 保持一致。 | `payload.results[].unitCost` 與 `payload.lot.unitCost` 欄位說明已明確寫入 `inventoryValue / currentQuantity`。 |
-| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 採用工程師回覆：第一版只顯示 `inventory_record.ref_no/refCategory`，不 join 來源單據名稱，以降低查詢複雜度；來源名稱與來源明細待後續模組整合。 | `sourceDocuments[]` 欄位說明維持 `refCategory/refNo/refSubNo`，其中 `refSubNo` 第一版無穩定來源時回傳空字串。 |
+| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 採用工程師回覆：第一版只顯示 `inventory_record.ref_no/refCategory`，不 join 來源單據名稱，以降低查詢複雜度；來源名稱與來源明細待後續模組整合。V2 已將資料集命名調整為 `inventoryRecords[]`。 | `inventoryRecords[]` 欄位說明維持 `refCategory/refNo/refSubNo`，其中 `refSubNo` 第一版無穩定來源時回傳空字串。 |
 | `quality_holds` 是否先使用 `warehouse_quality_hold`，未來再串接 Quality 模組檢驗單？ | 採用工程師回覆：第一版先使用 `warehouse_quality_hold` 作為品檢保留資料來源；Quality 模組檢驗單號若尚未串接，`inspectionNo` 可回傳空字串。 | `qualityHolds[]` 欄位說明已標示 `inspectionNo` 第一版可為空字串，資料集來源維持 `warehouse_quality_hold`。 |
 
 ## API Summary
@@ -147,8 +145,8 @@ None
         "safetyStock": "Float",
         "riskTypes": ["String"],
         "openTaskCount": "Integer",
-        "lastSourceNo": "String",
-        "lastSourceCategory": "Integer"
+        "refNo": "String",
+        "refCategory": "Integer"
       }
     ]
   }
@@ -198,15 +196,15 @@ None
 | `payload.results[].safetyStock` | Float | 此料品於此倉儲或全倉通用的安全水位數量 |  |
 | `payload.results[].riskTypes[]` | String | 此批庫存命中的風險類型 | EWarehouseRiskType |
 | `payload.results[].openTaskCount` | Integer | 此批庫存尚未完成的 workflow 任務數 |  |
-| `payload.results[].lastSourceNo` | String | 批號來源單號；來源為 `batch_number.ref_no` |  |
-| `payload.results[].lastSourceCategory` | Integer | 批號來源類別；來源為 `batch_number.refCategory` | EInventoryRefCategory |
+| `payload.results[].refNo` | String | 批號來源單號；來源為 `batch_number.ref_no` |  |
+| `payload.results[].refCategory` | Integer | 批號來源類別；來源為 `batch_number.refCategory` | EInventoryRefCategory |
 
 ### Processing Flow
 
 1. 讀取查詢條件與分頁條件，建立料品、倉儲、批號、風險、任務與可用狀態篩選。
 2. 透過 `CWarehouseInventorySnapshotCalculator` 取得目前庫存快照；主路徑以 `inventory_item_month_statistic` 搭配 `inventory_delta` 補算目前庫存量與庫存價值，當統計資料缺漏或日期覆蓋不足時才由 `inventory_record` 防護性補算。
 3. 過濾 `currentQuantity == 0` 的批號庫存列；`currentQuantity < 0` 視為資料異常但保留回傳，方便開發與測試階段追查。
-4. 從 `batch_number` 補充有效天數、效期日與批號來源資料；`lastSourceNo/lastSourceCategory` 以 `batch_number.ref_no/refCategory` 為準。
+4. 從 `batch_number` 補充有效天數、效期日與批號來源資料；`refNo/refCategory` 以 `batch_number.ref_no/refCategory` 為準。
 5. 從 `warehouse_inventory_reservation` 彙總有效預留數量與預留價值。
 6. 從 `warehouse_quality_hold` 彙總品檢保留量與品檢保留價值。
 7. 從 `warehouse_pallet_movement` 彙總此批庫存佔用板數。
@@ -222,7 +220,7 @@ None
 | `inventory_item_month_statistic` | 提供批號層級月結庫存量與庫存價值，作為目前庫存主計算基準 |
 | `inventory_delta` | 提供月結日後每日入庫/出庫數量與金額異動，補算至查詢營業日 |
 | `inventory_record` | 提供首次入庫時間；在統計資料缺漏或日期覆蓋不足時作為防護性補算依據；detail 時間線可用於列出來源與異動紀錄 |
-| `batch_number` | 提供批號、效期與批號來源資訊；`lastSourceNo/lastSourceCategory` 以 `batch_number.ref_no/refCategory` 為準 |
+| `batch_number` | 提供批號、效期與批號來源資訊；`refNo/refCategory` 以 `batch_number.ref_no/refCategory` 為準 |
 | `warehouse_inventory_reservation` | 提供預留數量與預留價值 |
 | `warehouse_quality_hold` | 提供品檢保留量與品檢保留價值 |
 | `warehouse_pallet_movement` | 提供板位佔用狀態 |
@@ -279,17 +277,15 @@ None
       "validDate": "Integer",
       "riskTypes": ["String"]
     },
-    "sourceDocuments": [
+    "inventoryRecords": [
       {
         "refCategory": "Integer",
         "refNo": "String",
         "refSubNo": "String",
         "date": "Integer",
-        "direction": "String",
+        "category": "Integer",
         "quantity": "Float",
-        "signedQuantity": "Float",
-        "amount": "Integer",
-        "signedAmount": "Integer"
+        "amount": "Integer"
       }
     ],
     "reservations": [
@@ -363,18 +359,16 @@ None
 | `payload.lot.palletCount` | Float | 此批庫存目前佔用板數 |  |
 | `payload.lot.validDate` | Integer | 批號效期日，UTC timestamp |  |
 | `payload.lot.riskTypes[]` | String | 此批庫存命中的風險類型 | EWarehouseRiskType |
-| `payload.sourceDocuments[].refCategory` | Integer | 來源或異動單據類別；來源為 `inventory_record.refCategory` | EInventoryRefCategory |
-| `payload.sourceDocuments[].refNo` | String | 來源或異動單號；來源為 `inventory_record.ref_no` |  |
-| `payload.sourceDocuments[].refSubNo` | String | 來源或異動明細編號；第一版若無穩定來源則回傳空字串 |  |
-| `payload.sourceDocuments[].date` | Integer | 異動時間，UTC timestamp |  |
-| `payload.sourceDocuments[].direction` | String | 異動方向，入庫回傳 `IN`，出庫回傳 `OUT` | IN、OUT |
-| `payload.sourceDocuments[].quantity` | Float | 異動數量絕對值，前端時間線可直接顯示數量 |  |
-| `payload.sourceDocuments[].signedQuantity` | Float | 帶方向的異動數量；入庫為正數，出庫為負數，用於前端趨勢或餘量計算 |  |
-| `payload.sourceDocuments[].amount` | Integer | 異動金額絕對值 |  |
-| `payload.sourceDocuments[].signedAmount` | Integer | 帶方向的異動金額；入庫為正數，出庫為負數，用於前端顯示金額流向 |  |
+| `payload.inventoryRecords[].refCategory` | Integer | 庫存異動來源單據類別；來源為 `inventory_record.refCategory` | EInventoryRefCategory |
+| `payload.inventoryRecords[].refNo` | String | 庫存異動來源單號；來源為 `inventory_record.ref_no` |  |
+| `payload.inventoryRecords[].refSubNo` | String | 庫存異動來源明細編號；第一版若無穩定來源則回傳空字串 |  |
+| `payload.inventoryRecords[].date` | Integer | 庫存異動時間，UTC timestamp；來源為 `inventory_record.date` |  |
+| `payload.inventoryRecords[].category` | Integer | 庫存異動類別；來源為 `inventory_record.category`，前端可依此判斷入庫或出庫方向 | EInventoryCategory：入庫(1)、出庫(2) |
+| `payload.inventoryRecords[].quantity` | Float | 庫存異動數量；來源為 `inventory_record.count`，前端需帶方向統計時依 `category` 轉換 |  |
+| `payload.inventoryRecords[].amount` | Integer | 庫存異動金額；來源為 `inventory_record.amount`，前端需帶方向統計時依 `category` 轉換 |  |
 | `payload.reservations[].reservationNo` | String | 預留單識別碼 |  |
-| `payload.reservations[].refCategory` | Integer | 預留來源類別 | EInventoryRefCategory |
-| `payload.reservations[].refNo` | String | 預留來源單號 |  |
+| `payload.reservations[].refCategory` | Integer | 預留來源類別；來源為 `warehouse_inventory_reservation.refCategory` | ReservationRefCategory：銷售/訂購(1)、生產/工單(2)、倉庫任務(3)、其他(0) |
+| `payload.reservations[].refNo` | String | 預留來源單號；來源為 `warehouse_inventory_reservation.ref_no` |  |
 | `payload.reservations[].reservedQuantity` | Float | 預留數量 |  |
 | `payload.reservations[].reservedValue` | Integer | 預留庫存價值 |  |
 | `payload.reservations[].releaseTime` | Integer | 預留釋放時間，UTC timestamp；無釋放時間可回傳 0 |  |
@@ -390,8 +384,8 @@ None
 | `payload.palletMovements[].palletGroupNo` | String | 棧板或板位群組編號；若資料表未提供穩定欄位可回傳空字串 |  |
 | `payload.palletMovements[].palletStatus` | Integer | 板位狀態 |  |
 | `payload.palletMovements[].palletCount` | Float | 板數 |  |
-| `payload.palletMovements[].refCategory` | Integer | 板位異動來源類別 | EInventoryRefCategory |
-| `payload.palletMovements[].refNo` | String | 板位異動來源單號 |  |
+| `payload.palletMovements[].refCategory` | Integer | 板位異動來源類別；來源為 `warehouse_pallet_movement.refCategory` | PalletMovementRefCategory：入庫(1)、出庫(2)、移倉(3)、預留(4)、品檢保留(5)、釋放(6) |
+| `payload.palletMovements[].refNo` | String | 板位異動來源單號；來源為 `warehouse_pallet_movement.ref_no` |  |
 | `payload.workflowTasks[].taskId` | String | workflow 任務識別碼 |  |
 | `payload.workflowTasks[].taskType` | Integer | 任務類型 | EWorkflowTaskType |
 | `payload.workflowTasks[].taskStatus` | Integer | 任務狀態；第一版僅回傳未完成任務 | EWorkflowTaskStatus |
@@ -406,7 +400,7 @@ None
 
 1. 解析 path parameters，取得 warehouseNo、itemNo、batchNo。
 2. 重新彙總該批庫存目前數量與價值，避免使用前端帶入的暫存值。
-3. 查詢該批來源與異動紀錄，組成 `sourceDocuments`；入庫資料 `direction=IN` 且 signed 欄位為正數，出庫資料 `direction=OUT` 且 signed 欄位為負數。
+3. 查詢該批庫存異動紀錄，組成 `inventoryRecords`；`category=1` 表示入庫，`category=2` 表示出庫。API 不回傳 signed 欄位，前端若需帶方向統計，可依 `category` 搭配 `quantity/amount` 自行換算。
 4. 查詢有效預留、品檢保留、板位異動與未完成 workflow 任務。
 5. 回傳 enum code，不回傳多國語言顯示文字。
 

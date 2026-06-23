@@ -5,6 +5,13 @@
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_inventory_detail_flow_algorithm.md`
 > Purpose: 承接 Warehouse Dashboard 的類別、風險警示與待處理任務點擊情境，提供「庫存明細與批號追蹤」畫面所需 API 規格提案。
 
+## 工程師建議
+1. 請評估 `availability` 、 `sort` 、 `order` 欄位的資料型態是否適合採用 ENUM。若改用 String，是否有其他設計上的考量（例如：可擴充性、跨語系顯示、與前端對接的便利性）？請說明兩者的優缺點，並提出具體建議。
+2. /api/v2/warehouse/inventory/lots 的 Success Response Data 資料結構目前與 Field Description 欄位說明不相符。請確認並提供最終的 資料結構定義。
+3. /api/v2/warehouse/inventory/lots/{lotKey} 目前遺漏了 Field Description。請補齊並確認最終的 欄位說明。
+
+
+
 ## API Summary
 
 | URL | Method | Description | Status | Review Note |
@@ -300,9 +307,9 @@ None
 
 ## Engineer Review Questions
 
-| Question | Impact |
-|----------|------|
-| `lotKey` 是否使用組合字串，或後端需新增穩定 inventory lot id？ | 影響 detail API path 設計與前端路由。 |
-| `unitCost` 成本算法採用目前 `inventory_record.amount / count`，或需指定加權平均/批次成本？ | 影響金額、預留價值、可用價值。 |
-| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 影響查詢成本與右側面板資訊完整度。 |
-| `quality_holds` 是否先使用 `warehouse_quality_hold`，未來再串接 Quality 模組檢驗單？ | 影響品保釋放流程整合。 |
+| Question | Impact | 工程師回覆 |
+|----------|------|------|
+| `lotKey` 是否使用組合字串，或後端需新增穩定 inventory lot id？ | 影響 detail API path 設計與前端路由。 | 建議採用階層化路徑，例如: GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}, 請評估在此設計下，是否仍需要保留 `lotKey` 作為查詢或識別參數。|
+| `unitCost` 成本算法採用目前 `inventory_record.amount / count`，或需指定加權平均/批次成本？ | 影響金額、預留價值、可用價值。 | 建議採用公式：總庫存價值 / 庫存數量，以計算並取得 成本單價 |
+| `sourceDocuments` 第一版是否只顯示 `inventory_record.ref_no/refCategory`，或要 join 來源單據名稱？ | 影響查詢成本與右側面板資訊完整度。 | 第一版只顯示 `inventory_record.ref_no/refCategory`|
+| `quality_holds` 是否先使用 `warehouse_quality_hold`，未來再串接 Quality 模組檢驗單？ | 影響品保釋放流程整合。 |第一版先使用 `warehouse_quality_hold`|

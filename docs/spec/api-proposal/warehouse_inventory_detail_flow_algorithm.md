@@ -24,6 +24,10 @@ GET /api/v2/warehouse/inventory/lots
 GET /api/v2/warehouse/inventory/lots/{lotKey}
 ```
 
+## 工程師建議
+1. Step 2：彙總目前庫存量與庫存價值
+   請評估是否適合由 CWarehouseInventorySnapshotCalculator 物件來取得 目前庫存數量 與 庫存價值
+
 ## 共用規則
 
 1. 所有 timestamp 欄位均以 UTC timestamp 回傳，前端依 `x-timezone` 顯示。
@@ -339,9 +343,9 @@ batchNumber = batchNo
 
 ## 工程師待確認問題
 
-| 項目 | 需確認原因 |
-| --- | --- |
-| `lotKey` 是否採組合 key | 影響 API path、前端路由與未來流水號層級擴充。 |
-| `sourceDocuments.quantity` 出庫是否以負數表示 | 影響前端時間線呈現與金額方向。 |
-| `inventoryValue < 0` 是否保留 | 影響資料異常時的呈現方式。 |
-| `workflowTasks` 是否只顯示未完成任務 | 第一版建議只顯示未完成；歷史任務可後續加參數。 |
+| 項目 | 需確認原因 | 工程師回覆 |
+| --- | --- | --- |
+| `lotKey` 是否採組合 key | 影響 API path、前端路由與未來流水號層級擴充。 |建議採用階層化路徑，例如: GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo} |
+| `sourceDocuments.quantity` 出庫是否以負數表示 | 影響前端時間線呈現與金額方向。 |請詳細說明此邏輯如何影響 前端時間線的呈現 與 金額方向的顯示，並請提出你建議的 處理方式。|
+| `inventoryValue < 0` 是否保留 | 影響資料異常時的呈現方式。 |目前處於開發階段，先保留 原始資料的呈現，以方便進行 debug。待進入後續測試或正式上線階段，再依需求調整資料顯示方式。另外， 請說明為什麼`currentQuantity <= 0` 的列不回傳? 是否有其他設計上的考量? 建議`currentQuantity < 0` 的列可回傳。|
+| `workflowTasks` 是否只顯示未完成任務 | 第一版建議只顯示未完成；歷史任務可後續加參數。 |第一版先實作顯示未完成|

@@ -155,6 +155,18 @@ export type WarehouseDashboardResult = {
   error?: string;
 };
 
+export type WarehouseInventoryResult = {
+  records: WarehouseRecord[];
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseTasksResult = {
+  tasks: WarehouseTask[];
+  source: WarehouseDataSource;
+  error?: string;
+};
+
 const CATEGORY_LABELS: Record<number, InventoryCategory> = {
   1: "原料" as InventoryCategory,
   2: "物料" as InventoryCategory,
@@ -168,6 +180,27 @@ const SOURCE_TYPE_LABELS: Record<string, WarehouseSourceType> = {
   WORK: "生產" as WarehouseSourceType,
   SALE: "出貨" as WarehouseSourceType,
   OTHER: "調整" as WarehouseSourceType
+};
+
+const UNIT_LABELS: Record<number, string> = {
+  1: "kg",
+  2: "g",
+  3: "L",
+  4: "ml",
+  5: "箱",
+  6: "盒",
+  7: "包",
+  8: "袋",
+  9: "瓶",
+  10: "pcs"
+};
+
+const RECOMMENDED_ACTION_LABELS: Record<string, string> = {
+  "warehouse.action.prioritizeIssueOrProduction": "優先安排領料或生產使用",
+  "warehouse.action.reviewSlowMovingStock": "檢討呆滯庫存處理",
+  "warehouse.action.reviewSafetyStock": "檢查安全庫存與補貨設定",
+  "warehouse.action.reviewExpiryRisk": "檢查效期風險並安排優先使用",
+  "warehouse.action.reviewQualityHold": "確認品保 hold 狀態"
 };
 
 function formatNumber(value: number) {
@@ -186,7 +219,7 @@ function categoryLabel(value?: number): InventoryCategory {
 }
 
 function unitLabel(value?: number) {
-  return value ? `單位${value}` : "";
+  return value ? (UNIT_LABELS[value] ?? `單位 ${value}`) : "";
 }
 
 function toneByRiskLevel(value?: number): StatusTone {
@@ -333,17 +366,19 @@ function mapCapacities(payload: ApiWarehousePayload): WarehouseCapacity[] {
 }
 
 function mapRisks(payload: ApiWarehousePayload): WarehouseRisk[] {
-  return withFallbackArray<ApiWarehouseRisk>(payload.riskAlerts, []).map((item) => ({
-    id: item.alertId ?? `${item.riskType}-${item.warehouseNo}-${item.itemNo}-${item.batchNo}`,
-    type: riskTypeLabel(item.riskType),
-    itemName: item.itemName ?? "",
-    category: categoryLabel(item.itemCategory),
-    batchNo: item.batchNo ?? "",
-    warehouseName: item.warehouseName ?? "",
-    metric: buildRiskMetric(item),
-    recommendation: item.recommendedActionCode ?? "請依風險類型安排後續處理。",
-    tone: toneByRiskLevel(item.riskLevel)
-  }));
+  return withFallbackArray<ApiWarehouseRisk>(payload.riskAlerts, [])
+    .filter((item) => (item.quantity ?? 0) > 0 || item.riskType !== "BELOW_SAFETY_STOCK")
+    .map((item) => ({
+      id: item.alertId ?? `${item.riskType}-${item.warehouseNo}-${item.itemNo}-${item.batchNo}`,
+      type: riskTypeLabel(item.riskType),
+      itemName: item.itemName ?? "",
+      category: categoryLabel(item.itemCategory),
+      batchNo: item.batchNo ?? "",
+      warehouseName: item.warehouseName ?? "",
+      metric: buildRiskMetric(item),
+      recommendation: actionLabel(item.recommendedActionCode),
+      tone: toneByRiskLevel(item.riskLevel)
+    }));
 }
 
 function buildRiskMetric(item: ApiWarehouseRisk) {
@@ -373,11 +408,18 @@ function mapTasks(payload: ApiWarehousePayload): WarehouseTask[] {
   }));
 }
 
+function actionLabel(value?: string) {
+  if (!value) {
+    return "請依風險類型安排後續處理。";
+  }
+  return RECOMMENDED_ACTION_LABELS[value] ?? value;
+}
+
 function mapRecords(payload: ApiWarehousePayload, risks: WarehouseRisk[], tasks: WarehouseTask[]): WarehouseRecord[] {
   const riskByBatch = new Map(risks.map((risk) => [risk.batchNo, risk]));
   const taskByBatch = new Map(tasks.map((task) => [task.batchNo, task]));
 
-  return withFallbackArray<ApiWarehouseInventory>(payload.inventory, []).map((item) => {
+  return withFallbackArray<ApiWarehouseInventory>(payload.inventory, []).filter((item) => (item.currentQuantity ?? 0) > 0).map((item) => {
     const risk = riskByBatch.get(item.batchNo ?? "");
     const task = taskByBatch.get(item.batchNo ?? "");
     const sourceType = SOURCE_TYPE_LABELS[(item as { sourceType?: string }).sourceType ?? ""] ?? ("調整" as WarehouseSourceType);
@@ -463,21 +505,20 @@ function buildRelatedDocuments(
 
 function normalizeWarehouseDashboard(payload: ApiWarehousePayload): WarehouseDashboardData {
   const risks = mapRisks(payload);
-  const tasks = mapTasks(payload);
   return {
     kpis: buildKpis(payload),
     categorySummaries: mapCategorySummaries(payload),
     capacities: mapCapacities(payload),
-    records: mapRecords(payload, risks, tasks),
+    records: [],
     risks,
-    tasks
+    tasks: []
   };
 }
 
 export async function getWarehouseDashboard(): Promise<WarehouseDashboardResult> {
   try {
     const payload = await apiGet<ApiWarehousePayload>(
-      "/api/v2/warehouse/dashboard?includeInventory=true&trendDays=7"
+      "/api/v2/warehouse/dashboard?trendDays=7"
     );
     const data = normalizeWarehouseDashboard(payload);
     return {
@@ -487,7 +528,7 @@ export async function getWarehouseDashboard(): Promise<WarehouseDashboardResult>
           ? data.categorySummaries
           : warehouseDashboardMock.categorySummaries,
         capacities: data.capacities.length ? data.capacities : warehouseDashboardMock.capacities,
-        records: data.records.length ? data.records : warehouseDashboardMock.records,
+        records: data.records,
         risks: data.risks,
         tasks: data.tasks
       },
@@ -498,6 +539,48 @@ export async function getWarehouseDashboard(): Promise<WarehouseDashboardResult>
       data: warehouseDashboardMock,
       source: "mock",
       error: error instanceof Error ? error.message : "Warehouse API unavailable"
+    };
+  }
+}
+
+export async function getWarehouseInventory(): Promise<WarehouseInventoryResult> {
+  try {
+    const payload = await apiGet<ApiWarehousePayload & { results?: ApiWarehouseInventory[] }>(
+      "/api/v2/warehouse/inventory?count=100"
+    );
+    const inventoryPayload: ApiWarehousePayload = {
+      ...payload,
+      inventory: payload.results ?? payload.inventory ?? []
+    };
+    return {
+      records: mapRecords(inventoryPayload, [], []),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      records: warehouseDashboardMock.records,
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse inventory API unavailable"
+    };
+  }
+}
+
+export async function getWarehouseTasks(): Promise<WarehouseTasksResult> {
+  try {
+    const payload = await apiGet<ApiWarehousePayload & { results?: ApiWarehouseTask[] }>(
+      "/api/v2/warehouse/tasks?count=100"
+    );
+    return {
+      tasks: mapTasks({
+        pendingTasks: payload.results ?? payload.pendingTasks ?? []
+      }),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      tasks: warehouseDashboardMock.tasks,
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse tasks API unavailable"
     };
   }
 }

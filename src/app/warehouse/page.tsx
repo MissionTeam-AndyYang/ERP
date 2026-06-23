@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Warehouse
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useWarehouseDashboard } from "@/hooks/use-warehouse-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
@@ -545,7 +545,7 @@ function MainContent({
 }: {
   activeTab: WarehouseWorkspaceTab;
   data: WarehouseDashboardData;
-  selectedRecord: WarehouseRecord;
+  selectedRecord?: WarehouseRecord;
   searchQuery: string;
   onSelectRecord: (record: WarehouseRecord) => void;
 }) {
@@ -565,7 +565,7 @@ function MainContent({
         <WarehouseTable
           activeTab={activeTab}
           data={data}
-          selectedId={selectedRecord.id}
+          selectedId={selectedRecord?.id ?? ""}
           searchQuery={searchQuery}
           onSelect={onSelectRecord}
         />
@@ -580,7 +580,7 @@ function MainContent({
         <WarehouseTable
           activeTab={activeTab}
           data={data}
-          selectedId={selectedRecord.id}
+          selectedId={selectedRecord?.id ?? ""}
           searchQuery={searchQuery}
           onSelect={onSelectRecord}
         />
@@ -592,7 +592,7 @@ function MainContent({
     <WarehouseTable
       activeTab={activeTab}
       data={data}
-      selectedId={selectedRecord.id}
+      selectedId={selectedRecord?.id ?? ""}
       searchQuery={searchQuery}
       onSelect={onSelectRecord}
     />
@@ -600,13 +600,23 @@ function MainContent({
 }
 
 export default function WarehousePage() {
-  const { data: warehouseData, error, isLoading, source } = useWarehouseDashboard();
+  const { data: warehouseData, error, isLoading, source, loadInventory, loadTasks } = useWarehouseDashboard();
   const [activeTab, setActiveTab] = useState<WarehouseWorkspaceTab>("value-space");
-  const [selectedRecordId, setSelectedRecordId] = useState<string>(warehouseData.records[0].id);
+  const [selectedRecordId, setSelectedRecordId] = useState<string>(warehouseData.records[0]?.id ?? "");
   const [searchValue, setSearchValue] = useState("");
   const searchQuery = normalizeSearch(searchValue);
   const selectedRecord =
     warehouseData.records.find((record) => record.id === selectedRecordId) ?? warehouseData.records[0];
+
+  useEffect(() => {
+    if (activeTab === "risk" || activeTab === "details") {
+      void loadInventory();
+    }
+    if (activeTab === "tasks") {
+      void loadTasks();
+      void loadInventory();
+    }
+  }, [activeTab, loadInventory, loadTasks]);
 
   return (
     <AppLayout activePath="/warehouse" titleKey="warehouse.layoutTitle">
@@ -707,7 +717,11 @@ export default function WarehousePage() {
             />
           </div>
 
-          <DetailPanel record={selectedRecord} />
+          {selectedRecord ? (
+            <DetailPanel record={selectedRecord} />
+          ) : (
+            <EmptyState message="尚未載入庫存明細。請切換到庫存明細視圖，或確認 inventory API 是否可用。" />
+          )}
         </section>
       </div>
     </AppLayout>

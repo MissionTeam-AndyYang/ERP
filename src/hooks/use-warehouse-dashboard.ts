@@ -9,6 +9,7 @@ export type WarehouseDashboardState = {
   data: WarehouseDashboardData;
   source: WarehouseDataSource;
   isLoading: boolean;
+  isInventoryLoading: boolean;
   error?: string;
   loadInventory: () => Promise<void>;
   loadTasks: () => Promise<void>;
@@ -20,7 +21,8 @@ export function useWarehouseDashboard(): WarehouseDashboardState {
   const [state, setState] = useState<WarehouseDashboardInternalState>({
     data: warehouseDashboardMock,
     source: "mock",
-    isLoading: true
+    isLoading: true,
+    isInventoryLoading: false
   });
   const [inventoryLoaded, setInventoryLoaded] = useState(false);
   const [tasksLoaded, setTasksLoaded] = useState(false);
@@ -30,10 +32,16 @@ export function useWarehouseDashboard(): WarehouseDashboardState {
       return;
     }
 
+    setState((current) => ({
+      ...current,
+      isInventoryLoading: true
+    }));
+
     const result = await getWarehouseInventory();
     setInventoryLoaded(true);
     setState((current) => ({
       ...current,
+      isInventoryLoading: false,
       data: {
         ...current.data,
         records: result.records
@@ -73,6 +81,7 @@ export function useWarehouseDashboard(): WarehouseDashboardState {
         data: result.data,
         source: result.source,
         isLoading: false,
+        isInventoryLoading: false,
         error: result.error
       });
     });

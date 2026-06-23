@@ -600,7 +600,8 @@ function MainContent({
 }
 
 export default function WarehousePage() {
-  const { data: warehouseData, error, isLoading, source, loadInventory, loadTasks } = useWarehouseDashboard();
+  const { data: warehouseData, error, isLoading, isInventoryLoading, source, loadInventory, loadTasks } =
+    useWarehouseDashboard();
   const [activeTab, setActiveTab] = useState<WarehouseWorkspaceTab>("value-space");
   const [selectedRecordId, setSelectedRecordId] = useState<string>(warehouseData.records[0]?.id ?? "");
   const [searchValue, setSearchValue] = useState("");
@@ -609,14 +610,14 @@ export default function WarehousePage() {
     warehouseData.records.find((record) => record.id === selectedRecordId) ?? warehouseData.records[0];
 
   useEffect(() => {
-    if (activeTab === "risk" || activeTab === "details") {
+    if (!isLoading && (activeTab === "value-space" || activeTab === "risk" || activeTab === "details")) {
       void loadInventory();
     }
-    if (activeTab === "tasks") {
+    if (!isLoading && activeTab === "tasks") {
       void loadTasks();
       void loadInventory();
     }
-  }, [activeTab, loadInventory, loadTasks]);
+  }, [activeTab, isLoading, loadInventory, loadTasks]);
 
   return (
     <AppLayout activePath="/warehouse" titleKey="warehouse.layoutTitle">
@@ -720,7 +721,13 @@ export default function WarehousePage() {
           {selectedRecord ? (
             <DetailPanel record={selectedRecord} />
           ) : (
-            <EmptyState message="尚未載入庫存明細。請切換到庫存明細視圖，或確認 inventory API 是否可用。" />
+            <EmptyState
+              message={
+                isLoading || isInventoryLoading
+                  ? "正在載入庫存明細。"
+                  : "目前沒有可顯示的庫存批號，請確認 inventory API 是否仍有 currentQuantity 大於 0 的資料。"
+              }
+            />
           )}
         </section>
       </div>

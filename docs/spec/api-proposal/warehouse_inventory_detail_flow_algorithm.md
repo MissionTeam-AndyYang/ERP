@@ -1,6 +1,6 @@
 # Warehouse Inventory Detail API 流程與演算法提案
 
-狀態：Proposal / Pending Engineer Review
+狀態：Engineer Confirmed / Ready for Implementation
 對應 API 提案：`docs/spec/api-proposal/warehouse_inventory_detail_proposal.md`
 對應靜態預覽：`docs/frontend/preview/warehouse_inventory_detail_static_preview.html`
 目的：補充 Warehouse Inventory Detail API 的後端查詢流程、欄位來源與計算規則，供工程師 review 後再決定是否實作。
@@ -17,7 +17,7 @@ GET /api/v2/warehouse/inventory
 GET /api/v2/warehouse/tasks
 ```
 
-本文件討論的 API 尚待工程師確認：
+本文件討論的 API 已由工程師確認可進行實作：
 
 ```txt
 GET /api/v2/warehouse/inventory/lots
@@ -30,7 +30,7 @@ GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batch
 | --- | --- | --- |
 | Step 2 庫存快照計算 | 請評估是否適合由 `CWarehouseInventorySnapshotCalculator` 物件取得目前庫存數量與庫存價值。 | 採用。Inventory Detail list/detail 與 Warehouse Dashboard / Inventory API 應共用同一個庫存快照計算物件，避免統計表、delta 與防護性補算邏輯分裂。 |
 | `currentQuantity <= 0` 過濾 | 請說明為何不回傳 `currentQuantity <= 0`，並建議 `currentQuantity < 0` 可回傳。 | 調整為只過濾 `currentQuantity == 0`。零庫存批號不具備管理者畫面上的可操作庫存意義，且會干擾風險警示；負庫存代表資料異常或補登落差，開發與測試階段應保留回傳，方便工程師追查。 |
-| `sourceDocuments.quantity` 正負方向 | 請說明出庫是否以負數表示，如何影響前端時間線與金額方向，並提出建議處理方式。 | 建議同時回傳 `direction`、`quantity/amount` 絕對值與 `signedQuantity/signedAmount` 帶方向值。前端時間線用 `direction` 呈現入庫/出庫標籤，數量顯示使用絕對值；若要畫趨勢或計算餘量，使用 signed 欄位。 |
+| `inventoryRecords.quantity` 正負方向 | 請說明出庫是否以負數表示，如何影響前端時間線與金額方向，並提出建議處理方式。 | 採用工程師建議，移除 signed 欄位。第一版回傳 `category` 與 `quantity/amount`，由前端依 `category` 判斷入庫/出庫方向。`category` 直接取自 `inventory_record.category`，可避免 API 同時維護多組方向欄位造成不一致。 |
 | workflow task 範圍 | 第一版 workflowTasks 是否只顯示未完成任務。 | 採用。第一版只顯示未完成任務；歷史任務後續可透過查詢參數擴充。 |
 
 ## 共用規則
@@ -177,8 +177,8 @@ goods
 | itemType | `batch_number.itemType` | `inventory_record.itemType`。 |
 | validDays | `batch_number.validDays` | 無資料時回傳 0。 |
 | validDate | `batch_number.validDate` | 無資料時回傳 0。 |
-| lastSourceNo | `batch_number.ref_no` | 無資料時回傳空字串。 |
-| lastSourceCategory | `batch_number.refCategory` | 無資料時回傳 0。 |
+| refNo | `batch_number.ref_no` | 無資料時回傳空字串。 |
+| refCategory | `batch_number.refCategory` | 無資料時回傳 0。 |
 
 ### Step 4：彙總預留與品檢保留
 
@@ -340,7 +340,7 @@ item_no = itemNo
 batchNumber = batchNo
 ```
 
-回傳 `sourceDocuments`：
+回傳 `inventoryRecords`：
 
 | 欄位 | 來源 |
 | --- | --- |
@@ -348,17 +348,15 @@ batchNumber = batchNo
 | refNo | `inventory_record.ref_no` |
 | refSubNo | 第一版若無來源明細欄位，回傳空字串 |
 | date | `inventory_record.date` |
-| direction | 由 `inventory_record.category` 轉換；入庫為 `IN`，出庫為 `OUT` |
-| quantity | `abs(inventory_record.count)`，給前端時間線直接顯示數量 |
-| signedQuantity | 入庫為 `inventory_record.count`，出庫為 `-inventory_record.count`，給前端趨勢或餘量計算 |
-| amount | `abs(inventory_record.amount)`，給前端時間線直接顯示金額 |
-| signedAmount | 入庫為 `inventory_record.amount`，出庫為 `-inventory_record.amount`，給前端顯示資金方向或計算餘額 |
+| category | `inventory_record.category`；入庫(1)、出庫(2) |
+| quantity | `inventory_record.count`，若前端需帶方向統計，依 `category` 自行轉換 |
+| amount | `inventory_record.amount`，若前端需帶方向統計，依 `category` 自行轉換 |
 
 設計理由：
 
-1. 前端時間線通常以「事件」呈現，使用 `direction` 搭配正數 `quantity/amount` 可避免使用者看到負數而誤解。
-2. 分析圖、累計餘量與金額流向需要方向，使用 `signedQuantity/signedAmount` 可避免前端自行推導造成邏輯不一致。
-3. 若未來需顯示退貨、沖銷或調整，可擴充 `direction` 值，而不破壞既有正數顯示欄位。
+1. `category` 與資料庫欄位命名一致，可降低後端轉換層語意差異。
+2. `quantity/amount` 保留資料表原始值，前端時間線顯示與統計方向皆以 `category` 判斷。
+3. 不回傳 `signedQuantity/signedAmount`，避免 API 欄位重複與正負值不一致風險。
 
 ### Step 4：查詢預留、品檢、板位與任務
 
@@ -381,6 +379,6 @@ batchNumber = batchNo
 | 項目 | 需確認原因 | 工程師回覆 |
 | --- | --- | --- |
 | `lotKey` 是否採組合 key | 影響 API path、前端路由與未來流水號層級擴充。 | 採用工程師建議：detail API 改為階層化路徑 `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}`；`lotKey` 僅保留為前端 row key。 |
-| `sourceDocuments.quantity` 出庫是否以負數表示 | 影響前端時間線呈現與金額方向。 | 採用雙欄位策略：`quantity/amount` 回傳絕對值供時間線顯示，`signedQuantity/signedAmount` 回傳帶方向值供趨勢與餘量計算，並以 `direction` 明確標示 `IN/OUT`。 |
+| `inventoryRecords.quantity` 出庫是否以負數表示 | 影響前端時間線呈現與金額方向。 | 採用工程師建議：`inventoryRecords.quantity/amount` 保留 `inventory_record.count/amount` 原始值，不另回傳 signed 欄位；前端若需帶方向統計，依 `inventoryRecords.category` 判斷入庫(1)或出庫(2)。 |
 | `inventoryValue < 0` 是否保留 | 影響資料異常時的呈現方式。 | 採用工程師建議：開發階段保留負值以利 debug；同時調整為只過濾 `currentQuantity == 0`，`currentQuantity < 0` 保留回傳供資料異常追查。 |
 | `workflowTasks` 是否只顯示未完成任務 | 第一版建議只顯示未完成；歷史任務可後續加參數。 | 採用工程師建議：第一版只顯示未完成任務。 |

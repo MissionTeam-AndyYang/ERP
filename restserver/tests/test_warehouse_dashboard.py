@@ -40,6 +40,7 @@ from package.dbwrapper.table import (
 )
 from package.restserver.api.v2.warehouse import (
     CWarehouseDashboardService,
+    CWarehouseInventoryLotService,
     CWarehouseInventoryService,
     CWarehouseTaskService,
 )
@@ -481,6 +482,75 @@ def test_inventory_service_returns_confirmed_inventory_dataset():
     assert EWarehouseRiskType.BELOW_SAFETY_STOCK in dict_inventory["riskTypes"]
 
 
+def test_inventory_lot_service_returns_confirmed_lot_dataset():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseInventoryLotService().get_lots(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        obj_session=obj_session,
+    )
+
+    assert dict_payload["total"] == 1
+    assert dict_payload["summary"]["lotCount"] == 1
+    assert dict_payload["summary"]["itemCount"] == 1
+    assert dict_payload["summary"]["totalInventoryValue"] == 900.0
+    assert dict_payload["summary"]["pendingTaskCount"] == 2
+
+    dict_lot = dict_payload["results"][0]
+    assert dict_lot["lotKey"] == "WH-A|RM-001|B-RM-001"
+    assert dict_lot["currentQuantity"] == 90.0
+    assert dict_lot["reservedQuantity"] == 20.0
+    assert dict_lot["qualityHoldQuantity"] == 5.0
+    assert dict_lot["availableQuantity"] == 65.0
+    assert dict_lot["unitCost"] == 10.0
+    assert dict_lot["palletCount"] == 2.0
+    assert dict_lot["openTaskCount"] == 2
+    assert dict_lot["refNo"] == "PO-001"
+    assert dict_lot["refCategory"] == 1
+    assert EWarehouseRiskType.BELOW_SAFETY_STOCK in dict_lot["riskTypes"]
+    assert "lastSourceNo" not in dict_lot
+    assert "lastSourceCategory" not in dict_lot
+
+
+def test_inventory_lot_detail_returns_tracking_datasets():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseInventoryLotService().get_lot_detail(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        str_item_no="RM-001",
+        str_batch_no="B-RM-001",
+        obj_session=obj_session,
+    )
+
+    assert dict_payload["lot"]["lotKey"] == "WH-A|RM-001|B-RM-001"
+    assert dict_payload["lot"]["currentQuantity"] == 90.0
+    assert len(dict_payload["inventoryRecords"]) == 2
+    assert dict_payload["inventoryRecords"][0]["refNo"] == "GRN-001"
+    assert dict_payload["inventoryRecords"][0]["category"] == EInventoryCategory.IN
+    assert dict_payload["inventoryRecords"][0]["quantity"] == 100.0
+    assert "direction" not in dict_payload["inventoryRecords"][0]
+    assert "signedQuantity" not in dict_payload["inventoryRecords"][0]
+    assert dict_payload["inventoryRecords"][1]["category"] == EInventoryCategory.OUT
+    assert dict_payload["inventoryRecords"][1]["quantity"] == 10.0
+
+    assert dict_payload["reservations"][0]["reservationNo"] == "RES-001"
+    assert dict_payload["reservations"][0]["refCategory"] == 2
+    assert dict_payload["reservations"][0]["refNo"] == "WO-001"
+    assert dict_payload["qualityHolds"][0]["holdNo"] == "QH-001"
+    assert dict_payload["qualityHolds"][0]["holdQuantity"] == 5.0
+    assert len(dict_payload["palletMovements"]) == 2
+    assert dict_payload["palletMovements"][0]["movementNo"] == "PAL-001"
+    assert len(dict_payload["workflowTasks"]) == 2
+    assert dict_payload["workflowTasks"][0]["taskId"] == "TASK-IN-001"
+
+
 def test_zero_quantity_batches_are_filtered_from_inventory_and_risks():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
@@ -598,8 +668,35 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
             "results": [{"taskId": "TASK-IN-001"}],
         }
 
+    def fake_get_lots(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "timezone": "Asia/Taipei",
+            "total": 1,
+            "count": 1,
+            "start": 0,
+            "summary": {"lotCount": 1},
+            "results": [{"lotKey": "WH-A|RM-001|B-RM-001"}],
+        }
+
+    def fake_get_lot_detail(self, **dict_kwargs):
+        return {
+            "lot": {"lotKey": "%s|%s|%s" % (
+                dict_kwargs.get("str_warehouse_no"),
+                dict_kwargs.get("str_item_no"),
+                dict_kwargs.get("str_batch_no"),
+            )},
+            "inventoryRecords": [],
+            "reservations": [],
+            "qualityHolds": [],
+            "palletMovements": [],
+            "workflowTasks": [],
+        }
+
     monkeypatch.setenv("TOKEN_ENABLED", "1")
     monkeypatch.setattr(CWarehouseInventoryService, "get_inventory", fake_get_inventory)
+    monkeypatch.setattr(CWarehouseInventoryLotService, "get_lots", fake_get_lots)
+    monkeypatch.setattr(CWarehouseInventoryLotService, "get_lot_detail", fake_get_lot_detail)
     monkeypatch.setattr(CWarehouseTaskService, "get_tasks", fake_get_tasks)
 
     obj_app = Flask(__name__)
@@ -614,6 +711,14 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
         "/api/v2/warehouse/tasks",
         headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
     )
+    obj_lots_response = obj_client.get(
+        "/api/v2/warehouse/inventory/lots",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_lot_detail_response = obj_client.get(
+        "/api/v2/warehouse/inventory/lots/wh/WH-A/item/RM-001/batch/B-RM-001",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
 
     assert obj_inventory_response.status_code == 200
     dict_inventory_data = json.loads(obj_inventory_response.data.decode("utf8"))
@@ -624,6 +729,16 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     dict_tasks_data = json.loads(obj_tasks_response.data.decode("utf8"))
     assert dict_tasks_data["code"] == 0
     assert dict_tasks_data["payload"]["results"][0]["taskId"] == "TASK-IN-001"
+
+    assert obj_lots_response.status_code == 200
+    dict_lots_data = json.loads(obj_lots_response.data.decode("utf8"))
+    assert dict_lots_data["code"] == 0
+    assert dict_lots_data["payload"]["results"][0]["lotKey"] == "WH-A|RM-001|B-RM-001"
+
+    assert obj_lot_detail_response.status_code == 200
+    dict_lot_detail_data = json.loads(obj_lot_detail_response.data.decode("utf8"))
+    assert dict_lot_detail_data["code"] == 0
+    assert dict_lot_detail_data["payload"]["lot"]["lotKey"] == "WH-A|RM-001|B-RM-001"
 
 
 def test_dashboard_route_returns_existing_api_envelope(monkeypatch):

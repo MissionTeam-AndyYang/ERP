@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Warehouse Task Workbench Static Preview</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --line: #d8dee8;
+      --text: #18212f;
+      --muted: #647084;
+      --accent: #246bfe;
+      --ok: #16835b;
+      --warn: #b26a00;
+      --danger: #c93636;
+      --soft-blue: #eaf1ff;
+      --soft-green: #eaf7f1;
+      --soft-warn: #fff4df;
+      --soft-danger: #ffecec;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .header-meta {
+      color: var(--muted);
+      font-size: 13px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .filters {
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 24px;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .control {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      background: #fff;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .control span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    main {
+      padding: 18px 24px 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 82px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .metric .hint {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .lanes {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(160px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .lane {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-width: 160px;
+      overflow: hidden;
+    }
+
+    .lane-title {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      background: #fbfcfe;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--soft-blue);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .task-card {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+      background: #fff;
+    }
+
+    .task-card.selected {
+      border-left: 4px solid var(--accent);
+      background: #f8fbff;
+    }
+
+    .task-top,
+    .task-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .task-id {
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .tag.ok {
+      background: var(--soft-green);
+      color: var(--ok);
+    }
+
+    .tag.warn {
+      background: var(--soft-warn);
+      color: var(--warn);
+    }
+
+    .tag.danger {
+      background: var(--soft-danger);
+      color: var(--danger);
+    }
+
+    .task-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    aside {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      position: sticky;
+      top: 16px;
+    }
+
+    .detail-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+    }
+
+    .detail-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .detail-body {
+      padding: 14px 16px 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .section-title {
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 6px 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kv strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .lot-row,
+    .timeline-row {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #edf1f6;
+      overflow: hidden;
+    }
+
+    .bar > div {
+      height: 100%;
+      width: 72%;
+      background: var(--accent);
+    }
+
+    @media (max-width: 1100px) {
+      .filters {
+        grid-template-columns: repeat(3, minmax(120px, 1fr));
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .filters,
+      .summary {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>倉庫任務工作台</h1>
+      </div>
+      <div class="header-meta">
+        <div>API Proposal: /api/v2/warehouse/task-workbench</div>
+        <div>Preview Mode: read-only</div>
+      </div>
+    </header>
+
+    <section class="filters" aria-label="filters">
+      <div class="control"><span>日期</span><strong>今日</strong></div>
+      <div class="control"><span>倉儲</span><strong>全部倉儲</strong></div>
+      <div class="control"><span>任務類型</span><strong>入庫/出庫/品檢</strong></div>
+      <div class="control"><span>狀態</span><strong>未完成</strong></div>
+      <div class="control"><span>負責部門</span><strong>全部</strong></div>
+      <div class="control"><span>搜尋</span><strong>料號 / 批號 / 單號</strong></div>
+    </section>
+
+    <main>
+      <section>
+        <div class="summary">
+          <div class="metric">
+            <div class="label">未完成任務</div>
+            <div class="value">28</div>
+            <div class="hint">今日與逾期待處理</div>
+          </div>
+          <div class="metric">
+            <div class="label">逾期 / 阻塞</div>
+            <div class="value">6</div>
+            <div class="hint">需主管確認</div>
+          </div>
+          <div class="metric">
+            <div class="label">庫存不足</div>
+            <div class="value">3</div>
+            <div class="hint">出庫與出貨風險</div>
+          </div>
+          <div class="metric">
+            <div class="label">品檢保留</div>
+            <div class="value">5</div>
+            <div class="hint">等待 Quality 判定</div>
+          </div>
+        </div>
+
+        <div class="lanes">
+          <div class="lane">
+            <div class="lane-title">入庫 <span class="badge">8</span></div>
+            <article class="task-card selected">
+              <div class="task-top">
+                <div class="task-id">TASK-IN-001</div>
+                <span class="tag warn">今日 14:00</span>
+              </div>
+              <div class="task-meta">GRN-001 · 原料A · B-RM-001</div>
+              <div class="task-row">
+                <span>剩餘 100.00 kg</span>
+                <span class="tag ok">倉庫</span>
+              </div>
+            </article>
+            <article class="task-card">
+              <div class="task-top">
+                <div class="task-id">TASK-IN-009</div>
+                <span class="tag ok">今日 16:30</span>
+              </div>
+              <div class="task-meta">GRN-009 · 物料B · B-MA-014</div>
+              <div class="task-row">
+                <span>剩餘 24.00 箱</span>
+                <span class="tag ok">倉庫</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="lane">
+            <div class="lane-title">出庫 <span class="badge">7</span></div>
+            <article class="task-card">
+              <div class="task-top">
+                <div class="task-id">TASK-OUT-001</div>
+                <span class="tag danger">庫存不足</span>
+              </div>
+              <div class="task-meta">WO-001 · 原料A · B-RM-001</div>
+              <div class="task-row">
+                <span>剩餘 15.00 kg</span>
+                <span class="tag warn">生管</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="lane">
+            <div class="lane-title">品檢 <span class="badge">5</span></div>
+            <article class="task-card">
+              <div class="task-top">
+                <div class="task-id">TASK-QA-004</div>
+                <span class="tag warn">品檢保留</span>
+              </div>
+              <div class="task-meta">GRN-004 · 膠捲C · B-FILM-003</div>
+              <div class="task-row">
+                <span>保留 12.00 卷</span>
+                <span class="tag warn">品保</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="lane">
+            <div class="lane-title">出貨 <span class="badge">4</span></div>
+            <article class="task-card">
+              <div class="task-top">
+                <div class="task-id">TASK-SHIP-003</div>
+                <span class="tag ok">明日 10:00</span>
+              </div>
+              <div class="task-meta">SO-23017 · 製成品D</div>
+              <div class="task-row">
+                <span>待出 80.00 箱</span>
+                <span class="tag ok">物流</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="lane">
+            <div class="lane-title">阻塞 <span class="badge">4</span></div>
+            <article class="task-card">
+              <div class="task-top">
+                <div class="task-id">TASK-BLOCK-002</div>
+                <span class="tag danger">逾期</span>
+              </div>
+              <div class="task-meta">WH-MOVE-002 · 在製品E</div>
+              <div class="task-row">
+                <span>等待主管判斷</span>
+                <span class="tag danger">倉庫</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="detail-head">
+          <div class="detail-title">TASK-IN-001</div>
+          <div class="task-meta">進貨入庫 · GRN-001 · 下一步：安排入庫</div>
+          <div><span class="tag warn">今日 14:00</span> <span class="tag ok">倉庫負責</span></div>
+        </div>
+        <div class="detail-body">
+          <section>
+            <div class="section-title">任務數量</div>
+            <div class="kv">
+              <span>料品</span><strong>RM-001 原料A</strong>
+              <span>批號</span><strong>B-RM-001</strong>
+              <span>預計處理</span><strong>100.00 kg</strong>
+              <span>已處理</span><strong>0.00 kg</strong>
+              <span>剩餘</span><strong>100.00 kg</strong>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-title">庫存可用性</div>
+            <div class="lot-row">
+              <div class="task-row">
+                <strong>B-RM-001 · WH-A</strong>
+                <span class="tag warn">低於安全水位</span>
+              </div>
+              <div class="task-meta">目前 90.00 kg · 可用 65.00 kg · 品檢保留 5.00 kg</div>
+              <div class="bar"><div></div></div>
+            </div>
+          </section>
+
+          <section>
+            <div class="section-title">來源與時間線</div>
+            <div class="timeline-row">
+              <div class="task-row">
+                <strong>GRN-001</strong>
+                <span class="tag ok">進貨單</span>
+              </div>
+              <div class="task-meta">任務建立後等待倉庫安排入庫。</div>
+            </div>
+            <div class="timeline-row">
+              <div class="task-row">
+                <strong>目前狀態</strong>
+                <span class="tag warn">待處理</span>
+              </div>
+              <div class="task-meta">第一版 timeline 僅顯示目前狀態；完整歷史待任務事件表確認。</div>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>

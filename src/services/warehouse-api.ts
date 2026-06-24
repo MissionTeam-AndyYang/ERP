@@ -147,6 +147,8 @@ type ApiWarehouseInventory = {
   firstInboundTimestamp?: number;
   validDays?: number;
   validDate?: number;
+  sourceNo?: string;
+  sourceRefCategory?: number;
 };
 
 export type WarehouseDashboardResult = {
@@ -175,11 +177,11 @@ const CATEGORY_LABELS: Record<number, InventoryCategory> = {
   5: "製成品" as InventoryCategory
 };
 
-const SOURCE_TYPE_LABELS: Record<string, WarehouseSourceType> = {
-  PURCHASE: "採購" as WarehouseSourceType,
-  WORK: "生產" as WarehouseSourceType,
-  SALE: "出貨" as WarehouseSourceType,
-  OTHER: "調整" as WarehouseSourceType
+const SOURCE_REF_CATEGORY_LABELS: Record<number, WarehouseSourceType> = {
+  0: "調整" as WarehouseSourceType,
+  1: "採購" as WarehouseSourceType,
+  2: "生產" as WarehouseSourceType,
+  3: "銷退" as WarehouseSourceType
 };
 
 const UNIT_LABELS: Record<number, string> = {
@@ -237,6 +239,12 @@ function categoryLabel(value?: number): InventoryCategory {
 
 function unitLabel(value?: number) {
   return value === undefined || value === null ? "" : (UNIT_LABELS[value] ?? `單位 ${value}`);
+}
+
+function sourceRefCategoryLabel(value?: number): WarehouseSourceType {
+  return value === undefined || value === null
+    ? ("調整" as WarehouseSourceType)
+    : (SOURCE_REF_CATEGORY_LABELS[value] ?? ("倉庫" as WarehouseSourceType));
 }
 
 function toneByRiskLevel(value?: number): StatusTone {
@@ -439,7 +447,7 @@ function mapRecords(payload: ApiWarehousePayload, risks: WarehouseRisk[], tasks:
   return withFallbackArray<ApiWarehouseInventory>(payload.inventory, []).filter((item) => (item.currentQuantity ?? 0) > 0).map((item) => {
     const risk = riskByBatch.get(item.batchNo ?? "");
     const task = taskByBatch.get(item.batchNo ?? "");
-    const sourceType = SOURCE_TYPE_LABELS[(item as { sourceType?: string }).sourceType ?? ""] ?? ("調整" as WarehouseSourceType);
+    const sourceLabel = sourceRefCategoryLabel(item.sourceRefCategory);
     const workflow = buildWorkflow(item, task);
     return {
       id: `${item.warehouseNo ?? ""}-${item.itemNo ?? ""}-${item.batchNo ?? ""}`,
@@ -449,8 +457,8 @@ function mapRecords(payload: ApiWarehousePayload, risks: WarehouseRisk[], tasks:
       warehouseNo: item.warehouseNo ?? "",
       warehouseName: item.warehouseName ?? "",
       batchNo: item.batchNo ?? "",
-      sourceType,
-      sourceNo: (item as { sourceNo?: string }).sourceNo ?? "",
+      sourceLabel,
+      sourceNo: item.sourceNo ?? "",
       quantity: item.currentQuantity ?? 0,
       reservedQuantity: item.reservedQuantity ?? 0,
       availableQuantity: item.availableQuantity ?? 0,

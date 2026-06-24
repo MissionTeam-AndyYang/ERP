@@ -458,7 +458,7 @@ None
 | payload.results[].firstInboundTimestamp | Integer | 同倉儲同批號首次入庫時間，UTC timestamp |  |
 | payload.results[].daysInStock | Integer | 庫存迴轉天數 |  |
 | payload.results[].sourceNo | String | 批號來源單號，來源為 `batch_number.ref_no` |  |
-| payload.results[].sourceRefCategory | Integer | 批號來源類別，來源為 `batch_number.refCategory`；與舊欄位 `sourceType` 為同一來源語意，正式回傳僅保留此數值 enum | EInventoryRefCategory |
+| payload.results[].sourceRefCategory | Integer | 批號來源類別，來源為 `batch_number.refCategory`；與舊欄位 `sourceType` 為同一來源語意，正式回傳僅保留此數值 enum。前端不得再讀取 `sourceType`，需依此欄位轉換顯示來源文字。 | EInventoryRefCategory：其他/調整(0)、採購/進貨(1)、生產/製造(2)、銷貨退回或倉庫來源(3) |
 | payload.results[].qualityStatus | String | 品檢狀態穩定代碼；目前依品檢保留量回傳 released 或 hold |  |
 | payload.results[].riskTypes[] | String | 此庫存列符合的風險類型 | EWarehouseRiskType |
 

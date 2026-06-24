@@ -88,7 +88,7 @@ Reason:
 | `records[].warehouseNo` | `inventory[].warehouseId` or `locationCode` | Needs confirmation | Frontend displays a compact warehouse/location code. |
 | `records[].warehouseName` | `inventory[].warehouseName` | Ready |
 | `records[].batchNo` | `inventory[].batchNo` | Ready |
-| `records[].sourceType/sourceNo` | `inventory[].sourceType/sourceNo` | Ready with mapping |
+| `records[].sourceLabel/sourceNo` | `inventory[].sourceRefCategory/sourceNo` | Ready with mapping; API no longer returns `sourceType`, frontend display label must be derived from `sourceRefCategory`. |
 | `records[].quantity` | `inventory[].onHandQty` | Ready |
 | `records[].reservedQuantity` | `inventory[].reservedQty` | Needs business rule confirmation | Reservation may come from sales orders, production orders and pending warehouse tasks. |
 | `records[].availableQuantity` | `inventory[].availableQty` | Ready if backend applies quality hold | Rule should be `onHand - reserved - qualityHold`. |

@@ -81,7 +81,7 @@ function recordMatchesSearch(record: WarehouseRecord, search: string) {
     record.warehouseNo,
     record.warehouseName,
     record.batchNo,
-    record.sourceType,
+    record.sourceLabel,
     record.sourceNo,
     record.status
   ].some((value) => includesSearch(value, search));
@@ -411,7 +411,7 @@ function WarehouseTable({
                     <p className="mt-1 text-xs text-textSecondary">{record.warehouseNo}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-textPrimary">{record.sourceType}</p>
+                    <p className="text-textPrimary">{record.sourceLabel}</p>
                     <p className="mt-1 text-xs text-textSecondary">{record.sourceNo}</p>
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-textPrimary">

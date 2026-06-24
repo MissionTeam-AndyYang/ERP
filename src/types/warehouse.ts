@@ -11,7 +11,7 @@ export type WarehouseKpi = {
 
 export type WarehouseWorkspaceTab = "value-space" | "risk" | "tasks" | "details";
 
-export type WarehouseSourceType = "採購" | "生產" | "出貨" | "調整";
+export type WarehouseSourceType = "採購" | "生產" | "銷退" | "倉庫" | "調整";
 
 export type WarehouseRecord = {
   id: string;
@@ -21,7 +21,7 @@ export type WarehouseRecord = {
   warehouseNo: string;
   warehouseName: string;
   batchNo: string;
-  sourceType: WarehouseSourceType;
+  sourceLabel: WarehouseSourceType;
   sourceNo: string;
   quantity: number;
   reservedQuantity: number;

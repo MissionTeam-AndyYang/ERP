@@ -216,7 +216,7 @@ None
       {
         "taskId": "WH-IN-GRN-20260611-018",
         "taskType": "INBOUND",
-        "sourceType": "PURCHASE",
+        "refCategory": 1,
         "sourceNo": "GRN-20260611-018",
         "sourceSubNo": "",
         "itemNo": "RM-CHK-001",
@@ -311,7 +311,7 @@ None
 | payload.riskAlerts[].recommendedActionCode | String | 建議處理方式多國語言代碼。 | 前端依 code 轉換顯示 | 已調整為前端轉換 |
 | payload.pendingTasks[].taskId | String | 任務識別碼。 | 建議由任務類型與來源單號組成 |  |
 | payload.pendingTasks[].taskType | String | 任務類型。 | `INBOUND`、`OUTBOUND`、`TRANSFER`、`COUNTING` |  |
-| payload.pendingTasks[].sourceType | String | 來源單據類型。 | `PURCHASE`、`SALE`、`WORK`、`INVENTORY`、`OTHER` |  |
+| payload.pendingTasks[].refCategory | Integer | 來源類別；與資料表欄位 `refCategory` 保持一致。 | 進料單-採購/進貨退回(1)、出品單-銷售/銷貨退回(2)、領退餘廢產品單-製造(3)、出入庫單-倉庫(4) |  |
 | payload.pendingTasks[].sourceNo | String | 來源單號。 |  |  |
 | payload.pendingTasks[].sourceSubNo | String | 來源單據明細編號；若無則回傳空字串。 |  |  |
 | payload.pendingTasks[].itemNo | String | 料品品項編號。 |  | |
@@ -503,7 +503,7 @@ None
 | payload.results[].firstInboundTimestamp | Integer | 同倉儲同批號最早入庫時間。 |  | |
 | payload.results[].daysInStock | Integer | 迴轉週期天數。 |  | |
 | payload.results[].sourceNo | String | 批號來源單號，來源為 `batch_number.ref_no`。 |  | |
-| payload.results[].sourceRefCategory | Integer | 批號來源類別，來源為 `batch_number.refCategory`；與舊欄位 `sourceType` 為同一來源語意，正式回傳僅保留此數值 enum。 | `EInventoryRefCategory` | |
+| payload.results[].sourceRefCategory | Integer | 批號來源類別，來源為 `batch_number.refCategory`；與舊欄位 `sourceType` 為同一來源語意，正式回傳僅保留此數值 enum，前端不得再讀取 `sourceType`。 | `EInventoryRefCategory` | |
 | payload.results[].qualityStatus | String | 品檢狀態。 | 待確認 | 尚未規劃與實作 |
 | payload.results[].riskTypes[] | String | 此庫存列符合的風險類型。 |  | 尚未規劃與實作 |
 
@@ -579,7 +579,7 @@ None
       {
         "taskId": "WH-OUT-WO-20260611-001-RM260506-CORN",
         "taskType": "OUTBOUND",
-        "sourceType": "WORK",
+        "refCategory": 3,
         "sourceNo": "WO-20260611-001",
         "sourceSubNo": "",
         "itemNo": "RM-CORN-001",
@@ -611,7 +611,7 @@ None
 | payload.count | Integer | 本次回傳任務筆數。 |  |  |
 | payload.results[].taskId | String | 任務識別碼。 |  |  |
 | payload.results[].taskType | String | 任務類型。 | `INBOUND`、`OUTBOUND`、`TRANSFER`、`COUNTING` |  |
-| payload.results[].sourceType | String | 來源單據類型。 | `PURCHASE`、`SALE`、`WORK`、`INVENTORY`、`OTHER` |  |
+| payload.results[].refCategory | Integer | 來源類別；與資料表欄位 `refCategory` 保持一致。 | 進料單-採購/進貨退回(1)、出品單-銷售/銷貨退回(2)、領退餘廢產品單-製造(3)、出入庫單-倉庫(4) |  |
 | payload.results[].sourceNo | String | 來源單號。 |  |  |
 | payload.results[].sourceSubNo | String | 來源明細編號。 | 無則空字串 |  |
 | payload.results[].itemNo | String | 料品品項編號。 |  |  |

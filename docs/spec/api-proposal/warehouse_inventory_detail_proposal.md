@@ -41,6 +41,27 @@
 | `/api/v2/warehouse/inventory/lots` | GET | 查詢庫存批號明細清單 | Proposal / Pending Engineer Review | 供明細列表、篩選、排序、分頁與 Dashboard drill-down 使用。 |
 | `/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` | GET | 查詢單一庫存批號追蹤明細 | Proposal / Pending Engineer Review | 供右側明細面板顯示來源、預留、品檢、板位、任務與風險。 |
 
+## Planned Screen List And Naming
+
+以下清單為目前 Warehouse 規劃中需要實作或已實作後需延伸整合的完整畫面範圍。後續討論、API 文件、工程任務與 commit message 應使用此處名稱，避免以「下一步畫面」或「明細畫面」等模糊說法替代。
+
+| Screen Code | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- |
+| `WarehouseOverviewScreen` | 倉庫中心總覽 | `/warehouse` | 已有第一版，需持續整合 API | `GET /api/v2/warehouse/dashboard` | Warehouse 入口畫面，呈現 KPI、庫存價值分類、倉位容量、風險警示摘要與待處理任務摘要。 |
+| `WarehouseInventoryLotListScreen` | 庫存批號明細清單 | 建議 route：`/warehouse/inventory/lots`；也可先嵌入 `/warehouse` 的「庫存明細」工作區 | 待實作 | `GET /api/v2/warehouse/inventory/lots` | 批號層級清單畫面，支援倉庫、料品類別、料號、批號、風險、任務、可用狀態、關鍵字、排序與分頁。 |
+| `WarehouseInventoryLotDetailPanel` | 庫存批號追蹤面板 | `WarehouseInventoryLotListScreen` 右側 panel；窄版可作為 detail route 或 drawer | 待實作 | `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` | 顯示單一批號的庫存摘要、入出庫紀錄、預留、品檢保留、板位異動、未完成任務與風險。 |
+
+### Screen State Naming
+
+以下項目是 `WarehouseInventoryLotListScreen` 的篩選狀態或入口情境，不是獨立畫面。文件與工程任務若提到這些名稱，應明確標示為 list state。
+
+| State Code | 顯示名稱 | 所屬畫面 | 觸發來源 | API Query |
+| --- | --- | --- | --- | --- |
+| `RiskLotListState` | 風險批號清單狀態 | `WarehouseInventoryLotListScreen` | 從 `WarehouseOverviewScreen` 的風險警示或風險 tab drill-down | `riskType` / `riskOnly` 類條件 |
+| `PendingTaskLotListState` | 待處理批號清單狀態 | `WarehouseInventoryLotListScreen` | 從 `WarehouseOverviewScreen` 的待處理入出庫 drill-down | `taskType` 或未完成任務條件 |
+| `AvailableLotListState` | 可用庫存批號清單狀態 | `WarehouseInventoryLotListScreen` | 從庫存可用量、追溯或篩選器入口 | `availability=available` |
+| `QualityHoldLotListState` | 品檢保留批號清單狀態 | `WarehouseInventoryLotListScreen` | 從品檢保留 KPI、篩選器或 detail drill-down | `availability=quality_hold` |
+
 ## Numeric Format Rules
 
 | Numeric Meaning | Format |

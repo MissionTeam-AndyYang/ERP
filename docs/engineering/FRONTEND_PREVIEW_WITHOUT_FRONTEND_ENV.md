@@ -16,6 +16,7 @@
 
 ```txt
 docs/frontend/preview/warehouse_overview_static_preview.html
+docs/frontend/preview/warehouse_inventory_detail_static_preview.html
 ```
 
 此檔案用於 API review，內容對應 Warehouse 第一版核心使用情境：
@@ -24,6 +25,18 @@ docs/frontend/preview/warehouse_overview_static_preview.html
 2. 風險警示。
 3. 待處理入出庫。
 4. 庫存明細與批號追溯。
+
+## Warehouse 規劃畫面清單
+
+後續討論與工程任務請使用下列正式畫面名稱，不要只寫「下一步畫面」或「明細畫面」：
+
+| Screen Code | 正式畫面名稱 | Route / UI Location | 說明 |
+| --- | --- | --- | --- |
+| `WarehouseOverviewScreen` | 倉庫中心總覽 | `/warehouse` | Warehouse 入口畫面，包含 KPI、庫存價值分類、倉位容量、風險警示摘要與待處理任務摘要。 |
+| `WarehouseInventoryLotListScreen` | 庫存批號明細清單 | 建議 route：`/warehouse/inventory/lots`；也可先嵌入 `/warehouse` 的「庫存明細」工作區 | 批號層級清單，支援篩選、排序、分頁與 Dashboard drill-down。 |
+| `WarehouseInventoryLotDetailPanel` | 庫存批號追蹤面板 | `WarehouseInventoryLotListScreen` 右側 panel；窄版可作為 detail route 或 drawer | 單一批號的庫存摘要、入出庫紀錄、預留、品檢保留、板位異動、未完成任務與風險。 |
+
+下列名稱是 `WarehouseInventoryLotListScreen` 的狀態，不是獨立畫面：`RiskLotListState`、`PendingTaskLotListState`、`AvailableLotListState`、`QualityHoldLotListState`。
 
 若 repo 中已有下列檔案，工程師可以不用安裝任何前端環境，直接用瀏覽器開啟：
 
@@ -93,7 +106,8 @@ docs/frontend/preview/static-html/
 | Warehouse | `warehouse-overview.png` | 倉庫經營總覽，API review 優先。 |
 | Warehouse Risk | `warehouse-risk.png` | 風險警示頁籤。 |
 | Warehouse Tasks | `warehouse-tasks.png` | 待處理入出庫頁籤。 |
-| Warehouse Detail | `warehouse-detail.png` | 庫存明細與批號追溯。 |
+| Warehouse Inventory Lot List | `warehouse-inventory-lot-list.png` | 庫存批號明細清單。 |
+| Warehouse Inventory Lot Detail | `warehouse-inventory-lot-detail.png` | 庫存批號追蹤面板。 |
 
 ## Warehouse API Review 建議流程
 

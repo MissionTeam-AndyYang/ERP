@@ -117,6 +117,128 @@ export type WarehouseDashboardData = {
 
 export type WarehouseDataSource = "api" | "mock";
 
+export type WarehouseInventoryLotSummary = {
+  lotCount: number;
+  itemCount: number;
+  totalQuantity: number;
+  totalInventoryValue: number;
+  totalAvailableQuantity: number;
+  totalAvailableValue: number;
+  riskLotCount: number;
+  pendingTaskCount: number;
+};
+
+export type WarehouseInventoryLot = {
+  lotKey: string;
+  warehouseNo: string;
+  warehouseName: string;
+  category: InventoryCategory;
+  itemNo: string;
+  itemName: string;
+  batchNo: string;
+  unit: string;
+  currentQuantity: number;
+  reservedQuantity: number;
+  qualityHoldQuantity: number;
+  availableQuantity: number;
+  unitCost: number;
+  inventoryValue: number;
+  reservedValue: number;
+  qualityHoldValue: number;
+  availableValue: number;
+  palletCount: number;
+  firstInboundDate: string;
+  daysInStock: number;
+  validDays: number;
+  validDate: string;
+  remainingShelfLifeRatio: number;
+  safetyStock: number;
+  riskTypes: string[];
+  riskLabel: string;
+  riskTone: StatusTone;
+  openTaskCount: number;
+  refNo: string;
+  refCategoryLabel: WarehouseSourceType;
+};
+
+export type WarehouseInventoryLotListData = {
+  summary: WarehouseInventoryLotSummary;
+  lots: WarehouseInventoryLot[];
+  total: number;
+  count: number;
+  start: number;
+};
+
+export type WarehouseInventoryRecordLine = {
+  id: string;
+  refCategoryLabel: WarehouseSourceType;
+  refNo: string;
+  refSubNo: string;
+  date: string;
+  categoryLabel: "入庫" | "出庫" | "其他";
+  quantity: number;
+  amount: number;
+  tone: StatusTone;
+};
+
+export type WarehouseReservationLine = {
+  id: string;
+  reservationNo: string;
+  refCategoryLabel: string;
+  refNo: string;
+  reservedQuantity: number;
+  reservedValue: number;
+  releaseDate: string;
+  status: string;
+  tone: StatusTone;
+};
+
+export type WarehouseQualityHoldLine = {
+  id: string;
+  holdNo: string;
+  inspectionNo: string;
+  holdQuantity: number;
+  holdValue: number;
+  reason: string;
+  status: string;
+  tone: StatusTone;
+};
+
+export type WarehousePalletMovementLine = {
+  id: string;
+  movementNo: string;
+  date: string;
+  palletGroupNo: string;
+  palletStatus: string;
+  palletCount: number;
+  refCategoryLabel: string;
+  refNo: string;
+  tone: StatusTone;
+};
+
+export type WarehouseWorkflowTaskLine = {
+  id: string;
+  taskId: string;
+  taskTypeLabel: string;
+  taskStatusLabel: string;
+  ownerDepartmentLabel: string;
+  expectedQuantity: number;
+  processedQuantity: number;
+  remainingQuantity: number;
+  dueDate: string;
+  blockReason: string;
+  tone: StatusTone;
+};
+
+export type WarehouseInventoryLotDetail = {
+  lot: WarehouseInventoryLot;
+  inventoryRecords: WarehouseInventoryRecordLine[];
+  reservations: WarehouseReservationLine[];
+  qualityHolds: WarehouseQualityHoldLine[];
+  palletMovements: WarehousePalletMovementLine[];
+  workflowTasks: WarehouseWorkflowTaskLine[];
+};
+
 export type InventoryItem = {
   sku: string;
   name: string;

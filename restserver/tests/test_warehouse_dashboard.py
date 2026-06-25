@@ -516,6 +516,77 @@ def test_inventory_lot_service_returns_confirmed_lot_dataset():
     assert "lastSourceCategory" not in dict_lot
 
 
+def test_inventory_services_apply_direct_filters_before_enrichment():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+    obj_session.add_all([
+        CTableInventoryRec(
+            warehouse_no="WH-A",
+            warehouse_displayName="A倉",
+            ref_no="GRN-002",
+            refCategory=1,
+            date=n_now - 2 * 86400,
+            category=EInventoryCategory.IN,
+            batchNumber="B-RM-002",
+            item_no="RM-002",
+            item_name="原料B",
+            itemCategory=EItemCategory.PM,
+            itemType=1,
+            unit=1,
+            count=30,
+            amount=300,
+        ),
+        CTableBatchNumber(
+            no="B-RM-002",
+            ref_no="PO-002",
+            refCategory=1,
+            item_no="RM-002",
+            item_name="原料B",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=12,
+            itemType=1,
+            unit=1,
+            validDays=120,
+            validDate=n_now + 80 * 86400,
+        ),
+        CTableMaterial(
+            no="RM-002",
+            category=EItemCategory.PM,
+            subCategory=12,
+            name="原料B",
+            unitWarehouse=1,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_inventory = CWarehouseInventoryService().get_inventory(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        str_item_no="RM-002",
+        obj_session=obj_session,
+    )
+    assert dict_inventory["total"] == 1
+    assert dict_inventory["results"][0]["itemNo"] == "RM-002"
+    assert dict_inventory["results"][0]["batchNo"] == "B-RM-002"
+
+    dict_lots = CWarehouseInventoryLotService().get_lots(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        str_item_no="RM-002",
+        obj_session=obj_session,
+    )
+    assert dict_lots["total"] == 1
+    assert dict_lots["summary"]["lotCount"] == 1
+    assert dict_lots["summary"]["totalInventoryValue"] == 300.0
+    assert dict_lots["summary"]["pendingTaskCount"] == 0
+    assert dict_lots["results"][0]["itemNo"] == "RM-002"
+    assert dict_lots["results"][0]["refNo"] == "PO-002"
+
+
 def test_inventory_lot_detail_returns_tracking_datasets():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)

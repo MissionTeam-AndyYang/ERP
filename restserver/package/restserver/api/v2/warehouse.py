@@ -1515,6 +1515,240 @@ class CWarehouseDashboardService(object):
         return dict_actions.get(str_risk_type, "")
 
 
+class CWarehouseInventoryContextBuilder(object):
+    def build(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_timezone,
+        str_warehouse_no,
+        n_item_category,
+        str_item_no="",
+        str_batch_no="",
+        b_include_safety_stock=False,
+        b_include_open_tasks=False,
+        n_task_type=0,
+    ):
+        dict_dashboard = CWarehouseDashboardService().get_dashboard(
+            n_date=n_query_timestamp,
+            str_timezone=str_timezone,
+            str_warehouse_no=str_warehouse_no,
+            n_item_category=n_item_category,
+            b_include_inventory=True,
+            obj_session=obj_session,
+        )
+        lst_inventory = self.filter_inventory_rows(
+            dict_dashboard.get("inventory", []),
+            str_item_no,
+            str_batch_no,
+        )
+        set_stock_keys = self.stock_keys_from_rows(lst_inventory)
+        return {
+            "dashboard": dict_dashboard,
+            "inventoryRows": lst_inventory,
+            "risks": self.group_risks(dict_dashboard.get("riskAlerts", [])),
+            "pallets": self.query_pallet_counts(obj_session, n_query_timestamp, set_stock_keys),
+            "sources": self.query_batch_sources(
+                obj_session,
+                [dict_row.get("batchNo") for dict_row in lst_inventory],
+            ),
+            "safetyStock": self.query_safety_stock(
+                obj_session,
+                n_query_timestamp,
+                lst_inventory,
+            ) if b_include_safety_stock else {},
+            "openTasks": self.query_open_tasks(
+                obj_session,
+                n_query_timestamp,
+                str_timezone,
+                n_task_type,
+                set_stock_keys,
+            ) if b_include_open_tasks else {},
+        }
+
+    def filter_inventory_rows(self, lst_inventory, str_item_no="", str_batch_no=""):
+        lst_results = []
+        for dict_row in lst_inventory:
+            if str_item_no and dict_row.get("itemNo") != str_item_no:
+                continue
+            if str_batch_no and dict_row.get("batchNo") != str_batch_no:
+                continue
+            lst_results.append(dict_row)
+        return lst_results
+
+    def stock_keys_from_rows(self, lst_inventory):
+        return {
+            self.stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            for dict_row in lst_inventory
+        }
+
+    def stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
+        return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
+
+    def group_risks(self, lst_risks):
+        dict_result = defaultdict(lambda: {"riskTypes": [], "safetyStock": 0.0})
+        for dict_risk in lst_risks:
+            str_key = self.stock_key(
+                dict_risk.get("itemNo"),
+                dict_risk.get("batchNo"),
+                dict_risk.get("warehouseNo"),
+            )
+            str_risk_type = dict_risk.get("riskType", "")
+            if str_risk_type and str_risk_type not in dict_result[str_key]["riskTypes"]:
+                dict_result[str_key]["riskTypes"].append(str_risk_type)
+            if util_safe_float(dict_risk.get("safetyStock")):
+                dict_result[str_key]["safetyStock"] = util_round_quantity(dict_risk.get("safetyStock"))
+        return dict_result
+
+    def query_pallet_counts(self, obj_session, n_query_timestamp, set_stock_keys=None):
+        if set_stock_keys is not None and not set_stock_keys:
+            return {}
+        lst_filters = [
+            CTableWarehousePalletMovement.palletStatus == CWarehouseDashboardService.PALLET_STATUS_USED,
+            CTableWarehousePalletMovement.date <= n_query_timestamp,
+        ]
+        self.__append_stock_key_filters(
+            lst_filters,
+            set_stock_keys,
+            CTableWarehousePalletMovement.item_no,
+            CTableWarehousePalletMovement.batchNumber,
+            CTableWarehousePalletMovement.warehouse_no,
+        )
+        lst_rows = (
+            obj_session.query(
+                CTableWarehousePalletMovement.item_no,
+                CTableWarehousePalletMovement.batchNumber,
+                CTableWarehousePalletMovement.warehouse_no,
+                func.sum(CTableWarehousePalletMovement.palletCount).label("palletCount"),
+            )
+            .filter(*lst_filters)
+            .group_by(
+                CTableWarehousePalletMovement.item_no,
+                CTableWarehousePalletMovement.batchNumber,
+                CTableWarehousePalletMovement.warehouse_no,
+            )
+            .all()
+        )
+        return {
+            self.stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): util_round_quantity(obj_row.palletCount)
+            for obj_row in lst_rows
+        }
+
+    def query_batch_sources(self, obj_session, lst_batch_numbers):
+        lst_batch_numbers = list({str_batch_no for str_batch_no in lst_batch_numbers if str_batch_no})
+        if not lst_batch_numbers:
+            return {}
+        lst_rows = (
+            obj_session.query(CTableBatchNumber)
+            .filter(CTableBatchNumber.no.in_(lst_batch_numbers))
+            .order_by(
+                CTableBatchNumber.date.desc(),
+                CTableBatchNumber.creationTime.desc(),
+                CTableBatchNumber.id.desc(),
+            )
+            .all()
+        )
+        dict_result = {}
+        for obj_row in lst_rows:
+            str_batch_no = obj_row.no or ""
+            if str_batch_no and str_batch_no not in dict_result:
+                dict_result[str_batch_no] = {
+                    "refNo": obj_row.ref_no or "",
+                    "refCategory": util_safe_int(obj_row.refCategory),
+                }
+        return dict_result
+
+    def query_safety_stock(self, obj_session, n_query_timestamp, lst_inventory):
+        set_item_nos = {dict_row.get("itemNo") for dict_row in lst_inventory if dict_row.get("itemNo")}
+        if not set_item_nos:
+            return {}
+        lst_rows = (
+            obj_session.query(CTableItemSafetyStock)
+            .filter(CTableItemSafetyStock.status == CWarehouseDashboardService.STATUS_ACTIVE)
+            .filter(CTableItemSafetyStock.item_no.in_(list(set_item_nos)))
+            .all()
+        )
+        dict_result = {}
+        for obj_row in lst_rows:
+            n_effective = util_safe_int(obj_row.effectiveDate)
+            n_expiry = util_safe_int(obj_row.expiryDate)
+            if n_effective and n_effective > n_query_timestamp:
+                continue
+            if n_expiry and n_expiry < n_query_timestamp:
+                continue
+            dict_result[(obj_row.item_no or "", obj_row.warehouse_no or "")] = util_round_quantity(obj_row.safetyStock)
+        return dict_result
+
+    def query_open_tasks(self, obj_session, n_query_timestamp, str_timezone, n_task_type, set_stock_keys=None):
+        if set_stock_keys is not None and not set_stock_keys:
+            return {}
+        dict_range = self.__build_range(n_query_timestamp, str_timezone)
+        lst_filters = [
+            CTableWorkflowTaskState.taskStatus.in_([
+                EWorkflowTaskStatus.PENDING,
+                EWorkflowTaskStatus.PARTIAL,
+                EWorkflowTaskStatus.BLOCKED,
+            ]),
+            CTableWorkflowTaskState.dueTimestamp <= dict_range["endTimestamp"],
+        ]
+        if n_task_type:
+            lst_filters.append(CTableWorkflowTaskState.taskType == n_task_type)
+        self.__append_stock_key_filters(
+            lst_filters,
+            set_stock_keys,
+            CTableWorkflowTaskState.item_no,
+            CTableWorkflowTaskState.batchNumber,
+            CTableWorkflowTaskState.warehouse_no,
+        )
+        lst_rows = obj_session.query(CTableWorkflowTaskState).filter(*lst_filters).all()
+        dict_result = defaultdict(list)
+        for obj_row in lst_rows:
+            str_key = self.stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no)
+            if set_stock_keys and str_key not in set_stock_keys:
+                continue
+            dict_result[str_key].append(obj_row)
+        return dict_result
+
+    def __append_stock_key_filters(self, lst_filters, set_stock_keys, obj_item_column, obj_batch_column, obj_warehouse_column):
+        if not set_stock_keys:
+            return
+        lst_item_nos = []
+        lst_batch_numbers = []
+        lst_warehouse_nos = []
+        for str_key in set_stock_keys:
+            str_item_no, str_batch_no, str_warehouse_no = str_key.split("|", 2)
+            if str_item_no:
+                lst_item_nos.append(str_item_no)
+            if str_batch_no:
+                lst_batch_numbers.append(str_batch_no)
+            if str_warehouse_no:
+                lst_warehouse_nos.append(str_warehouse_no)
+        if lst_item_nos:
+            lst_filters.append(obj_item_column.in_(list(set(lst_item_nos))))
+        if lst_batch_numbers:
+            lst_filters.append(obj_batch_column.in_(list(set(lst_batch_numbers))))
+        if lst_warehouse_nos:
+            lst_filters.append(obj_warehouse_column.in_(list(set(lst_warehouse_nos))))
+
+    def __build_range(self, n_timestamp, str_timezone):
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
+        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
+        return {
+            "date": obj_local.strftime("%Y-%m-%d"),
+            "startTimestamp": n_start,
+            "endTimestamp": n_start + 86399,
+        }
+
+
 class CWarehouseInventoryService(object):
     def get_inventory(
         self,
@@ -1571,51 +1805,48 @@ class CWarehouseInventoryService(object):
         n_count,
     ):
         n_query_timestamp = n_date if n_date else int(time.time())
-        dict_dashboard = CWarehouseDashboardService().get_dashboard(
-            n_date=n_query_timestamp,
+        obj_context_builder = CWarehouseInventoryContextBuilder()
+        dict_context = obj_context_builder.build(
+            obj_session=obj_session,
+            n_query_timestamp=n_query_timestamp,
             str_timezone=str_timezone,
             str_warehouse_no=str_warehouse_no,
             n_item_category=n_item_category,
-            b_include_inventory=True,
-            obj_session=obj_session,
+            str_item_no=str_item_no,
+            str_batch_no=str_batch_no,
         )
-        dict_risks = self.__group_risks(dict_dashboard.get("riskAlerts", []))
-        dict_pallets = self.__query_pallet_counts(obj_session, n_query_timestamp)
-        dict_sources = self.__query_batch_sources(
-            obj_session,
-            [dict_row.get("batchNo") for dict_row in dict_dashboard.get("inventory", [])],
-        )
-        lst_results = []
-
-        for dict_row in dict_dashboard.get("inventory", []):
-            if util_safe_float(dict_row.get("currentQuantity")) <= 0:
-                continue
-            str_key = self.__stock_key(
-                dict_row.get("itemNo"),
-                dict_row.get("batchNo"),
-                dict_row.get("warehouseNo"),
-            )
-            dict_risk = dict_risks.get(str_key, {"riskTypes": [], "safetyStock": 0.0})
-            dict_source = dict_sources.get(dict_row.get("batchNo") or "", {})
-            dict_inventory = self.__inventory_to_dict(
-                dict_row,
-                dict_risk,
-                util_safe_float(dict_pallets.get(str_key)),
-                dict_source,
-                n_query_timestamp,
-            )
-            if self.__is_inventory_matched(dict_inventory, str_item_no, str_batch_no, str_risk_type):
-                lst_results.append(dict_inventory)
-
         n_start = max(util_safe_int(n_start), 0)
         n_count = util_safe_int(n_count) if n_count else 50
         if n_count <= 0:
             n_count = 50
-        lst_page = lst_results[n_start:n_start + n_count]
+        n_total = 0
+        lst_page = []
+
+        for dict_row in dict_context.get("inventoryRows", []):
+            if util_safe_float(dict_row.get("currentQuantity")) <= 0:
+                continue
+            str_key = obj_context_builder.stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            dict_risk = dict_context.get("risks", {}).get(str_key, {"riskTypes": [], "safetyStock": 0.0})
+            dict_source = dict_context.get("sources", {}).get(dict_row.get("batchNo") or "", {})
+            dict_inventory = self.__inventory_to_dict(
+                dict_row,
+                dict_risk,
+                util_safe_float(dict_context.get("pallets", {}).get(str_key)),
+                dict_source,
+                n_query_timestamp,
+            )
+            if self.__is_inventory_matched(dict_inventory, str_risk_type):
+                if n_total >= n_start and len(lst_page) < n_count:
+                    lst_page.append(dict_inventory)
+                n_total += 1
         return {
             "serverTimestamp": n_query_timestamp,
             "timezone": str_timezone or "UTC",
-            "total": len(lst_results),
+            "total": n_total,
             "count": len(lst_page),
             "start": n_start,
             "results": lst_page,
@@ -1662,78 +1893,10 @@ class CWarehouseInventoryService(object):
             "riskTypes": dict_risk.get("riskTypes", []),
         }
 
-    def __is_inventory_matched(self, dict_inventory, str_item_no, str_batch_no, str_risk_type):
-        if str_item_no and dict_inventory.get("itemNo") != str_item_no:
-            return False
-        if str_batch_no and dict_inventory.get("batchNo") != str_batch_no:
-            return False
+    def __is_inventory_matched(self, dict_inventory, str_risk_type):
         if str_risk_type and str_risk_type not in dict_inventory.get("riskTypes", []):
             return False
         return True
-
-    def __group_risks(self, lst_risks):
-        dict_result = defaultdict(lambda: {"riskTypes": [], "safetyStock": 0.0})
-        for dict_risk in lst_risks:
-            str_key = self.__stock_key(
-                dict_risk.get("itemNo"),
-                dict_risk.get("batchNo"),
-                dict_risk.get("warehouseNo"),
-            )
-            str_risk_type = dict_risk.get("riskType", "")
-            if str_risk_type and str_risk_type not in dict_result[str_key]["riskTypes"]:
-                dict_result[str_key]["riskTypes"].append(str_risk_type)
-            if util_safe_float(dict_risk.get("safetyStock")):
-                dict_result[str_key]["safetyStock"] = util_round_quantity(dict_risk.get("safetyStock"))
-        return dict_result
-
-    def __query_pallet_counts(self, obj_session, n_query_timestamp):
-        lst_rows = (
-            obj_session.query(
-                CTableWarehousePalletMovement.item_no,
-                CTableWarehousePalletMovement.batchNumber,
-                CTableWarehousePalletMovement.warehouse_no,
-                func.sum(CTableWarehousePalletMovement.palletCount).label("palletCount"),
-            )
-            .filter(CTableWarehousePalletMovement.palletStatus == CWarehouseDashboardService.PALLET_STATUS_USED)
-            .filter(CTableWarehousePalletMovement.date <= n_query_timestamp)
-            .group_by(
-                CTableWarehousePalletMovement.item_no,
-                CTableWarehousePalletMovement.batchNumber,
-                CTableWarehousePalletMovement.warehouse_no,
-            )
-            .all()
-        )
-        return {
-            self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): util_round_quantity(obj_row.palletCount)
-            for obj_row in lst_rows
-        }
-
-    def __query_batch_sources(self, obj_session, lst_batch_numbers):
-        lst_batch_numbers = list({str_batch_no for str_batch_no in lst_batch_numbers if str_batch_no})
-        if not lst_batch_numbers:
-            return {}
-        lst_rows = (
-            obj_session.query(CTableBatchNumber)
-            .filter(CTableBatchNumber.no.in_(lst_batch_numbers))
-            .order_by(
-                CTableBatchNumber.date.desc(),
-                CTableBatchNumber.creationTime.desc(),
-                CTableBatchNumber.id.desc(),
-            )
-            .all()
-        )
-        dict_result = {}
-        for obj_row in lst_rows:
-            str_batch_no = obj_row.no or ""
-            if str_batch_no and str_batch_no not in dict_result:
-                dict_result[str_batch_no] = {
-                    "refNo": obj_row.ref_no or "",
-                    "refCategory": util_safe_int(obj_row.refCategory),
-                }
-        return dict_result
-
-    def __stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
-        return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
 
     def __inventory_id(self, str_warehouse_no, str_item_no, str_batch_no, str_serial_no):
         return "%s|%s|%s|%s" % (str_warehouse_no or "", str_item_no or "", str_batch_no or "", str_serial_no or "")
@@ -1844,71 +2007,69 @@ class CWarehouseInventoryLotService(object):
         n_count,
     ):
         n_query_timestamp = n_date if n_date else int(time.time())
-        dict_dashboard = CWarehouseDashboardService().get_dashboard(
-            n_date=n_query_timestamp,
+        obj_context_builder = CWarehouseInventoryContextBuilder()
+        dict_context = obj_context_builder.build(
+            obj_session=obj_session,
+            n_query_timestamp=n_query_timestamp,
             str_timezone=str_timezone,
             str_warehouse_no=str_warehouse_no,
             n_item_category=n_item_category,
-            b_include_inventory=True,
-            obj_session=obj_session,
-        )
-        lst_inventory = dict_dashboard.get("inventory", [])
-        dict_risks = self.__group_risks(dict_dashboard.get("riskAlerts", []))
-        dict_pallets = self.__query_pallet_counts(obj_session, n_query_timestamp)
-        dict_sources = self.__query_batch_sources(
-            obj_session,
-            [dict_row.get("batchNo") for dict_row in lst_inventory],
-        )
-        dict_safety_stock = self.__query_safety_stock(obj_session, n_query_timestamp)
-        dict_tasks = self.__query_open_tasks(
-            obj_session,
-            n_query_timestamp,
-            str_timezone,
-            n_task_type,
+            str_item_no=str_item_no,
+            str_batch_no=str_batch_no,
+            b_include_safety_stock=True,
+            b_include_open_tasks=True,
+            n_task_type=n_task_type,
         )
 
+        n_start = max(util_safe_int(n_start), 0)
+        n_count = util_safe_int(n_count) if n_count else 50
+        if n_count <= 0:
+            n_count = 50
+        b_requires_full_result_set = bool(self.__sort_field(str_sort))
         lst_results = []
-        for dict_row in lst_inventory:
+        lst_page = []
+        n_total = 0
+        dict_summary = self.__new_summary_accumulator()
+        for dict_row in dict_context.get("inventoryRows", []):
             if util_safe_float(dict_row.get("currentQuantity")) == 0:
                 continue
-            str_key = self.__stock_key(
+            str_key = obj_context_builder.stock_key(
                 dict_row.get("itemNo"),
                 dict_row.get("batchNo"),
                 dict_row.get("warehouseNo"),
             )
             dict_lot = self.__lot_to_dict(
                 dict_row,
-                dict_risks.get(str_key, {"riskTypes": []}),
-                util_safe_float(dict_pallets.get(str_key)),
-                dict_sources.get(dict_row.get("batchNo") or "", {}),
-                dict_safety_stock,
-                dict_tasks.get(str_key, []),
+                dict_context.get("risks", {}).get(str_key, {"riskTypes": []}),
+                util_safe_float(dict_context.get("pallets", {}).get(str_key)),
+                dict_context.get("sources", {}).get(dict_row.get("batchNo") or "", {}),
+                dict_context.get("safetyStock", {}),
+                dict_context.get("openTasks", {}).get(str_key, []),
                 n_query_timestamp,
             )
             if self.__is_lot_matched(
                 dict_lot,
-                str_item_no,
-                str_batch_no,
                 str_risk_type,
                 str_availability,
                 str_keyword,
             ):
-                lst_results.append(dict_lot)
+                self.__accumulate_summary(dict_summary, dict_lot)
+                if b_requires_full_result_set:
+                    lst_results.append(dict_lot)
+                elif n_total >= n_start and len(lst_page) < n_count:
+                    lst_page.append(dict_lot)
+                n_total += 1
 
-        lst_results = self.__sort_lots(lst_results, str_sort, str_order)
-        dict_summary = self.__build_summary(lst_results)
-        n_start = max(util_safe_int(n_start), 0)
-        n_count = util_safe_int(n_count) if n_count else 50
-        if n_count <= 0:
-            n_count = 50
-        lst_page = lst_results[n_start:n_start + n_count]
+        if b_requires_full_result_set:
+            lst_results = self.__sort_lots(lst_results, str_sort, str_order)
+            lst_page = lst_results[n_start:n_start + n_count]
         return {
             "serverTimestamp": n_query_timestamp,
             "timezone": str_timezone or "UTC",
-            "total": len(lst_results),
+            "total": n_total,
             "count": len(lst_page),
             "start": n_start,
-            "summary": dict_summary,
+            "summary": self.__finalize_summary(dict_summary),
             "results": lst_page,
         }
 
@@ -2165,105 +2326,7 @@ class CWarehouseInventoryLotService(object):
         )
         return [self.__task_to_dict(obj_row) for obj_row in lst_rows]
 
-    def __query_open_tasks(self, obj_session, n_query_timestamp, str_timezone, n_task_type):
-        dict_range = self.__build_range(n_query_timestamp, str_timezone)
-        lst_filters = [
-            CTableWorkflowTaskState.taskStatus.in_([
-                EWorkflowTaskStatus.PENDING,
-                EWorkflowTaskStatus.PARTIAL,
-                EWorkflowTaskStatus.BLOCKED,
-            ]),
-            CTableWorkflowTaskState.dueTimestamp <= dict_range["endTimestamp"],
-        ]
-        if n_task_type:
-            lst_filters.append(CTableWorkflowTaskState.taskType == n_task_type)
-        lst_rows = obj_session.query(CTableWorkflowTaskState).filter(*lst_filters).all()
-        dict_result = defaultdict(list)
-        for obj_row in lst_rows:
-            dict_result[self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no)].append(obj_row)
-        return dict_result
-
-    def __query_pallet_counts(self, obj_session, n_query_timestamp):
-        lst_rows = (
-            obj_session.query(
-                CTableWarehousePalletMovement.item_no,
-                CTableWarehousePalletMovement.batchNumber,
-                CTableWarehousePalletMovement.warehouse_no,
-                func.sum(CTableWarehousePalletMovement.palletCount).label("palletCount"),
-            )
-            .filter(CTableWarehousePalletMovement.palletStatus == CWarehouseDashboardService.PALLET_STATUS_USED)
-            .filter(CTableWarehousePalletMovement.date <= n_query_timestamp)
-            .group_by(
-                CTableWarehousePalletMovement.item_no,
-                CTableWarehousePalletMovement.batchNumber,
-                CTableWarehousePalletMovement.warehouse_no,
-            )
-            .all()
-        )
-        return {
-            self.__stock_key(obj_row.item_no, obj_row.batchNumber, obj_row.warehouse_no): util_round_quantity(obj_row.palletCount)
-            for obj_row in lst_rows
-        }
-
-    def __query_batch_sources(self, obj_session, lst_batch_numbers):
-        lst_batch_numbers = list({str_batch_no for str_batch_no in lst_batch_numbers if str_batch_no})
-        if not lst_batch_numbers:
-            return {}
-        lst_rows = (
-            obj_session.query(CTableBatchNumber)
-            .filter(CTableBatchNumber.no.in_(lst_batch_numbers))
-            .order_by(
-                CTableBatchNumber.date.desc(),
-                CTableBatchNumber.creationTime.desc(),
-                CTableBatchNumber.id.desc(),
-            )
-            .all()
-        )
-        dict_result = {}
-        for obj_row in lst_rows:
-            str_batch_no = obj_row.no or ""
-            if str_batch_no and str_batch_no not in dict_result:
-                dict_result[str_batch_no] = {
-                    "refNo": obj_row.ref_no or "",
-                    "refCategory": util_safe_int(obj_row.refCategory),
-                }
-        return dict_result
-
-    def __query_safety_stock(self, obj_session, n_query_timestamp):
-        lst_rows = (
-            obj_session.query(CTableItemSafetyStock)
-            .filter(CTableItemSafetyStock.status == CWarehouseDashboardService.STATUS_ACTIVE)
-            .all()
-        )
-        dict_result = {}
-        for obj_row in lst_rows:
-            n_effective = util_safe_int(obj_row.effectiveDate)
-            n_expiry = util_safe_int(obj_row.expiryDate)
-            if n_effective and n_effective > n_query_timestamp:
-                continue
-            if n_expiry and n_expiry < n_query_timestamp:
-                continue
-            dict_result[(obj_row.item_no or "", obj_row.warehouse_no or "")] = util_round_quantity(obj_row.safetyStock)
-        return dict_result
-
-    def __group_risks(self, lst_risks):
-        dict_result = defaultdict(lambda: {"riskTypes": []})
-        for dict_risk in lst_risks:
-            str_key = self.__stock_key(
-                dict_risk.get("itemNo"),
-                dict_risk.get("batchNo"),
-                dict_risk.get("warehouseNo"),
-            )
-            str_risk_type = dict_risk.get("riskType", "")
-            if str_risk_type and str_risk_type not in dict_result[str_key]["riskTypes"]:
-                dict_result[str_key]["riskTypes"].append(str_risk_type)
-        return dict_result
-
-    def __is_lot_matched(self, dict_lot, str_item_no, str_batch_no, str_risk_type, str_availability, str_keyword):
-        if str_item_no and dict_lot.get("itemNo") != str_item_no:
-            return False
-        if str_batch_no and dict_lot.get("batchNo") != str_batch_no:
-            return False
+    def __is_lot_matched(self, dict_lot, str_risk_type, str_availability, str_keyword):
         if str_risk_type and str_risk_type not in dict_lot.get("riskTypes", []):
             return False
         if str_availability and not self.__is_availability_matched(dict_lot, str_availability):
@@ -2296,22 +2359,49 @@ class CWarehouseInventoryLotService(object):
         return any(str_keyword in (str_value or "").lower() for str_value in lst_values)
 
     def __sort_lots(self, lst_results, str_sort, str_order):
-        str_sort = str_sort if str_sort in ["inventoryValue", "availableQuantity", "validDate", "daysInStock"] else ""
+        str_sort = self.__sort_field(str_sort)
         if not str_sort:
             return lst_results
         b_reverse = (str_order or "desc").lower() != "asc"
         return sorted(lst_results, key=lambda dict_row: util_safe_float(dict_row.get(str_sort)), reverse=b_reverse)
 
-    def __build_summary(self, lst_results):
+    def __sort_field(self, str_sort):
+        return str_sort if str_sort in ["inventoryValue", "availableQuantity", "validDate", "daysInStock"] else ""
+
+    def __new_summary_accumulator(self):
         return {
-            "lotCount": len(lst_results),
-            "itemCount": len({dict_row.get("itemNo", "") for dict_row in lst_results if dict_row.get("itemNo")}),
-            "totalQuantity": util_round_quantity(sum(util_safe_float(dict_row.get("currentQuantity")) for dict_row in lst_results)),
-            "totalInventoryValue": util_round_amount(sum(util_safe_float(dict_row.get("inventoryValue")) for dict_row in lst_results)),
-            "totalAvailableQuantity": util_round_quantity(sum(util_safe_float(dict_row.get("availableQuantity")) for dict_row in lst_results)),
-            "totalAvailableValue": util_round_amount(sum(util_safe_float(dict_row.get("availableValue")) for dict_row in lst_results)),
-            "riskLotCount": len([dict_row for dict_row in lst_results if dict_row.get("riskTypes")]),
-            "pendingTaskCount": sum(util_safe_int(dict_row.get("openTaskCount")) for dict_row in lst_results),
+            "lotCount": 0,
+            "itemNos": set(),
+            "totalQuantity": 0.0,
+            "totalInventoryValue": 0.0,
+            "totalAvailableQuantity": 0.0,
+            "totalAvailableValue": 0.0,
+            "riskLotCount": 0,
+            "pendingTaskCount": 0,
+        }
+
+    def __accumulate_summary(self, dict_summary, dict_lot):
+        dict_summary["lotCount"] += 1
+        if dict_lot.get("itemNo"):
+            dict_summary["itemNos"].add(dict_lot.get("itemNo"))
+        dict_summary["totalQuantity"] += util_safe_float(dict_lot.get("currentQuantity"))
+        dict_summary["totalInventoryValue"] += util_safe_float(dict_lot.get("inventoryValue"))
+        dict_summary["totalAvailableQuantity"] += util_safe_float(dict_lot.get("availableQuantity"))
+        dict_summary["totalAvailableValue"] += util_safe_float(dict_lot.get("availableValue"))
+        if dict_lot.get("riskTypes"):
+            dict_summary["riskLotCount"] += 1
+        dict_summary["pendingTaskCount"] += util_safe_int(dict_lot.get("openTaskCount"))
+
+    def __finalize_summary(self, dict_summary):
+        return {
+            "lotCount": util_safe_int(dict_summary.get("lotCount")),
+            "itemCount": len(dict_summary.get("itemNos", set())),
+            "totalQuantity": util_round_quantity(dict_summary.get("totalQuantity")),
+            "totalInventoryValue": util_round_amount(dict_summary.get("totalInventoryValue")),
+            "totalAvailableQuantity": util_round_quantity(dict_summary.get("totalAvailableQuantity")),
+            "totalAvailableValue": util_round_amount(dict_summary.get("totalAvailableValue")),
+            "riskLotCount": util_safe_int(dict_summary.get("riskLotCount")),
+            "pendingTaskCount": util_safe_int(dict_summary.get("pendingTaskCount")),
         }
 
     def __task_to_dict(self, obj_row):
@@ -2350,9 +2440,6 @@ class CWarehouseInventoryLotService(object):
             "startTimestamp": n_start,
             "endTimestamp": n_start + 86399,
         }
-
-    def __stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
-        return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
 
     def __lot_key(self, str_warehouse_no, str_item_no, str_batch_no):
         return "%s|%s|%s" % (str_warehouse_no or "", str_item_no or "", str_batch_no or "")

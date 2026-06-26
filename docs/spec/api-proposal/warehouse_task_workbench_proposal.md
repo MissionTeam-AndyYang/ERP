@@ -5,6 +5,14 @@
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_task_workbench_flow_algorithm.md`
 > Purpose: 承接 Warehouse Dashboard 的待處理任務摘要與 Inventory Lot Detail 的批號追蹤資料，提供「倉庫任務工作台」第一版 read-only API 設計，讓管理者與倉庫主管確認今日入庫、出庫、移倉、品檢與出貨待辦是否可如期處理。
 
+## 工程師提問 
+1. 針對 `/api/v2/warehouse/task-workbench/tasks/{taskId}` 
+  - 請詳細說明`payload.task.sourceNo` 欄位與 `payload.sourceRefs[]`  欄位的定義與用途
+  - payload.task.sourceNo 更名為 payload.task.refNo
+  - payload.task.sourceSubNo 更名為 payload.task.refSubNo
+
+
+
 ## Screen Intent
 
 `WarehouseTaskWorkbenchScreen` 回答以下問題：
@@ -377,7 +385,7 @@ None
 
 | 項目 | 需確認原因 | 工程師回覆 |
 | --- | --- | --- |
-| `task-workbench` 是否以 read-only 作為第一版 | 避免尚未確認主管人工判斷與各部門責任流程前即設計 mutation。 | Pending |
-| `dateRange` 的允許值是否足夠 | 影響任務看板首頁與 Dashboard drill-down 的查詢邏輯。 | Pending |
-| 任務可用庫存是否可用 `warehouse_no + item_no + batchNumber` 對應 | 若任務未指定批號，需確認是否允許以同倉同料品彙總候選批號。 | Pending |
-| 是否需要新增任務歷史表 | 第一版 timeline 只能呈現目前狀態；若需完整流程歷史，可能需要新增資料表。 | Pending |
+| `task-workbench` 是否以 read-only 作為第一版 | 避免尚未確認主管人工判斷與各部門責任流程前即設計 mutation。 | 同意, 第一版先完成read-only |
+| `dateRange` 的允許值是否足夠 | 影響任務看板首頁與 Dashboard drill-down 的查詢邏輯。 | 第一版先行定義上述數值，作為初始參考。後續若有新增需求或擴充情境，再依實際情況進行補充與調整。 |
+| 任務可用庫存是否可用 `warehouse_no + item_no + batchNumber` 對應 | 若任務未指定批號，需確認是否允許以同倉同料品彙總候選批號。 | 可以 |
+| 是否需要新增任務歷史表 | 第一版 timeline 只能呈現目前狀態；若需完整流程歷史，可能需要新增資料表。 | 需要完整的流程歷史，請進行資料表的規劃與設計。完成後，資料表提案文件也請統一集中放置於 api-proposal  |

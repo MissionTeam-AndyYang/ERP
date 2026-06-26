@@ -6,6 +6,19 @@
 > DB Extension Proposal: `docs/spec/api-proposal/warehouse_task_workbench_db_extension_proposal.md`
 > Purpose: 承接 Warehouse Dashboard 的待處理任務摘要與 Inventory Lot Detail 的批號追蹤資料，提供「倉庫任務工作台」第一版 read-only API 設計，讓管理者與倉庫主管確認今日入庫、出庫、移倉、品檢與出貨待辦是否可如期處理。
 
+## 工程師提問 V2
+
+1. 針對「`payload.sourceRefs[]` 是 detail panel 的「關聯來源集合」，第一版至少包含主任務來源；後續可依 `workflow_task_event` 擴充同一任務流程中出現過的進貨單、入庫單、出庫單、品檢單、移倉單、出貨單等關聯來源。」
+   
+  - 此說法，請確認是否與你所設計的`workflow_task_state` 相互抵觸。因為目前 `workflow_task_state` 的 `taskId` 欄位被設計為 UK 鍵
+  - 目前 `workflow_task_state` 的 `taskId` 欄位被設計為 UK 鍵，請明確確認：
+      - 一個任務是否對應到多個來源單號？
+      - 還是僅限於一個任務對應一個來源單號？
+
+  - 請重新檢視與任務相關的 API 與資料庫 schema，例如：
+    - GET /api/v2/warehouse/task-workbench/tasks/{taskId} 回傳的 sourceRefs[] 欄位 與 timeline[] 欄位
+    - `workflow_task_event` 資料表的對應關係
+
 ## 工程師提問
 
 | 工程師提問 | 工程師回覆 | 提案文件更新 |

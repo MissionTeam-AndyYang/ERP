@@ -125,10 +125,11 @@ note = ""
 
 ## Review Questions
 
-| Question | Reason |
-| --- | --- |
-| `workflow_task_state` 是否已有 creation/update timestamp 可用於初始事件 | 影響 backfill 與 detail timeline 第一筆事件。 |
-| 是否需保存 actorId/actorName | 影響後續審計與權限追蹤。 |
-| `quantity` 是否需要 direction 欄位 | 若後續要直接在事件表統計入出方向，可能需增加 direction；第一版建議由 `eventCode` 判斷。 |
-| 是否允許同一事件關聯多張來源單據 | 若需要，可能需拆成 event header + event_ref child table。 |
-| mutation API 導入前是否先只寫 system-generated events | 影響第一版 read-only 工作台是否能先有完整 timeline。 |
+| Question | Reason | 工程師回覆 |
+| --- | --- | --- |
+| `workflow_task_state` 是否已有 creation/update timestamp 可用於初始事件 | 影響 backfill 與 detail timeline 第一筆事件。 | 在資料庫文件 docs\spec\database\index.md 中，資料表 workflow_task_state 已定義欄位 updateTime 與 creationTime。 請確認這兩個欄位的設計是否符合你的需求，並說明其在任務狀態管理或工作台顯示邏輯上的作用。若有不足或需要額外補充的欄位，請提出建議，以便後續調整與更新。|
+| 是否需保存 actorId/actorName | 影響後續審計與權限追蹤。 | 保存 actorId/actorName |
+| `quantity` 是否需要 direction 欄位 | 若後續要直接在事件表統計入出方向，可能需增加 direction；第一版建議由 `eventCode` 判斷。 | 同意 |
+| 是否允許同一事件關聯多張來源單據 | 若需要，可能需拆成 event header + event_ref child table。 | 請說明在什麼樣的情況下，單一事件會同時關聯到多張來源單據。|
+| mutation API 導入前是否先只寫 system-generated events | 影響第一版 read-only 工作台是否能先有完整 timeline。 | 目前尚不清楚此設計可能帶來的影響。 依我的認知，`workflow_task_event` 中存在什麼資料，工作台就會直接顯示相對應的資料。請協助說明此邏輯是否合理，並指出可能的影響或需要注意的地方，以便後續設計與實作能更完善。 |
+

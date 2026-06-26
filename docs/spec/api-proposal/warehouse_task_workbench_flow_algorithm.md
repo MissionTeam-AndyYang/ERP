@@ -386,8 +386,8 @@ docs/spec/api-proposal/warehouse_task_workbench_db_extension_proposal.md
 
 | 項目 | 需確認原因 | 工程師回覆 |
 | --- | --- | --- |
-| 查無 taskId 時回傳 404 或成功空 payload | 影響前端錯誤處理與 API convention。 | Pending |
+| 查無 taskId 時回傳 404 或成功空 payload | 影響前端錯誤處理與 API convention。 | 回傳成功空 payload  |
 | 任務未指定批號時是否可彙總同倉同料品候選批號 | 影響出庫與出貨任務的可用庫存判斷。 | 工程師回覆：可以。 |
-| `blocked` lane 是否優先於 taskType lane | 影響看板視覺分類與主管處理順序。 | Pending |
+| `blocked` lane 是否優先於 taskType lane | 影響看板視覺分類與主管處理順序。 |  `blocked` lane 優先於 taskType lane |
 | 是否需要 `workflow_task_event` 任務歷史表 | 影響 detail timeline 是否能呈現完整流程。 | 工程師回覆：需要完整流程歷史；已新增資料表提案 `warehouse_task_workbench_db_extension_proposal.md`。 |
-| `nextActionCode` 是否由後端回傳 | 若前端自行依 taskType 推導，可省略此欄；若後端回傳可保持跨端一致。 | Pending |
+| `nextActionCode` 是否由後端回傳 | 若前端自行依 taskType 推導，可省略此欄；若後端回傳可保持跨端一致。 | 由後端回傳 |

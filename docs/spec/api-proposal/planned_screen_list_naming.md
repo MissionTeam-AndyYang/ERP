@@ -62,3 +62,14 @@ Naming rules:
 | `WarehouseInventoryLotListScreen` | 已有第一版，已串接 inventory lots API。 | 依後端 runtime payload 檢查欄位呈現、篩選結果、分頁與空狀態。 |
 | `WarehouseInventoryLotDetailPanel` | 已有第一版，已串接 inventory lot detail API。 | 依後端 runtime payload 檢查入出庫紀錄、預留、品檢、板位、任務與風險資料集呈現。 |
 
+## V1 Coverage Confirmation
+
+截至 2026-06-26，本文件已涵蓋第一版「倉庫中心」所需實作的全部畫面與附屬狀態。後續若新增未列於本文件的畫面，需先補入本清單並指定 `Screen` / `View` / `Panel` / `State` 類型。
+
+第一版剩餘主要實作項目為：
+
+1. `WarehouseTaskWorkbenchScreen`
+2. `WarehouseTaskDetailPanel`
+
+上述兩項完成後，第一版「倉庫中心」畫面骨架可視為完整；後續工作應歸類為 runtime review、API contract 細緻化、互動細節修正、跨模組 drill-down 或 mutation API 設計。
+

@@ -12,6 +12,19 @@
 | 後端流程與演算法文件 | `{module}_{screen_or_feature}_flow_algorithm.md` | 描述後端查詢流程、資料表 join/aggregation、排序篩選、例外處理與不得推測的限制。 |
 | 前端靜態預覽頁 | `{module}_{screen_or_feature}_static_preview.html` | 以靜態 HTML 呈現畫面操作情境，供工程師評估 API 是否符合實際使用流程。 |
 
+## Warehouse Center V1 文件索引
+
+| 文件 | 用途 |
+| --- | --- |
+| `planned_screen_list_naming.md` | 倉庫中心第一版畫面清單、命名與完成度基準。 |
+| `warehouse_center_v1_screen_coverage_and_next_api_readiness.md` | 確認第一版畫面涵蓋範圍，並集中列出下一步任務工作台所需文件。 |
+| `warehouse_task_workbench_proposal.md` | `WarehouseTaskWorkbenchScreen` 與 `WarehouseTaskDetailPanel` API 提案。 |
+| `warehouse_task_workbench_flow_algorithm.md` | 任務工作台後端流程與演算法提案。 |
+| `warehouse_task_workbench_db_extension_proposal.md` | 任務工作台完整流程歷史所需的資料表擴充提案。 |
+| `warehouse_task_workbench_static_preview.html` | 任務工作台前端靜態預覽。 |
+| `warehouse_inventory_detail_proposal.md` | 庫存批號清單與批號追蹤 API 提案。 |
+| `warehouse_inventory_detail_flow_algorithm.md` | 庫存批號清單與批號追蹤後端流程。 |
+
 ## 狀態規範
 
 | Status | 說明 |

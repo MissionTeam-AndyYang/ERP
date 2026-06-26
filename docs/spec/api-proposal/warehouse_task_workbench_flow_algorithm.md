@@ -3,6 +3,7 @@
 狀態：Proposal / Pending Engineer Review
 對應 API 提案：`docs/spec/api-proposal/warehouse_task_workbench_proposal.md`
 對應靜態預覽：`docs/spec/api-proposal/warehouse_task_workbench_static_preview.html`
+對應資料表提案：`docs/spec/api-proposal/warehouse_task_workbench_db_extension_proposal.md`
 目的：補充 Warehouse Task Workbench API 的後端查詢流程、欄位來源、風險判斷與限制，供工程師 review 後再決定是否實作。
 
 ## 文件定位
@@ -115,7 +116,7 @@ warehouse_no = query.warehouse_no
 taskType = query.taskType
 ownerDepartment = query.ownerDepartment
 dueTimestamp between range.startTimestamp and range.endTimestamp
-keyword matches taskId/ref_no/item_no/item_name/batchNumber
+keyword matches taskId/ref_no/ref_sub_no/item_no/item_name/batchNumber
 ```
 
 排序預設：
@@ -331,13 +332,19 @@ riskTypes
 
 ### Step 4：建立 sourceRefs
 
-第一版不 join 未確認的來源主檔，只使用 workflow_task_state 已保存欄位：
+`payload.task.refCategory/refNo/refSubNo` 表示主任務來源，直接取自 `workflow_task_state`：
 
 ```txt
 refCategory = workflow_task_state.refCategory
 refNo = workflow_task_state.ref_no
 refSubNo = workflow_task_state.ref_sub_no
 ```
+
+`payload.sourceRefs[]` 表示關聯來源集合：
+
+1. 第一版至少包含主任務來源，即 `workflow_task_state.refCategory/ref_no/ref_sub_no`。
+2. 若 `workflow_task_event` 已有事件資料，需彙整該 taskId 下所有非空的 `workflow_task_event.refCategory/ref_no/ref_sub_no`，去重後加入 `sourceRefs[]`。
+3. 不 join 尚未確認的來源主檔；`descriptionCode` 僅用穩定 code 表示來源用途，由前端轉換顯示文字。
 
 `descriptionCode` 由 taskType 與 refCategory 產生穩定 code，例如：
 
@@ -351,30 +358,36 @@ warehouse.source.shipment
 
 ### Step 5：建立 timeline
 
-第一版目前沒有明確任務歷史表，因此 timeline 僅回傳目前狀態事件：
+工程師已確認需要完整流程歷史，建議新增 `workflow_task_event` 保存任務事件。timeline 來源規則：
 
 ```txt
-eventCode = warehouse.task.currentStatus
-eventTimestamp = workflow_task_state.updateTime or creationTime or dueTimestamp
-department = workflow_task_state.ownerDepartment
-status = workflow_task_state.taskStatus
-note = workflow_task_state.blockReason or ""
+timelineRows = workflow_task_event where taskId = path.taskId order by eventTimestamp asc, id asc
 ```
 
-若後續需要完整流程歷史，建議新增任務事件表，例如：
+回傳欄位：
 
 ```txt
-workflow_task_event
+eventCode = workflow_task_event.eventCode
+eventTimestamp = workflow_task_event.eventTimestamp
+department = workflow_task_event.toDepartment or workflow_task_event.fromDepartment
+status = workflow_task_event.toStatus or workflow_task_event.fromStatus
+note = workflow_task_event.note
 ```
 
-但此表尚未經確認，本提案不得將其列為已存在資料表。
+若 `workflow_task_event` 尚未導入或該 taskId 尚無事件資料，第一版可回傳空陣列，不以 `workflow_task_state` 推測完整歷史。新增資料表提案：
+
+```txt
+docs/spec/api-proposal/warehouse_task_workbench_db_extension_proposal.md
+```
+
+此表仍為提案，不代表目前正式資料庫已存在。
 
 ## 工程師待確認問題
 
 | 項目 | 需確認原因 | 工程師回覆 |
 | --- | --- | --- |
 | 查無 taskId 時回傳 404 或成功空 payload | 影響前端錯誤處理與 API convention。 | Pending |
-| 任務未指定批號時是否可彙總同倉同料品候選批號 | 影響出庫與出貨任務的可用庫存判斷。 | Pending |
+| 任務未指定批號時是否可彙總同倉同料品候選批號 | 影響出庫與出貨任務的可用庫存判斷。 | 工程師回覆：可以。 |
 | `blocked` lane 是否優先於 taskType lane | 影響看板視覺分類與主管處理順序。 | Pending |
-| 是否需要 `workflow_task_event` 任務歷史表 | 影響 detail timeline 是否能呈現完整流程。 | Pending |
+| 是否需要 `workflow_task_event` 任務歷史表 | 影響 detail timeline 是否能呈現完整流程。 | 工程師回覆：需要完整流程歷史；已新增資料表提案 `warehouse_task_workbench_db_extension_proposal.md`。 |
 | `nextActionCode` 是否由後端回傳 | 若前端自行依 taskType 推導，可省略此欄；若後端回傳可保持跨端一致。 | Pending |

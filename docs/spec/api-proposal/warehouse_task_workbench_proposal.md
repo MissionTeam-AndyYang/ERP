@@ -3,15 +3,17 @@
 > Status: Proposal / Pending Engineer Review
 > Target UI Preview: `docs/spec/api-proposal/warehouse_task_workbench_static_preview.html`
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_task_workbench_flow_algorithm.md`
+> DB Extension Proposal: `docs/spec/api-proposal/warehouse_task_workbench_db_extension_proposal.md`
 > Purpose: 承接 Warehouse Dashboard 的待處理任務摘要與 Inventory Lot Detail 的批號追蹤資料，提供「倉庫任務工作台」第一版 read-only API 設計，讓管理者與倉庫主管確認今日入庫、出庫、移倉、品檢與出貨待辦是否可如期處理。
 
-## 工程師提問 
-1. 針對 `/api/v2/warehouse/task-workbench/tasks/{taskId}` 
-  - 請詳細說明`payload.task.sourceNo` 欄位與 `payload.sourceRefs[]`  欄位的定義與用途
-  - payload.task.sourceNo 更名為 payload.task.refNo
-  - payload.task.sourceSubNo 更名為 payload.task.refSubNo
+## 工程師提問
 
-
+| 工程師提問 | 工程師回覆 | 提案文件更新 |
+| --- | --- | --- |
+| 針對 `/api/v2/warehouse/task-workbench/tasks/{taskId}`，請詳細說明 `payload.task.sourceNo` 欄位與 `payload.sourceRefs[]` 欄位的定義與用途。 | 採用並重新定義。`payload.task.refNo/refSubNo/refCategory` 是此 workflow task 的「主任務來源單據」，直接對應 `workflow_task_state.ref_no/ref_sub_no/refCategory`，用於任務標題、主要來源追溯與前端快速顯示。`payload.sourceRefs[]` 是 detail panel 的「關聯來源集合」，第一版至少包含主任務來源；後續可依 `workflow_task_event` 擴充同一任務流程中出現過的進貨單、入庫單、出庫單、品檢單、移倉單、出貨單等關聯來源。 | Detail API 的 JSON、Field Description 與 Processing Flow 已補充兩者用途差異。 |
+| `payload.task.sourceNo` 更名為 `payload.task.refNo`。 | 採用。與 `workflow_task_state.ref_no`、既有資料庫命名規則及其他 Warehouse proposal 的 `refNo` 命名一致。 | Detail API `payload.task.sourceNo` 已更名為 `payload.task.refNo`。 |
+| `payload.task.sourceSubNo` 更名為 `payload.task.refSubNo`。 | 採用。與 `workflow_task_state.ref_sub_no` 命名一致。 | Detail API `payload.task.sourceSubNo` 已更名為 `payload.task.refSubNo`。 |
+| 需要完整的流程歷史，請進行資料表的規劃與設計；完成後，資料表提案文件也請統一集中放置於 `api-proposal`。 | 採用。第一版 Task Workbench 仍維持 read-only，但 timeline 不再只依目前狀態推導；新增 `workflow_task_event` 資料表提案，用於保存任務流程事件、狀態變化、責任部門移轉、關聯來源與數量變化。 | 新增 `docs/spec/api-proposal/warehouse_task_workbench_db_extension_proposal.md`，並更新 `timeline[]` 與 `sourceRefs[]` 的資料來源說明。 |
 
 ## Screen Intent
 
@@ -115,8 +117,8 @@ None
         "taskType": "Integer",
         "taskStatus": "Integer",
         "refCategory": "Integer",
-        "sourceNo": "String",
-        "sourceSubNo": "String",
+        "refNo": "String",
+        "refSubNo": "String",
         "itemCategory": "Integer",
         "itemNo": "String",
         "itemName": "String",
@@ -171,8 +173,8 @@ None
 | `payload.results[].taskType` | Integer | 任務類型；前端負責轉換顯示文字 | EWorkflowTaskType |
 | `payload.results[].taskStatus` | Integer | 任務狀態；前端負責轉換顯示文字 | EWorkflowTaskStatus |
 | `payload.results[].refCategory` | Integer | 來源單據類別；來源為 `workflow_task_state.refCategory` |  |
-| `payload.results[].sourceNo` | String | 來源單號；來源為 `workflow_task_state.ref_no` |  |
-| `payload.results[].sourceSubNo` | String | 來源明細編號；來源為 `workflow_task_state.ref_sub_no` |  |
+| `payload.results[].refNo` | String | 來源單號；來源為 `workflow_task_state.ref_no` |  |
+| `payload.results[].refSubNo` | String | 來源明細編號；來源為 `workflow_task_state.ref_sub_no` |  |
 | `payload.results[].itemCategory` | Integer | 料品品項類別；前端負責轉換顯示文字 | EItemCategory |
 | `payload.results[].itemNo` | String | 料品品項編號 |  |
 | `payload.results[].itemName` | String | 料品品項名稱 |  |
@@ -256,8 +258,8 @@ None
       "taskType": "Integer",
       "taskStatus": "Integer",
       "refCategory": "Integer",
-      "sourceNo": "String",
-      "sourceSubNo": "String",
+      "refNo": "String",
+      "refSubNo": "String",
       "ownerDepartment": "Integer",
       "warehouseNo": "String",
       "warehouseName": "String",
@@ -324,8 +326,8 @@ None
 | `payload.task.taskType` | Integer | 任務類型；前端負責轉換顯示文字 | EWorkflowTaskType |
 | `payload.task.taskStatus` | Integer | 任務狀態；前端負責轉換顯示文字 | EWorkflowTaskStatus |
 | `payload.task.refCategory` | Integer | 來源類別；來源為 `workflow_task_state.refCategory` |  |
-| `payload.task.sourceNo` | String | 來源單號；來源為 `workflow_task_state.ref_no` |  |
-| `payload.task.sourceSubNo` | String | 來源明細編號；來源為 `workflow_task_state.ref_sub_no` |  |
+| `payload.task.refNo` | String | 主任務來源單號；來源為 `workflow_task_state.ref_no`，用於任務標題、主要來源追溯與前端快速顯示 |  |
+| `payload.task.refSubNo` | String | 主任務來源明細編號；來源為 `workflow_task_state.ref_sub_no` |  |
 | `payload.task.ownerDepartment` | Integer | 下一步負責部門；前端負責轉換顯示文字 | EDepartment |
 | `payload.task.warehouseNo` | String | 任務對應倉儲別名 no |  |
 | `payload.task.warehouseName` | String | 倉儲別名名稱 |  |
@@ -347,8 +349,8 @@ None
 | `payload.quantity.reservedQuantity` | Float | 對應批號或料品預留數量 |  |
 | `payload.quantity.qualityHoldQuantity` | Float | 對應批號或料品品檢保留數量 |  |
 | `payload.relatedLots[]` | Array | 任務可對應的批號庫存列；若任務已有 batchNo，通常只回傳同批號庫存列 |  |
-| `payload.sourceRefs[]` | Array | 任務來源單據摘要；第一版不 join 未確認的來源主檔，僅回傳 workflow 已保存的 ref 欄位 |  |
-| `payload.timeline[]` | Array | 任務時間線；第一版由 `workflow_task_state` 既有欄位組成單筆目前狀態，待後續有任務歷史表後再擴充 |  |
+| `payload.sourceRefs[]` | Array | 任務關聯來源集合；第一版至少包含 `payload.task.refCategory/refNo/refSubNo` 對應的主任務來源，後續可由 `workflow_task_event` 補充流程中出現的其他關聯單據 |  |
+| `payload.timeline[]` | Array | 任務流程時間線；資料來源建議為新增的 `workflow_task_event`，若尚未導入事件資料則可暫回傳空陣列 |  |
 
 ### Processing Flow
 
@@ -356,13 +358,14 @@ None
 2. 補齊倉儲名稱與任務數量欄位。
 3. 依任務的 `warehouse_no + item_no + batchNumber` 查詢目前庫存快照；若 `batchNumber` 為空，回傳該倉儲同料品可用批號清單。
 4. 計算任務風險與下一步動作代碼。
-5. 組成 sourceRefs 與 timeline；第一版不得推測尚未確認的來源單據名稱或完整歷史。
+5. 組成 sourceRefs 與 timeline；`payload.task.refNo/refSubNo/refCategory` 表示主任務來源，`sourceRefs[]` 表示關聯來源集合，timeline 建議由新增的 `workflow_task_event` 提供完整流程歷史。
 
 ### Database Tables Used
 
 | Table | Purpose |
 | --- | --- |
 | `workflow_task_state` | 單一任務主資料、來源欄位、狀態、數量與阻塞原因 |
+| `workflow_task_event` | 提供任務流程事件、狀態變化、責任部門移轉、關聯來源與完整時間線；資料表設計見 `warehouse_task_workbench_db_extension_proposal.md` |
 | `inventory_item_month_statistic` | 目前庫存快照主計算基準 |
 | `inventory_delta` | 庫存快照補算 |
 | `inventory_record` | 庫存快照防護性補算與批號參考 |

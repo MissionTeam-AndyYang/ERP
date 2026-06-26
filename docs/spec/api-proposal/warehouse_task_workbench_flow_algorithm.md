@@ -286,7 +286,7 @@ payload.sourceRefs = []
 payload.timeline = []
 ```
 
-第一版是否回傳 404 或成功空 payload，需由工程師 review 決定。
+工程師已確認第一版回傳成功空 payload，不回傳 404。
 
 ### Step 2：補齊任務欄位
 
@@ -340,11 +340,12 @@ refNo = workflow_task_state.ref_no
 refSubNo = workflow_task_state.ref_sub_no
 ```
 
-`payload.sourceRefs[]` 表示關聯來源集合：
+`payload.sourceRefs[]` 表示主任務來源集合：
 
-1. 第一版至少包含主任務來源，即 `workflow_task_state.refCategory/ref_no/ref_sub_no`。
-2. 若 `workflow_task_event` 已有事件資料，需彙整該 taskId 下所有非空的 `workflow_task_event.refCategory/ref_no/ref_sub_no`，去重後加入 `sourceRefs[]`。
-3. 不 join 尚未確認的來源主檔；`descriptionCode` 僅用穩定 code 表示來源用途，由前端轉換顯示文字。
+1. `workflow_task_state.taskId` 為 UK，因此第一版明確採用「一個 taskId 對應一個主任務來源」。
+2. `sourceRefs[]` 保留 array 型態，但第一版固定只回傳 `workflow_task_state.refCategory/ref_no/ref_sub_no` 對應的主任務來源，通常為一筆。
+3. `workflow_task_event.refCategory/ref_no/ref_sub_no` 僅表示事件發生時的來源上下文，不彙總進 `sourceRefs[]`，也不改變主任務來源。
+4. 不 join 尚未確認的來源主檔；`descriptionCode` 僅用穩定 code 表示來源用途，由前端轉換顯示文字。
 
 `descriptionCode` 由 taskType 與 refCategory 產生穩定 code，例如：
 
@@ -374,6 +375,14 @@ status = workflow_task_event.toStatus or workflow_task_event.fromStatus
 note = workflow_task_event.note
 ```
 
+`workflow_task_event` 與 `workflow_task_state` 的關係為一任務多事件：
+
+```txt
+workflow_task_state.taskId 1 -> N workflow_task_event.taskId
+```
+
+事件表中的 `refCategory/ref_no/ref_sub_no` 只是該事件的來源上下文。若未來確認單一事件需要同時關聯多張來源單據，需另行設計 `workflow_task_event_ref` child table；第一版不納入。
+
 若 `workflow_task_event` 尚未導入或該 taskId 尚無事件資料，第一版可回傳空陣列，不以 `workflow_task_state` 推測完整歷史。新增資料表提案：
 
 ```txt
@@ -391,3 +400,4 @@ docs/spec/api-proposal/warehouse_task_workbench_db_extension_proposal.md
 | `blocked` lane 是否優先於 taskType lane | 影響看板視覺分類與主管處理順序。 |  `blocked` lane 優先於 taskType lane |
 | 是否需要 `workflow_task_event` 任務歷史表 | 影響 detail timeline 是否能呈現完整流程。 | 工程師回覆：需要完整流程歷史；已新增資料表提案 `warehouse_task_workbench_db_extension_proposal.md`。 |
 | `nextActionCode` 是否由後端回傳 | 若前端自行依 taskType 推導，可省略此欄；若後端回傳可保持跨端一致。 | 由後端回傳 |
+| `taskId` 為 UK 時，`sourceRefs[]` 是否代表一任務多來源 | 避免 `workflow_task_state` 主來源設計與 detail API 欄位語意衝突。 | 已確認不代表一任務多主任務來源；第一版一個 taskId 僅對應一個主任務來源，`sourceRefs[]` 固定回傳該主任務來源。 |

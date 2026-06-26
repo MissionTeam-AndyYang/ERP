@@ -13,8 +13,8 @@
 
 1. 保存任務狀態變化歷史。
 2. 保存責任部門與處理人移轉紀錄。
-3. 保存任務關聯來源單據集合。
-4. 支援 `WarehouseTaskDetailPanel.timeline[]` 與 `WarehouseTaskDetailPanel.sourceRefs[]`。
+3. 保存事件發生當下的來源上下文。
+4. 支援 `WarehouseTaskDetailPanel.timeline[]`。
 5. 為後續完成任務、解除阻塞、放行、指派等 mutation API 留下可追溯基礎。
 
 ## Proposed Table
@@ -39,7 +39,8 @@
 | `warehouse_no` | VARCHAR | NO | 事件關聯倉儲別名 no；命名與 `workflow_task_state.warehouse_no` 一致。 |
 | `item_no` | VARCHAR | NO | 事件關聯料號；命名與 `workflow_task_state.item_no` 一致。 |
 | `batchNumber` | VARCHAR | NO | 事件關聯批號；命名與 `workflow_task_state.batchNumber` 一致。 |
-| `quantity` | DECIMAL | NO | 事件關聯數量；僅保存正數，方向由 `eventCode` 判斷。 |
+| `quantity` | DECIMAL | NO | 事件關聯數量；僅保存正數。 |
+| `direction` | INTEGER | NO | 數量方向；建議 1 表示增加或入庫方向，-1 表示減少或出庫方向，0 表示無數量方向或僅狀態事件。 |
 | `unit` | INTEGER | NO | 數量單位，沿用 Unit enum。 |
 | `reasonCode` | VARCHAR | NO | 阻塞、退回、取消或調整原因代碼。 |
 | `note` | TEXT | NO | 人工備註或系統訊息；第一版可為空字串。 |
@@ -85,12 +86,18 @@
 
 ### `payload.sourceRefs[]`
 
-`sourceRefs[]` 第一版至少應包含 `workflow_task_state.refCategory/ref_no/ref_sub_no` 對應的主任務來源。
+`sourceRefs[]` 第一版只包含 `workflow_task_state.refCategory/ref_no/ref_sub_no` 對應的主任務來源，通常為一筆。
 
-若導入 `workflow_task_event`，可額外彙總事件中的 `refCategory/ref_no/ref_sub_no`，並去重後回傳為 API 欄位 `refCategory/refNo/refSubNo`：
+`workflow_task_event.refCategory/ref_no/ref_sub_no` 僅作為事件來源上下文，不彙總進第一版 `sourceRefs[]`，避免與 `workflow_task_state.taskId` 為 UK、且一個 taskId 對應一個主任務來源的設計混淆。
 
 ```txt
-distinct by refCategory + ref_no + ref_sub_no
+payload.sourceRefs[0] = workflow_task_state.refCategory + ref_no + ref_sub_no
+```
+
+若未來確認單一任務或單一事件需要同時關聯多張來源單據，建議另行設計 child table，例如：
+
+```txt
+workflow_task_event_ref
 ```
 
 ## Write Timing Proposal
@@ -127,9 +134,9 @@ note = ""
 
 | Question | Reason | 工程師回覆 |
 | --- | --- | --- |
-| `workflow_task_state` 是否已有 creation/update timestamp 可用於初始事件 | 影響 backfill 與 detail timeline 第一筆事件。 | 在資料庫文件 docs\spec\database\index.md 中，資料表 workflow_task_state 已定義欄位 updateTime 與 creationTime。 請確認這兩個欄位的設計是否符合你的需求，並說明其在任務狀態管理或工作台顯示邏輯上的作用。若有不足或需要額外補充的欄位，請提出建議，以便後續調整與更新。|
-| 是否需保存 actorId/actorName | 影響後續審計與權限追蹤。 | 保存 actorId/actorName |
-| `quantity` 是否需要 direction 欄位 | 若後續要直接在事件表統計入出方向，可能需增加 direction；第一版建議由 `eventCode` 判斷。 | 同意 |
-| 是否允許同一事件關聯多張來源單據 | 若需要，可能需拆成 event header + event_ref child table。 | 請說明在什麼樣的情況下，單一事件會同時關聯到多張來源單據。|
-| mutation API 導入前是否先只寫 system-generated events | 影響第一版 read-only 工作台是否能先有完整 timeline。 | 目前尚不清楚此設計可能帶來的影響。 依我的認知，`workflow_task_event` 中存在什麼資料，工作台就會直接顯示相對應的資料。請協助說明此邏輯是否合理，並指出可能的影響或需要注意的地方，以便後續設計與實作能更完善。 |
+| `workflow_task_state` 是否已有 creation/update timestamp 可用於初始事件 | 影響 backfill 與 detail timeline 第一筆事件。 | 工程師回覆：`workflow_task_state` 已定義 `updateTime` 與 `creationTime`。理解與更新：此設計符合目前需求，`creationTime` 可作為任務建立或 backfill 初始事件時間；`updateTime` 可作為任務目前狀態最後更新時間與缺少 event 時的參考資訊。第一版不需新增額外時間欄位，但 timeline 正式顯示仍以 `workflow_task_event.eventTimestamp` 為準。 |
+| 是否需保存 actorId/actorName | 影響後續審計與權限追蹤。 | 工程師回覆：保存 `actorId/actorName`。理解與更新：維持欄位，供後續人工操作、主管判斷、系統排程或 API mutation 追蹤使用；第一版 read-only 若無操作人資料可回傳空字串或 NULL。 |
+| `quantity` 是否需要 direction 欄位 | 若後續要直接在事件表統計入出方向，可能需增加 direction；第一版建議由 `eventCode` 判斷。 | 工程師回覆：同意。理解與更新：已新增 `direction` 欄位，避免後續僅依 `eventCode` 判斷數量方向造成維護困難。 |
+| 是否允許同一事件關聯多張來源單據 | 若需要，可能需拆成 event header + event_ref child table。 | 工程師提問：請說明單一事件同時關聯多張來源單據的情境。理解與更新：可能情境包含入庫事件同時關聯進貨單與庫存紀錄、出庫事件同時關聯訂單或出貨單與庫存紀錄、生產入庫同時關聯工單或領退餘廢產單與批號。但第一版為降低複雜度，`workflow_task_event` 僅保存一組主要事件來源上下文；若後續確認需要一事件多來源，再新增 `workflow_task_event_ref` child table。 |
+| mutation API 導入前是否先只寫 system-generated events | 影響第一版 read-only 工作台是否能先有完整 timeline。 | 工程師提問：`workflow_task_event` 中存在什麼資料，工作台就直接顯示相對應資料，請確認是否合理。理解與更新：此邏輯合理，`workflow_task_event` 是 timeline 的 source of truth；read-only API 不應在查詢時寫入事件，避免查詢產生副作用。若要讓既有未完成任務具備 baseline timeline，可由一次性 backfill 或後台批次建立 system-generated events；若沒有 event，API 回傳空 `timeline[]`。 |
 

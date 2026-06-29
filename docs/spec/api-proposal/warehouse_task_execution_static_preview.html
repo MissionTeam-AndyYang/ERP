@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Warehouse Task Execution Static Preview</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --surface: #ffffff;
+      --line: #d8dee8;
+      --text: #172033;
+      --muted: #647084;
+      --blue: #1f6feb;
+      --green: #16835b;
+      --amber: #a45f00;
+      --red: #c93636;
+      --soft-blue: #eaf1ff;
+      --soft-green: #eaf7f1;
+      --soft-amber: #fff4df;
+      --soft-red: #ffecec;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    header {
+      height: 64px;
+      padding: 0 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .meta {
+      display: flex;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    main {
+      padding: 18px 24px 24px;
+      display: grid;
+      grid-template-columns: 300px minmax(360px, 1fr) 360px;
+      gap: 14px;
+      align-items: start;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .body {
+      padding: 14px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #eef1f5;
+    }
+
+    .row:last-child {
+      border-bottom: 0;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .value {
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tag.blue {
+      background: var(--soft-blue);
+      color: var(--blue);
+    }
+
+    .tag.green {
+      background: var(--soft-green);
+      color: var(--green);
+    }
+
+    .tag.amber {
+      background: var(--soft-amber);
+      color: var(--amber);
+    }
+
+    .tag.red {
+      background: var(--soft-red);
+      color: var(--red);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      min-height: 56px;
+      padding: 8px 10px;
+      display: grid;
+      gap: 4px;
+      background: #fff;
+    }
+
+    .field.wide {
+      grid-column: 1 / -1;
+    }
+
+    .field .value {
+      text-align: left;
+      font-size: 15px;
+    }
+
+    .lot-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .lot {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px 12px;
+      align-items: center;
+    }
+
+    .lot.selected {
+      border-color: var(--blue);
+      background: #f7faff;
+    }
+
+    .lot.disabled {
+      background: #f6f7f9;
+      color: var(--muted);
+    }
+
+    .lot-title {
+      font-weight: 700;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      background: #fafbfc;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font-weight: 700;
+      min-height: 36px;
+      padding: 0 12px;
+    }
+
+    button.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .validation {
+      display: grid;
+      gap: 10px;
+    }
+
+    .message {
+      border-radius: 7px;
+      padding: 10px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .message.ok {
+      background: var(--soft-green);
+      color: var(--green);
+    }
+
+    .message.warn {
+      background: var(--soft-amber);
+      color: var(--amber);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .event {
+      border-left: 3px solid var(--line);
+      padding-left: 10px;
+      display: grid;
+      gap: 2px;
+    }
+
+    .event.active {
+      border-left-color: var(--blue);
+    }
+
+    @media (max-width: 1100px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>倉庫任務執行</h1>
+    <div class="meta">
+      <span>TASK-OUT-001</span>
+      <span>WO-001</span>
+      <span>倉庫部</span>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="section-head">
+        <h2>任務</h2>
+        <span class="tag blue">出庫</span>
+      </div>
+      <div class="body stack">
+        <div class="row">
+          <span class="label">狀態</span>
+          <span class="value">部分處理</span>
+        </div>
+        <div class="row">
+          <span class="label">來源</span>
+          <span class="value">WO-001</span>
+        </div>
+        <div class="row">
+          <span class="label">料品</span>
+          <span class="value">RM-001 原料A</span>
+        </div>
+        <div class="row">
+          <span class="label">倉庫</span>
+          <span class="value">A倉</span>
+        </div>
+        <div class="row">
+          <span class="label">剩餘</span>
+          <span class="value">15.00</span>
+        </div>
+        <div class="row">
+          <span class="label">可用</span>
+          <span class="value">65.00</span>
+        </div>
+        <div class="row">
+          <span class="label">品檢保留</span>
+          <span class="value">5.00</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>本次處理</h2>
+        <span class="tag green">可執行</span>
+      </div>
+      <div class="body">
+        <div class="form-grid">
+          <div class="field">
+            <span class="label">動作</span>
+            <span class="value">備貨出庫</span>
+          </div>
+          <div class="field">
+            <span class="label">本次數量</span>
+            <span class="value">15.00</span>
+          </div>
+          <div class="field">
+            <span class="label">來源倉</span>
+            <span class="value">A倉</span>
+          </div>
+          <div class="field">
+            <span class="label">板數</span>
+            <span class="value">1.00</span>
+          </div>
+          <div class="field wide">
+            <span class="label">備註</span>
+            <span class="value">依工單領料順序處理</span>
+          </div>
+        </div>
+
+        <div class="lot-list">
+          <div class="lot selected">
+            <div>
+              <div class="lot-title">B-RM-001</div>
+              <div class="sub">目前 90.00 · 可用 65.00 · 效期 2024-01-04</div>
+            </div>
+            <span class="tag green">已選</span>
+          </div>
+          <div class="lot disabled">
+            <div>
+              <div class="lot-title">B-RM-002</div>
+              <div class="sub">可用 0.00 · 品檢保留</div>
+            </div>
+            <span class="tag amber">不可選</span>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button>返回</button>
+        <button>驗證</button>
+        <button class="primary">確認送出</button>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <h2>驗證與影響</h2>
+        <span class="tag green">通過</span>
+      </div>
+      <div class="body validation">
+        <div class="message ok">
+          <strong>數量可執行</strong>
+          <span>本次 15.00，未超過剩餘數量與可用數量。</span>
+        </div>
+        <div class="message warn">
+          <strong>品檢保留存在</strong>
+          <span>同批號仍有 5.00 保留量，出庫後需保留追蹤。</span>
+        </div>
+
+        <div class="row">
+          <span class="label">處理後狀態</span>
+          <span class="value">完成</span>
+        </div>
+        <div class="row">
+          <span class="label">新增事件</span>
+          <span class="value">workflow.task.completed</span>
+        </div>
+        <div class="row">
+          <span class="label">庫存方向</span>
+          <span class="value">eventCode 判斷</span>
+        </div>
+
+        <div class="timeline">
+          <div class="event">
+            <strong>workflow.task.created</strong>
+            <span class="sub">任務建立 · 倉庫部</span>
+          </div>
+          <div class="event">
+            <strong>workflow.task.started</strong>
+            <span class="sub">開始備貨 · 倉庫部</span>
+          </div>
+          <div class="event active">
+            <strong>workflow.task.completed</strong>
+            <span class="sub">本次送出後新增</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

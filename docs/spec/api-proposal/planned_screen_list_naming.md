@@ -22,6 +22,7 @@ Naming rules:
 | P0.5 | `WarehouseCurrentLotPanel` | Panel | 目前批號資訊面板 | `WarehouseOverviewScreen` 右側 panel | 已有第一版，需與 P2 追蹤面板做語意分工 | `GET /api/v2/warehouse/inventory` | 顯示目前選取批號的簡要數量、價值、安全水位、效期、流程狀態與關聯單據摘要。 |
 | P1 | `WarehouseTaskWorkbenchScreen` | Screen | 倉庫任務工作台 | 建議 route：`/warehouse/task-workbench`；由 `WarehousePendingTaskView` drill-down 進入 | 待實作 | `GET /api/v2/warehouse/task-workbench` | 任務專用工作區，顯示今日、逾期與近期入庫、出庫、移倉、品檢與出貨任務，支援 kanban/list、篩選、排序與分頁。 |
 | P1.5 | `WarehouseTaskDetailPanel` | Panel | 倉庫任務追蹤面板 | `WarehouseTaskWorkbenchScreen` 右側 panel；窄版可作為 drawer 或 detail route | 待實作 | `GET /api/v2/warehouse/task-workbench/tasks/{taskId}` | 顯示單一任務的來源單據、相關批號、庫存可用性、阻塞原因、下一步負責部門與任務時間線。 |
+| P1.8 | `WarehouseTaskExecutionScreen` | Screen | 倉庫任務執行工作區 | 建議 route：`/warehouse/task-execution/tasks/{taskId}`；由 `WarehouseTaskDetailPanel` 的處理動作進入 | Proposal / Pending Engineer Review | `GET /api/v2/warehouse/task-execution/tasks/{taskId}`、`POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/validate` | 顯示任務執行前上下文、批號候選、數量限制、板位資訊與 validation preview；commit mutation API 待工程師確認。 |
 | P2 | `WarehouseInventoryLotListScreen` | Screen | 庫存批號明細清單 | `/warehouse/inventory/lots` | 已有第一版，需依 runtime review 持續細緻化 | `GET /api/v2/warehouse/inventory/lots` | 批號層級清單畫面，支援倉庫、料品類別、料號、批號、風險、任務、可用狀態、關鍵字、排序與分頁。 |
 | P3 | `WarehouseInventoryLotDetailPanel` | Panel | 庫存批號追蹤面板 | `WarehouseInventoryLotListScreen` 右側 panel；窄版可作為 drawer 或 detail route | 已有第一版，需依 runtime review 持續細緻化 | `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` | 顯示單一批號的庫存摘要、入出庫紀錄、預留、品檢保留、板位異動、未完成任務與風險。 |
 
@@ -59,6 +60,7 @@ Naming rules:
 | `WarehouseOverviewScreen` | 已有第一版，已串接 dashboard / inventory / tasks API 基礎呼叫。 | 依 runtime review 修正欄位對應、空狀態與互動一致性。 |
 | `WarehouseTaskWorkbenchScreen` | 待實作；已有 API proposal 與靜態預覽。 | 建立任務 kanban/list、日期範圍、任務風險摘要、篩選、排序、分頁與 drill-down 行為。 |
 | `WarehouseTaskDetailPanel` | 待實作；已有 API proposal。 | 建立單一任務追蹤面板，整合來源單據、相關批號、庫存可用性、阻塞原因、下一步負責部門與任務時間線。 |
+| `WarehouseTaskExecutionScreen` | 新增 proposal；待工程師 review。 | 建立任務執行前 context、批號選擇、數量 validation、板位 context 與 commit mutation review 邊界。 |
 | `WarehouseInventoryLotListScreen` | 已有第一版，已串接 inventory lots API。 | 依後端 runtime payload 檢查欄位呈現、篩選結果、分頁與空狀態。 |
 | `WarehouseInventoryLotDetailPanel` | 已有第一版，已串接 inventory lot detail API。 | 依後端 runtime payload 檢查入出庫紀錄、預留、品檢、板位、任務與風險資料集呈現。 |
 

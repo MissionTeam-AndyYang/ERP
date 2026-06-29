@@ -3,10 +3,24 @@
 > Status: Proposal / Pending Engineer Review
 > Related API Proposal: `docs/spec/api-proposal/warehouse_task_workbench_proposal.md`
 > Related Flow / Algorithm: `docs/spec/api-proposal/warehouse_task_workbench_flow_algorithm.md`
-> Purpose: 規劃 `WarehouseTaskDetailPanel` 所需的完整任務流程歷史資料來源，補足 `workflow_task_state` 只能呈現目前狀態的限制。
+> Purpose: 規劃跨模組 workflow task 所需的完整任務流程歷史資料來源，補足 `workflow_task_state` 只能呈現目前狀態的限制；Warehouse Task Workbench 第一版僅使用其中與倉庫任務相關的子集合。
 
 ## 工程師提問 
-1. 請確認目前的資料表設計是否適用於所有任務類型，例如：請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0)。建議評估是否能設計一個「一體適用」的資料表，以涵蓋上述各類任務，避免因任務類型差異而產生結構不一致或維護困難。
+
+| 工程師提問 | 工程師回覆 | 文件更新 |
+| --- | --- | --- |
+| 請確認目前的資料表設計是否適用於所有任務類型，例如：請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0)。建議評估是否能設計一個「一體適用」的資料表，以涵蓋上述各類任務，避免因任務類型差異而產生結構不一致或維護困難。 | 採用一體適用設計。`workflow_task_event` 不應設計成倉庫專用事件表，也不應依任務類型拆成多張表。任務類型、負責模組、來源類別與主來源單據由 `workflow_task_state` 保存；`workflow_task_event` 只以 `taskId` 對應任務主檔，保存該任務的事件歷史。各任務類型的差異以 nullable context 欄位承接，例如倉庫任務可使用 `warehouse_no/item_no/batchNumber/quantity/unit/direction`，請購或採購任務可只使用 `refCategory/ref_no/ref_sub_no` 與狀態/部門欄位。 | 已將文件定位更新為跨模組 workflow event table；新增「一體適用設計原則」與「任務類型適用性」；將 eventCode 建議由 `warehouse.task.*` 調整為 `workflow.task.*`，避免事件表被誤解為 Warehouse-only。 |
+
+## 一體適用設計原則
+
+`workflow_task_event` 採用「一張事件表支援所有 workflow 任務類型」的設計：
+
+1. `workflow_task_state` 是任務目前狀態與主任務來源的主檔；一筆 `taskId` 對應一個主任務來源。
+2. `workflow_task_event` 是任務歷史事件表；一筆 `taskId` 可對應多筆事件。
+3. 不依任務類型建立不同 event table，避免後續查詢 timeline、審計歷史與前端顯示規則分裂。
+4. 共通欄位保存所有任務都會用到的事件資訊，例如狀態、部門、處理人、時間、原因與備註。
+5. 任務類型差異以可為空的 context 欄位保存；不適用的欄位保持 NULL 或空值，不用額外建立類型專用欄位。
+6. 若未來某些任務需要高度結構化的專屬明細，可另外設計該模組的 detail table，但 timeline 仍由 `workflow_task_event` 統一呈現。
 
 ## Scope
 
@@ -17,8 +31,23 @@
 1. 保存任務狀態變化歷史。
 2. 保存責任部門與處理人移轉紀錄。
 3. 保存事件發生當下的來源上下文。
-4. 支援 `WarehouseTaskDetailPanel.timeline[]`。
+4. 支援 `WarehouseTaskDetailPanel.timeline[]`，並可延伸支援其他模組的 task timeline。
 5. 為後續完成任務、解除阻塞、放行、指派等 mutation API 留下可追溯基礎。
+
+## 任務類型適用性
+
+| taskType | 任務類型 | 適用方式 |
+| --- | --- | --- |
+| 1 | 請購 | 使用 `taskId/eventCode/eventTimestamp/fromStatus/toStatus/fromDepartment/toDepartment/actorId/actorName/refCategory/ref_no/ref_sub_no/reasonCode/note`；料品或數量欄位可視請購明細是否已進入任務狀態而填入。 |
+| 2 | 採購 | 使用共通欄位與採購來源單號；若事件與採購料品、數量有關，可填入 `item_no/quantity/unit/direction`。 |
+| 3 | 進貨 | 使用共通欄位、進貨來源單號與料品/數量 context；如已產生批號可填入 `batchNumber`。 |
+| 4 | 入庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit/direction`。 |
+| 5 | 出庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit/direction`。 |
+| 6 | 移倉 | 使用共通欄位；若未來需同時記錄來源倉與目的倉，第一版以 `note` 或來源單據追溯，後續可再評估新增 `fromWarehouse_no/toWarehouse_no`。 |
+| 7 | 生產 | 使用共通欄位、工單或領退餘廢產單來源；若涉及產出/領料，可填入料品、批號、數量與方向。 |
+| 8 | 品檢 | 使用共通欄位、品檢來源單號與料品/批號 context；數量方向可為 0，或依保留/釋放事件填入方向。 |
+| 9 | 出貨 | 使用共通欄位、銷貨或出貨來源單號；若涉及庫存出貨，可填入倉儲、料品、批號、數量與方向。 |
+| 0 | 其他 | 使用共通欄位與來源單據欄位；無法結構化的補充資訊放在 `reasonCode` 或 `note`。 |
 
 ## Proposed Table
 
@@ -47,8 +76,10 @@
 | `unit` | INTEGER | NO | 數量單位，沿用 Unit enum。 |
 | `reasonCode` | VARCHAR | NO | 阻塞、退回、取消或調整原因代碼。 |
 | `note` | TEXT | NO | 人工備註或系統訊息；第一版可為空字串。 |
-| `createdAt` | BIGINT | YES | 建立時間，UTC timestamp。 |
-| `updatedAt` | BIGINT | YES | 更新時間，UTC timestamp。 |
+| `creationTime` | BIGINT | YES | 建立時間，UTC timestamp；命名與既有資料庫慣例一致。 |
+| `updateTime` | BIGINT | YES | 更新時間，UTC timestamp；命名與既有資料庫慣例一致。 |
+
+不建議在 `workflow_task_event` 重複保存 `module` 或 `taskType`，避免與 `workflow_task_state` 產生同步不一致。查詢時以 `taskId` join `workflow_task_state` 取得任務類型、模組、主任務來源與目前狀態。
 
 ## Suggested Indexes
 
@@ -64,16 +95,18 @@
 
 | eventCode | Description |
 | --- | --- |
-| `warehouse.task.created` | 任務建立。 |
-| `warehouse.task.assigned` | 任務指派或責任部門移轉。 |
-| `warehouse.task.started` | 任務開始處理。 |
-| `warehouse.task.partiallyProcessed` | 任務部分處理。 |
-| `warehouse.task.blocked` | 任務進入阻塞。 |
-| `warehouse.task.blockResolved` | 阻塞解除。 |
-| `warehouse.task.completed` | 任務完成。 |
-| `warehouse.task.cancelled` | 任務取消。 |
-| `warehouse.task.refLinked` | 任務關聯來源單據。 |
-| `warehouse.task.quantityAdjusted` | 任務數量調整。 |
+| `workflow.task.created` | 任務建立。 |
+| `workflow.task.assigned` | 任務指派或責任部門移轉。 |
+| `workflow.task.started` | 任務開始處理。 |
+| `workflow.task.partiallyProcessed` | 任務部分處理。 |
+| `workflow.task.blocked` | 任務進入阻塞。 |
+| `workflow.task.blockResolved` | 阻塞解除。 |
+| `workflow.task.completed` | 任務完成。 |
+| `workflow.task.cancelled` | 任務取消。 |
+| `workflow.task.refLinked` | 任務關聯來源單據。 |
+| `workflow.task.quantityAdjusted` | 任務數量調整。 |
+
+若前端需要顯示倉庫、採購、生產或品檢專屬文字，應依 `workflow_task_state.module/taskType` 搭配 `eventCode` 轉換多國語系文字，不應在事件表使用模組專屬 eventCode 作為資料表結構差異。
 
 ## API Mapping
 
@@ -107,22 +140,22 @@ workflow_task_event_ref
 
 | Trigger | Suggested Event |
 | --- | --- |
-| 新增 workflow task | `warehouse.task.created` |
-| 指派或改變下一步部門 | `warehouse.task.assigned` |
-| 任務開始處理 | `warehouse.task.started` |
-| 部分入庫、部分出庫或部分移倉 | `warehouse.task.partiallyProcessed` |
-| 庫存不足、品檢保留、來源單據缺漏 | `warehouse.task.blocked` |
-| 阻塞原因解除 | `warehouse.task.blockResolved` |
-| 任務完成 | `warehouse.task.completed` |
-| 任務取消 | `warehouse.task.cancelled` |
-| 任務產生或關聯新來源單據 | `warehouse.task.refLinked` |
+| 新增 workflow task | `workflow.task.created` |
+| 指派或改變下一步部門 | `workflow.task.assigned` |
+| 任務開始處理 | `workflow.task.started` |
+| 部分處理，例如部分採購、部分入庫、部分出庫、部分移倉或部分生產 | `workflow.task.partiallyProcessed` |
+| 庫存不足、品檢保留、來源單據缺漏、主管判定阻塞或其他流程阻塞 | `workflow.task.blocked` |
+| 阻塞原因解除 | `workflow.task.blockResolved` |
+| 任務完成 | `workflow.task.completed` |
+| 任務取消 | `workflow.task.cancelled` |
+| 任務產生或關聯新來源單據 | `workflow.task.refLinked` |
 
 ## Backfill Strategy
 
 若既有資料沒有歷史事件，導入初期可對每筆未完成任務建立一筆系統事件：
 
 ```txt
-eventCode = warehouse.task.created
+eventCode = workflow.task.created
 eventTimestamp = workflow_task_state.creationTime or workflow_task_state.updateTime or dueTimestamp
 fromStatus = null
 toStatus = workflow_task_state.taskStatus

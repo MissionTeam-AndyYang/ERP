@@ -5,6 +5,9 @@
 > Related Flow / Algorithm: `docs/spec/api-proposal/warehouse_task_workbench_flow_algorithm.md`
 > Purpose: 規劃 `WarehouseTaskDetailPanel` 所需的完整任務流程歷史資料來源，補足 `workflow_task_state` 只能呈現目前狀態的限制。
 
+## 工程師提問 
+1. 請確認目前的資料表設計是否適用於所有任務類型，例如：請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0)。建議評估是否能設計一個「一體適用」的資料表，以涵蓋上述各類任務，避免因任務類型差異而產生結構不一致或維護困難。
+
 ## Scope
 
 本文件為資料表擴充提案，不代表目前資料庫已存在此表，也不代表第一版 read-only API 必須立即完成 mutation 行為。

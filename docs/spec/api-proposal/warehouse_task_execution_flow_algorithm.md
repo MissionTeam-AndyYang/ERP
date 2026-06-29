@@ -9,6 +9,8 @@
 
 本文件描述 `WarehouseTaskExecutionScreen` 的後端流程與演算法。此畫面承接已確認或實作中的 Task Workbench read-only API，進一步支援任務執行前確認與 validation。第一版建議先實作：
 
+規劃確認：倉庫任務第一版仍以 read-only 為核心；本文件新增的 validation API 屬於 non-mutating validation，不寫入資料庫。commit API 僅作為後續交易流程提案，未經工程師確認前不得實作為正式 mutation API。
+
 ```txt
 GET /api/v2/warehouse/task-execution/tasks/{taskId}
 POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/validate

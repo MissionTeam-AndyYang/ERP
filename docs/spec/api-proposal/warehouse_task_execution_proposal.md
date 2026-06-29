@@ -6,6 +6,18 @@
 > Related Workbench API: `docs/spec/api-proposal/warehouse_task_workbench_proposal.md`
 > Purpose: 承接 `WarehouseTaskWorkbenchScreen` 與 `WarehouseTaskDetailPanel`，提供「倉庫任務執行工作區」所需 API。第一版目標是讓操作員在執行入庫、出庫、移倉、品檢或出貨前，能看到完整任務上下文、批號可用性、數量限制與 validation 結果；實際寫入 mutation API 需待工程師確認交易流程後再實作。
 
+## Planning Confirmation
+
+先前倉庫任務第一版規劃為 read-only，此規劃仍然成立。本文所稱 `WarehouseTaskExecutionScreen` 是下一步預計設計的畫面，但第一階段定位為「任務執行前確認與驗證」，不是直接提交庫存異動的正式執行功能。
+
+第一階段 API 邊界如下：
+
+1. `GET /api/v2/warehouse/task-execution/tasks/{taskId}`：read-only，僅取得任務執行前上下文。
+2. `POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/validate`：non-mutating validation，不寫入資料庫，只回傳驗證結果與預估影響。
+3. `POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/commit`：僅保留為後續提案，屬於 `Mutation Deferred`，需待工程師確認交易規則、資料表寫入順序與 rollback 策略後才可進入正式文件與實作。
+
+因此，下一步畫面名稱可維持為 `WarehouseTaskExecutionScreen`；若團隊希望命名更保守，也可在工程師 review 時討論是否改名為 `WarehouseTaskExecutionPreparationScreen`，但目前文件主線仍以 `WarehouseTaskExecutionScreen` 作為後續延伸命名基準。
+
 ## Screen Intent
 
 `WarehouseTaskExecutionScreen` 回答以下問題：

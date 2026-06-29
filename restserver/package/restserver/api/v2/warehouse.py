@@ -35,6 +35,7 @@ from package.dbwrapper.table import (
     CTableWarehousePalletMovement,
     CTableWarehouseQualityHold,
     CTableWarehouseRiskRule,
+    CTableWorkflowTaskEvent,
     CTableWorkflowTaskState,
 )
 from package.log.log import CLogger
@@ -2445,6 +2446,664 @@ class CWarehouseInventoryLotService(object):
         return "%s|%s|%s" % (str_warehouse_no or "", str_item_no or "", str_batch_no or "")
 
 
+class CWarehouseTaskWorkbenchService(object):
+    TARGET_TASK_TYPES = [
+        EWorkflowTaskType.GOODS_RECEIPT,
+        EWorkflowTaskType.INBOUND,
+        EWorkflowTaskType.OUTBOUND,
+        EWorkflowTaskType.TRANSFER,
+        EWorkflowTaskType.QUALITY,
+        EWorkflowTaskType.SHIPMENT,
+    ]
+    OPEN_STATUSES = [
+        EWorkflowTaskStatus.PENDING,
+        EWorkflowTaskStatus.PARTIAL,
+        EWorkflowTaskStatus.BLOCKED,
+    ]
+    RISK_OVERDUE = "OVERDUE"
+    RISK_BLOCKED = "BLOCKED"
+    RISK_INVENTORY_SHORTAGE = "INVENTORY_SHORTAGE"
+    RISK_QUALITY_HOLD = "QUALITY_HOLD"
+    RISK_BATCH_NOT_ASSIGNED = "BATCH_NOT_ASSIGNED"
+
+    def get_task_workbench(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_date_range="today",
+        str_warehouse_no="",
+        n_task_type=0,
+        str_status="",
+        n_owner_department=0,
+        b_risk_only=False,
+        str_keyword="",
+        str_sort="",
+        str_order="",
+        n_start=0,
+        n_count=50,
+        obj_session=None,
+    ):
+        if obj_session:
+            return self.__get_task_workbench_with_session(
+                obj_session,
+                n_date,
+                str_timezone,
+                str_date_range,
+                str_warehouse_no,
+                n_task_type,
+                str_status,
+                n_owner_department,
+                b_risk_only,
+                str_keyword,
+                str_sort,
+                str_order,
+                n_start,
+                n_count,
+            )
+
+        with CDBMgr() as obj_dbmgr:
+            return self.__get_task_workbench_with_session(
+                obj_dbmgr.get_session(),
+                n_date,
+                str_timezone,
+                str_date_range,
+                str_warehouse_no,
+                n_task_type,
+                str_status,
+                n_owner_department,
+                b_risk_only,
+                str_keyword,
+                str_sort,
+                str_order,
+                n_start,
+                n_count,
+            )
+
+    def get_task_detail(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_task_id="",
+        obj_session=None,
+    ):
+        if obj_session:
+            return self.__get_task_detail_with_session(
+                obj_session,
+                n_date,
+                str_timezone,
+                str_task_id,
+            )
+
+        with CDBMgr() as obj_dbmgr:
+            return self.__get_task_detail_with_session(
+                obj_dbmgr.get_session(),
+                n_date,
+                str_timezone,
+                str_task_id,
+            )
+
+    def __get_task_workbench_with_session(
+        self,
+        obj_session,
+        n_date,
+        str_timezone,
+        str_date_range,
+        str_warehouse_no,
+        n_task_type,
+        str_status,
+        n_owner_department,
+        b_risk_only,
+        str_keyword,
+        str_sort,
+        str_order,
+        n_start,
+        n_count,
+    ):
+        n_query_timestamp = n_date if n_date else int(time.time())
+        dict_range = self.__build_range(n_query_timestamp, str_timezone, str_date_range)
+        lst_rows = self.__query_task_rows(
+            obj_session,
+            dict_range,
+            str_warehouse_no,
+            n_task_type,
+            str_status,
+            n_owner_department,
+            str_keyword,
+        )
+        dict_context = self.__build_inventory_context(
+            obj_session,
+            n_query_timestamp,
+            str_timezone,
+            str_warehouse_no,
+            "",
+            "",
+        )
+        dict_warehouse_names = self.__query_warehouse_names(
+            obj_session,
+            [obj_row.warehouse_no for obj_row in lst_rows],
+        )
+        lst_results = [
+            self.__task_to_workbench_dict(
+                obj_row,
+                dict_context,
+                dict_warehouse_names,
+                n_query_timestamp,
+            )
+            for obj_row in lst_rows
+        ]
+        if b_risk_only:
+            lst_results = [dict_row for dict_row in lst_results if dict_row.get("riskTypes")]
+
+        lst_results = self.__sort_tasks(lst_results, str_sort, str_order)
+        n_total = len(lst_results)
+        n_start = max(util_safe_int(n_start), 0)
+        n_count = util_safe_int(n_count) if n_count else 50
+        if n_count <= 0:
+            n_count = 50
+        lst_page = lst_results[n_start:n_start + n_count]
+        return {
+            "serverTimestamp": n_query_timestamp,
+            "timezone": str_timezone or "UTC",
+            "range": {
+                "mode": dict_range.get("mode", "today"),
+                "startTimestamp": util_safe_int(dict_range.get("startTimestamp")),
+                "endTimestamp": util_safe_int(dict_range.get("endTimestamp")),
+            },
+            "summary": self.__build_summary(lst_results),
+            "lanes": self.__build_lanes(lst_results),
+            "total": n_total,
+            "count": len(lst_page),
+            "start": n_start,
+            "results": lst_page,
+        }
+
+    def __get_task_detail_with_session(
+        self,
+        obj_session,
+        n_date,
+        str_timezone,
+        str_task_id,
+    ):
+        n_query_timestamp = n_date if n_date else int(time.time())
+        obj_task = (
+            obj_session.query(CTableWorkflowTaskState)
+            .filter(CTableWorkflowTaskState.taskId == str_task_id)
+            .first()
+        )
+        if not obj_task:
+            return {
+                "task": {},
+                "quantity": {},
+                "relatedLots": [],
+                "sourceRefs": [],
+                "timeline": [],
+            }
+
+        dict_context = self.__build_inventory_context(
+            obj_session,
+            n_query_timestamp,
+            str_timezone,
+            obj_task.warehouse_no or "",
+            obj_task.item_no or "",
+            obj_task.batchNumber or "",
+        )
+        dict_warehouse_names = self.__query_warehouse_names(
+            obj_session,
+            [obj_task.warehouse_no],
+        )
+        dict_task = self.__task_to_workbench_dict(
+            obj_task,
+            dict_context,
+            dict_warehouse_names,
+            n_query_timestamp,
+        )
+        return {
+            "task": self.__detail_task_to_dict(dict_task),
+            "quantity": self.__quantity_to_dict(dict_task),
+            "relatedLots": self.__build_related_lots(
+                obj_task,
+                dict_context,
+                n_query_timestamp,
+            ),
+            "sourceRefs": self.__build_source_refs(obj_task),
+            "timeline": self.__query_timeline(obj_session, obj_task.taskId or ""),
+        }
+
+    def __query_task_rows(
+        self,
+        obj_session,
+        dict_range,
+        str_warehouse_no,
+        n_task_type,
+        str_status,
+        n_owner_department,
+        str_keyword,
+    ):
+        lst_filters = []
+        if n_task_type:
+            lst_filters.append(CTableWorkflowTaskState.taskType == n_task_type)
+        else:
+            lst_filters.append(CTableWorkflowTaskState.taskType.in_(self.TARGET_TASK_TYPES))
+
+        lst_statuses = self.__task_status_values(str_status)
+        if lst_statuses:
+            lst_filters.append(CTableWorkflowTaskState.taskStatus.in_(lst_statuses))
+        else:
+            lst_filters.append(CTableWorkflowTaskState.taskStatus.in_(self.OPEN_STATUSES))
+
+        if str_warehouse_no:
+            lst_filters.append(CTableWorkflowTaskState.warehouse_no == str_warehouse_no)
+        if n_owner_department:
+            lst_filters.append(CTableWorkflowTaskState.ownerDepartment == n_owner_department)
+
+        if dict_range.get("applyRange"):
+            n_start = util_safe_int(dict_range.get("startTimestamp"))
+            n_end = util_safe_int(dict_range.get("endTimestamp"))
+            if n_start:
+                lst_filters.append(CTableWorkflowTaskState.dueTimestamp >= n_start)
+            if n_end:
+                lst_filters.append(CTableWorkflowTaskState.dueTimestamp <= n_end)
+        if str_keyword:
+            str_like = "%%%s%%" % str_keyword
+            lst_filters.append(or_(
+                CTableWorkflowTaskState.taskId.like(str_like),
+                CTableWorkflowTaskState.ref_no.like(str_like),
+                CTableWorkflowTaskState.ref_sub_no.like(str_like),
+                CTableWorkflowTaskState.item_no.like(str_like),
+                CTableWorkflowTaskState.item_name.like(str_like),
+                CTableWorkflowTaskState.batchNumber.like(str_like),
+            ))
+
+        return (
+            obj_session.query(CTableWorkflowTaskState)
+            .filter(*lst_filters)
+            .order_by(
+                CTableWorkflowTaskState.dueTimestamp.asc(),
+                CTableWorkflowTaskState.taskType.asc(),
+                CTableWorkflowTaskState.id.asc(),
+            )
+            .all()
+        )
+
+    def __build_inventory_context(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_timezone,
+        str_warehouse_no,
+        str_item_no,
+        str_batch_no,
+    ):
+        obj_builder = CWarehouseInventoryContextBuilder()
+        dict_context = obj_builder.build(
+            obj_session=obj_session,
+            n_query_timestamp=n_query_timestamp,
+            str_timezone=str_timezone,
+            str_warehouse_no=str_warehouse_no,
+            n_item_category=0,
+            str_item_no=str_item_no,
+            str_batch_no=str_batch_no,
+        )
+        dict_by_key = {}
+        dict_by_item_warehouse = defaultdict(lambda: {
+            "availableQuantity": 0.0,
+            "reservedQuantity": 0.0,
+            "qualityHoldQuantity": 0.0,
+            "inventoryValue": 0.0,
+        })
+        for dict_row in dict_context.get("inventoryRows", []):
+            str_key = obj_builder.stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            dict_by_key[str_key] = dict_row
+            if util_safe_float(dict_row.get("currentQuantity")) <= 0:
+                continue
+            str_item_warehouse_key = self.__item_warehouse_key(
+                dict_row.get("itemNo"),
+                dict_row.get("warehouseNo"),
+            )
+            dict_by_item_warehouse[str_item_warehouse_key]["availableQuantity"] += util_safe_float(dict_row.get("availableQuantity"))
+            dict_by_item_warehouse[str_item_warehouse_key]["reservedQuantity"] += util_safe_float(dict_row.get("reservedQuantity"))
+            dict_by_item_warehouse[str_item_warehouse_key]["qualityHoldQuantity"] += util_safe_float(dict_row.get("qualityHoldQuantity"))
+            dict_by_item_warehouse[str_item_warehouse_key]["inventoryValue"] += util_safe_float(dict_row.get("inventoryValue"))
+        dict_context["inventoryByKey"] = dict_by_key
+        dict_context["inventoryByItemWarehouse"] = dict_by_item_warehouse
+        return dict_context
+
+    def __task_to_workbench_dict(
+        self,
+        obj_row,
+        dict_context,
+        dict_warehouse_names,
+        n_query_timestamp,
+    ):
+        dict_inventory = self.__inventory_for_task(obj_row, dict_context)
+        f_expected = util_safe_float(obj_row.expectedQuantity)
+        f_processed = util_safe_float(obj_row.processedQuantity)
+        f_remaining = max(f_expected - f_processed, 0.0)
+        f_available = util_safe_float(dict_inventory.get("availableQuantity"))
+        f_quality_hold = util_safe_float(dict_inventory.get("qualityHoldQuantity"))
+        lst_risk_types = self.__risk_types(obj_row, f_remaining, f_available, f_quality_hold, n_query_timestamp)
+        return {
+            "taskId": obj_row.taskId or "",
+            "taskType": util_safe_int(obj_row.taskType),
+            "taskStatus": util_safe_int(obj_row.taskStatus),
+            "refCategory": util_safe_int(obj_row.refCategory),
+            "refNo": obj_row.ref_no or "",
+            "refSubNo": obj_row.ref_sub_no or "",
+            "itemCategory": util_safe_int(obj_row.itemCategory),
+            "itemNo": obj_row.item_no or "",
+            "itemName": obj_row.item_name or "",
+            "batchNo": obj_row.batchNumber or "",
+            "unit": util_safe_int(obj_row.unit or dict_inventory.get("unit")),
+            "expectedQuantity": util_round_quantity(f_expected),
+            "processedQuantity": util_round_quantity(f_processed),
+            "remainingQuantity": util_round_quantity(f_remaining),
+            "warehouseNo": obj_row.warehouse_no or "",
+            "warehouseName": dict_warehouse_names.get(obj_row.warehouse_no, "") or dict_inventory.get("warehouseName", ""),
+            "dueTimestamp": util_safe_int(obj_row.dueTimestamp),
+            "ownerDepartment": util_safe_int(obj_row.ownerDepartment),
+            "riskLevel": self.__risk_level(lst_risk_types),
+            "riskTypes": lst_risk_types,
+            "blockReasonCode": obj_row.blockReasonCode or "",
+            "blockReason": obj_row.blockReason or "",
+            "availableQuantity": util_round_quantity(f_available),
+            "reservedQuantity": util_round_quantity(dict_inventory.get("reservedQuantity")),
+            "qualityHoldQuantity": util_round_quantity(f_quality_hold),
+            "inventoryValue": util_round_amount(dict_inventory.get("inventoryValue")),
+            "nextActionCode": self.__next_action_code(obj_row),
+            "laneCode": self.__lane_code(obj_row),
+        }
+
+    def __inventory_for_task(self, obj_row, dict_context):
+        obj_builder = CWarehouseInventoryContextBuilder()
+        str_item_no = obj_row.item_no or ""
+        str_batch_no = obj_row.batchNumber or ""
+        str_warehouse_no = obj_row.warehouse_no or ""
+        if str_batch_no:
+            str_key = obj_builder.stock_key(str_item_no, str_batch_no, str_warehouse_no)
+            return dict_context.get("inventoryByKey", {}).get(str_key, {})
+        return dict_context.get("inventoryByItemWarehouse", {}).get(
+            self.__item_warehouse_key(str_item_no, str_warehouse_no),
+            {},
+        )
+
+    def __risk_types(self, obj_row, f_remaining, f_available, f_quality_hold, n_query_timestamp):
+        lst_risks = []
+        n_task_status = util_safe_int(obj_row.taskStatus)
+        n_task_type = util_safe_int(obj_row.taskType)
+        b_open = n_task_status not in [EWorkflowTaskStatus.DONE, EWorkflowTaskStatus.CANCELLED]
+        if b_open and util_safe_int(obj_row.dueTimestamp) and util_safe_int(obj_row.dueTimestamp) < n_query_timestamp:
+            lst_risks.append(self.RISK_OVERDUE)
+        if n_task_status == EWorkflowTaskStatus.BLOCKED:
+            lst_risks.append(self.RISK_BLOCKED)
+        if n_task_type in [EWorkflowTaskType.OUTBOUND, EWorkflowTaskType.TRANSFER, EWorkflowTaskType.SHIPMENT]:
+            if f_remaining > f_available:
+                lst_risks.append(self.RISK_INVENTORY_SHORTAGE)
+            if f_quality_hold > 0:
+                lst_risks.append(self.RISK_QUALITY_HOLD)
+            if not (obj_row.batchNumber or ""):
+                lst_risks.append(self.RISK_BATCH_NOT_ASSIGNED)
+        return lst_risks
+
+    def __risk_level(self, lst_risk_types):
+        if self.RISK_BLOCKED in lst_risk_types or self.RISK_OVERDUE in lst_risk_types:
+            return EWarehouseRiskLevel.DANGER
+        if lst_risk_types:
+            return EWarehouseRiskLevel.WARNING
+        return EWarehouseRiskLevel.NORMAL
+
+    def __lane_code(self, obj_row):
+        if util_safe_int(obj_row.taskStatus) == EWorkflowTaskStatus.BLOCKED:
+            return "blocked"
+        n_task_type = util_safe_int(obj_row.taskType)
+        if n_task_type in [EWorkflowTaskType.GOODS_RECEIPT, EWorkflowTaskType.INBOUND]:
+            return "inbound"
+        if n_task_type in [EWorkflowTaskType.OUTBOUND, EWorkflowTaskType.TRANSFER]:
+            return "outbound"
+        if n_task_type == EWorkflowTaskType.QUALITY:
+            return "quality"
+        if n_task_type == EWorkflowTaskType.SHIPMENT:
+            return "shipment"
+        return "other"
+
+    def __next_action_code(self, obj_row):
+        if util_safe_int(obj_row.taskStatus) == EWorkflowTaskStatus.BLOCKED:
+            return "warehouse.task.resolveBlocker"
+        dict_actions = {
+            EWorkflowTaskType.GOODS_RECEIPT: "warehouse.task.confirmReceipt",
+            EWorkflowTaskType.INBOUND: "warehouse.task.arrangeInbound",
+            EWorkflowTaskType.OUTBOUND: "warehouse.task.prepareOutbound",
+            EWorkflowTaskType.TRANSFER: "warehouse.task.arrangeTransfer",
+            EWorkflowTaskType.QUALITY: "warehouse.task.waitQualityDecision",
+            EWorkflowTaskType.SHIPMENT: "warehouse.task.prepareShipment",
+        }
+        return dict_actions.get(util_safe_int(obj_row.taskType), "")
+
+    def __build_summary(self, lst_results):
+        return {
+            "openTaskCount": len(lst_results),
+            "overdueTaskCount": len([dict_row for dict_row in lst_results if self.RISK_OVERDUE in dict_row.get("riskTypes", [])]),
+            "blockedTaskCount": len([dict_row for dict_row in lst_results if util_safe_int(dict_row.get("taskStatus")) == EWorkflowTaskStatus.BLOCKED]),
+            "inboundTaskCount": len([dict_row for dict_row in lst_results if util_safe_int(dict_row.get("taskType")) in [EWorkflowTaskType.GOODS_RECEIPT, EWorkflowTaskType.INBOUND]]),
+            "outboundTaskCount": len([dict_row for dict_row in lst_results if util_safe_int(dict_row.get("taskType")) in [EWorkflowTaskType.OUTBOUND, EWorkflowTaskType.TRANSFER]]),
+            "qualityTaskCount": len([dict_row for dict_row in lst_results if util_safe_int(dict_row.get("taskType")) == EWorkflowTaskType.QUALITY]),
+            "shipmentTaskCount": len([dict_row for dict_row in lst_results if util_safe_int(dict_row.get("taskType")) == EWorkflowTaskType.SHIPMENT]),
+            "inventoryShortageTaskCount": len([dict_row for dict_row in lst_results if self.RISK_INVENTORY_SHORTAGE in dict_row.get("riskTypes", [])]),
+        }
+
+    def __build_lanes(self, lst_results):
+        dict_lanes = {
+            "inbound": {"laneCode": "inbound", "taskCount": 0, "riskCount": 0},
+            "outbound": {"laneCode": "outbound", "taskCount": 0, "riskCount": 0},
+            "quality": {"laneCode": "quality", "taskCount": 0, "riskCount": 0},
+            "shipment": {"laneCode": "shipment", "taskCount": 0, "riskCount": 0},
+            "blocked": {"laneCode": "blocked", "taskCount": 0, "riskCount": 0},
+        }
+        for dict_row in lst_results:
+            str_lane = dict_row.get("laneCode", "other")
+            if str_lane not in dict_lanes:
+                continue
+            dict_lanes[str_lane]["taskCount"] += 1
+            if dict_row.get("riskTypes"):
+                dict_lanes[str_lane]["riskCount"] += 1
+        return [dict_lanes[str_key] for str_key in ["inbound", "outbound", "quality", "shipment", "blocked"]]
+
+    def __sort_tasks(self, lst_results, str_sort, str_order):
+        str_field = self.__sort_field(str_sort)
+        if not str_field:
+            return lst_results
+        b_reverse = (str_order or "asc").lower() == "desc"
+        return sorted(lst_results, key=lambda dict_row: util_safe_float(dict_row.get(str_field)), reverse=b_reverse)
+
+    def __sort_field(self, str_sort):
+        dict_fields = {
+            "dueTimestamp": "dueTimestamp",
+            "taskType": "taskType",
+            "remainingQuantity": "remainingQuantity",
+            "riskLevel": "riskLevel",
+        }
+        return dict_fields.get(str_sort or "", "")
+
+    def __detail_task_to_dict(self, dict_task):
+        return {
+            "taskId": dict_task.get("taskId", ""),
+            "taskType": util_safe_int(dict_task.get("taskType")),
+            "taskStatus": util_safe_int(dict_task.get("taskStatus")),
+            "refCategory": util_safe_int(dict_task.get("refCategory")),
+            "refNo": dict_task.get("refNo", ""),
+            "refSubNo": dict_task.get("refSubNo", ""),
+            "ownerDepartment": util_safe_int(dict_task.get("ownerDepartment")),
+            "warehouseNo": dict_task.get("warehouseNo", ""),
+            "warehouseName": dict_task.get("warehouseName", ""),
+            "dueTimestamp": util_safe_int(dict_task.get("dueTimestamp")),
+            "blockReasonCode": dict_task.get("blockReasonCode", ""),
+            "blockReason": dict_task.get("blockReason", ""),
+            "riskLevel": util_safe_int(dict_task.get("riskLevel")),
+            "riskTypes": dict_task.get("riskTypes", []),
+            "nextActionCode": dict_task.get("nextActionCode", ""),
+        }
+
+    def __quantity_to_dict(self, dict_task):
+        return {
+            "itemCategory": util_safe_int(dict_task.get("itemCategory")),
+            "itemNo": dict_task.get("itemNo", ""),
+            "itemName": dict_task.get("itemName", ""),
+            "batchNo": dict_task.get("batchNo", ""),
+            "unit": util_safe_int(dict_task.get("unit")),
+            "expectedQuantity": util_round_quantity(dict_task.get("expectedQuantity")),
+            "processedQuantity": util_round_quantity(dict_task.get("processedQuantity")),
+            "remainingQuantity": util_round_quantity(dict_task.get("remainingQuantity")),
+            "availableQuantity": util_round_quantity(dict_task.get("availableQuantity")),
+            "reservedQuantity": util_round_quantity(dict_task.get("reservedQuantity")),
+            "qualityHoldQuantity": util_round_quantity(dict_task.get("qualityHoldQuantity")),
+        }
+
+    def __build_related_lots(self, obj_task, dict_context, n_query_timestamp):
+        obj_builder = CWarehouseInventoryContextBuilder()
+        lst_lots = []
+        for dict_row in dict_context.get("inventoryRows", []):
+            if util_safe_float(dict_row.get("currentQuantity")) <= 0:
+                continue
+            str_key = obj_builder.stock_key(
+                dict_row.get("itemNo"),
+                dict_row.get("batchNo"),
+                dict_row.get("warehouseNo"),
+            )
+            dict_risk = dict_context.get("risks", {}).get(str_key, {"riskTypes": []})
+            lst_lots.append({
+                "lotKey": "%s|%s|%s" % (
+                    dict_row.get("warehouseNo", ""),
+                    dict_row.get("itemNo", ""),
+                    dict_row.get("batchNo", ""),
+                ),
+                "warehouseNo": dict_row.get("warehouseNo", ""),
+                "itemNo": dict_row.get("itemNo", ""),
+                "itemName": dict_row.get("itemName", ""),
+                "batchNo": dict_row.get("batchNo", ""),
+                "currentQuantity": util_round_quantity(dict_row.get("currentQuantity")),
+                "availableQuantity": util_round_quantity(dict_row.get("availableQuantity")),
+                "qualityHoldQuantity": util_round_quantity(dict_row.get("qualityHoldQuantity")),
+                "validDate": util_safe_int(dict_row.get("validDate")),
+                "riskTypes": dict_risk.get("riskTypes", []),
+            })
+        return sorted(
+            lst_lots,
+            key=lambda dict_row: (
+                0 if dict_row.get("riskTypes") else 1,
+                util_safe_int(dict_row.get("validDate")) or 9999999999,
+                -util_safe_float(dict_row.get("availableQuantity")),
+            ),
+        )
+
+    def __build_source_refs(self, obj_task):
+        if not (obj_task.refCategory or obj_task.ref_no or obj_task.ref_sub_no):
+            return []
+        return [{
+            "refCategory": util_safe_int(obj_task.refCategory),
+            "refNo": obj_task.ref_no or "",
+            "refSubNo": obj_task.ref_sub_no or "",
+            "descriptionCode": self.__source_description_code(obj_task),
+        }]
+
+    def __query_timeline(self, obj_session, str_task_id):
+        lst_rows = (
+            obj_session.query(CTableWorkflowTaskEvent)
+            .filter(CTableWorkflowTaskEvent.taskId == str_task_id)
+            .order_by(CTableWorkflowTaskEvent.eventTimestamp.asc(), CTableWorkflowTaskEvent.id.asc())
+            .all()
+        )
+        return [{
+            "eventCode": obj_row.eventCode or "",
+            "eventTimestamp": util_safe_int(obj_row.eventTimestamp),
+            "department": util_safe_int(obj_row.toDepartment or obj_row.fromDepartment),
+            "status": util_safe_int(obj_row.toStatus or obj_row.fromStatus),
+            "note": obj_row.note or "",
+        } for obj_row in lst_rows]
+
+    def __source_description_code(self, obj_task):
+        n_task_type = util_safe_int(obj_task.taskType)
+        if n_task_type in [EWorkflowTaskType.GOODS_RECEIPT, EWorkflowTaskType.INBOUND]:
+            return "warehouse.source.goodsReceipt"
+        if n_task_type in [EWorkflowTaskType.OUTBOUND, EWorkflowTaskType.TRANSFER]:
+            return "warehouse.source.inventory"
+        if n_task_type == EWorkflowTaskType.PRODUCTION:
+            return "warehouse.source.workOrder"
+        if n_task_type == EWorkflowTaskType.QUALITY:
+            return "warehouse.source.quality"
+        if n_task_type == EWorkflowTaskType.SHIPMENT:
+            return "warehouse.source.shipment"
+        return ""
+
+    def __query_warehouse_names(self, obj_session, lst_warehouse_nos):
+        lst_values = [str_no for str_no in set(lst_warehouse_nos) if str_no]
+        if not lst_values:
+            return {}
+        lst_rows = (
+            obj_session.query(CTableShipWarehouseAlias.no, CTableShipWarehouseAlias.name)
+            .filter(CTableShipWarehouseAlias.no.in_(lst_values))
+            .all()
+        )
+        return {obj_row.no: obj_row.name or "" for obj_row in lst_rows}
+
+    def __build_range(self, n_timestamp, str_timezone, str_date_range):
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
+        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
+        str_mode = str_date_range or "today"
+        if str_mode == "next_7_days":
+            return {
+                "mode": str_mode,
+                "startTimestamp": n_start,
+                "endTimestamp": n_start + 7 * 86400 - 1,
+                "applyRange": True,
+            }
+        if str_mode == "overdue":
+            return {
+                "mode": str_mode,
+                "startTimestamp": 0,
+                "endTimestamp": n_start - 1,
+                "applyRange": True,
+            }
+        if str_mode == "all_open":
+            return {
+                "mode": str_mode,
+                "startTimestamp": 0,
+                "endTimestamp": 0,
+                "applyRange": False,
+            }
+        return {
+            "mode": "today",
+            "startTimestamp": n_start,
+            "endTimestamp": n_start + 86399,
+            "applyRange": True,
+        }
+
+    def __task_status_values(self, str_status):
+        if not str_status:
+            return []
+        dict_status = {
+            "pending": EWorkflowTaskStatus.PENDING,
+            "partial": EWorkflowTaskStatus.PARTIAL,
+            "done": EWorkflowTaskStatus.DONE,
+            "blocked": EWorkflowTaskStatus.BLOCKED,
+            "cancelled": EWorkflowTaskStatus.CANCELLED,
+        }
+        if str(str_status).lower() in dict_status:
+            return [dict_status.get(str(str_status).lower())]
+        n_status = util_safe_int(str_status)
+        return [n_status] if n_status else []
+
+    def __item_warehouse_key(self, str_item_no, str_warehouse_no):
+        return "%s|%s" % (str_item_no or "", str_warehouse_no or "")
+
+
 class CWarehouseTaskService(object):
     def get_tasks(
         self,
@@ -2744,4 +3403,43 @@ class CWarehouseTasks(object):
             n_code = EErrorCode.ERROR_OTHER_ERROR
             str_message = "throw exception (error: %s)" % str(obj_error)
             CLogger().log(CLogger.LOG_LEVELERROR, "[CWarehouseTasks] throw exception (error: %s)" % str(obj_error))
+        return n_status_code, n_code, str_message, dict_extra_data
+
+
+class CWarehouseTaskWorkbench(object):
+    def get(self, str_timezone="", str_id=""):
+        str_message = "success"
+        n_status_code = 200
+        n_code = EErrorCode.ERROR_SUCCESS
+        dict_extra_data = {}
+        try:
+            from flask import request
+
+            if str_id:
+                dict_extra_data = CWarehouseTaskWorkbenchService().get_task_detail(
+                    n_date=request.args.get("date", 0, type=int),
+                    str_timezone=str_timezone,
+                    str_task_id=str_id,
+                )
+            else:
+                dict_extra_data = CWarehouseTaskWorkbenchService().get_task_workbench(
+                    n_date=request.args.get("date", 0, type=int),
+                    str_timezone=str_timezone,
+                    str_date_range=request.args.get("dateRange", "today", type=str),
+                    str_warehouse_no=request.args.get("warehouse_no", "", type=str),
+                    n_task_type=request.args.get("taskType", 0, type=int),
+                    str_status=request.args.get("status", "", type=str),
+                    n_owner_department=request.args.get("ownerDepartment", 0, type=int),
+                    b_risk_only=request.args.get("riskOnly", "false").lower() in ["1", "true", "yes"],
+                    str_keyword=request.args.get("keyword", "", type=str),
+                    str_sort=request.args.get("sort", "", type=str),
+                    str_order=request.args.get("order", "", type=str),
+                    n_start=request.args.get("start", 0, type=int),
+                    n_count=request.args.get("count", 50, type=int),
+                )
+        except Exception as obj_error:
+            n_status_code = 400
+            n_code = EErrorCode.ERROR_OTHER_ERROR
+            str_message = "throw exception (error: %s)" % str(obj_error)
+            CLogger().log(CLogger.LOG_LEVELERROR, "[CWarehouseTaskWorkbench] throw exception (error: %s)" % str(obj_error))
         return n_status_code, n_code, str_message, dict_extra_data

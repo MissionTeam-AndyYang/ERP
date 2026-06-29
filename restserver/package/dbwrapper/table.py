@@ -1787,6 +1787,39 @@ class CTableWorkflowTaskState(Base):
     )
 
 
+class CTableWorkflowTaskEvent(Base):
+    __tablename__ = "workflow_task_event"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    taskId = Column(String(length=80))
+    eventCode = Column(String(length=80))
+    eventTimestamp = Column(Integer)
+    fromStatus = Column(Integer)
+    toStatus = Column(Integer)
+    fromDepartment = Column(Integer)
+    toDepartment = Column(Integer)
+    actorId = Column(String(length=60))
+    actorName = Column(String(length=60))
+    refCategory = Column(Integer)
+    ref_no = Column(String(length=60))
+    ref_sub_no = Column(String(length=60))
+    warehouse_no = Column(String(length=60))
+    item_no = Column(String(length=60))
+    batchNumber = Column(String(length=60))
+    quantity = Column(Float)
+    unit = Column(Integer)
+    reasonCode = Column(String(length=80))
+    note = Column(Text)
+    creationTime = Column(Integer)
+    updateTime = Column(Integer)
+
+    __table_args__ = (
+        Index("idx_workflow_task_event_task_time", "taskId", "eventTimestamp", "id"),
+        Index("idx_workflow_task_event_ref", "refCategory", "ref_no", "ref_sub_no"),
+        Index("idx_workflow_task_event_lot", "warehouse_no", "item_no", "batchNumber"),
+    )
+
+
 class CTableWorkflowNextOwnerRule(Base):
     __tablename__ = "workflow_next_owner_rule"
 

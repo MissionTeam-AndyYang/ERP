@@ -8,6 +8,7 @@ from package.restserver.api.v2.warehouse import (
     CWarehouseInventory,
     CWarehouseInventoryLotDetail,
     CWarehouseInventoryLots,
+    CWarehouseTaskWorkbench,
     CWarehouseTasks,
 )
 
@@ -57,6 +58,14 @@ class CWarehouseTasksURI(CAPIBase):
         return False
 
 
+class CWarehouseTaskWorkbenchURI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseTaskWorkbench()
+
+    def _is_vaildate_param(self):
+        return False
+
+
 @warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/dashboard", methods=["GET"])
 def dashboard():
     obj_uri = CWarehouseDashboardURI()
@@ -85,3 +94,15 @@ def inventory_lot_detail(warehouse_no, item_no, batch_no):
 def tasks():
     obj_uri = CWarehouseTasksURI()
     return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/task-workbench", methods=["GET"])
+def task_workbench():
+    obj_uri = CWarehouseTaskWorkbenchURI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/task-workbench/tasks/<task_id>", methods=["GET"])
+def task_workbench_detail(task_id):
+    obj_uri = CWarehouseTaskWorkbenchURI()
+    return obj_uri.run(task_id or "")

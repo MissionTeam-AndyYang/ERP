@@ -36,12 +36,14 @@ from package.dbwrapper.table import (
     CTableWarehousePalletMovement,
     CTableWarehouseQualityHold,
     CTableWarehouseRiskRule,
+    CTableWorkflowTaskEvent,
     CTableWorkflowTaskState,
 )
 from package.restserver.api.v2.warehouse import (
     CWarehouseDashboardService,
     CWarehouseInventoryLotService,
     CWarehouseInventoryService,
+    CWarehouseTaskWorkbenchService,
     CWarehouseTaskService,
 )
 
@@ -64,6 +66,7 @@ def build_session():
         CTableItemSafetyStock.__table__,
         CTableWarehouseRiskRule.__table__,
         CTableWorkflowTaskState.__table__,
+        CTableWorkflowTaskEvent.__table__,
     ]:
         obj_table.create(bind=obj_engine)
     return sessionmaker(bind=obj_engine)()
@@ -298,6 +301,50 @@ def seed_dashboard_base(obj_session):
             dueTimestamp=n_now + 7200,
             taskStatus=EWorkflowTaskStatus.PARTIAL,
             ownerDepartment=EDepartment.PRODUCTION,
+        ),
+        CTableWorkflowTaskEvent(
+            taskId="TASK-OUT-001",
+            eventCode="workflow.task.created",
+            eventTimestamp=n_now - 3600,
+            fromStatus=None,
+            toStatus=EWorkflowTaskStatus.PENDING,
+            fromDepartment=None,
+            toDepartment=EDepartment.WAREHOUSE,
+            actorId="system",
+            actorName="System",
+            refCategory=2,
+            ref_no="WO-001",
+            ref_sub_no="",
+            warehouse_no="WH-A",
+            item_no="RM-001",
+            batchNumber="B-RM-001",
+            quantity=20,
+            unit=1,
+            note="created",
+            creationTime=n_now - 3600,
+            updateTime=n_now - 3600,
+        ),
+        CTableWorkflowTaskEvent(
+            taskId="TASK-OUT-001",
+            eventCode="workflow.task.started",
+            eventTimestamp=n_now - 1800,
+            fromStatus=EWorkflowTaskStatus.PENDING,
+            toStatus=EWorkflowTaskStatus.PARTIAL,
+            fromDepartment=EDepartment.WAREHOUSE,
+            toDepartment=EDepartment.PRODUCTION,
+            actorId="u001",
+            actorName="Warehouse Lead",
+            refCategory=2,
+            ref_no="WO-001",
+            ref_sub_no="",
+            warehouse_no="WH-A",
+            item_no="RM-001",
+            batchNumber="B-RM-001",
+            quantity=5,
+            unit=1,
+            note="started",
+            creationTime=n_now - 1800,
+            updateTime=n_now - 1800,
         ),
     ])
     obj_session.commit()
@@ -714,6 +761,78 @@ def test_task_service_returns_confirmed_task_dataset():
     assert dict_payload["results"][1]["remainingQuantity"] == 15.0
 
 
+def test_task_workbench_service_returns_confirmed_dataset():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseTaskWorkbenchService().get_task_workbench(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_date_range="today",
+        str_warehouse_no="WH-A",
+        obj_session=obj_session,
+    )
+
+    assert dict_payload["total"] == 2
+    assert dict_payload["summary"]["openTaskCount"] == 2
+    assert dict_payload["summary"]["inboundTaskCount"] == 1
+    assert dict_payload["summary"]["outboundTaskCount"] == 1
+    assert dict_payload["lanes"][0]["laneCode"] == "inbound"
+    assert dict_payload["results"][0]["refNo"] == "GRN-001"
+    assert "sourceNo" not in dict_payload["results"][0]
+    assert dict_payload["results"][1]["taskId"] == "TASK-OUT-001"
+    assert dict_payload["results"][1]["availableQuantity"] == 65.0
+    assert dict_payload["results"][1]["reservedQuantity"] == 20.0
+    assert dict_payload["results"][1]["qualityHoldQuantity"] == 5.0
+    assert dict_payload["results"][1]["nextActionCode"] == "warehouse.task.prepareOutbound"
+
+
+def test_task_workbench_detail_returns_related_lots_and_timeline():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseTaskWorkbenchService().get_task_detail(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_task_id="TASK-OUT-001",
+        obj_session=obj_session,
+    )
+
+    assert dict_payload["task"]["taskId"] == "TASK-OUT-001"
+    assert dict_payload["task"]["refNo"] == "WO-001"
+    assert dict_payload["quantity"]["remainingQuantity"] == 15.0
+    assert dict_payload["quantity"]["availableQuantity"] == 65.0
+    assert len(dict_payload["relatedLots"]) == 1
+    assert dict_payload["relatedLots"][0]["lotKey"] == "WH-A|RM-001|B-RM-001"
+    assert dict_payload["sourceRefs"] == [{
+        "refCategory": 2,
+        "refNo": "WO-001",
+        "refSubNo": "",
+        "descriptionCode": "warehouse.source.inventory",
+    }]
+    assert len(dict_payload["timeline"]) == 2
+    assert dict_payload["timeline"][0]["eventCode"] == "workflow.task.created"
+    assert dict_payload["timeline"][1]["status"] == EWorkflowTaskStatus.PARTIAL
+
+
+def test_task_workbench_detail_returns_empty_payload_when_task_missing():
+    obj_session = build_session()
+    seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseTaskWorkbenchService().get_task_detail(
+        str_task_id="MISSING-TASK",
+        obj_session=obj_session,
+    )
+
+    assert dict_payload == {
+        "task": {},
+        "quantity": {},
+        "relatedLots": [],
+        "sourceRefs": [],
+        "timeline": [],
+    }
+
+
 def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     from flask import Flask
 
@@ -737,6 +856,25 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
             "count": 1,
             "start": 0,
             "results": [{"taskId": "TASK-IN-001"}],
+        }
+
+    def fake_get_task_workbench(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "timezone": "Asia/Taipei",
+            "total": 1,
+            "count": 1,
+            "start": 0,
+            "results": [{"taskId": "TASK-OUT-001"}],
+        }
+
+    def fake_get_task_detail(self, **dict_kwargs):
+        return {
+            "task": {"taskId": dict_kwargs.get("str_task_id")},
+            "quantity": {},
+            "relatedLots": [],
+            "sourceRefs": [],
+            "timeline": [],
         }
 
     def fake_get_lots(self, **dict_kwargs):
@@ -769,6 +907,8 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     monkeypatch.setattr(CWarehouseInventoryLotService, "get_lots", fake_get_lots)
     monkeypatch.setattr(CWarehouseInventoryLotService, "get_lot_detail", fake_get_lot_detail)
     monkeypatch.setattr(CWarehouseTaskService, "get_tasks", fake_get_tasks)
+    monkeypatch.setattr(CWarehouseTaskWorkbenchService, "get_task_workbench", fake_get_task_workbench)
+    monkeypatch.setattr(CWarehouseTaskWorkbenchService, "get_task_detail", fake_get_task_detail)
 
     obj_app = Flask(__name__)
     obj_app.register_blueprint(warehouse_v2)
@@ -788,6 +928,14 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     )
     obj_lot_detail_response = obj_client.get(
         "/api/v2/warehouse/inventory/lots/wh/WH-A/item/RM-001/batch/B-RM-001",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_task_workbench_response = obj_client.get(
+        "/api/v2/warehouse/task-workbench",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_task_detail_response = obj_client.get(
+        "/api/v2/warehouse/task-workbench/tasks/TASK-OUT-001",
         headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
     )
 
@@ -810,6 +958,16 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     dict_lot_detail_data = json.loads(obj_lot_detail_response.data.decode("utf8"))
     assert dict_lot_detail_data["code"] == 0
     assert dict_lot_detail_data["payload"]["lot"]["lotKey"] == "WH-A|RM-001|B-RM-001"
+
+    assert obj_task_workbench_response.status_code == 200
+    dict_task_workbench_data = json.loads(obj_task_workbench_response.data.decode("utf8"))
+    assert dict_task_workbench_data["code"] == 0
+    assert dict_task_workbench_data["payload"]["results"][0]["taskId"] == "TASK-OUT-001"
+
+    assert obj_task_detail_response.status_code == 200
+    dict_task_detail_data = json.loads(obj_task_detail_response.data.decode("utf8"))
+    assert dict_task_detail_data["code"] == 0
+    assert dict_task_detail_data["payload"]["task"]["taskId"] == "TASK-OUT-001"
 
 
 def test_dashboard_route_returns_existing_api_envelope(monkeypatch):

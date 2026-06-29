@@ -9,7 +9,7 @@
 
 | 工程師提問 | 工程師回覆 | 文件更新 |
 | --- | --- | --- |
-| 請確認目前的資料表設計是否適用於所有任務類型，例如：請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0)。建議評估是否能設計一個「一體適用」的資料表，以涵蓋上述各類任務，避免因任務類型差異而產生結構不一致或維護困難。 | 採用一體適用設計。`workflow_task_event` 不應設計成倉庫專用事件表，也不應依任務類型拆成多張表。任務類型、負責模組、來源類別與主來源單據由 `workflow_task_state` 保存；`workflow_task_event` 只以 `taskId` 對應任務主檔，保存該任務的事件歷史。各任務類型的差異以 nullable context 欄位承接，例如倉庫任務可使用 `warehouse_no/item_no/batchNumber/quantity/unit/direction`，請購或採購任務可只使用 `refCategory/ref_no/ref_sub_no` 與狀態/部門欄位。 | 已將文件定位更新為跨模組 workflow event table；新增「一體適用設計原則」與「任務類型適用性」；將 eventCode 建議由 `warehouse.task.*` 調整為 `workflow.task.*`，避免事件表被誤解為 Warehouse-only。 |
+| 請確認目前的資料表設計是否適用於所有任務類型，例如：請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9)、其他(0)。建議評估是否能設計一個「一體適用」的資料表，以涵蓋上述各類任務，避免因任務類型差異而產生結構不一致或維護困難。 | 採用一體適用設計。`workflow_task_event` 不應設計成倉庫專用事件表，也不應依任務類型拆成多張表。任務類型、負責模組、來源類別與主來源單據由 `workflow_task_state` 保存；`workflow_task_event` 只以 `taskId` 對應任務主檔，保存該任務的事件歷史。各任務類型的差異以 nullable context 欄位承接，例如倉庫任務可使用 `warehouse_no/item_no/batchNumber/quantity/unit`，請購或採購任務可只使用 `refCategory/ref_no/ref_sub_no` 與狀態/部門欄位；數量方向不另設欄位，改由 `eventCode` 判斷。 | 已將文件定位更新為跨模組 workflow event table；新增「一體適用設計原則」與「任務類型適用性」；將 eventCode 建議由 `warehouse.task.*` 調整為 `workflow.task.*`，避免事件表被誤解為 Warehouse-only。 |
 
 ## 一體適用設計原則
 
@@ -39,14 +39,14 @@
 | taskType | 任務類型 | 適用方式 |
 | --- | --- | --- |
 | 1 | 請購 | 使用 `taskId/eventCode/eventTimestamp/fromStatus/toStatus/fromDepartment/toDepartment/actorId/actorName/refCategory/ref_no/ref_sub_no/reasonCode/note`；料品或數量欄位可視請購明細是否已進入任務狀態而填入。 |
-| 2 | 採購 | 使用共通欄位與採購來源單號；若事件與採購料品、數量有關，可填入 `item_no/quantity/unit/direction`。 |
+| 2 | 採購 | 使用共通欄位與採購來源單號；若事件與採購料品、數量有關，可填入 `item_no/quantity/unit`，數量方向由 `eventCode` 判斷。 |
 | 3 | 進貨 | 使用共通欄位、進貨來源單號與料品/數量 context；如已產生批號可填入 `batchNumber`。 |
-| 4 | 入庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit/direction`。 |
-| 5 | 出庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit/direction`。 |
+| 4 | 入庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit`，數量方向由 `eventCode` 判斷。 |
+| 5 | 出庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit`，數量方向由 `eventCode` 判斷。 |
 | 6 | 移倉 | 使用共通欄位；若未來需同時記錄來源倉與目的倉，第一版以 `note` 或來源單據追溯，後續可再評估新增 `fromWarehouse_no/toWarehouse_no`。 |
-| 7 | 生產 | 使用共通欄位、工單或領退餘廢產單來源；若涉及產出/領料，可填入料品、批號、數量與方向。 |
-| 8 | 品檢 | 使用共通欄位、品檢來源單號與料品/批號 context；數量方向可為 0，或依保留/釋放事件填入方向。 |
-| 9 | 出貨 | 使用共通欄位、銷貨或出貨來源單號；若涉及庫存出貨，可填入倉儲、料品、批號、數量與方向。 |
+| 7 | 生產 | 使用共通欄位、工單或領退餘廢產單來源；若涉及產出或領料，可填入料品、批號、數量與單位，方向由 `eventCode` 判斷。 |
+| 8 | 品檢 | 使用共通欄位、品檢來源單號與料品/批號 context；若涉及品檢保留或釋放數量，方向由 `eventCode` 判斷。 |
+| 9 | 出貨 | 使用共通欄位、銷貨或出貨來源單號；若涉及庫存出貨，可填入倉儲、料品、批號、數量與單位，方向由 `eventCode` 判斷。 |
 | 0 | 其他 | 使用共通欄位與來源單據欄位；無法結構化的補充資訊放在 `reasonCode` 或 `note`。 |
 
 ## Proposed Table
@@ -71,8 +71,7 @@
 | `warehouse_no` | VARCHAR | NO | 事件關聯倉儲別名 no；命名與 `workflow_task_state.warehouse_no` 一致。 |
 | `item_no` | VARCHAR | NO | 事件關聯料號；命名與 `workflow_task_state.item_no` 一致。 |
 | `batchNumber` | VARCHAR | NO | 事件關聯批號；命名與 `workflow_task_state.batchNumber` 一致。 |
-| `quantity` | DECIMAL | NO | 事件關聯數量；僅保存正數。 |
-| `direction` | INTEGER | NO | 數量方向；建議 1 表示增加或入庫方向，-1 表示減少或出庫方向，0 表示無數量方向或僅狀態事件。 |
+| `quantity` | DECIMAL | NO | 事件關聯數量；僅保存正數。數量方向不另存欄位，需由 `eventCode` 判斷。 |
 | `unit` | INTEGER | NO | 數量單位，沿用 Unit enum。 |
 | `reasonCode` | VARCHAR | NO | 阻塞、退回、取消或調整原因代碼。 |
 | `note` | TEXT | NO | 人工備註或系統訊息；第一版可為空字串。 |
@@ -107,6 +106,8 @@
 | `workflow.task.quantityAdjusted` | 任務數量調整。 |
 
 若前端需要顯示倉庫、採購、生產或品檢專屬文字，應依 `workflow_task_state.module/taskType` 搭配 `eventCode` 轉換多國語系文字，不應在事件表使用模組專屬 eventCode 作為資料表結構差異。
+
+若事件涉及數量，數量方向亦由 `eventCode` 判斷，不在 `workflow_task_event` 另存 `direction` 欄位。例如入庫、進貨完成、品檢釋放、生產產出等事件可視為增加方向；出庫、出貨、領料、採購退回等事件可視為減少方向；僅狀態流轉或指派事件則視為無數量方向。
 
 ## API Mapping
 
@@ -172,7 +173,7 @@ note = ""
 | --- | --- | --- |
 | `workflow_task_state` 是否已有 creation/update timestamp 可用於初始事件 | 影響 backfill 與 detail timeline 第一筆事件。 | 工程師回覆：`workflow_task_state` 已定義 `updateTime` 與 `creationTime`。理解與更新：此設計符合目前需求，`creationTime` 可作為任務建立或 backfill 初始事件時間；`updateTime` 可作為任務目前狀態最後更新時間與缺少 event 時的參考資訊。第一版不需新增額外時間欄位，但 timeline 正式顯示仍以 `workflow_task_event.eventTimestamp` 為準。 |
 | 是否需保存 actorId/actorName | 影響後續審計與權限追蹤。 | 工程師回覆：保存 `actorId/actorName`。理解與更新：維持欄位，供後續人工操作、主管判斷、系統排程或 API mutation 追蹤使用；第一版 read-only 若無操作人資料可回傳空字串或 NULL。 |
-| `quantity` 是否需要 direction 欄位 | 若後續要直接在事件表統計入出方向，可能需增加 direction；第一版建議由 `eventCode` 判斷。 | 工程師回覆：同意。理解與更新：已新增 `direction` 欄位，避免後續僅依 `eventCode` 判斷數量方向造成維護困難。 |
+| `quantity` 是否需要 direction 欄位 | 若後續要直接在事件表統計入出方向，可能需增加 direction；第一版建議由 `eventCode` 判斷。 | 最新確認：移除 `direction` 欄位，改由 `eventCode` 判斷數量方向。理解與更新：`workflow_task_event.quantity` 僅保存正數，入庫/出庫/領料/產出/保留/釋放等方向語意由事件代碼決定，避免資料表同時保存 `eventCode` 與 `direction` 造成兩者不一致。 |
 | 是否允許同一事件關聯多張來源單據 | 若需要，可能需拆成 event header + event_ref child table。 | 工程師提問：請說明單一事件同時關聯多張來源單據的情境。理解與更新：可能情境包含入庫事件同時關聯進貨單與庫存紀錄、出庫事件同時關聯訂單或出貨單與庫存紀錄、生產入庫同時關聯工單或領退餘廢產單與批號。但第一版為降低複雜度，`workflow_task_event` 僅保存一組主要事件來源上下文；若後續確認需要一事件多來源，再新增 `workflow_task_event_ref` child table。 |
 | mutation API 導入前是否先只寫 system-generated events | 影響第一版 read-only 工作台是否能先有完整 timeline。 | 工程師提問：`workflow_task_event` 中存在什麼資料，工作台就直接顯示相對應資料，請確認是否合理。理解與更新：此邏輯合理，`workflow_task_event` 是 timeline 的 source of truth；read-only API 不應在查詢時寫入事件，避免查詢產生副作用。若要讓既有未完成任務具備 baseline timeline，可由一次性 backfill 或後台批次建立 system-generated events；若沒有 event，API 回傳空 `timeline[]`。 |
 

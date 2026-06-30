@@ -91,6 +91,7 @@
 - [item_safety_stock](#item_safety_stock)
 - [warehouse_risk_rule](#warehouse_risk_rule)
 - [workflow_task_state](#workflow_task_state)
+- [workflow_task_event](#workflow_task_event)
 - [workflow_next_owner_rule](#workflow_next_owner_rule)
 - [work_order](#work_order)
 
@@ -2008,6 +2009,35 @@
 | blockReason | VARCHAR(255) | Yes |  |  | 阻塞原因文字 |  | Need Review | [新增] |
 | updateTime | INT | Yes |  |  | 最後更新時間 |  | Need Review | [新增] |
 | creationTime | INT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+
+## workflow_task_event
+
+<summary>workflow_task_event ([新增] 跨模組任務流程事件歷史)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；<PK> |  | Need Review | [新增] 已由工程師確認提案後補入正式 DB schema 文件。 |
+| taskId | VARCHAR(80) | No | IDX(idx_workflow_task_event_task_time) | workflow_task_event.taskId -> workflow_task_state.taskId | 對應 workflow_task_state.taskId；一個任務可對應多筆事件 |  | Need Review | [新增] |
+| eventCode | VARCHAR(80) | No |  |  | 任務事件代碼；前端依 code 轉換顯示文字 | 例如 workflow.task.created、workflow.task.statusChanged、workflow.task.assigned、workflow.task.blocked、workflow.task.completed | Need Review | [新增] |
+| eventTimestamp | BIGINT | No | IDX(idx_workflow_task_event_task_time) |  | 事件發生時間，UTC timestamp |  | Need Review | [新增] |
+| fromStatus | INT | Yes |  |  | 事件前任務狀態 | 待處理(1)、部分完成(2)、已完成(3)、阻塞(4)、取消(5) | Need Review | [新增] |
+| toStatus | INT | Yes |  |  | 事件後任務狀態 | 待處理(1)、部分完成(2)、已完成(3)、阻塞(4)、取消(5) | Need Review | [新增] |
+| fromDepartment | INT | Yes |  |  | 事件前負責部門 | 參照 EDepartment | Need Review | [新增] |
+| toDepartment | INT | Yes |  |  | 事件後負責部門 | 參照 EDepartment | Need Review | [新增] |
+| actorId | VARCHAR(80) | Yes |  |  | 操作人員或系統流程識別碼 |  | Need Review | [新增] |
+| actorName | VARCHAR(128) | Yes |  |  | 操作人員或系統流程顯示名稱 |  | Need Review | [新增] |
+| refCategory | INT | Yes | IDX(idx_workflow_task_event_ref) |  | 事件來源類別；僅表示事件發生時的來源上下文，不取代 workflow_task_state 的主任務來源 |  | Need Review | [新增] |
+| ref_no | VARCHAR(60) | Yes | IDX(idx_workflow_task_event_ref) |  | 事件來源單號 |  | Need Review | [新增] |
+| ref_sub_no | VARCHAR(60) | Yes | IDX(idx_workflow_task_event_ref) |  | 事件來源明細單號 |  | Need Review | [新增] |
+| warehouse_no | VARCHAR(60) | Yes | IDX(idx_workflow_task_event_lot) | workflow_task_event.warehouse_no -> ship_wh_alias.no | 倉儲別名 no；不適用時可為 NULL |  | Need Review | [新增] |
+| item_no | VARCHAR(60) | Yes | IDX(idx_workflow_task_event_lot) |  | 料品品項 no；不適用時可為 NULL |  | Need Review | [新增] |
+| batchNumber | VARCHAR(60) | Yes | IDX(idx_workflow_task_event_lot) | workflow_task_event.batchNumber -> batch_number.no | 批號；不適用時可為 NULL |  | Need Review | [新增] |
+| quantity | DECIMAL(18,4) | Yes |  |  | 事件關聯數量；僅保存正數，數量方向由 eventCode 判斷 |  | Need Review | [新增] |
+| unit | INT | Yes |  |  | 數量單位 | 參照 Unit enum | Need Review | [新增] |
+| reasonCode | VARCHAR(80) | Yes |  |  | 阻塞、退回、取消或調整原因代碼 |  | Need Review | [新增] |
+| comment | TEXT | Yes |  |  | 人工備註或系統訊息；欄位命名符合既有資料表的 comment 風格 |  | Need Review | [新增] |
+| creationTime | BIGINT | No |  |  | 資料建立時間，UTC timestamp |  | Need Review | [新增] |
+| updateTime | BIGINT | Yes |  |  | 資料更新時間，UTC timestamp |  | Need Review | [新增] |
 
 ## workflow_next_owner_rule
 

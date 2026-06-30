@@ -38,16 +38,16 @@
 
 | taskType | 任務類型 | 適用方式 |
 | --- | --- | --- |
-| 1 | 請購 | 使用 `taskId/eventCode/eventTimestamp/fromStatus/toStatus/fromDepartment/toDepartment/actorId/actorName/refCategory/ref_no/ref_sub_no/reasonCode/note`；料品或數量欄位可視請購明細是否已進入任務狀態而填入。 |
+| 1 | 請購 | 使用 `taskId/eventCode/eventTimestamp/fromStatus/toStatus/fromDepartment/toDepartment/actorId/actorName/refCategory/ref_no/ref_sub_no/reasonCode/comment`；料品或數量欄位可視請購明細是否已進入任務狀態而填入。 |
 | 2 | 採購 | 使用共通欄位與採購來源單號；若事件與採購料品、數量有關，可填入 `item_no/quantity/unit`，數量方向由 `eventCode` 判斷。 |
 | 3 | 進貨 | 使用共通欄位、進貨來源單號與料品/數量 context；如已產生批號可填入 `batchNumber`。 |
 | 4 | 入庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit`，數量方向由 `eventCode` 判斷。 |
 | 5 | 出庫 | 使用共通欄位，並可填入 `warehouse_no/item_no/batchNumber/quantity/unit`，數量方向由 `eventCode` 判斷。 |
-| 6 | 移倉 | 使用共通欄位；若未來需同時記錄來源倉與目的倉，第一版以 `note` 或來源單據追溯，後續可再評估新增 `fromWarehouse_no/toWarehouse_no`。 |
+| 6 | 移倉 | 使用共通欄位；若未來需同時記錄來源倉與目的倉，第一版以 `comment` 或來源單據追溯，後續可再評估新增 `fromWarehouse_no/toWarehouse_no`。 |
 | 7 | 生產 | 使用共通欄位、工單或領退餘廢產單來源；若涉及產出或領料，可填入料品、批號、數量與單位，方向由 `eventCode` 判斷。 |
 | 8 | 品檢 | 使用共通欄位、品檢來源單號與料品/批號 context；若涉及品檢保留或釋放數量，方向由 `eventCode` 判斷。 |
 | 9 | 出貨 | 使用共通欄位、銷貨或出貨來源單號；若涉及庫存出貨，可填入倉儲、料品、批號、數量與單位，方向由 `eventCode` 判斷。 |
-| 0 | 其他 | 使用共通欄位與來源單據欄位；無法結構化的補充資訊放在 `reasonCode` 或 `note`。 |
+| 0 | 其他 | 使用共通欄位與來源單據欄位；無法結構化的補充資訊放在 `reasonCode` 或 `comment`。 |
 
 ## Proposed Table
 
@@ -74,7 +74,7 @@
 | `quantity` | DECIMAL | NO | 事件關聯數量；僅保存正數。數量方向不另存欄位，需由 `eventCode` 判斷。 |
 | `unit` | INTEGER | NO | 數量單位，沿用 Unit enum。 |
 | `reasonCode` | VARCHAR | NO | 阻塞、退回、取消或調整原因代碼。 |
-| `note` | TEXT | NO | 人工備註或系統訊息；第一版可為空字串。 |
+| `comment` | TEXT | NO | 人工備註或系統訊息；第一版可為空字串。 |
 | `creationTime` | BIGINT | YES | 建立時間，UTC timestamp；命名與既有資料庫慣例一致。 |
 | `updateTime` | BIGINT | YES | 更新時間，UTC timestamp；命名與既有資料庫慣例一致。 |
 
@@ -119,7 +119,7 @@
 | `eventTimestamp` | `workflow_task_event.eventTimestamp` |
 | `department` | 優先 `toDepartment`，無值時使用 `fromDepartment` |
 | `status` | 優先 `toStatus`，無值時使用 `fromStatus` |
-| `note` | `workflow_task_event.note` |
+| `comment` | `workflow_task_event.comment` |
 
 ### `payload.sourceRefs[]`
 
@@ -162,7 +162,7 @@ fromStatus = null
 toStatus = workflow_task_state.taskStatus
 fromDepartment = null
 toDepartment = workflow_task_state.ownerDepartment
-note = ""
+comment = ""
 ```
 
 若上述時間欄位不存在，需由工程師確認可用欄位，不應由 API 任意推測。

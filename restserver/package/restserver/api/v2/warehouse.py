@@ -3020,7 +3020,7 @@ class CWarehouseTaskWorkbenchService(object):
             "eventTimestamp": util_safe_int(obj_row.eventTimestamp),
             "department": util_safe_int(obj_row.toDepartment or obj_row.fromDepartment),
             "status": util_safe_int(obj_row.toStatus or obj_row.fromStatus),
-            "note": obj_row.note or "",
+            "comment": obj_row.comment or "",
         } for obj_row in lst_rows]
 
     def __source_description_code(self, obj_task):

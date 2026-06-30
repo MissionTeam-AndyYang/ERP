@@ -11,6 +11,8 @@
 | [/api/v2/warehouse/inventory/lots](#get-api-v2-warehouse-inventory-lots) | GET | 查詢庫存批號明細清單 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_inventory_detail_proposal.md` 整合至正式 API 文件。 |
 | [/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}](#get-api-v2-warehouse-inventory-lots-detail) | GET | 查詢單一庫存批號追蹤明細 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_inventory_detail_proposal.md` 整合至正式 API 文件。 |
 | [/api/v2/warehouse/tasks](#get-api-v2-warehouse-tasks) | GET | 查詢 Warehouse 待處理任務 | Implemented / Pending Runtime Review | [新增] 工程師已確認之 Warehouse Dashboard 待處理入出庫任務 API。 |
+| [/api/v2/warehouse/task-workbench](#get-api-v2-warehouse-task-workbench) | GET | 查詢倉庫任務工作台清單與看板摘要 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_task_workbench_proposal.md` 整合至正式 API 文件；第一版 read-only。 |
+| [/api/v2/warehouse/task-workbench/tasks/{taskId}](#get-api-v2-warehouse-task-workbench-tasks-taskid) | GET | 查詢單一倉庫任務追蹤明細 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_task_workbench_proposal.md` 整合至正式 API 文件；timeline 由 `workflow_task_event` 提供。 |
 
 ## GET /api/v2/warehouse/dashboard
 
@@ -976,3 +978,300 @@ None
 | Table | Purpose |
 |----------|------|
 | workflow_task_state | 提供待處理任務狀態、數量、來源單號與下一步負責部門 |
+
+## GET /api/v2/warehouse/task-workbench
+
+<a id="get-api-v2-warehouse-task-workbench"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/task-workbench | GET | 查詢倉庫任務工作台清單與看板摘要 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示時區；未提供時以 UTC 回傳 |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準時間，UTC timestamp；未提供時以伺服器目前時間計算 |
+| dateRange | String | NO | 查詢日期範圍；目前程式支援 `today`、`overdue`、`next_7_days` 與預設開放任務查詢 |
+| warehouse_no | String | NO | 倉儲別名 no；提供時只回傳指定倉儲任務 |
+| taskType | Integer | NO | 任務類型；進貨(3)、入庫(4)、出庫(5)、移倉(6)、品檢(8)、出貨(9) |
+| status | String | NO | 任務狀態篩選；未提供時回傳待處理、部分完成、阻塞 |
+| ownerDepartment | Integer | NO | 下一步負責部門 |
+| riskOnly | Boolean/String | NO | 是否只回傳有風險的任務；支援 `1`、`true`、`yes` |
+| keyword | String | NO | 關鍵字；比對 taskId、來源單號、料號、品名、批號 |
+| sort | String | NO | 排序欄位；目前程式支援 `dueTimestamp`、`taskType`、`remainingQuantity`、`riskLevel` |
+| order | String | NO | 排序方向；`asc` 或 `desc` |
+| start | Integer | NO | 分頁起始位置；預設 0 |
+| count | Integer | NO | 回傳筆數；預設 50 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "range": {
+      "mode": "String",
+      "startTimestamp": "Integer",
+      "endTimestamp": "Integer"
+    },
+    "summary": {
+      "openTaskCount": "Integer",
+      "overdueTaskCount": "Integer",
+      "blockedTaskCount": "Integer",
+      "inboundTaskCount": "Integer",
+      "outboundTaskCount": "Integer",
+      "qualityTaskCount": "Integer",
+      "shipmentTaskCount": "Integer",
+      "inventoryShortageTaskCount": "Integer"
+    },
+    "lanes": [
+      {
+        "laneCode": "String",
+        "taskCount": "Integer",
+        "riskCount": "Integer"
+      }
+    ],
+    "total": "Integer",
+    "count": "Integer",
+    "start": "Integer",
+    "results": [
+      {
+        "taskId": "String",
+        "taskType": "Integer",
+        "taskStatus": "Integer",
+        "refCategory": "Integer",
+        "refNo": "String",
+        "refSubNo": "String",
+        "itemCategory": "Integer",
+        "itemNo": "String",
+        "itemName": "String",
+        "batchNo": "String",
+        "unit": "Integer",
+        "expectedQuantity": "Float",
+        "processedQuantity": "Float",
+        "remainingQuantity": "Float",
+        "warehouseNo": "String",
+        "warehouseName": "String",
+        "dueTimestamp": "Integer",
+        "ownerDepartment": "Integer",
+        "riskLevel": "Integer",
+        "riskTypes": ["String"],
+        "blockReasonCode": "String",
+        "blockReason": "String",
+        "availableQuantity": "Float",
+        "reservedQuantity": "Float",
+        "qualityHoldQuantity": "Float",
+        "inventoryValue": "Integer",
+        "nextActionCode": "String",
+        "laneCode": "String"
+      }
+    ]
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| payload.summary.openTaskCount | Integer | 開放中任務總數 |  |
+| payload.summary.overdueTaskCount | Integer | 已逾期任務數 |  |
+| payload.summary.blockedTaskCount | Integer | 阻塞任務數 |  |
+| payload.summary.inboundTaskCount | Integer | 進貨與入庫任務數 |  |
+| payload.summary.outboundTaskCount | Integer | 出庫與移倉任務數 |  |
+| payload.summary.qualityTaskCount | Integer | 品檢任務數 |  |
+| payload.summary.shipmentTaskCount | Integer | 出貨任務數 |  |
+| payload.summary.inventoryShortageTaskCount | Integer | 庫存不足風險任務數 |  |
+| payload.lanes[].laneCode | String | 看板 lane 代碼；由前端轉換顯示文字 | inbound、outbound、quality、shipment、blocked |
+| payload.results[].taskId | String | 任務識別碼 |  |
+| payload.results[].taskType | Integer | 任務類型；前端依 enum 轉換顯示文字 | EWorkflowTaskType |
+| payload.results[].taskStatus | Integer | 任務狀態；前端依 enum 轉換顯示文字 | EWorkflowTaskStatus |
+| payload.results[].refCategory | Integer | 主任務來源類別 |  |
+| payload.results[].refNo | String | 主任務來源單號，對應 `workflow_task_state.ref_no` |  |
+| payload.results[].refSubNo | String | 主任務來源明細單號，對應 `workflow_task_state.ref_sub_no` |  |
+| payload.results[].availableQuantity | Float | 對應批號或同倉同料品的目前可用數量 |  |
+| payload.results[].reservedQuantity | Float | 對應批號或同倉同料品的預留數量 |  |
+| payload.results[].qualityHoldQuantity | Float | 對應批號或同倉同料品的品檢保留數量 |  |
+| payload.results[].riskTypes[] | Array | 任務風險代碼，由前端轉換顯示文字 | OVERDUE、BLOCKED、INVENTORY_SHORTAGE、QUALITY_HOLD、BATCH_NOT_ASSIGNED |
+| payload.results[].nextActionCode | String | 下一步建議動作代碼；僅供顯示提示，不代表此 API 可執行 mutation |  |
+
+### Processing Flow
+
+1. 讀取 query parameters，建立查詢基準時間與日期範圍。
+2. 查詢 `workflow_task_state`，預設只取進貨、入庫、出庫、移倉、品檢、出貨等倉庫相關開放任務。
+3. 依 warehouse、taskType、status、ownerDepartment、keyword 套用篩選。
+4. 建立庫存 context，計算任務對應的可用數量、預留數量、品檢保留量與庫存價值。
+5. 計算 remainingQuantity、riskTypes、riskLevel、laneCode 與 nextActionCode。
+6. 依 sort/order 排序並套用 start/count 分頁。
+7. 回傳 summary、lanes 與 results；此 API 為 read-only，不寫入資料庫。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| workflow_task_state | 任務主資料、來源欄位、狀態、數量與下一步負責部門 |
+| inventory_item_month_statistic | 目前庫存快照主計算基準 |
+| inventory_delta | 庫存快照補算 |
+| inventory_record | 庫存快照防護性補算與批號參考 |
+| warehouse_inventory_reservation | 預留數量與價值 |
+| warehouse_quality_hold | 品檢保留數量與價值 |
+| batch_number | 批號效期與批號來源資料 |
+| ship_wh_alias | 倉儲別名與顯示名稱 |
+
+## GET /api/v2/warehouse/task-workbench/tasks/{taskId}
+
+<a id="get-api-v2-warehouse-task-workbench-tasks-taskid"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/task-workbench/tasks/{taskId} | GET | 查詢單一倉庫任務追蹤明細 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示時區；未提供時以 UTC 回傳 |
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| taskId | String | YES | 任務識別碼，對應 `workflow_task_state.taskId` |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準時間，UTC timestamp；用於計算庫存 context |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "task": {
+      "taskId": "String",
+      "taskType": "Integer",
+      "taskStatus": "Integer",
+      "refCategory": "Integer",
+      "refNo": "String",
+      "refSubNo": "String",
+      "ownerDepartment": "Integer",
+      "warehouseNo": "String",
+      "warehouseName": "String",
+      "dueTimestamp": "Integer",
+      "blockReasonCode": "String",
+      "blockReason": "String",
+      "riskLevel": "Integer",
+      "riskTypes": ["String"],
+      "nextActionCode": "String"
+    },
+    "quantity": {
+      "itemCategory": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
+      "batchNo": "String",
+      "unit": "Integer",
+      "expectedQuantity": "Float",
+      "processedQuantity": "Float",
+      "remainingQuantity": "Float",
+      "availableQuantity": "Float",
+      "reservedQuantity": "Float",
+      "qualityHoldQuantity": "Float"
+    },
+    "relatedLots": [
+      {
+        "lotKey": "String",
+        "warehouseNo": "String",
+        "itemNo": "String",
+        "itemName": "String",
+        "batchNo": "String",
+        "currentQuantity": "Float",
+        "availableQuantity": "Float",
+        "qualityHoldQuantity": "Float",
+        "validDate": "Integer",
+        "riskTypes": ["String"]
+      }
+    ],
+    "sourceRefs": [
+      {
+        "refCategory": "Integer",
+        "refNo": "String",
+        "refSubNo": "String",
+        "descriptionCode": "String"
+      }
+    ],
+    "timeline": [
+      {
+        "eventCode": "String",
+        "eventTimestamp": "Integer",
+        "department": "Integer",
+        "status": "Integer",
+        "comment": "String"
+      }
+    ]
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| payload.task | Object | 任務主資料，來源為 `workflow_task_state` 加上庫存 context 計算結果 |  |
+| payload.quantity | Object | 任務對應料品、批號與數量資訊 |  |
+| payload.relatedLots[] | Array | 任務可對應的批號庫存列；若任務已有 batchNo，通常只回傳同批號庫存列 |  |
+| payload.sourceRefs[] | Array | 任務主任務來源集合；第一版固定回傳 `workflow_task_state.refCategory/ref_no/ref_sub_no` 對應的主任務來源 |  |
+| payload.sourceRefs[].descriptionCode | String | 來源用途代碼；由前端轉換顯示文字 | warehouse.source.goodsReceipt、warehouse.source.inventory、warehouse.source.workOrder、warehouse.source.quality、warehouse.source.shipment |
+| payload.timeline[] | Array | 任務流程時間線；資料來源為 `workflow_task_event`，若無事件資料則回傳空陣列 |  |
+| payload.timeline[].comment | String | 任務事件人工備註或系統訊息，來源為 `workflow_task_event.comment` |  |
+
+### Processing Flow
+
+1. 以 path `taskId` 查詢 `workflow_task_state`。
+2. 若查無任務，回傳空 task、quantity、relatedLots、sourceRefs 與 timeline。
+3. 建立任務對應庫存 context，計算可用數量、預留數量、品檢保留量與風險。
+4. 建立 `task`、`quantity` 與 `relatedLots`。
+5. 建立 `sourceRefs[]`；第一版只回傳主任務來源，不由 `workflow_task_event` 彙總多筆來源。
+6. 查詢 `workflow_task_event`，依 `eventTimestamp`、`id` 排序建立 `timeline[]`。
+7. 回傳任務追蹤明細；此 API 為 read-only，不寫入資料庫。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| workflow_task_state | 任務主資料、主任務來源、狀態、數量與下一步負責部門 |
+| workflow_task_event | 任務流程事件、狀態變化、責任部門移轉、事件來源上下文與 timeline comment |
+| inventory_item_month_statistic | 目前庫存快照主計算基準 |
+| inventory_delta | 庫存快照補算 |
+| inventory_record | 庫存快照防護性補算與批號參考 |
+| warehouse_inventory_reservation | 預留數量與價值 |
+| warehouse_quality_hold | 品檢保留數量與價值 |
+| batch_number | 批號效期與批號來源資料 |
+| ship_wh_alias | 倉儲別名與顯示名稱 |

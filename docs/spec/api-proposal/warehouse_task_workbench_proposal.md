@@ -318,7 +318,7 @@ None
         "eventTimestamp": "Integer",
         "department": "Integer",
         "status": "Integer",
-        "note": "String"
+        "comment": "String"
       }
     ]
   }

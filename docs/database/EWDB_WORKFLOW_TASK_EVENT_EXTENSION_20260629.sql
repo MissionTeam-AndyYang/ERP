@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `workflow_task_event` (
   `quantity` DECIMAL(18, 4) NULL COMMENT '事件關聯數量，僅保存正數；方向由 eventCode 判斷',
   `unit` INT NULL COMMENT '數量單位，沿用 Unit enum',
   `reasonCode` VARCHAR(80) NULL COMMENT '阻塞、退回、取消或調整原因代碼',
-  `note` TEXT NULL COMMENT '人工備註或系統訊息',
+  `comment` TEXT NULL COMMENT '人工備註或系統訊息',
   `creationTime` BIGINT NOT NULL COMMENT '建立時間，UTC timestamp',
   `updateTime` BIGINT NULL COMMENT '更新時間，UTC timestamp',
   PRIMARY KEY (`id`),

@@ -1809,7 +1809,7 @@ class CTableWorkflowTaskEvent(Base):
     quantity = Column(Float)
     unit = Column(Integer)
     reasonCode = Column(String(length=80))
-    note = Column(Text)
+    comment = Column(Text)
     creationTime = Column(Integer)
     updateTime = Column(Integer)
 

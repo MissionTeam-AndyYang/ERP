@@ -372,7 +372,7 @@ eventCode = workflow_task_event.eventCode
 eventTimestamp = workflow_task_event.eventTimestamp
 department = workflow_task_event.toDepartment or workflow_task_event.fromDepartment
 status = workflow_task_event.toStatus or workflow_task_event.fromStatus
-note = workflow_task_event.note
+comment = workflow_task_event.comment
 ```
 
 `workflow_task_event` 與 `workflow_task_state` 的關係為一任務多事件：

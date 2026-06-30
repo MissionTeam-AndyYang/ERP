@@ -320,7 +320,7 @@ def seed_dashboard_base(obj_session):
             batchNumber="B-RM-001",
             quantity=20,
             unit=1,
-            note="created",
+            comment="created",
             creationTime=n_now - 3600,
             updateTime=n_now - 3600,
         ),
@@ -342,7 +342,7 @@ def seed_dashboard_base(obj_session):
             batchNumber="B-RM-001",
             quantity=5,
             unit=1,
-            note="started",
+            comment="started",
             creationTime=n_now - 1800,
             updateTime=n_now - 1800,
         ),
@@ -812,6 +812,7 @@ def test_task_workbench_detail_returns_related_lots_and_timeline():
     }]
     assert len(dict_payload["timeline"]) == 2
     assert dict_payload["timeline"][0]["eventCode"] == "workflow.task.created"
+    assert dict_payload["timeline"][0]["comment"] == "created"
     assert dict_payload["timeline"][1]["status"] == EWorkflowTaskStatus.PARTIAL
 
 

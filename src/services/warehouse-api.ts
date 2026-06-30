@@ -21,6 +21,14 @@ import type {
   WarehouseRisk,
   WarehouseSourceType,
   WarehouseTask,
+  WarehouseTaskDetail,
+  WarehouseTaskRelatedLot,
+  WarehouseTaskSourceRef,
+  WarehouseTaskTimelineEvent,
+  WarehouseTaskWorkbenchData,
+  WarehouseTaskWorkbenchItem,
+  WarehouseTaskWorkbenchLane,
+  WarehouseTaskWorkbenchSummary,
   WarehouseWorkflowTaskLine,
   WarehouseWorkflowStep
 } from "@/types/warehouse";
@@ -270,6 +278,105 @@ type ApiWarehouseInventoryLotDetailPayload = {
   workflowTasks?: ApiWarehouseWorkflowTaskLine[];
 };
 
+type ApiWarehouseTaskWorkbenchSummary = {
+  openTaskCount?: number;
+  overdueTaskCount?: number;
+  blockedTaskCount?: number;
+  inboundTaskCount?: number;
+  outboundTaskCount?: number;
+  qualityTaskCount?: number;
+  shipmentTaskCount?: number;
+  inventoryShortageTaskCount?: number;
+};
+
+type ApiWarehouseTaskWorkbenchLane = {
+  laneCode?: string;
+  taskCount?: number;
+  riskCount?: number;
+};
+
+type ApiWarehouseTaskWorkbenchItem = {
+  taskId?: string;
+  taskType?: number;
+  taskStatus?: number;
+  refCategory?: number;
+  refNo?: string;
+  refSubNo?: string;
+  itemCategory?: number;
+  itemNo?: string;
+  itemName?: string;
+  batchNo?: string;
+  unit?: number;
+  expectedQuantity?: number;
+  processedQuantity?: number;
+  remainingQuantity?: number;
+  warehouseNo?: string;
+  warehouseName?: string;
+  dueTimestamp?: number;
+  ownerDepartment?: number;
+  riskLevel?: number;
+  riskTypes?: string[];
+  blockReasonCode?: string;
+  blockReason?: string;
+  availableQuantity?: number;
+  reservedQuantity?: number;
+  qualityHoldQuantity?: number;
+  inventoryValue?: number;
+  nextActionCode?: string;
+};
+
+type ApiWarehouseTaskWorkbenchPayload = {
+  serverTimestamp?: number;
+  timezone?: string;
+  range?: {
+    mode?: string;
+    startTimestamp?: number;
+    endTimestamp?: number;
+  };
+  summary?: ApiWarehouseTaskWorkbenchSummary;
+  lanes?: ApiWarehouseTaskWorkbenchLane[];
+  total?: number;
+  count?: number;
+  start?: number;
+  results?: ApiWarehouseTaskWorkbenchItem[];
+};
+
+type ApiWarehouseTaskRelatedLot = {
+  lotKey?: string;
+  warehouseNo?: string;
+  itemNo?: string;
+  itemName?: string;
+  batchNo?: string;
+  currentQuantity?: number;
+  availableQuantity?: number;
+  qualityHoldQuantity?: number;
+  validDate?: number;
+  riskTypes?: string[];
+};
+
+type ApiWarehouseTaskSourceRef = {
+  refCategory?: number;
+  refNo?: string;
+  refSubNo?: string;
+  descriptionCode?: string;
+};
+
+type ApiWarehouseTaskTimelineEvent = {
+  eventCode?: string;
+  eventTimestamp?: number;
+  department?: number;
+  status?: number;
+  comment?: string;
+};
+
+type ApiWarehouseTaskDetailPayload = {
+  task?: ApiWarehouseTaskWorkbenchItem;
+  quantity?: ApiWarehouseTaskWorkbenchItem;
+  relatedLots?: ApiWarehouseTaskRelatedLot[];
+  sourceRefs?: ApiWarehouseTaskSourceRef[];
+  timeline?: ApiWarehouseTaskTimelineEvent[];
+};
+
 export type WarehouseDashboardResult = {
   data: WarehouseDashboardData;
   source: WarehouseDataSource;
@@ -311,6 +418,32 @@ export type WarehouseInventoryLotsResult = {
 
 export type WarehouseInventoryLotDetailResult = {
   detail?: WarehouseInventoryLotDetail;
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseTaskWorkbenchQuery = {
+  dateRange?: "today" | "next_7_days" | "overdue" | "all_open";
+  warehouseNo?: string;
+  taskType?: number;
+  status?: string | number;
+  ownerDepartment?: number;
+  riskOnly?: boolean;
+  keyword?: string;
+  sort?: "dueTimestamp" | "taskType" | "remainingQuantity" | "riskLevel";
+  order?: "asc" | "desc";
+  start?: number;
+  count?: number;
+};
+
+export type WarehouseTaskWorkbenchResult = {
+  data: WarehouseTaskWorkbenchData;
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseTaskDetailResult = {
+  detail?: WarehouseTaskDetail;
   source: WarehouseDataSource;
   error?: string;
 };
@@ -1008,6 +1141,335 @@ function mockLotDetail(lot?: WarehouseInventoryLot): WarehouseInventoryLotDetail
   };
 }
 
+function mapTaskWorkbenchSummary(summary?: ApiWarehouseTaskWorkbenchSummary): WarehouseTaskWorkbenchSummary {
+  return {
+    openTaskCount: summary?.openTaskCount ?? 0,
+    overdueTaskCount: summary?.overdueTaskCount ?? 0,
+    blockedTaskCount: summary?.blockedTaskCount ?? 0,
+    inboundTaskCount: summary?.inboundTaskCount ?? 0,
+    outboundTaskCount: summary?.outboundTaskCount ?? 0,
+    qualityTaskCount: summary?.qualityTaskCount ?? 0,
+    shipmentTaskCount: summary?.shipmentTaskCount ?? 0,
+    inventoryShortageTaskCount: summary?.inventoryShortageTaskCount ?? 0
+  };
+}
+
+function mapTaskWorkbenchLane(item: ApiWarehouseTaskWorkbenchLane): WarehouseTaskWorkbenchLane {
+  return {
+    laneCode: item.laneCode ?? "inbound",
+    taskCount: item.taskCount ?? 0,
+    riskCount: item.riskCount ?? 0
+  };
+}
+
+function mapTaskWorkbenchItem(item: ApiWarehouseTaskWorkbenchItem, index: number): WarehouseTaskWorkbenchItem {
+  return {
+    taskId: item.taskId ?? `warehouse-task-${index}`,
+    taskType: item.taskType,
+    taskStatus: item.taskStatus,
+    refCategory: item.refCategory,
+    refNo: item.refNo ?? "",
+    refSubNo: item.refSubNo ?? "",
+    itemCategory: item.itemCategory,
+    itemNo: item.itemNo ?? "",
+    itemName: item.itemName ?? "",
+    batchNo: item.batchNo ?? "",
+    unit: item.unit,
+    expectedQuantity: item.expectedQuantity ?? 0,
+    processedQuantity: item.processedQuantity ?? 0,
+    remainingQuantity: item.remainingQuantity ?? Math.max((item.expectedQuantity ?? 0) - (item.processedQuantity ?? 0), 0),
+    warehouseNo: item.warehouseNo ?? "",
+    warehouseName: item.warehouseName ?? "",
+    dueDate: timestampToDateTime(item.dueTimestamp),
+    ownerDepartment: item.ownerDepartment,
+    riskLevel: item.riskLevel,
+    riskTypes: withFallbackArray<string>(item.riskTypes, []),
+    blockReasonCode: item.blockReasonCode ?? "",
+    blockReason: item.blockReason ?? "",
+    availableQuantity: item.availableQuantity ?? 0,
+    reservedQuantity: item.reservedQuantity ?? 0,
+    qualityHoldQuantity: item.qualityHoldQuantity ?? 0,
+    inventoryValue: item.inventoryValue ?? 0,
+    nextActionCode: item.nextActionCode ?? ""
+  };
+}
+
+function mapTaskWorkbenchPayload(payload: ApiWarehouseTaskWorkbenchPayload): WarehouseTaskWorkbenchData {
+  const tasks = withFallbackArray<ApiWarehouseTaskWorkbenchItem>(payload.results, []).map(mapTaskWorkbenchItem);
+  return {
+    serverDate: timestampToDateTime(payload.serverTimestamp),
+    range: {
+      mode: payload.range?.mode ?? "today",
+      startDate: timestampToDateTime(payload.range?.startTimestamp),
+      endDate: timestampToDateTime(payload.range?.endTimestamp)
+    },
+    summary: mapTaskWorkbenchSummary(payload.summary),
+    lanes: withFallbackArray<ApiWarehouseTaskWorkbenchLane>(payload.lanes, []).map(mapTaskWorkbenchLane),
+    tasks,
+    total: payload.total ?? tasks.length,
+    count: payload.count ?? tasks.length,
+    start: payload.start ?? 0
+  };
+}
+
+function mapTaskRelatedLot(item: ApiWarehouseTaskRelatedLot, index: number): WarehouseTaskRelatedLot {
+  return {
+    lotKey: item.lotKey ?? `${item.warehouseNo ?? ""}|${item.itemNo ?? ""}|${item.batchNo ?? index}`,
+    warehouseNo: item.warehouseNo ?? "",
+    itemNo: item.itemNo ?? "",
+    itemName: item.itemName ?? "",
+    batchNo: item.batchNo ?? "",
+    currentQuantity: item.currentQuantity ?? 0,
+    availableQuantity: item.availableQuantity ?? 0,
+    qualityHoldQuantity: item.qualityHoldQuantity ?? 0,
+    validDate: timestampToDate(item.validDate),
+    riskTypes: withFallbackArray<string>(item.riskTypes, [])
+  };
+}
+
+function mapTaskSourceRef(item: ApiWarehouseTaskSourceRef, index: number): WarehouseTaskSourceRef {
+  return {
+    refCategory: item.refCategory,
+    refNo: item.refNo ?? "",
+    refSubNo: item.refSubNo ?? "",
+    descriptionCode: item.descriptionCode ?? `warehouse.source.${index}`
+  };
+}
+
+function mapTaskTimelineEvent(item: ApiWarehouseTaskTimelineEvent, index: number): WarehouseTaskTimelineEvent {
+  return {
+    id: `${item.eventCode ?? "event"}-${item.eventTimestamp ?? index}-${index}`,
+    eventCode: item.eventCode ?? "workflow.task.created",
+    eventDate: timestampToDateTime(item.eventTimestamp),
+    department: item.department,
+    status: item.status,
+    comment: item.comment ?? ""
+  };
+}
+
+function mapTaskDetailPayload(payload: ApiWarehouseTaskDetailPayload): WarehouseTaskDetail | undefined {
+  if (!payload.task) {
+    return undefined;
+  }
+  const task = mapTaskWorkbenchItem(payload.task, 0);
+  const quantity = mapTaskWorkbenchItem(
+    {
+      ...payload.task,
+      ...payload.quantity
+    },
+    0
+  );
+  return {
+    task: {
+      taskId: task.taskId,
+      taskType: task.taskType,
+      taskStatus: task.taskStatus,
+      refCategory: task.refCategory,
+      refNo: task.refNo,
+      refSubNo: task.refSubNo,
+      ownerDepartment: task.ownerDepartment,
+      warehouseNo: task.warehouseNo,
+      warehouseName: task.warehouseName,
+      dueDate: task.dueDate,
+      blockReasonCode: task.blockReasonCode,
+      blockReason: task.blockReason,
+      riskLevel: task.riskLevel,
+      riskTypes: task.riskTypes,
+      nextActionCode: task.nextActionCode
+    },
+    quantity: {
+      itemCategory: quantity.itemCategory,
+      itemNo: quantity.itemNo,
+      itemName: quantity.itemName,
+      batchNo: quantity.batchNo,
+      unit: quantity.unit,
+      expectedQuantity: quantity.expectedQuantity,
+      processedQuantity: quantity.processedQuantity,
+      remainingQuantity: quantity.remainingQuantity,
+      availableQuantity: quantity.availableQuantity,
+      reservedQuantity: quantity.reservedQuantity,
+      qualityHoldQuantity: quantity.qualityHoldQuantity
+    },
+    relatedLots: withFallbackArray<ApiWarehouseTaskRelatedLot>(payload.relatedLots, []).map(mapTaskRelatedLot),
+    sourceRefs: withFallbackArray<ApiWarehouseTaskSourceRef>(payload.sourceRefs, []).map(mapTaskSourceRef),
+    timeline: withFallbackArray<ApiWarehouseTaskTimelineEvent>(payload.timeline, []).map(mapTaskTimelineEvent)
+  };
+}
+
+function inferLaneCode(task: WarehouseTaskWorkbenchItem) {
+  if (task.taskStatus === 4 || task.riskTypes.includes("BLOCKED")) {
+    return "blocked";
+  }
+  if (task.taskType === 3 || task.taskType === 4) {
+    return "inbound";
+  }
+  if (task.taskType === 8) {
+    return "quality";
+  }
+  if (task.taskType === 9) {
+    return "shipment";
+  }
+  return "outbound";
+}
+
+function mockTaskWorkbench(): WarehouseTaskWorkbenchData {
+  const now = Math.floor(Date.now() / 1000);
+  const tasks = warehouseDashboardMock.tasks.map((task, index) =>
+    mapTaskWorkbenchItem(
+      {
+        taskId: task.id,
+        taskType: task.type === "入庫" ? 4 : task.type === "移倉" ? 6 : 5,
+        taskStatus: task.tone === "danger" ? 4 : task.tone === "warning" ? 2 : 1,
+        refCategory: task.sourceNo.startsWith("WO") ? 2 : task.sourceNo.startsWith("SO") ? 3 : 1,
+        refNo: task.sourceNo,
+        refSubNo: "",
+        itemCategory: 1,
+        itemNo: task.itemName,
+        itemName: task.itemName,
+        batchNo: task.batchNo,
+        unit: task.unit === "kg" ? 2 : 101,
+        expectedQuantity: task.quantity,
+        processedQuantity: task.tone === "warning" ? Math.round(task.quantity * 0.35) : 0,
+        remainingQuantity: task.quantity,
+        warehouseNo: "WH-MOCK",
+        warehouseName: "Warehouse mock",
+        dueTimestamp: now + index * 3600,
+        ownerDepartment: 7,
+        riskLevel: task.tone === "danger" ? 3 : task.tone === "warning" ? 2 : 1,
+        riskTypes: task.tone === "danger" ? ["BLOCKED", "INVENTORY_SHORTAGE"] : task.tone === "warning" ? ["QUALITY_HOLD"] : [],
+        blockReasonCode: task.tone === "danger" ? "inventoryShortage" : "",
+        blockReason: task.tone === "danger" ? task.status : "",
+        availableQuantity: task.tone === "danger" ? 0 : task.quantity * 1.5,
+        reservedQuantity: task.tone === "warning" ? task.quantity * 0.25 : 0,
+        qualityHoldQuantity: task.tone === "warning" ? task.quantity * 0.1 : 0,
+        inventoryValue: task.quantity * 120,
+        nextActionCode:
+          task.tone === "danger"
+            ? "warehouse.task.resolveBlocker"
+            : task.type === "入庫"
+              ? "warehouse.task.arrangeInbound"
+              : task.type === "移倉"
+                ? "warehouse.task.arrangeTransfer"
+                : "warehouse.task.prepareOutbound"
+      },
+      index
+    )
+  );
+
+  const lanes = ["inbound", "outbound", "quality", "shipment", "blocked"].map((laneCode) => {
+    const laneTasks = tasks.filter((task) => inferLaneCode(task) === laneCode);
+    return {
+      laneCode,
+      taskCount: laneTasks.length,
+      riskCount: laneTasks.filter((task) => task.riskTypes.length > 0).length
+    };
+  });
+
+  return {
+    serverDate: timestampToDateTime(now),
+    range: {
+      mode: "today",
+      startDate: timestampToDateTime(now),
+      endDate: timestampToDateTime(now + 86400)
+    },
+    summary: {
+      openTaskCount: tasks.length,
+      overdueTaskCount: 0,
+      blockedTaskCount: tasks.filter((task) => task.taskStatus === 4).length,
+      inboundTaskCount: tasks.filter((task) => task.taskType === 3 || task.taskType === 4).length,
+      outboundTaskCount: tasks.filter((task) => task.taskType === 5 || task.taskType === 6).length,
+      qualityTaskCount: tasks.filter((task) => task.taskType === 8).length,
+      shipmentTaskCount: tasks.filter((task) => task.taskType === 9).length,
+      inventoryShortageTaskCount: tasks.filter((task) => task.riskTypes.includes("INVENTORY_SHORTAGE")).length
+    },
+    lanes,
+    tasks,
+    total: tasks.length,
+    count: tasks.length,
+    start: 0
+  };
+}
+
+function mockTaskDetail(taskId?: string): WarehouseTaskDetail | undefined {
+  const workbench = mockTaskWorkbench();
+  const task = workbench.tasks.find((item) => item.taskId === taskId) ?? workbench.tasks[0];
+  if (!task) {
+    return undefined;
+  }
+  return {
+    task: {
+      taskId: task.taskId,
+      taskType: task.taskType,
+      taskStatus: task.taskStatus,
+      refCategory: task.refCategory,
+      refNo: task.refNo,
+      refSubNo: task.refSubNo,
+      ownerDepartment: task.ownerDepartment,
+      warehouseNo: task.warehouseNo,
+      warehouseName: task.warehouseName,
+      dueDate: task.dueDate,
+      blockReasonCode: task.blockReasonCode,
+      blockReason: task.blockReason,
+      riskLevel: task.riskLevel,
+      riskTypes: task.riskTypes,
+      nextActionCode: task.nextActionCode
+    },
+    quantity: {
+      itemCategory: task.itemCategory,
+      itemNo: task.itemNo,
+      itemName: task.itemName,
+      batchNo: task.batchNo,
+      unit: task.unit,
+      expectedQuantity: task.expectedQuantity,
+      processedQuantity: task.processedQuantity,
+      remainingQuantity: task.remainingQuantity,
+      availableQuantity: task.availableQuantity,
+      reservedQuantity: task.reservedQuantity,
+      qualityHoldQuantity: task.qualityHoldQuantity
+    },
+    relatedLots: [
+      {
+        lotKey: `${task.warehouseNo}|${task.itemNo}|${task.batchNo}`,
+        warehouseNo: task.warehouseNo,
+        itemNo: task.itemNo,
+        itemName: task.itemName,
+        batchNo: task.batchNo,
+        currentQuantity: task.availableQuantity + task.reservedQuantity + task.qualityHoldQuantity,
+        availableQuantity: task.availableQuantity,
+        qualityHoldQuantity: task.qualityHoldQuantity,
+        validDate: "",
+        riskTypes: task.riskTypes
+      }
+    ],
+    sourceRefs: [
+      {
+        refCategory: task.refCategory,
+        refNo: task.refNo,
+        refSubNo: task.refSubNo,
+        descriptionCode: "warehouse.source.primary"
+      }
+    ],
+    timeline: [
+      {
+        id: `${task.taskId}-created`,
+        eventCode: "workflow.task.created",
+        eventDate: task.dueDate,
+        department: task.ownerDepartment,
+        status: 1,
+        comment: ""
+      },
+      {
+        id: `${task.taskId}-assigned`,
+        eventCode: task.taskStatus === 4 ? "workflow.task.blocked" : "workflow.task.assigned",
+        eventDate: task.dueDate,
+        department: task.ownerDepartment,
+        status: task.taskStatus,
+        comment: task.blockReason
+      }
+    ]
+  };
+}
+
 function calculateDaysLeft(validDate?: number) {
   if (!validDate) {
     return 0;
@@ -1134,6 +1596,77 @@ export async function getWarehouseTasks(): Promise<WarehouseTasksResult> {
       tasks: warehouseDashboardMock.tasks,
       source: "mock",
       error: error instanceof Error ? error.message : "Warehouse tasks API unavailable"
+    };
+  }
+}
+
+function buildTaskWorkbenchPath(query: WarehouseTaskWorkbenchQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.dateRange) {
+    params.set("dateRange", query.dateRange);
+  }
+  if (query.warehouseNo) {
+    params.set("warehouse_no", query.warehouseNo);
+  }
+  if (query.taskType !== undefined) {
+    params.set("taskType", String(query.taskType));
+  }
+  if (query.status !== undefined) {
+    params.set("status", String(query.status));
+  }
+  if (query.ownerDepartment !== undefined) {
+    params.set("ownerDepartment", String(query.ownerDepartment));
+  }
+  if (query.riskOnly !== undefined) {
+    params.set("riskOnly", String(query.riskOnly));
+  }
+  if (query.keyword) {
+    params.set("keyword", query.keyword);
+  }
+  if (query.sort) {
+    params.set("sort", query.sort);
+  }
+  if (query.order) {
+    params.set("order", query.order);
+  }
+  params.set("start", String(query.start ?? 0));
+  params.set("count", String(query.count ?? 50));
+
+  return `/api/v2/warehouse/task-workbench?${params.toString()}`;
+}
+
+export async function getWarehouseTaskWorkbench(
+  query: WarehouseTaskWorkbenchQuery = {}
+): Promise<WarehouseTaskWorkbenchResult> {
+  try {
+    const payload = await apiGet<ApiWarehouseTaskWorkbenchPayload>(buildTaskWorkbenchPath(query));
+    return {
+      data: mapTaskWorkbenchPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      data: mockTaskWorkbench(),
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse task workbench API unavailable"
+    };
+  }
+}
+
+export async function getWarehouseTaskDetail(taskId: string): Promise<WarehouseTaskDetailResult> {
+  try {
+    const payload = await apiGet<ApiWarehouseTaskDetailPayload>(
+      `/api/v2/warehouse/task-workbench/tasks/${encodeURIComponent(taskId)}`
+    );
+    return {
+      detail: mapTaskDetailPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      detail: mockTaskDetail(taskId),
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse task detail API unavailable"
     };
   }
 }

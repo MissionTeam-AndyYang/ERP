@@ -239,6 +239,137 @@ export type WarehouseInventoryLotDetail = {
   workflowTasks: WarehouseWorkflowTaskLine[];
 };
 
+export type WarehouseTaskWorkbenchRange = {
+  mode: string;
+  startDate: string;
+  endDate: string;
+};
+
+export type WarehouseTaskWorkbenchSummary = {
+  openTaskCount: number;
+  overdueTaskCount: number;
+  blockedTaskCount: number;
+  inboundTaskCount: number;
+  outboundTaskCount: number;
+  qualityTaskCount: number;
+  shipmentTaskCount: number;
+  inventoryShortageTaskCount: number;
+};
+
+export type WarehouseTaskWorkbenchLane = {
+  laneCode: string;
+  taskCount: number;
+  riskCount: number;
+};
+
+export type WarehouseTaskWorkbenchItem = {
+  taskId: string;
+  taskType?: number;
+  taskStatus?: number;
+  refCategory?: number;
+  refNo: string;
+  refSubNo: string;
+  itemCategory?: number;
+  itemNo: string;
+  itemName: string;
+  batchNo: string;
+  unit?: number;
+  expectedQuantity: number;
+  processedQuantity: number;
+  remainingQuantity: number;
+  warehouseNo: string;
+  warehouseName: string;
+  dueDate: string;
+  ownerDepartment?: number;
+  riskLevel?: number;
+  riskTypes: string[];
+  blockReasonCode: string;
+  blockReason: string;
+  availableQuantity: number;
+  reservedQuantity: number;
+  qualityHoldQuantity: number;
+  inventoryValue: number;
+  nextActionCode: string;
+};
+
+export type WarehouseTaskWorkbenchData = {
+  serverDate: string;
+  range: WarehouseTaskWorkbenchRange;
+  summary: WarehouseTaskWorkbenchSummary;
+  lanes: WarehouseTaskWorkbenchLane[];
+  tasks: WarehouseTaskWorkbenchItem[];
+  total: number;
+  count: number;
+  start: number;
+};
+
+export type WarehouseTaskRelatedLot = {
+  lotKey: string;
+  warehouseNo: string;
+  itemNo: string;
+  itemName: string;
+  batchNo: string;
+  currentQuantity: number;
+  availableQuantity: number;
+  qualityHoldQuantity: number;
+  validDate: string;
+  riskTypes: string[];
+};
+
+export type WarehouseTaskSourceRef = {
+  refCategory?: number;
+  refNo: string;
+  refSubNo: string;
+  descriptionCode: string;
+};
+
+export type WarehouseTaskTimelineEvent = {
+  id: string;
+  eventCode: string;
+  eventDate: string;
+  department?: number;
+  status?: number;
+  comment: string;
+};
+
+export type WarehouseTaskDetail = {
+  task: Pick<
+    WarehouseTaskWorkbenchItem,
+    | "taskId"
+    | "taskType"
+    | "taskStatus"
+    | "refCategory"
+    | "refNo"
+    | "refSubNo"
+    | "ownerDepartment"
+    | "warehouseNo"
+    | "warehouseName"
+    | "dueDate"
+    | "blockReasonCode"
+    | "blockReason"
+    | "riskLevel"
+    | "riskTypes"
+    | "nextActionCode"
+  >;
+  quantity: Pick<
+    WarehouseTaskWorkbenchItem,
+    | "itemCategory"
+    | "itemNo"
+    | "itemName"
+    | "batchNo"
+    | "unit"
+    | "expectedQuantity"
+    | "processedQuantity"
+    | "remainingQuantity"
+    | "availableQuantity"
+    | "reservedQuantity"
+    | "qualityHoldQuantity"
+  >;
+  relatedLots: WarehouseTaskRelatedLot[];
+  sourceRefs: WarehouseTaskSourceRef[];
+  timeline: WarehouseTaskTimelineEvent[];
+};
+
 export type InventoryItem = {
   sku: string;
   name: string;

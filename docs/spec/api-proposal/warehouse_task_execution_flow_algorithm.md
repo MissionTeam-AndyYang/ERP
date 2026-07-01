@@ -1,15 +1,17 @@
 # Warehouse Task Execution API 流程與演算法提案
 
-狀態：Proposal / Pending Engineer Review
+狀態：Deferred to V2 / Not in Warehouse V1 read-only scope
 對應 API 提案：`docs/spec/api-proposal/warehouse_task_execution_proposal.md`
 對應靜態預覽：`docs/spec/api-proposal/warehouse_task_execution_static_preview.html`
 上游 API：`docs/spec/api-proposal/warehouse_task_workbench_proposal.md`
 
 ## 文件定位
 
-本文件描述 `WarehouseTaskExecutionScreen` 的後端流程與演算法。此畫面承接已確認或實作中的 Task Workbench read-only API，進一步支援任務執行前確認與 validation。第一版建議先實作：
+本文件描述 `WarehouseTaskExecutionScreen` 的後端流程與演算法。此畫面原先承接 Task Workbench read-only API，進一步支援任務執行前確認與 validation；依 2026-07-01 最新規劃，本文件延至下一版，不作為 Warehouse V1 目前實作目標。原先提案 endpoint 保留如下，僅供 V2 review 參考：
 
 規劃確認：倉庫任務第一版仍以 read-only 為核心；本文件新增的 validation API 屬於 non-mutating validation，不寫入資料庫。commit API 僅作為後續交易流程提案，未經工程師確認前不得實作為正式 mutation API。
+
+2026-07-01 更新：因第一版前端畫面暫不實作會使用 POST / PUT API 的流程，本文件延至下一版使用。Warehouse V1 當前後續提案應優先設計純 GET 的 read-only 分析與查詢 API。
 
 ```txt
 GET /api/v2/warehouse/task-execution/tasks/{taskId}

@@ -714,7 +714,7 @@ export default function WarehouseTaskWorkbenchPage() {
             <div>
               <p className="text-sm font-semibold text-textPrimary">後續執行工作區</p>
               <p className="mt-1 text-xs leading-5 text-textSecondary">
-                第一版工作台為 read-only；完成、放行、解除阻塞與數量異動會由後續 Task Execution API 承接。
+                第一版工作台為 read-only；完成、放行、解除阻塞與數量異動延至下一版 Task Execution API。
               </p>
             </div>
             <Link

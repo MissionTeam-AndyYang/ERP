@@ -22,9 +22,12 @@
 | `warehouse_task_workbench_flow_algorithm.md` | 任務工作台後端流程與演算法提案。 |
 | `warehouse_task_workbench_db_extension_proposal.md` | 任務工作台完整流程歷史所需的資料表擴充提案。 |
 | `warehouse_task_workbench_static_preview.html` | 任務工作台前端靜態預覽。 |
-| `warehouse_task_execution_proposal.md` | `WarehouseTaskExecutionScreen` 任務執行工作區 API 提案。 |
-| `warehouse_task_execution_flow_algorithm.md` | 任務執行工作區後端流程與 validation 演算法提案。 |
-| `warehouse_task_execution_static_preview.html` | 任務執行工作區前端靜態預覽。 |
+| `warehouse_analytics_proposal.md` | `WarehouseAnalyticsScreen` 倉庫分析工作區 read-only API 提案。 |
+| `warehouse_analytics_flow_algorithm.md` | 倉庫分析工作區後端流程與演算法提案。 |
+| `warehouse_analytics_static_preview.html` | 倉庫分析工作區前端靜態預覽。 |
+| `warehouse_task_execution_proposal.md` | `WarehouseTaskExecutionScreen` 任務執行工作區 API 提案；已延至 V2。 |
+| `warehouse_task_execution_flow_algorithm.md` | 任務執行工作區後端流程與 validation 演算法提案；已延至 V2。 |
+| `warehouse_task_execution_static_preview.html` | 任務執行工作區前端靜態預覽；已延至 V2。 |
 | `warehouse_inventory_detail_proposal.md` | 庫存批號清單與批號追蹤 API 提案。 |
 | `warehouse_inventory_detail_flow_algorithm.md` | 庫存批號清單與批號追蹤後端流程。 |
 
@@ -33,6 +36,7 @@
 | Status | 說明 |
 | --- | --- |
 | Proposal / Pending Engineer Review | 初版提案，尚待工程師確認。 |
+| Deferred to V2 / Not in Warehouse V1 read-only scope | 因第一版只做 read-only，含 POST / PUT 或任務執行語意的畫面延至下一版。 |
 | Engineer Review In Progress | 工程師正在提問或檢視。 |
 | Engineer Confirmed / Ready for Implementation | 工程師已確認可進入正式文件或程式實作。 |
 | Implemented / Pending Runtime Review | 已實作，待有 DB 環境執行結果確認。 |

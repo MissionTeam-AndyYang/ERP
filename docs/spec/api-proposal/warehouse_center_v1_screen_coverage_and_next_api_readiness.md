@@ -5,10 +5,13 @@
 > Next API proposal: `docs/spec/api-proposal/warehouse_task_workbench_proposal.md`
 > Backend flow: `docs/spec/api-proposal/warehouse_task_workbench_flow_algorithm.md`
 > Frontend static preview: `docs/spec/api-proposal/warehouse_task_workbench_static_preview.html`
+> Current read-only extension proposal: `docs/spec/api-proposal/warehouse_analytics_proposal.md`
 
 ## Purpose
 
 本文件用於確認第一版「倉庫中心」畫面清單是否完整，並集中列出下一步實作 `WarehouseTaskWorkbenchScreen` 與 `WarehouseTaskDetailPanel` 所需的 API、後端流程與前端靜態預覽文件。
+
+2026-07-01 更新：第一版前端畫面規劃確認為 read-only，暫不實作會使用到 POST / PUT API 的畫面。因此 `WarehouseTaskExecutionScreen` 延至下一版；略過 Task Execution 後，下一個可討論的 read-only 延伸畫面為 `WarehouseAnalyticsScreen`，相關文件為 `warehouse_analytics_proposal.md`、`warehouse_analytics_flow_algorithm.md`、`warehouse_analytics_static_preview.html`。
 
 ## Coverage Conclusion
 
@@ -30,6 +33,8 @@
 | `WarehouseInventoryLotDetailPanel` | Panel | 庫存批號追蹤面板 | 已有第一版 | 已串接 inventory lot detail API。 |
 
 因此，在 `WarehouseTaskWorkbenchScreen` 與 `WarehouseTaskDetailPanel` 完成後，第一版「倉庫中心」的畫面骨架即可視為完整。後續工作會進入 runtime review、資料欄位細緻化、跨模組 drill-down 與 mutation API 設計，而不是新增第一版必備畫面。
+
+依最新規劃，mutation API 設計不列入 Warehouse V1 前端下一步工作；若需要新增畫面，應優先選擇 read-only 分析或查詢畫面。
 
 ## Next Implementation Target
 
@@ -60,6 +65,11 @@
 | --- | --- | --- | --- |
 | `/api/v2/warehouse/task-workbench` | GET | `WarehouseTaskWorkbenchScreen` | Read-only list/kanban API。 |
 | `/api/v2/warehouse/task-workbench/tasks/{taskId}` | GET | `WarehouseTaskDetailPanel` | Read-only task tracking detail API。 |
+| `/api/v2/warehouse/analytics/overview` | GET | `WarehouseAnalyticsScreen` | Read-only analytics aggregate API proposal。 |
+| `/api/v2/warehouse/analytics/value-trend` | GET | `WarehouseAnalyticsScreen` | Read-only inventory value trend proposal。 |
+| `/api/v2/warehouse/analytics/space-utilization` | GET | `WarehouseAnalyticsScreen` | Read-only warehouse space trend proposal。 |
+| `/api/v2/warehouse/analytics/risk-breakdown` | GET | `WarehouseAnalyticsScreen` | Read-only risk distribution proposal。 |
+| `/api/v2/warehouse/analytics/task-sla` | GET | `WarehouseAnalyticsScreen` | Read-only warehouse task SLA proposal。 |
 
 第一版不包含完成任務、指派任務、解除阻塞、放行出庫或修改品檢狀態等 mutation API。這些行為需等工程師確認權限、資料表與部門責任流程後再另行設計。
 
@@ -96,4 +106,3 @@
 | `blocked` lane 是否優先於任務類型 lane | 影響 kanban 分類與管理者處理順序。 |
 | 第一版是否只允許 read-only | 影響是否需要同步設計 mutation API。 |
 | 是否需要新增任務歷史表 | 影響 `WarehouseTaskDetailPanel` timeline 完整度。 |
-

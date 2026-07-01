@@ -1,6 +1,6 @@
 # Warehouse Task Execution API Proposal
 
-> Status: Proposal / Pending Engineer Review
+> Status: Deferred to V2 / Not in Warehouse V1 read-only scope
 > Target UI Preview: `docs/spec/api-proposal/warehouse_task_execution_static_preview.html`
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_task_execution_flow_algorithm.md`
 > Related Workbench API: `docs/spec/api-proposal/warehouse_task_workbench_proposal.md`
@@ -10,13 +10,15 @@
 
 先前倉庫任務第一版規劃為 read-only，此規劃仍然成立。本文所稱 `WarehouseTaskExecutionScreen` 是下一步預計設計的畫面，但第一階段定位為「任務執行前確認與驗證」，不是直接提交庫存異動的正式執行功能。
 
+2026-07-01 更新：第一版前端畫面規劃確認為 read-only，暫不實作會使用到 POST / PUT API 的畫面。因此 `WarehouseTaskExecutionScreen` 延至下一版再進行設計與實作；Warehouse V1 後續 API 設計應先改以純 GET 的分析、查詢、追蹤畫面為主。本文保留作為下一版任務執行討論基礎，不再作為當前下一步實作目標。
+
 第一階段 API 邊界如下：
 
 1. `GET /api/v2/warehouse/task-execution/tasks/{taskId}`：read-only，僅取得任務執行前上下文。
 2. `POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/validate`：non-mutating validation，不寫入資料庫，只回傳驗證結果與預估影響。
 3. `POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/commit`：僅保留為後續提案，屬於 `Mutation Deferred`，需待工程師確認交易規則、資料表寫入順序與 rollback 策略後才可進入正式文件與實作。
 
-因此，下一步畫面名稱可維持為 `WarehouseTaskExecutionScreen`；若團隊希望命名更保守，也可在工程師 review 時討論是否改名為 `WarehouseTaskExecutionPreparationScreen`，但目前文件主線仍以 `WarehouseTaskExecutionScreen` 作為後續延伸命名基準。
+因此，`WarehouseTaskExecutionScreen` 僅保留為下一版命名基準；目前 Warehouse V1 不再將此畫面視為下一步實作目標。若團隊未來希望命名更保守，可在 V2 review 時討論是否改名為 `WarehouseTaskExecutionPreparationScreen`。
 
 ## Screen Intent
 
@@ -28,7 +30,7 @@
 4. 執行後會影響哪些資料表與 workflow timeline？
 5. 若無法執行，應由哪個部門或哪個原因回到 Task Workbench 處理？
 
-第一版建議先實作 read-only context 與 validation API；`commit` API 作為提案保留，待工程師確認後再進入正式 API 文件與後端實作。
+原先提案曾建議先實作 read-only context 與 validation API；依 2026-07-01 最新規劃，validation 與 commit 相關 API 均延至下一版 review，不進入 Warehouse V1 實作。
 
 ## API Summary
 

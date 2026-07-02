@@ -36,18 +36,20 @@ dateTo
 period
 bucket
 x-timezone
-warehouse_no
+warehouseNo
 itemCategory
 taskType
 ```
 
 建議流程：
 
-1. 若 `dateTo` 未提供，以伺服器目前 UTC timestamp 為準。
-2. 若 `dateFrom` 未提供，依 `period` 推算。
-3. `period` 未提供時預設 `30d`。
-4. `bucket` 未提供時預設 `day`。
-5. 若 `period` 不在允許清單，第一版建議 fallback 至 `30d`，並在 response.range 回傳實際採用值。
+1. Analytics API query parameter 統一採 lowerCamelCase；資料庫欄位仍維持原 schema 命名，例如 query `warehouseNo` 對應 database `warehouse_no`。
+2. 若 `dateTo` 未提供，以伺服器目前 UTC timestamp 為準。
+3. 若 `dateFrom` 未提供，依 `period` 推算。
+4. `period` 未提供時預設 `30d`。
+5. `bucket` 未提供時預設 `day`。
+6. 若 `period` 不在允許清單，第一版建議 fallback 至 `30d`，並在 response.range 回傳實際採用值。
+7. 不使用 `dateRange`，避免與任務工作台的 `today`、`overdue`、`next_7_days` 等語意型範圍混淆。
 
 ## 共用 Step 2：建立庫存快照與趨勢資料
 
@@ -112,7 +114,7 @@ warehouse_quality_hold
 ```
 
 第一版可先回傳 bucket end 的 used/reserved/available pallets。
-若 `warehouse_pallet_movement` 尚無足夠歷史資料，回傳目前 snapshot 作為最後 bucket，其他 bucket 回傳空陣列或 0。
+若 `warehouse_pallet_movement` 尚無足夠歷史資料，僅回傳資料可證明的 bucket；可將目前 snapshot 作為最後 bucket，其他無資料 bucket 不推測歷史，可回傳空陣列或 0。
 
 ### Step 5：取得 riskBreakdown
 
@@ -135,15 +137,31 @@ workflow_task_state
 workflow_task_event
 ```
 
+`workflow_task_event` 第一版已規劃的主要事件代碼：
+
+| eventCode | 用途 |
+| --- | --- |
+| workflow.task.created | 任務建立 |
+| workflow.task.assigned | 任務指派或責任部門移轉 |
+| workflow.task.started | 任務開始處理 |
+| workflow.task.partiallyProcessed | 任務部分處理 |
+| workflow.task.blocked | 任務進入阻塞 |
+| workflow.task.blockResolved | 阻塞解除 |
+| workflow.task.completed | 任務完成 |
+| workflow.task.cancelled | 任務取消 |
+| workflow.task.refLinked | 任務關聯來源單據 |
+| workflow.task.quantityAdjusted | 任務數量調整 |
+
 建議算法：
 
 1. 依 taskType 分組。
 2. openTaskCount：taskStatus in pending / partial / blocked。
-3. completedTaskCount：查詢期間內 taskStatus done，或 workflow_task_event 中有 `workflow.task.completed`。
+3. completedTaskCount：查詢期間內 workflow_task_event 中有 `workflow.task.completed` 的任務數；不得只以 `workflow_task_state.updateTime` 推測完成時間。
 4. overdueTaskCount：dueTimestamp < now 且尚未 done / cancelled。
 5. blockedTaskCount：taskStatus blocked。
-6. onTimeRate：completed on time / completedTaskCount。
-7. averageLeadTimeHours：若有 event，以 first event 到 completed event 計算；若無 event，需工程師確認是否可用 creationTime/updateTime fallback。
+6. onTimeRate：completed on time / completedTaskCount；completedTaskCount 為 0 時回傳 0.0。
+7. averageLeadTimeHours：若有 event，以 first event 到 completed event 計算；若無 completed event，回傳 0.0。
+8. 若查詢期間完全沒有 `workflow_task_event` 可用，`taskSla[]` 可回傳空陣列；`workflow_task_state` 仍可用於 overview KPI 的 openTaskCount 與目前逾期判斷，但不得用 creationTime/updateTime 反推完成時間或 lead time。
 
 ## GET /analytics/value-trend 流程
 
@@ -217,14 +235,14 @@ payload.overdueTrend[]
 2. 不得在查詢時補寫 workflow_task_event。
 3. 不得在查詢時建立安全水位、風險規則或倉位容量資料。
 4. 若 `warehouse_pallet_movement` 無歷史資料，不得推測歷史板位趨勢。
-5. 若 workflow_task_event 無 completed event，不得自行推測完成時間；需以空值、0 或工程師確認的 fallback 規則處理。
+5. 若 workflow_task_event 無 completed event，不得自行推測完成時間；第一版以 0.0 或空陣列處理，不使用 `workflow_task_state.creationTime/updateTime` 作為 completed time fallback。
 
-## 工程師待確認問題
+## 工程師提問
 
-| 項目 | 需確認原因 | 工程師回覆 |
-| --- | --- | --- |
-| 是否同意 `WarehouseAnalyticsScreen` 作為略過 Task Execution 後的下一個 read-only 畫面 | 確認前端第一版方向。 | 畫面實作依照規劃執行，現階段優先開發顯示資料的畫面（串接 GET API）。 |
-| 是否同意 `overview` + 4 個 detail GET endpoints | 影響 API 切分與效能策略。 | 你建議採取何種方式，能夠達到最佳化？ |
-| `period` 第一版是否限制為 7d / 30d / 90d | 避免長區間即時計算壓力。 | 可以，後續如有需求再新增。 |
-| `spaceTrend` 歷史資料不足時是否可只回傳目前 bucket | 避免推測不存在的倉位歷史。 | 可以 |
-| task SLA 是否允許用 workflow_task_state creationTime/updateTime fallback | workflow_task_event 可能尚未完整導入。 | 當 workflow_task_event 無資料時，回傳空陣列即可，還是有其他需要考量的情況？ |
+| 項目 | 需確認原因 | 工程師回覆 | 理解與確認 | 文件更新 |
+| --- | --- | --- | --- | --- |
+| 是否同意 `WarehouseAnalyticsScreen` 作為略過 Task Execution 後的下一個 read-only 畫面 | 確認前端第一版方向。 | 畫面實作依照規劃執行，現階段優先開發顯示資料的畫面（串接 GET API）。 | 已確認本畫面維持 read-only，優先串接 GET API。 | 文件定位維持 Warehouse V1 read-only。 |
+| 是否同意 `overview` + 4 個 detail GET endpoints | 影響 API 切分與效能策略。 | 你建議採取何種方式，能夠達到最佳化？ | 建議採 `overview` 首屏輕量聚合，detail endpoint 依圖表 lazy load；共用後端計算模組但分段回傳資料。 | 已在效能注意事項與 API 提案 Detail Endpoints 補充最佳化策略。 |
+| `period` 第一版是否限制為 7d / 30d / 90d | 避免長區間即時計算壓力。 | 可以，後續如有需求再新增。 | 已確認第一版限制為 `7d`、`30d`、`90d`，預設 `30d`。 | 共用 Step 1 維持此限制。 |
+| `spaceTrend` 歷史資料不足時是否可只回傳目前 bucket | 避免推測不存在的倉位歷史。 | 可以 | 已確認，不補造倉位歷史；只回傳資料可證明的 bucket。 | Step 4 已更新。 |
+| task SLA 是否允許用 workflow_task_state creationTime/updateTime fallback | workflow_task_event 可能尚未完整導入。 | 當 workflow_task_event 無資料時，回傳空陣列即可，還是有其他需要考量的情況？ | 不使用 `creationTime/updateTime` 推測完成時間。若期間完全無 `workflow_task_event`，`taskSla[]` 可回傳空陣列；open task KPI 仍可由 `workflow_task_state` 計算。 | Step 6 與不得推測規則已更新。 |

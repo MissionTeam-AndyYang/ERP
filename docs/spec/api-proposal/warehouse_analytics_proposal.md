@@ -1,3 +1,9 @@
+## 工程師提問
+1. 針對 /api/v2/warehouse/analytics/overview，
+   - 「請統一查詢參數的設計風格與命名，例如使用 dateFrom / dateTo / period 還是 date / dateRange
+   - 請補齊回傳資料結構中所有欄位的詳細說明，確保每個欄位的用途、型別與可能值都清楚定義。
+   - 請針對 drilldownQuery 欄位提供完整解釋，如: 欄位的設計目的
+2.  請勿直接覆蓋「工程師回覆」欄位的資料，應新增獨立欄位以填寫確認資訊。
 # Warehouse Analytics API Proposal
 
 > Status: Proposal / Pending Engineer Review
@@ -203,8 +209,8 @@
 
 | 項目 | 需確認原因 | 工程師回覆 |
 | --- | --- | --- |
-| 第一版是否接受 `overview` 聚合 API 加 4 個 detail GET endpoint | 影響前端首次載入效能與後端查詢分工。 | Pending |
-| `period` 第一版是否只支援 `7d`、`30d`、`90d` | 避免長區間查詢造成即時計算壓力。 | Pending |
-| `spaceTrend` 是否可先用 `warehouse_pallet_movement` 現有紀錄計算 | 影響倉位趨勢準確度與是否需要新增每日快照表。 | Pending |
-| `taskSla.averageLeadTimeHours` 是否以 workflow_task_event 計算 | 需確認事件資料是否足夠完整。 | Pending |
-| 若 workflow_task_event 尚無資料，task SLA 是否退回使用 workflow_task_state creationTime/updateTime | 避免 API 在第一版資料不足時無法回傳。 | Pending |
+| 第一版是否接受 `overview` 聚合 API 加 4 個 detail GET endpoint | 影響前端首次載入效能與後端查詢分工。 | 你建議採取何種方式，能夠達到最佳化？ | 
+| `period` 第一版是否只支援 `7d`、`30d`、`90d` | 避免長區間查詢造成即時計算壓力。 | 可以，後續如有需求再新增。|
+| `spaceTrend` 是否可先用 `warehouse_pallet_movement` 現有紀錄計算 | 影響倉位趨勢準確度與是否需要新增每日快照表。 | 可以，後續如有需求再新增每日快照表。|
+| `taskSla.averageLeadTimeHours` 是否以 workflow_task_event 計算 | 需確認事件資料是否足夠完整。 | 目前設計中包含哪些事件資料？|
+| 若 workflow_task_event 尚無資料，task SLA 是否退回使用 workflow_task_state creationTime/updateTime | 避免 API 在第一版資料不足時無法回傳。 | 當 workflow_task_event 無資料時，回傳空陣列即可，還是有其他需要考量的情況？ | 

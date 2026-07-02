@@ -223,8 +223,8 @@ payload.overdueTrend[]
 
 | 項目 | 需確認原因 | 工程師回覆 |
 | --- | --- | --- |
-| 是否同意 `WarehouseAnalyticsScreen` 作為略過 Task Execution 後的下一個 read-only 畫面 | 確認前端第一版方向。 | Pending |
-| 是否同意 `overview` + 4 個 detail GET endpoints | 影響 API 切分與效能策略。 | Pending |
-| `period` 第一版是否限制為 7d / 30d / 90d | 避免長區間即時計算壓力。 | Pending |
-| `spaceTrend` 歷史資料不足時是否可只回傳目前 bucket | 避免推測不存在的倉位歷史。 | Pending |
-| task SLA 是否允許用 workflow_task_state creationTime/updateTime fallback | workflow_task_event 可能尚未完整導入。 | Pending |
+| 是否同意 `WarehouseAnalyticsScreen` 作為略過 Task Execution 後的下一個 read-only 畫面 | 確認前端第一版方向。 | 畫面實作依照規劃執行，現階段優先開發顯示資料的畫面（串接 GET API）。 |
+| 是否同意 `overview` + 4 個 detail GET endpoints | 影響 API 切分與效能策略。 | 你建議採取何種方式，能夠達到最佳化？ |
+| `period` 第一版是否限制為 7d / 30d / 90d | 避免長區間即時計算壓力。 | 可以，後續如有需求再新增。 |
+| `spaceTrend` 歷史資料不足時是否可只回傳目前 bucket | 避免推測不存在的倉位歷史。 | 可以 |
+| task SLA 是否允許用 workflow_task_state creationTime/updateTime fallback | workflow_task_event 可能尚未完整導入。 | 當 workflow_task_event 無資料時，回傳空陣列即可，還是有其他需要考量的情況？ |

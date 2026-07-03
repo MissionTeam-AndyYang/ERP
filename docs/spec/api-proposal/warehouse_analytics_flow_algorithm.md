@@ -36,20 +36,22 @@ dateTo
 period
 bucket
 x-timezone
-warehouseNo
+warehouse_no
 itemCategory
 taskType
 ```
 
 建議流程：
 
-1. Analytics API query parameter 統一採 lowerCamelCase；資料庫欄位仍維持原 schema 命名，例如 query `warehouseNo` 對應 database `warehouse_no`。
+1. Query parameter 命名沿用既有 Warehouse API 風格；倉儲篩選使用 `warehouse_no`，response payload 仍可使用 `warehouseNo`。
 2. 若 `dateTo` 未提供，以伺服器目前 UTC timestamp 為準。
-3. 若 `dateFrom` 未提供，依 `period` 推算。
-4. `period` 未提供時預設 `30d`。
-5. `bucket` 未提供時預設 `day`。
-6. 若 `period` 不在允許清單，第一版建議 fallback 至 `30d`，並在 response.range 回傳實際採用值。
-7. 不使用 `dateRange`，避免與任務工作台的 `today`、`overdue`、`next_7_days` 等語意型範圍混淆。
+3. 若僅提供 `period`，依 `period` 與 `dateTo` 推算 `dateFrom`。
+4. 若提供 `dateFrom/dateTo` 且未提供 `period`，直接使用明確區間，response.range.period 回傳空字串。
+5. 若同時提供 `dateFrom/dateTo` 與 `period`，需驗證明確區間與 period 天數一致；不一致時回傳參數錯誤，不自動選擇其中一個。
+6. `period` 未提供且未提供 `dateFrom` 時預設 `30d`。
+7. `bucket` 未提供時預設 `day`。
+8. 若 `period` 不在允許清單，第一版建議 fallback 至 `30d`，並在 response.range 回傳實際採用值。
+9. 不使用 `dateRange`，避免與任務工作台的 `today`、`overdue`、`next_7_days` 等語意型範圍混淆。
 
 ## 共用 Step 2：建立庫存快照與趨勢資料
 
@@ -226,8 +228,8 @@ payload.overdueTrend[]
 1. `overview` 聚合 API 查詢較重，第一版建議 period 預設 `30d`，且前端不要高頻輪詢。
 2. `value-trend` 與 `space-utilization` 可分開 lazy load，避免首屏等待所有圖表完成。
 3. 長區間趨勢若未來超過 `90d`，建議新增每日彙總表或 cache，不建議長期依 `inventory_record` 即時計算。
-4. 風險批號清單 drill-down 應導向既有 `GET /api/v2/warehouse/inventory/lots`，避免 analytics API 回傳大量明細。
-5. 任務明細 drill-down 應導向既有 `GET /api/v2/warehouse/task-workbench` 與 `GET /api/v2/warehouse/task-workbench/tasks/{taskId}`。
+4. 風險批號清單 drill-down 應由前端依 `riskType` 與目前畫面狀態組合 query string，導向既有 `GET /api/v2/warehouse/inventory/lots`，避免 analytics API 回傳大量明細或前端路由字串。
+5. 任務明細 drill-down 應由前端依 `taskType` 與目前畫面狀態組合 query string，導向既有 `GET /api/v2/warehouse/task-workbench` 與 `GET /api/v2/warehouse/task-workbench/tasks/{taskId}`。
 
 ## 不得推測或需工程師確認
 

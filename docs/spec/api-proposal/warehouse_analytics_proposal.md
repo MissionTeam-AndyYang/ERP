@@ -10,6 +10,12 @@
    - 「第一版避免 silent fallback：若同時提供 `dateFrom/dateTo` 與 `period`，後端需驗證兩者一致；若不一致，回傳參數錯誤，不自動猜測使用哪一個。前端應優先只送一種期間模式：快捷查詢送 `period`，自訂區間送 `dateFrom/dateTo` 並省略 `period`。」 
    是否能將查詢參數改為 `date` 與 `period`，並由後端自行推算 `dateFrom`？
 
+### 工程師回覆V3理解與更新
+
+| 工程師提問V3 | 工程師回覆V3 | 理解與確認 | 文件更新 |
+| --- | --- | --- | --- |
+| 是否能將查詢參數改為 `date` 與 `period`，並由後端自行推算 `dateFrom`？ | 工程師提問已明確提出此調整方向。 | 採用。第一版 Analytics API 期間查詢統一改為 `date + period`：`date` 為查詢基準/截止 UTC timestamp，未提供時使用伺服器目前時間；`period` 為回溯區間，第一版支援 `7d`、`30d`、`90d`，未提供時預設 `30d`。後端依 `date` 與 `period` 推算 `payload.range.startTimestamp` 與 `payload.range.endTimestamp`，前端不再傳 `dateFrom/dateTo`。 | 已更新 Shared Query Parameters、Period Resolution Rules、Field Description、Frontend Interaction Notes，並同步更新 flow/algorithm。 |
+
 
 ## 工程師提問V2
 1. 針對 `/api/v2/warehouse/analytics/overview`
@@ -21,7 +27,7 @@
 
 | 工程師提問V2 | 工程師回覆V2 | 理解與確認 | 文件更新 |
 | --- | --- | --- | --- |
-| `dateFrom` 與 `period` 同時存在但推算天數不一致時，應如何處理？ | 原文件未提供獨立工程師回覆；本次由提案文件補齊處理規則。 | 第一版避免 silent fallback：若同時提供 `dateFrom/dateTo` 與 `period`，後端需驗證兩者一致；若不一致，回傳參數錯誤，不自動猜測使用哪一個。前端應優先只送一種期間模式：快捷查詢送 `period`，自訂區間送 `dateFrom/dateTo` 並省略 `period`。 | 已新增 Period Resolution Rules。 |
+| `dateFrom` 與 `period` 同時存在但推算天數不一致時，應如何處理？ | 原文件未提供獨立工程師回覆；V3 已提出更簡化的 `date + period` 設計。 | V3 已取代此衝突處理需求：前端不再傳 `dateFrom/dateTo`，後端一律由 `date + period` 推算區間，因此不會發生 `dateFrom` 與 `period` 不一致問題。 | 已以 V3 Period Resolution Rules 取代原 V2 規則。 |
 | 將 `warehouseNo` 調整為 `warehouse_no`，以與其他 API 命名風格保持一致。 | 工程師提問已明確建議調整為 `warehouse_no`。 | Query parameter 改為 `warehouse_no`；response payload 內的 `warehouseNo` 維持不變，以延續現有 Warehouse API response 欄位風格。 | 已更新 Shared Query Parameters 與相關說明。 |
 | `drilldownQuery` 是否能由前端保存參數數值，並在需要時組合成導向使用者操作的 Query String？ | 原文件未提供獨立工程師回覆；本次由 Codex 建議採用前端組合方式。 | 可以。後端不回傳 `drilldownQuery`，只回傳 `riskType`、`taskType`、`warehouseNo` 等結構化欄位；前端依畫面狀態自行組合導向 URL / query string。 | 已移除 response 中的 `drilldownQuery`，並更新 Drill-down Design。 |
 
@@ -29,7 +35,7 @@
 
 | 工程師提問 | 工程師回覆 | 理解與確認 | 文件更新 |
 | --- | --- | --- | --- |
-| 針對 `/api/v2/warehouse/analytics/overview`，請統一查詢參數的設計風格與命名，例如使用 `dateFrom` / `dateTo` / `period` 還是 `date` / `dateRange`。 | 原文件此區未提供獨立工程師回覆；本次依提問補齊提案。 | 採用 analytics 專用期間設計：`dateFrom/dateTo` 表示明確 UTC timestamp 區間，`period` 表示快捷期間，`bucket` 表示趨勢粒度。V2 已依工程師建議將倉儲篩選 query parameter 調整為 `warehouse_no`，以符合既有 Warehouse API 風格。 | 已更新 Shared Query Parameters，新增 Query Parameter Design Notes 與 Period Resolution Rules。 |
+| 針對 `/api/v2/warehouse/analytics/overview`，請統一查詢參數的設計風格與命名，例如使用 `dateFrom` / `dateTo` / `period` 還是 `date` / `dateRange`。 | 原文件此區未提供獨立工程師回覆；V3 已提出改用 `date + period`。 | 採用 `date + period + bucket`：`date` 為查詢基準/截止時間，`period` 表示回溯區間，`bucket` 表示趨勢粒度。倉儲篩選 query parameter 維持 `warehouse_no`，以符合既有 Warehouse API 風格。 | 已更新 Shared Query Parameters、Period Resolution Rules 與 flow/algorithm。 |
 | 請補齊回傳資料結構中所有欄位的詳細說明，確保每個欄位的用途、型別與可能值都清楚定義。 | 原文件此區未提供獨立工程師回覆；本次依提問補齊提案。 | 補齊 `serverTimestamp`、`timezone`、`range`、`kpi`、`valueTrend`、`spaceTrend`、`riskBreakdown`、`taskSla` 全部欄位說明。 | 已擴充 Field Description。 |
 | 請針對 `drilldownQuery` 欄位提供完整解釋，例如欄位的設計目的。 | 原文件此區未提供獨立工程師回覆；本次依提問補齊提案。 | V2 已調整為後端不回傳 `drilldownQuery`；前端以 response 結構化欄位與目前畫面狀態自行組合導向 query string。 | 已更新 Drill-down Design，並從 response 移除 `drilldownQuery`。 |
 | 請勿直接覆蓋「工程師回覆」欄位的資料，應新增獨立欄位以填寫確認資訊。 | 原文件此區未提供獨立工程師回覆；本次依提問補齊提案。 | 保留工程師原始回覆，新增「理解與確認」與「文件更新」欄位紀錄本次處理結果。 | 已更新本節與文件底部 review table。 |
@@ -60,10 +66,10 @@
 
 ### Query Parameter Design Notes
 
-Analytics API 第一版統一採用兩種期間模式，且不得混淆使用：
+Analytics API 第一版統一採用 `date + period + bucket`：
 
-1. 快捷期間模式：前端只送 `period`，第一版支援 `7d`、`30d`、`90d`，後端依 `period` 與 `dateTo` 推算 `dateFrom`。
-2. 明確區間模式：前端送 `dateFrom` 與 `dateTo`，並省略 `period`。
+1. `date` 表示查詢基準/截止時間，UTC timestamp；未提供時使用伺服器目前時間。
+2. `period` 表示回溯區間，第一版支援 `7d`、`30d`、`90d`；未提供時預設 `30d`。
 3. `bucket` 表示趨勢資料分桶粒度，第一版支援 `day`、`week`、`month`。
 4. 不使用 `dateRange`，避免與 `WarehouseTaskWorkbenchScreen` 的 `today`、`overdue`、`next_7_days` 等任務語意型範圍混淆。
 5. Query parameter 命名沿用既有 Warehouse API 風格：倉儲篩選使用 `warehouse_no`；response payload 仍使用既有 camelCase 欄位，例如 `warehouseNo`。
@@ -72,15 +78,15 @@ Analytics API 第一版統一採用兩種期間模式，且不得混淆使用：
 
 | Condition | Backend Behavior | Response Range |
 | --- | --- | --- |
-| 僅提供 `period` | 依 `period` 與 `dateTo` 推算 `dateFrom`。 | `payload.range.period` 回傳實際採用的 `period`。 |
-| 提供 `dateFrom` / `dateTo`，未提供 `period` | 直接使用明確區間。 | `payload.range.period` 回傳空字串，`startTimestamp` / `endTimestamp` 回傳實際區間。 |
-| 同時提供 `dateFrom` / `dateTo` 與 `period`，且區間與 `period` 一致 | 接受查詢。 | `payload.range.period` 回傳實際採用的 `period`。 |
-| 同時提供 `dateFrom` / `dateTo` 與 `period`，但區間與 `period` 不一致 | 回傳參數錯誤，不自動選擇其中一個，以避免前後端對查詢範圍理解不一致。 | 不回傳成功 payload。 |
+| 未提供 `date`，未提供 `period` | `date` 使用伺服器目前 UTC timestamp，`period` 使用預設 `30d`。 | `endTimestamp = server now`；`startTimestamp = endTimestamp - 30d`。 |
+| 僅提供 `date` | `period` 使用預設 `30d`。 | `endTimestamp = date`；`startTimestamp = date - 30d`。 |
+| 僅提供 `period` | `date` 使用伺服器目前 UTC timestamp。 | `endTimestamp = server now`；`startTimestamp = endTimestamp - period`。 |
+| 同時提供 `date` 與 `period` | 直接使用 `date` 作為截止時間，依 `period` 回推起始時間。 | `endTimestamp = date`；`startTimestamp = date - period`。 |
+| 提供不支援的 `period` | 第一版建議 fallback 至 `30d`，並在 `payload.range.period` 回傳實際採用值。 | `payload.range.period = 30d`。 |
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| dateFrom | Integer | NO | 查詢起始時間，UTC timestamp；未提供時由後端依 period 推算。 |
-| dateTo | Integer | NO | 查詢結束時間，UTC timestamp；未提供時以查詢當下為準。 |
+| date | Integer | NO | 查詢基準/截止時間，UTC timestamp；未提供時使用伺服器目前時間。 |
 | period | String | NO | 查詢期間代碼；建議支援 `7d`、`30d`、`90d`。第一版預設 `30d`。 |
 | bucket | String | NO | 趨勢粒度；建議支援 `day`、`week`、`month`。第一版預設 `day`。 |
 | warehouse_no | String | NO | 倉儲別名 no；提供時只回傳指定倉儲資料，對應資料庫 `warehouse_no` / `ship_wh_alias.no`。 |
@@ -182,10 +188,10 @@ Analytics API 第一版統一採用兩種期間模式，且不得混淆使用：
 | message | String | API 執行結果訊息；成功時可回傳空字串或成功訊息，錯誤時回傳錯誤摘要。 |  |
 | payload.serverTimestamp | Integer | 後端產生此 response 的 UTC timestamp，供前端顯示資料更新時間。 |  |
 | payload.timezone | String | 後端採用的時區代碼；預設可依 `x-timezone` header 或系統設定回填。 |  |
-| payload.range.period | String | 本次實際採用的查詢期間代碼；快捷期間模式回傳 `7d`、`30d`、`90d`，明確區間模式且未提供 `period` 時回傳空字串。 |  |
+| payload.range.period | String | 本次實際採用的查詢期間代碼；回傳 `7d`、`30d`、`90d`，若 request 未提供或提供不支援值，回傳後端實際採用值。 |  |
 | payload.range.bucket | String | 本次實際採用的趨勢粒度；允許值第一版為 `day`、`week`、`month`。 |  |
-| payload.range.startTimestamp | Integer | 本次查詢實際起始 UTC timestamp；由 `dateFrom` 或 `period` 推算。 |  |
-| payload.range.endTimestamp | Integer | 本次查詢實際截止 UTC timestamp；由 `dateTo` 或查詢當下時間決定。 |  |
+| payload.range.startTimestamp | Integer | 本次查詢實際起始 UTC timestamp；由 `date - period` 推算。 |  |
+| payload.range.endTimestamp | Integer | 本次查詢實際截止 UTC timestamp；由 request `date` 或伺服器目前時間決定。 |  |
 | payload.kpi.totalInventoryValue | Integer | 查詢截止時間的目前庫存總價值，來源為庫存快照中各類別 `inventoryValue` 加總，金額四捨五入取整數。 |  |
 | payload.kpi.valueChangeRate | Float | 與查詢起始時間相比的庫存總價值變化率；公式為 `(endValue - startValue) / startValue * 100`，`startValue` 為 0 時回傳 0.0。 |  |
 | payload.kpi.usedPallets | Float | 查詢截止時間已佔用或保留的總板數，來源為 `warehouse_pallet_movement` 與相關保留資料彙總。 |  |
@@ -226,7 +232,7 @@ Analytics API 第一版統一採用兩種期間模式，且不得混淆使用：
 
 1. 風險分布點選時，前端可使用 `riskBreakdown[].riskType` 組合 `WarehouseInventoryLotListScreen` 查詢條件，例如 `riskType=BELOW_SAFETY_STOCK`。
 2. 任務 SLA 點選時，前端可使用 `taskSla[].taskType` 與畫面狀態組合 `WarehouseTaskWorkbenchScreen` 查詢條件，例如 `dateRange=overdue&taskType=5`。
-3. 若目前畫面已有 `warehouse_no`、`itemCategory`、`period` 或 `dateFrom/dateTo` 狀態，前端可自行決定是否帶入 drill-down 目標頁。
+3. 若目前畫面已有 `warehouse_no`、`itemCategory`、`date` 或 `period` 狀態，前端可自行決定是否帶入 drill-down 目標頁。
 4. 後端不需要保存前端路由規則，也不得回傳會造成資料寫入的 action code。
 
 ## Detail Endpoints
@@ -284,7 +290,7 @@ Analytics API 第一版統一採用兩種期間模式，且不得混淆使用：
 
 | UI Action | API Behavior |
 | --- | --- |
-| 首次進入分析頁 | 呼叫 `GET /api/v2/warehouse/analytics/overview?period=30d&bucket=day` |
+| 首次進入分析頁 | 呼叫 `GET /api/v2/warehouse/analytics/overview?period=30d&bucket=day`；未提供 `date` 時由後端使用伺服器目前時間 |
 | 切換期間 | KPI 區重新呼叫 overview；已展開的圖表區呼叫對應 detail endpoint |
 | 點選庫存價值趨勢 | 呼叫 value-trend endpoint，以取得該圖表需要的完整 bucket 與 category summary |
 | 點選倉位使用趨勢 | 呼叫 space-utilization endpoint，以取得倉儲容量與板位趨勢 |

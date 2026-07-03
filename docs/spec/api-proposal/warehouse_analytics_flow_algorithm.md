@@ -31,8 +31,7 @@ GET /api/v2/warehouse/analytics/task-sla
 輸入：
 
 ```txt
-dateFrom
-dateTo
+date
 period
 bucket
 x-timezone
@@ -44,14 +43,13 @@ taskType
 建議流程：
 
 1. Query parameter 命名沿用既有 Warehouse API 風格；倉儲篩選使用 `warehouse_no`，response payload 仍可使用 `warehouseNo`。
-2. 若 `dateTo` 未提供，以伺服器目前 UTC timestamp 為準。
-3. 若僅提供 `period`，依 `period` 與 `dateTo` 推算 `dateFrom`。
-4. 若提供 `dateFrom/dateTo` 且未提供 `period`，直接使用明確區間，response.range.period 回傳空字串。
-5. 若同時提供 `dateFrom/dateTo` 與 `period`，需驗證明確區間與 period 天數一致；不一致時回傳參數錯誤，不自動選擇其中一個。
-6. `period` 未提供且未提供 `dateFrom` 時預設 `30d`。
-7. `bucket` 未提供時預設 `day`。
-8. 若 `period` 不在允許清單，第一版建議 fallback 至 `30d`，並在 response.range 回傳實際採用值。
-9. 不使用 `dateRange`，避免與任務工作台的 `today`、`overdue`、`next_7_days` 等語意型範圍混淆。
+2. `date` 為查詢基準/截止 UTC timestamp；未提供時使用伺服器目前 UTC timestamp。
+3. `period` 為回溯區間；未提供時預設 `30d`。
+4. `bucket` 未提供時預設 `day`。
+5. 若 `period` 不在允許清單，第一版建議 fallback 至 `30d`，並在 response.range 回傳實際採用值。
+6. 後端依 `date + period` 推算 range：`endTimestamp = date`，`startTimestamp = date - period`。
+7. 不接收 `dateFrom/dateTo` 作為第一版 Analytics API query parameter，避免前端與後端對查詢區間產生雙重來源。
+8. 不使用 `dateRange`，避免與任務工作台的 `today`、`overdue`、`next_7_days` 等語意型範圍混淆。
 
 ## 共用 Step 2：建立庫存快照與趨勢資料
 

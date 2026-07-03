@@ -5,6 +5,12 @@
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_analytics_flow_algorithm.md`
 > Related V1 Rule: Warehouse V1 frontend is read-only; this proposal contains GET APIs only.
 
+## 工程師提問V3
+1. 針對 `/api/v2/warehouse/analytics/overview`
+   - 「第一版避免 silent fallback：若同時提供 `dateFrom/dateTo` 與 `period`，後端需驗證兩者一致；若不一致，回傳參數錯誤，不自動猜測使用哪一個。前端應優先只送一種期間模式：快捷查詢送 `period`，自訂區間送 `dateFrom/dateTo` 並省略 `period`。」 
+   是否能將查詢參數改為 `date` 與 `period`，並由後端自行推算 `dateFrom`？
+
+
 ## 工程師提問V2
 1. 針對 `/api/v2/warehouse/analytics/overview`
    - 若查詢參數 `dateFrom` 與 `period` 同時存在且回傳數值，若由 `dateFrom` 推算天數後發現與所填 `period` 數值不一致，應如何處理？  

@@ -1,6 +1,6 @@
 # Warehouse Analytics API Proposal
 
-> Status: Proposal / Pending Engineer Review
+> Status: Confirmed / Backend Implemented
 > Target UI Preview: `docs/spec/api-proposal/warehouse_analytics_static_preview.html`
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_analytics_flow_algorithm.md`
 > Related V1 Rule: Warehouse V1 frontend is read-only; this proposal contains GET APIs only.
@@ -56,11 +56,11 @@
 
 | URL | Method | Description | Status | Review Note |
 | --- | --- | --- | --- | --- |
-| `/api/v2/warehouse/analytics/overview` | GET | 查詢倉庫分析總覽資料 | Proposal / Pending Engineer Review | 首屏聚合 API，回傳 KPI、價值趨勢、倉位使用、風險摘要與任務效率摘要。 |
-| `/api/v2/warehouse/analytics/value-trend` | GET | 查詢庫存價值趨勢 | Proposal / Pending Engineer Review | 供價值趨勢圖 drill-down 使用。 |
-| `/api/v2/warehouse/analytics/space-utilization` | GET | 查詢倉位與板位使用趨勢 | Proposal / Pending Engineer Review | 供倉儲容量與寄倉規劃分析使用。 |
-| `/api/v2/warehouse/analytics/risk-breakdown` | GET | 查詢庫存風險分布 | Proposal / Pending Engineer Review | 供迴轉、效期、安全水位、品檢保留與庫存不足分析使用。 |
-| `/api/v2/warehouse/analytics/task-sla` | GET | 查詢倉庫任務處理效率 | Proposal / Pending Engineer Review | 供任務準時率、逾期、阻塞、平均處理時間分析使用。 |
+| `/api/v2/warehouse/analytics/overview` | GET | 查詢倉庫分析總覽資料 | Implemented / Pending Runtime Review | 首屏聚合 API，回傳 KPI、價值趨勢、倉位使用、風險摘要與任務效率摘要。 |
+| `/api/v2/warehouse/analytics/value-trend` | GET | 查詢庫存價值趨勢 | Implemented / Pending Runtime Review | 供價值趨勢圖 drill-down 使用。 |
+| `/api/v2/warehouse/analytics/space-utilization` | GET | 查詢倉位與板位使用趨勢 | Implemented / Pending Runtime Review | 供倉儲容量與寄倉規劃分析使用。 |
+| `/api/v2/warehouse/analytics/risk-breakdown` | GET | 查詢庫存風險分布 | Implemented / Pending Runtime Review | 供迴轉、效期、安全水位、品檢保留與庫存不足分析使用。 |
+| `/api/v2/warehouse/analytics/task-sla` | GET | 查詢倉庫任務處理效率 | Implemented / Pending Runtime Review | 供任務準時率、逾期、阻塞、平均處理時間分析使用。 |
 
 ## Shared Query Parameters
 

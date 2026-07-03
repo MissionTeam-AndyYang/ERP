@@ -13,6 +13,11 @@
 | [/api/v2/warehouse/tasks](#get-api-v2-warehouse-tasks) | GET | 查詢 Warehouse 待處理任務 | Implemented / Pending Runtime Review | [新增] 工程師已確認之 Warehouse Dashboard 待處理入出庫任務 API。 |
 | [/api/v2/warehouse/task-workbench](#get-api-v2-warehouse-task-workbench) | GET | 查詢倉庫任務工作台清單與看板摘要 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_task_workbench_proposal.md` 整合至正式 API 文件；第一版 read-only。 |
 | [/api/v2/warehouse/task-workbench/tasks/{taskId}](#get-api-v2-warehouse-task-workbench-tasks-taskid) | GET | 查詢單一倉庫任務追蹤明細 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_task_workbench_proposal.md` 整合至正式 API 文件；timeline 由 `workflow_task_event` 提供。 |
+| [/api/v2/warehouse/analytics/overview](#get-api-v2-warehouse-analytics-overview) | GET | 查詢倉庫分析總覽資料 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_analytics_proposal.md` 實作；第一版 read-only。 |
+| [/api/v2/warehouse/analytics/value-trend](#get-api-v2-warehouse-analytics-value-trend) | GET | 查詢庫存價值趨勢 | Implemented / Pending Runtime Review | [新增] Analytics detail endpoint；由前端 lazy load 或圖表展開使用。 |
+| [/api/v2/warehouse/analytics/space-utilization](#get-api-v2-warehouse-analytics-space-utilization) | GET | 查詢倉位與板位使用趨勢 | Implemented / Pending Runtime Review | [新增] Analytics detail endpoint；由前端 lazy load 或圖表展開使用。 |
+| [/api/v2/warehouse/analytics/risk-breakdown](#get-api-v2-warehouse-analytics-risk-breakdown) | GET | 查詢庫存風險分布 | Implemented / Pending Runtime Review | [新增] Analytics detail endpoint；後端不回傳前端路由 query string。 |
+| [/api/v2/warehouse/analytics/task-sla](#get-api-v2-warehouse-analytics-task-sla) | GET | 查詢倉庫任務處理效率 | Implemented / Pending Runtime Review | [新增] Analytics detail endpoint；completion 與 lead time 只依 `workflow_task_event` 計算。 |
 
 ## GET /api/v2/warehouse/dashboard
 
@@ -1134,6 +1139,281 @@ None
 | warehouse_quality_hold | 品檢保留數量與價值 |
 | batch_number | 批號效期與批號來源資料 |
 | ship_wh_alias | 倉儲別名與顯示名稱 |
+
+## GET /api/v2/warehouse/analytics/overview
+
+<a id="get-api-v2-warehouse-analytics-overview"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/analytics/overview | GET | 查詢倉庫分析總覽資料 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示時區；未提供時以 UTC 回傳 |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準/截止時間，UTC timestamp；未提供時使用伺服器目前時間 |
+| period | String | NO | 回溯區間；第一版支援 `7d`、`30d`、`90d`，未提供或不支援時採用 `30d` |
+| bucket | String | NO | 趨勢粒度；第一版支援 `day`、`week`、`month`，未提供或不支援時採用 `day` |
+| warehouse_no | String | NO | 倉儲別名 no；提供時只回傳指定倉儲資料 |
+| itemCategory | Integer | NO | 料品品項類別；原料(1)、物料(2)、膠捲(3)、在製品(4)、製成品(5) |
+| taskType | Integer | NO | 任務類型；提供時限制 task SLA 計算範圍 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "range": {
+      "period": "String",
+      "bucket": "String",
+      "startTimestamp": "Integer",
+      "endTimestamp": "Integer"
+    },
+    "kpi": {
+      "totalInventoryValue": "Integer",
+      "valueChangeRate": "Float",
+      "usedPallets": "Float",
+      "spaceUtilizationRate": "Float",
+      "riskLotCount": "Integer",
+      "openTaskCount": "Integer",
+      "overdueTaskRate": "Float"
+    },
+    "valueTrend": [],
+    "spaceTrend": [],
+    "riskBreakdown": [],
+    "taskSla": []
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| payload.range | Object | 後端依 `date + period` 推算之查詢區間；第一版不接收 `dateFrom/dateTo` |  |
+| payload.kpi.totalInventoryValue | Integer | 查詢截止時間庫存總價值 |  |
+| payload.kpi.valueChangeRate | Float | 與查詢起始時間相比的庫存總價值變化率 |  |
+| payload.kpi.usedPallets | Float | 查詢截止時間已佔用板數 |  |
+| payload.kpi.spaceUtilizationRate | Float | 已佔用板數 / 總板數 * 100 |  |
+| payload.kpi.riskLotCount | Integer | 有任一風險的批號庫存去重筆數 |  |
+| payload.kpi.openTaskCount | Integer | 開放中任務數，包含 pending、partial、blocked |  |
+| payload.kpi.overdueTaskRate | Float | 開放任務中逾期任務比例 |  |
+| payload.valueTrend[] | Array | 庫存價值趨勢，欄位同 value-trend endpoint |  |
+| payload.spaceTrend[] | Array | 倉位使用趨勢，欄位同 space-utilization endpoint |  |
+| payload.riskBreakdown[] | Array | 風險分布，欄位同 risk-breakdown endpoint |  |
+| payload.taskSla[] | Array | 任務 SLA 摘要，欄位同 task-sla endpoint |  |
+
+### Processing Flow
+
+1. 讀取 `date`、`period`、`bucket`、`warehouse_no`、`itemCategory`、`taskType`。
+2. 由後端以 `date + period` 推算 `range.startTimestamp` 與 `range.endTimestamp`。
+3. 重用 Warehouse Dashboard 已確認的庫存快照、倉位容量、風險與庫存明細計算。
+4. 依 `workflow_task_state` 計算目前開放、逾期與阻塞任務。
+5. 依 `workflow_task_event` 計算完成任務、準時率與平均處理時間；不得以 `workflow_task_state.updateTime` 推測完成時間。
+6. 回傳 read-only analytics payload；不寫入資料庫。
+
+## GET /api/v2/warehouse/analytics/value-trend
+
+<a id="get-api-v2-warehouse-analytics-value-trend"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/analytics/value-trend | GET | 查詢庫存價值趨勢 |
+
+### Query Parameters
+
+同 `/api/v2/warehouse/analytics/overview`。
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "range": "Object",
+    "summaryByCategory": [],
+    "valueTrend": [
+      {
+        "bucketStart": "Integer",
+        "bucketLabel": "String",
+        "itemCategory": "Integer",
+        "inventoryValue": "Integer",
+        "availableValue": "Integer",
+        "reservedValue": "Integer",
+        "qualityHoldValue": "Integer"
+      }
+    ]
+  }
+}
+```
+
+## GET /api/v2/warehouse/analytics/space-utilization
+
+<a id="get-api-v2-warehouse-analytics-space-utilization"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/analytics/space-utilization | GET | 查詢倉位與板位使用趨勢 |
+
+### Query Parameters
+
+同 `/api/v2/warehouse/analytics/overview`。
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "range": "Object",
+    "summaryByWarehouse": [],
+    "spaceTrend": [
+      {
+        "bucketStart": "Integer",
+        "warehouseNo": "String",
+        "warehouseName": "String",
+        "usedPallets": "Float",
+        "reservedPallets": "Float",
+        "availablePallets": "Float",
+        "utilizationRate": "Float"
+      }
+    ]
+  }
+}
+```
+
+## GET /api/v2/warehouse/analytics/risk-breakdown
+
+<a id="get-api-v2-warehouse-analytics-risk-breakdown"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/analytics/risk-breakdown | GET | 查詢庫存風險分布 |
+
+### Query Parameters
+
+同 `/api/v2/warehouse/analytics/overview`。
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "range": "Object",
+    "riskSummary": {
+      "riskTypeCount": "Integer",
+      "riskLotCount": "Integer",
+      "riskInventoryValue": "Integer"
+    },
+    "riskBreakdown": [
+      {
+        "riskType": "String",
+        "riskLevel": "Integer",
+        "lotCount": "Integer",
+        "inventoryValue": "Integer",
+        "quantity": "Float"
+      }
+    ],
+    "topRiskLots": []
+  }
+}
+```
+
+### Notes
+
+後端不回傳 `drilldownQuery`。前端需依 `riskType`、`taskType`、`warehouse_no`、`date`、`period` 等畫面狀態自行組合導向使用者操作的 query string。
+
+## GET /api/v2/warehouse/analytics/task-sla
+
+<a id="get-api-v2-warehouse-analytics-task-sla"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/warehouse/analytics/task-sla | GET | 查詢倉庫任務處理效率 |
+
+### Query Parameters
+
+同 `/api/v2/warehouse/analytics/overview`。
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "range": "Object",
+    "summaryByTaskType": [
+      {
+        "taskType": "Integer",
+        "openTaskCount": "Integer",
+        "completedTaskCount": "Integer",
+        "overdueTaskCount": "Integer",
+        "blockedTaskCount": "Integer",
+        "onTimeRate": "Float",
+        "averageLeadTimeHours": "Float"
+      }
+    ],
+    "summaryByDepartment": [],
+    "overdueTrend": []
+  }
+}
+```
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| inventory_month_statistic | 類別層級月結庫存價值基準 |
+| inventory_item_month_statistic | 批號層級庫存快照 |
+| inventory_delta | 月結後異動補算 |
+| inventory_record | 庫存防護性補算 |
+| warehouse_pallet_movement | 倉位與板位使用趨勢 |
+| warehouse_inventory_reservation | 預留數量、價值與板數 |
+| warehouse_quality_hold | 品檢保留數量與價值 |
+| warehouse_risk_rule | 風險規則與風險等級 |
+| workflow_task_state | 任務目前狀態與負責部門 |
+| workflow_task_event | 任務完成事件、first event 與 lead time 計算 |
+| ship_wh_alias | 倉儲別名與顯示名稱 |
+| batch_number | 批號來源與效期資訊 |
 
 ## GET /api/v2/warehouse/task-workbench/tasks/{taskId}
 

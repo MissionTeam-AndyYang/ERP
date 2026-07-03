@@ -4,6 +4,7 @@ from flask import Blueprint
 from package.restserver.api.apibase import CAPIBase
 from package.restserver.api.common import URL_PATH_V2
 from package.restserver.api.v2.warehouse import (
+    CWarehouseAnalytics,
     CWarehouseDashboard,
     CWarehouseInventory,
     CWarehouseInventoryLotDetail,
@@ -66,6 +67,14 @@ class CWarehouseTaskWorkbenchURI(CAPIBase):
         return False
 
 
+class CWarehouseAnalyticsURI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseAnalytics()
+
+    def _is_vaildate_param(self):
+        return False
+
+
 @warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/dashboard", methods=["GET"])
 def dashboard():
     obj_uri = CWarehouseDashboardURI()
@@ -106,3 +115,33 @@ def task_workbench():
 def task_workbench_detail(task_id):
     obj_uri = CWarehouseTaskWorkbenchURI()
     return obj_uri.run(task_id or "")
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/analytics/overview", methods=["GET"])
+def analytics_overview():
+    obj_uri = CWarehouseAnalyticsURI()
+    return obj_uri.run("overview")
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/analytics/value-trend", methods=["GET"])
+def analytics_value_trend():
+    obj_uri = CWarehouseAnalyticsURI()
+    return obj_uri.run("value-trend")
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/analytics/space-utilization", methods=["GET"])
+def analytics_space_utilization():
+    obj_uri = CWarehouseAnalyticsURI()
+    return obj_uri.run("space-utilization")
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/analytics/risk-breakdown", methods=["GET"])
+def analytics_risk_breakdown():
+    obj_uri = CWarehouseAnalyticsURI()
+    return obj_uri.run("risk-breakdown")
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/analytics/task-sla", methods=["GET"])
+def analytics_task_sla():
+    obj_uri = CWarehouseAnalyticsURI()
+    return obj_uri.run("task-sla")

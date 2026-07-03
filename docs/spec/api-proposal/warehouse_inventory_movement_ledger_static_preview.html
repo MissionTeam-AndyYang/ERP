@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Warehouse Inventory Movement Ledger Static Preview</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #d8dee8;
+      --text: #202938;
+      --muted: #687385;
+      --blue: #2563eb;
+      --green: #138a63;
+      --red: #c2410c;
+      --amber: #b7791f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 24px; font-weight: 700; }
+    h2 { font-size: 16px; font-weight: 700; }
+    h3 { font-size: 13px; color: var(--muted); font-weight: 700; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sub { color: var(--muted); margin-top: 4px; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .chip, .button {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel);
+      padding: 7px 10px;
+      white-space: nowrap;
+    }
+    .button.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .grid { display: grid; gap: 12px; }
+    .kpis {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-bottom: 12px;
+    }
+    .main {
+      grid-template-columns: minmax(0, 1.3fr) minmax(360px, .7fr);
+      align-items: start;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .kpi {
+      min-height: 92px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .label { color: var(--muted); font-size: 12px; }
+    .value { font-size: 22px; font-weight: 700; }
+    .delta { font-size: 12px; color: var(--muted); }
+    .green { color: var(--green); }
+    .red { color: var(--red); }
+    .amber { color: var(--amber); }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .field {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 10px;
+      background: #fbfcfe;
+      min-height: 54px;
+    }
+    .field strong {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    th {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      background: #fbfcfe;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge.in { background: #dcfce7; color: #166534; }
+    .badge.out { background: #ffedd5; color: #9a3412; }
+    .chart {
+      height: 170px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      align-items: end;
+      gap: 10px;
+      padding-top: 10px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 10px;
+    }
+    .bar {
+      border-radius: 6px 6px 0 0;
+      min-height: 14px;
+      background: linear-gradient(180deg, #60a5fa, #2563eb);
+    }
+    .legend {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .stack { display: grid; gap: 12px; }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
+    }
+    .row:last-child { border-bottom: 0; }
+    @media (max-width: 1100px) {
+      .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .main { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 720px) {
+      .shell { padding: 16px; }
+      .header { flex-direction: column; }
+      .toolbar { justify-content: flex-start; }
+      .kpis, .filters { grid-template-columns: 1fr; }
+      table { min-width: 900px; }
+      .table-wrap { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="header">
+      <div>
+        <h1>庫存異動流水帳</h1>
+        <p class="sub">以入出庫紀錄追溯庫存數量、價值、批號與來源單據。</p>
+      </div>
+      <div class="toolbar">
+        <div class="chip">期間：最近 30 天</div>
+        <div class="chip">倉庫：全部</div>
+        <div class="chip">類別：全部</div>
+        <button class="button primary">重新查詢</button>
+      </div>
+    </section>
+
+    <section class="grid kpis">
+      <div class="panel kpi">
+        <span class="label">異動筆數</span>
+        <span class="value">428</span>
+        <span class="delta">依目前篩選條件</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">入庫金額</span>
+        <span class="value green">$8,420,000</span>
+        <span class="delta">原料與製成品為主</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">出庫金額</span>
+        <span class="value red">$6,180,000</span>
+        <span class="delta">生產領料與出貨</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">淨異動金額</span>
+        <span class="value">$2,240,000</span>
+        <span class="delta green">庫存價值增加</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">入庫數量</span>
+        <span class="value">31,250.00</span>
+        <span class="delta">混合單位僅供參考</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">出庫數量</span>
+        <span class="value">24,940.00</span>
+        <span class="delta">混合單位僅供參考</span>
+      </div>
+    </section>
+
+    <section class="filters">
+      <div class="field"><strong>料品</strong>全部料號</div>
+      <div class="field"><strong>批號</strong>可輸入批號</div>
+      <div class="field"><strong>來源單據</strong>進貨單 / 工單 / 出貨</div>
+      <div class="field"><strong>異動方向</strong>入庫與出庫</div>
+      <div class="field"><strong>排序</strong>異動時間由近到遠</div>
+      <div class="field"><strong>關鍵字</strong>料號、品名、批號、單據</div>
+    </section>
+
+    <section class="grid main">
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 112px;">異動時間</th>
+                <th style="width: 76px;">方向</th>
+                <th style="width: 104px;">倉庫</th>
+                <th style="width: 128px;">料號</th>
+                <th style="width: 180px;">品名</th>
+                <th style="width: 120px;">批號</th>
+                <th style="width: 112px;">來源單據</th>
+                <th style="width: 92px;">數量</th>
+                <th style="width: 108px;">金額</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>2026-07-03</td>
+                <td><span class="badge in">入庫</span></td>
+                <td>A 倉</td>
+                <td>RM-0526</td>
+                <td>燕麥粉原料</td>
+                <td>B26070301</td>
+                <td>GRN-260701</td>
+                <td>1,200.00</td>
+                <td>$386,000</td>
+              </tr>
+              <tr>
+                <td>2026-07-03</td>
+                <td><span class="badge out">出庫</span></td>
+                <td>製造線邊倉</td>
+                <td>RM-0442</td>
+                <td>杏仁粉原料</td>
+                <td>B26062804</td>
+                <td>WO-260703</td>
+                <td>320.00</td>
+                <td>$128,000</td>
+              </tr>
+              <tr>
+                <td>2026-07-02</td>
+                <td><span class="badge in">入庫</span></td>
+                <td>成品倉</td>
+                <td>FG-1208</td>
+                <td>營養穀物棒</td>
+                <td>FG26070202</td>
+                <td>WO-260701</td>
+                <td>8,400.00</td>
+                <td>$1,240,000</td>
+              </tr>
+              <tr>
+                <td>2026-07-02</td>
+                <td><span class="badge out">出庫</span></td>
+                <td>成品倉</td>
+                <td>FG-0981</td>
+                <td>高蛋白穀物杯</td>
+                <td>FG26063001</td>
+                <td>SO-260702</td>
+                <td>2,000.00</td>
+                <td>$560,000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside class="stack">
+        <div class="panel">
+          <h2>異動金額趨勢</h2>
+          <div class="chart">
+            <div class="bar" style="height: 44%;"></div>
+            <div class="bar" style="height: 62%;"></div>
+            <div class="bar" style="height: 35%;"></div>
+            <div class="bar" style="height: 74%;"></div>
+            <div class="bar" style="height: 58%;"></div>
+            <div class="bar" style="height: 83%;"></div>
+            <div class="bar" style="height: 68%;"></div>
+          </div>
+          <div class="legend">
+            <span>06/27</span>
+            <span>07/03</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>類別摘要</h2>
+          <div class="row">
+            <span>原料</span>
+            <strong>$920,000</strong>
+          </div>
+          <div class="row">
+            <span>物料</span>
+            <strong>$180,000</strong>
+          </div>
+          <div class="row">
+            <span>在製品</span>
+            <strong>$420,000</strong>
+          </div>
+          <div class="row">
+            <span>製成品</span>
+            <strong>$720,000</strong>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>API 設計重點</h2>
+          <p class="sub">明細以 inventory_record 為主資料源；批號來源由 batch_number 補充；分頁必須由資料庫層完成。</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

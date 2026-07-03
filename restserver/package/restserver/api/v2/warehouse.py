@@ -3259,6 +3259,641 @@ class CWarehouseTaskService(object):
         return dict_status.get(str(str_status).lower(), util_safe_int(str_status))
 
 
+class CWarehouseAnalyticsService(object):
+    PERIOD_DAYS = {
+        "7d": 7,
+        "30d": 30,
+        "90d": 90,
+    }
+    DEFAULT_PERIOD = "30d"
+    DEFAULT_BUCKET = "day"
+    TARGET_TASK_TYPES = [
+        EWorkflowTaskType.GOODS_RECEIPT,
+        EWorkflowTaskType.INBOUND,
+        EWorkflowTaskType.OUTBOUND,
+        EWorkflowTaskType.TRANSFER,
+        EWorkflowTaskType.QUALITY,
+        EWorkflowTaskType.SHIPMENT,
+    ]
+    OPEN_STATUSES = [
+        EWorkflowTaskStatus.PENDING,
+        EWorkflowTaskStatus.PARTIAL,
+        EWorkflowTaskStatus.BLOCKED,
+    ]
+    EVENT_COMPLETED = "workflow.task.completed"
+
+    def get_overview(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_item_category=0,
+        n_task_type=0,
+        obj_session=None,
+    ):
+        return self.__get_payload(
+            "overview",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            n_item_category,
+            n_task_type,
+            obj_session,
+        )
+
+    def get_value_trend(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_item_category=0,
+        obj_session=None,
+    ):
+        return self.__get_payload(
+            "value-trend",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            n_item_category,
+            0,
+            obj_session,
+        )
+
+    def get_space_utilization(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        obj_session=None,
+    ):
+        return self.__get_payload(
+            "space-utilization",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            0,
+            0,
+            obj_session,
+        )
+
+    def get_risk_breakdown(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_item_category=0,
+        obj_session=None,
+    ):
+        return self.__get_payload(
+            "risk-breakdown",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            n_item_category,
+            0,
+            obj_session,
+        )
+
+    def get_task_sla(
+        self,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_task_type=0,
+        obj_session=None,
+    ):
+        return self.__get_payload(
+            "task-sla",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            0,
+            n_task_type,
+            obj_session,
+        )
+
+    def __get_payload(
+        self,
+        str_mode,
+        n_date,
+        str_timezone,
+        str_period,
+        str_bucket,
+        str_warehouse_no,
+        n_item_category,
+        n_task_type,
+        obj_session,
+    ):
+        if obj_session:
+            return self.__get_payload_with_session(
+                obj_session,
+                str_mode,
+                n_date,
+                str_timezone,
+                str_period,
+                str_bucket,
+                str_warehouse_no,
+                n_item_category,
+                n_task_type,
+            )
+        with CDBMgr() as obj_dbmgr:
+            return self.__get_payload_with_session(
+                obj_dbmgr.get_session(),
+                str_mode,
+                n_date,
+                str_timezone,
+                str_period,
+                str_bucket,
+                str_warehouse_no,
+                n_item_category,
+                n_task_type,
+            )
+
+    def __get_payload_with_session(
+        self,
+        obj_session,
+        str_mode,
+        n_date,
+        str_timezone,
+        str_period,
+        str_bucket,
+        str_warehouse_no,
+        n_item_category,
+        n_task_type,
+    ):
+        n_query_timestamp = n_date if n_date else int(time.time())
+        dict_range = self.__build_range(n_query_timestamp, str_timezone, str_period, str_bucket)
+        dict_dashboard = self.__query_dashboard(
+            obj_session,
+            dict_range["endTimestamp"],
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+        )
+        dict_start_dashboard = self.__query_dashboard(
+            obj_session,
+            dict_range["startTimestamp"],
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+        )
+        lst_task_rows = self.__query_task_rows(
+            obj_session,
+            dict_range,
+            str_warehouse_no,
+            n_task_type,
+        )
+        dict_task_metrics = self.__build_task_metrics(obj_session, dict_range, lst_task_rows)
+        lst_value_trend = self.__build_value_trend(
+            obj_session,
+            dict_range,
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+        )
+        lst_space_trend = self.__build_space_trend(
+            obj_session,
+            dict_range,
+            str_timezone,
+            str_warehouse_no,
+        )
+        lst_risk_breakdown = self.__build_risk_breakdown(dict_dashboard)
+        lst_task_sla = self.__build_task_sla(dict_task_metrics)
+
+        if str_mode == "value-trend":
+            return {
+                "serverTimestamp": dict_range["endTimestamp"],
+                "timezone": str_timezone or "UTC",
+                "range": dict_range,
+                "summaryByCategory": self.__build_summary_by_category(dict_dashboard),
+                "valueTrend": lst_value_trend,
+            }
+        if str_mode == "space-utilization":
+            return {
+                "serverTimestamp": dict_range["endTimestamp"],
+                "timezone": str_timezone or "UTC",
+                "range": dict_range,
+                "summaryByWarehouse": dict_dashboard.get("capacityByWarehouse", []),
+                "spaceTrend": lst_space_trend,
+            }
+        if str_mode == "risk-breakdown":
+            return {
+                "serverTimestamp": dict_range["endTimestamp"],
+                "timezone": str_timezone or "UTC",
+                "range": dict_range,
+                "riskSummary": self.__build_risk_summary(lst_risk_breakdown, dict_dashboard),
+                "riskBreakdown": lst_risk_breakdown,
+                "topRiskLots": self.__build_top_risk_lots(dict_dashboard),
+            }
+        if str_mode == "task-sla":
+            return {
+                "serverTimestamp": dict_range["endTimestamp"],
+                "timezone": str_timezone or "UTC",
+                "range": dict_range,
+                "summaryByTaskType": lst_task_sla,
+                "summaryByDepartment": self.__build_task_summary_by_department(
+                    lst_task_rows,
+                    dict_range["endTimestamp"],
+                ),
+                "overdueTrend": self.__build_overdue_trend(dict_range, lst_task_rows, str_timezone),
+            }
+
+        return {
+            "serverTimestamp": dict_range["endTimestamp"],
+            "timezone": str_timezone or "UTC",
+            "range": dict_range,
+            "kpi": self.__build_kpi(
+                dict_dashboard,
+                dict_start_dashboard,
+                dict_task_metrics,
+            ),
+            "valueTrend": lst_value_trend,
+            "spaceTrend": lst_space_trend,
+            "riskBreakdown": lst_risk_breakdown,
+            "taskSla": lst_task_sla,
+        }
+
+    def __build_range(self, n_query_timestamp, str_timezone, str_period, str_bucket):
+        str_period = str_period if str_period in self.PERIOD_DAYS else self.DEFAULT_PERIOD
+        str_bucket = str_bucket if str_bucket in ["day", "week", "month"] else self.DEFAULT_BUCKET
+        n_period_days = self.PERIOD_DAYS.get(str_period, self.PERIOD_DAYS[self.DEFAULT_PERIOD])
+        n_start_timestamp = max(util_safe_int(n_query_timestamp) - n_period_days * 86400, 0)
+        return {
+            "period": str_period,
+            "bucket": str_bucket,
+            "startTimestamp": util_safe_int(n_start_timestamp),
+            "endTimestamp": util_safe_int(n_query_timestamp),
+        }
+
+    def __query_dashboard(self, obj_session, n_query_timestamp, str_timezone, str_warehouse_no, n_item_category):
+        return CWarehouseDashboardService().get_dashboard(
+            n_date=n_query_timestamp,
+            str_timezone=str_timezone,
+            str_warehouse_no=str_warehouse_no,
+            n_item_category=n_item_category,
+            b_include_inventory=True,
+            obj_session=obj_session,
+        )
+
+    def __build_kpi(self, dict_dashboard, dict_start_dashboard, dict_task_metrics):
+        dict_summary = dict_dashboard.get("summary", {})
+        dict_start_summary = dict_start_dashboard.get("summary", {})
+        n_end_value = util_round_amount(dict_summary.get("totalInventoryValue"))
+        n_start_value = util_round_amount(dict_start_summary.get("totalInventoryValue"))
+        f_value_change_rate = (
+            util_round_quantity((n_end_value - n_start_value) / n_start_value * 100)
+            if n_start_value else 0.0
+        )
+        f_used_pallets = util_round_quantity(dict_summary.get("usedPallets"))
+        f_total_pallets = util_safe_float(dict_summary.get("totalPallets"))
+        f_space_rate = util_round_quantity(f_used_pallets / f_total_pallets * 100) if f_total_pallets else 0.0
+        n_open_tasks = util_safe_int(dict_task_metrics.get("openTaskCount"))
+        n_overdue_tasks = util_safe_int(dict_task_metrics.get("overdueTaskCount"))
+        return {
+            "totalInventoryValue": n_end_value,
+            "valueChangeRate": f_value_change_rate,
+            "usedPallets": f_used_pallets,
+            "spaceUtilizationRate": f_space_rate,
+            "riskLotCount": self.__risk_lot_count(dict_dashboard),
+            "openTaskCount": n_open_tasks,
+            "overdueTaskRate": util_round_quantity(n_overdue_tasks / n_open_tasks * 100) if n_open_tasks else 0.0,
+        }
+
+    def __build_value_trend(self, obj_session, dict_range, str_timezone, str_warehouse_no, n_item_category):
+        lst_results = []
+        for obj_date in self.__bucket_dates(dict_range, str_timezone):
+            n_bucket_end = self.__business_day_end_timestamp(obj_date, str_timezone)
+            dict_dashboard = self.__query_dashboard(
+                obj_session,
+                min(n_bucket_end, dict_range["endTimestamp"]),
+                str_timezone,
+                str_warehouse_no,
+                n_item_category,
+            )
+            for dict_row in dict_dashboard.get("inventoryValueByCategory", []):
+                if n_item_category and util_safe_int(dict_row.get("itemCategory")) != n_item_category:
+                    continue
+                lst_results.append({
+                    "bucketStart": self.__business_day_start_timestamp(obj_date, str_timezone),
+                    "bucketLabel": obj_date.strftime("%Y-%m-%d"),
+                    "itemCategory": util_safe_int(dict_row.get("itemCategory")),
+                    "inventoryValue": util_round_amount(dict_row.get("inventoryValue")),
+                    "availableValue": util_round_amount(dict_row.get("availableValue")),
+                    "reservedValue": util_round_amount(dict_row.get("reservedValue")),
+                    "qualityHoldValue": util_round_amount(dict_row.get("qualityHoldValue")),
+                })
+        return lst_results
+
+    def __build_space_trend(self, obj_session, dict_range, str_timezone, str_warehouse_no):
+        lst_results = []
+        for obj_date in self.__bucket_dates(dict_range, str_timezone):
+            n_bucket_end = self.__business_day_end_timestamp(obj_date, str_timezone)
+            dict_dashboard = self.__query_dashboard(
+                obj_session,
+                min(n_bucket_end, dict_range["endTimestamp"]),
+                str_timezone,
+                str_warehouse_no,
+                0,
+            )
+            for dict_row in dict_dashboard.get("capacityByWarehouse", []):
+                lst_results.append({
+                    "bucketStart": self.__business_day_start_timestamp(obj_date, str_timezone),
+                    "warehouseNo": dict_row.get("warehouseNo", ""),
+                    "warehouseName": dict_row.get("warehouseName", ""),
+                    "usedPallets": util_round_quantity(dict_row.get("usedPallets")),
+                    "reservedPallets": util_round_quantity(dict_row.get("reservedPallets")),
+                    "availablePallets": util_round_quantity(dict_row.get("availablePallets")),
+                    "utilizationRate": util_round_quantity(dict_row.get("utilizationRate")),
+                })
+        return lst_results
+
+    def __build_risk_breakdown(self, dict_dashboard):
+        dict_breakdown = defaultdict(lambda: {
+            "riskType": "",
+            "riskLevel": 0,
+            "lotCount": 0,
+            "inventoryValue": 0.0,
+            "quantity": 0.0,
+            "stockKeys": set(),
+        })
+        for dict_risk in dict_dashboard.get("riskAlerts", []):
+            str_risk_type = dict_risk.get("riskType", "")
+            if not str_risk_type:
+                continue
+            dict_row = dict_breakdown[str_risk_type]
+            dict_row["riskType"] = str_risk_type
+            dict_row["riskLevel"] = max(util_safe_int(dict_row.get("riskLevel")), util_safe_int(dict_risk.get("riskLevel")))
+            dict_row["inventoryValue"] += util_safe_float(dict_risk.get("inventoryValue"))
+            dict_row["quantity"] += util_safe_float(dict_risk.get("quantity"))
+            dict_row["stockKeys"].add(self.__stock_key(
+                dict_risk.get("itemNo"),
+                dict_risk.get("batchNo"),
+                dict_risk.get("warehouseNo"),
+            ))
+
+        for dict_inventory in dict_dashboard.get("inventory", []):
+            if util_safe_float(dict_inventory.get("qualityHoldQuantity")) <= 0:
+                continue
+            dict_row = dict_breakdown["QUALITY_HOLD"]
+            dict_row["riskType"] = "QUALITY_HOLD"
+            dict_row["riskLevel"] = max(util_safe_int(dict_row.get("riskLevel")), EWarehouseRiskLevel.NOTICE)
+            dict_row["inventoryValue"] += util_safe_float(dict_inventory.get("qualityHoldValue"))
+            dict_row["quantity"] += util_safe_float(dict_inventory.get("qualityHoldQuantity"))
+            dict_row["stockKeys"].add(self.__stock_key(
+                dict_inventory.get("itemNo"),
+                dict_inventory.get("batchNo"),
+                dict_inventory.get("warehouseNo"),
+            ))
+
+        lst_results = []
+        for str_risk_type in sorted(dict_breakdown.keys()):
+            dict_row = dict_breakdown[str_risk_type]
+            lst_results.append({
+                "riskType": str_risk_type,
+                "riskLevel": util_safe_int(dict_row.get("riskLevel")),
+                "lotCount": len(dict_row.get("stockKeys", set())),
+                "inventoryValue": util_round_amount(dict_row.get("inventoryValue")),
+                "quantity": util_round_quantity(dict_row.get("quantity")),
+            })
+        return lst_results
+
+    def __build_risk_summary(self, lst_risk_breakdown, dict_dashboard):
+        return {
+            "riskTypeCount": len(lst_risk_breakdown),
+            "riskLotCount": self.__risk_lot_count(dict_dashboard),
+            "riskInventoryValue": util_round_amount(sum(util_safe_float(dict_row.get("inventoryValue")) for dict_row in lst_risk_breakdown)),
+        }
+
+    def __risk_lot_count(self, dict_dashboard):
+        set_keys = set()
+        for dict_risk in dict_dashboard.get("riskAlerts", []):
+            set_keys.add(self.__stock_key(
+                dict_risk.get("itemNo"),
+                dict_risk.get("batchNo"),
+                dict_risk.get("warehouseNo"),
+            ))
+        for dict_inventory in dict_dashboard.get("inventory", []):
+            if util_safe_float(dict_inventory.get("qualityHoldQuantity")) > 0:
+                set_keys.add(self.__stock_key(
+                    dict_inventory.get("itemNo"),
+                    dict_inventory.get("batchNo"),
+                    dict_inventory.get("warehouseNo"),
+                ))
+        return len([str_key for str_key in set_keys if str_key != "||"])
+
+    def __build_top_risk_lots(self, dict_dashboard):
+        dict_rows = {}
+        for dict_risk in dict_dashboard.get("riskAlerts", []):
+            str_key = self.__stock_key(dict_risk.get("itemNo"), dict_risk.get("batchNo"), dict_risk.get("warehouseNo"))
+            dict_row = dict_rows.setdefault(str_key, {
+                "lotKey": "%s|%s|%s" % (
+                    dict_risk.get("warehouseNo", ""),
+                    dict_risk.get("itemNo", ""),
+                    dict_risk.get("batchNo", ""),
+                ),
+                "warehouseNo": dict_risk.get("warehouseNo", ""),
+                "itemNo": dict_risk.get("itemNo", ""),
+                "batchNo": dict_risk.get("batchNo", ""),
+                "riskTypes": [],
+                "inventoryValue": util_round_amount(dict_risk.get("inventoryValue")),
+                "quantity": util_round_quantity(dict_risk.get("quantity")),
+            })
+            if dict_risk.get("riskType") not in dict_row["riskTypes"]:
+                dict_row["riskTypes"].append(dict_risk.get("riskType"))
+        return sorted(dict_rows.values(), key=lambda dict_row: dict_row.get("inventoryValue", 0), reverse=True)[:10]
+
+    def __build_summary_by_category(self, dict_dashboard):
+        return [
+            {
+                "itemCategory": util_safe_int(dict_row.get("itemCategory")),
+                "inventoryValue": util_round_amount(dict_row.get("inventoryValue")),
+                "availableValue": util_round_amount(dict_row.get("availableValue")),
+                "reservedValue": util_round_amount(dict_row.get("reservedValue")),
+                "qualityHoldValue": util_round_amount(dict_row.get("qualityHoldValue")),
+            }
+            for dict_row in dict_dashboard.get("inventoryValueByCategory", [])
+        ]
+
+    def __query_task_rows(self, obj_session, dict_range, str_warehouse_no, n_task_type):
+        lst_filters = []
+        if n_task_type:
+            lst_filters.append(CTableWorkflowTaskState.taskType == n_task_type)
+        else:
+            lst_filters.append(CTableWorkflowTaskState.taskType.in_(self.TARGET_TASK_TYPES))
+        if str_warehouse_no:
+            lst_filters.append(CTableWorkflowTaskState.warehouse_no == str_warehouse_no)
+        return obj_session.query(CTableWorkflowTaskState).filter(*lst_filters).all()
+
+    def __build_task_metrics(self, obj_session, dict_range, lst_task_rows):
+        dict_tasks_by_id = {
+            obj_row.taskId: obj_row
+            for obj_row in lst_task_rows
+            if obj_row.taskId
+        }
+        lst_task_ids = list(dict_tasks_by_id.keys())
+        lst_event_rows = []
+        if lst_task_ids:
+            lst_event_rows = (
+                obj_session.query(CTableWorkflowTaskEvent)
+                .filter(CTableWorkflowTaskEvent.taskId.in_(lst_task_ids))
+                .order_by(CTableWorkflowTaskEvent.taskId.asc(), CTableWorkflowTaskEvent.eventTimestamp.asc(), CTableWorkflowTaskEvent.id.asc())
+                .all()
+            )
+
+        dict_first_event = {}
+        dict_completed_event = {}
+        for obj_event in lst_event_rows:
+            if obj_event.taskId not in dict_first_event:
+                dict_first_event[obj_event.taskId] = obj_event
+            if (
+                obj_event.eventCode == self.EVENT_COMPLETED
+                and dict_range["startTimestamp"] <= util_safe_int(obj_event.eventTimestamp) <= dict_range["endTimestamp"]
+            ):
+                dict_completed_event[obj_event.taskId] = obj_event
+
+        dict_by_task_type = defaultdict(lambda: {
+            "taskType": 0,
+            "openTaskCount": 0,
+            "completedTaskCount": 0,
+            "overdueTaskCount": 0,
+            "blockedTaskCount": 0,
+            "onTimeCompletedCount": 0,
+            "leadTimeHours": 0.0,
+        })
+        n_open = 0
+        n_overdue = 0
+        for obj_task in lst_task_rows:
+            n_task_type = util_safe_int(obj_task.taskType)
+            dict_row = dict_by_task_type[n_task_type]
+            dict_row["taskType"] = n_task_type
+            n_status = util_safe_int(obj_task.taskStatus)
+            if n_status in self.OPEN_STATUSES:
+                dict_row["openTaskCount"] += 1
+                n_open += 1
+                if util_safe_int(obj_task.dueTimestamp) and util_safe_int(obj_task.dueTimestamp) < dict_range["endTimestamp"]:
+                    dict_row["overdueTaskCount"] += 1
+                    n_overdue += 1
+            if n_status == EWorkflowTaskStatus.BLOCKED:
+                dict_row["blockedTaskCount"] += 1
+            obj_completed = dict_completed_event.get(obj_task.taskId)
+            if obj_completed:
+                dict_row["completedTaskCount"] += 1
+                if util_safe_int(obj_task.dueTimestamp) and util_safe_int(obj_completed.eventTimestamp) <= util_safe_int(obj_task.dueTimestamp):
+                    dict_row["onTimeCompletedCount"] += 1
+                obj_first = dict_first_event.get(obj_task.taskId)
+                if obj_first:
+                    dict_row["leadTimeHours"] += max(
+                        util_safe_int(obj_completed.eventTimestamp) - util_safe_int(obj_first.eventTimestamp),
+                        0,
+                    ) / 3600.0
+        return {
+            "byTaskType": dict_by_task_type,
+            "openTaskCount": n_open,
+            "overdueTaskCount": n_overdue,
+        }
+
+    def __build_task_sla(self, dict_task_metrics):
+        lst_results = []
+        for n_task_type in sorted(dict_task_metrics.get("byTaskType", {}).keys()):
+            dict_row = dict_task_metrics["byTaskType"][n_task_type]
+            n_completed = util_safe_int(dict_row.get("completedTaskCount"))
+            lst_results.append({
+                "taskType": util_safe_int(dict_row.get("taskType")),
+                "openTaskCount": util_safe_int(dict_row.get("openTaskCount")),
+                "completedTaskCount": n_completed,
+                "overdueTaskCount": util_safe_int(dict_row.get("overdueTaskCount")),
+                "blockedTaskCount": util_safe_int(dict_row.get("blockedTaskCount")),
+                "onTimeRate": util_round_quantity(dict_row.get("onTimeCompletedCount") / n_completed * 100) if n_completed else 0.0,
+                "averageLeadTimeHours": util_round_quantity(dict_row.get("leadTimeHours") / n_completed) if n_completed else 0.0,
+            })
+        return lst_results
+
+    def __build_task_summary_by_department(self, lst_task_rows, n_end_timestamp):
+        dict_by_department = defaultdict(lambda: {
+            "ownerDepartment": 0,
+            "openTaskCount": 0,
+            "overdueTaskCount": 0,
+            "blockedTaskCount": 0,
+        })
+        for obj_task in lst_task_rows:
+            n_status = util_safe_int(obj_task.taskStatus)
+            if n_status not in self.OPEN_STATUSES:
+                continue
+            n_department = util_safe_int(obj_task.ownerDepartment)
+            dict_row = dict_by_department[n_department]
+            dict_row["ownerDepartment"] = n_department
+            dict_row["openTaskCount"] += 1
+            if util_safe_int(obj_task.dueTimestamp) and util_safe_int(obj_task.dueTimestamp) < n_end_timestamp:
+                dict_row["overdueTaskCount"] += 1
+            if n_status == EWorkflowTaskStatus.BLOCKED:
+                dict_row["blockedTaskCount"] += 1
+        return [dict_by_department[n_key] for n_key in sorted(dict_by_department.keys())]
+
+    def __build_overdue_trend(self, dict_range, lst_task_rows, str_timezone):
+        lst_results = []
+        for obj_date in self.__bucket_dates(dict_range, str_timezone):
+            n_bucket_end = min(
+                self.__business_day_end_timestamp(obj_date, str_timezone),
+                util_safe_int(dict_range.get("endTimestamp")),
+            )
+            n_count = len([
+                obj_task for obj_task in lst_task_rows
+                if util_safe_int(obj_task.taskStatus) in self.OPEN_STATUSES
+                and util_safe_int(obj_task.dueTimestamp)
+                and util_safe_int(obj_task.dueTimestamp) <= n_bucket_end
+            ])
+            lst_results.append({
+                "bucketStart": self.__business_day_start_timestamp(obj_date, str_timezone),
+                "bucketLabel": obj_date.strftime("%Y-%m-%d"),
+                "overdueTaskCount": n_count,
+            })
+        return lst_results
+
+    def __bucket_dates(self, dict_range, str_timezone):
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        n_days = self.PERIOD_DAYS.get(dict_range.get("period"), self.PERIOD_DAYS[self.DEFAULT_PERIOD])
+        obj_end = datetime.fromtimestamp(dict_range["endTimestamp"], timezone.utc).astimezone(obj_tz).date()
+        obj_start = obj_end - timedelta(days=n_days - 1)
+        return [obj_start + timedelta(days=n_offset) for n_offset in range(n_days)]
+
+    def __business_day_start_timestamp(self, obj_date, str_timezone):
+        try:
+            obj_tz = ZoneInfo(str_timezone or "UTC")
+        except Exception:
+            obj_tz = timezone.utc
+        obj_start = datetime(obj_date.year, obj_date.month, obj_date.day, tzinfo=obj_tz)
+        return util_safe_int(obj_start.astimezone(timezone.utc).timestamp())
+
+    def __business_day_end_timestamp(self, obj_date, str_timezone):
+        return self.__business_day_start_timestamp(obj_date, str_timezone) + 86399
+
+    def __stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
+        return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
+
+
 class CWarehouseDashboard(object):
     def get(self, str_timezone="", str_id=""):
         str_message = "success"
@@ -3442,4 +4077,74 @@ class CWarehouseTaskWorkbench(object):
             n_code = EErrorCode.ERROR_OTHER_ERROR
             str_message = "throw exception (error: %s)" % str(obj_error)
             CLogger().log(CLogger.LOG_LEVELERROR, "[CWarehouseTaskWorkbench] throw exception (error: %s)" % str(obj_error))
+        return n_status_code, n_code, str_message, dict_extra_data
+
+
+class CWarehouseAnalytics(object):
+    def get(self, str_timezone="", str_id=""):
+        str_message = "success"
+        n_status_code = 200
+        n_code = EErrorCode.ERROR_SUCCESS
+        dict_extra_data = {}
+        try:
+            from flask import request
+
+            n_date = request.args.get("date", 0, type=int)
+            str_period = request.args.get("period", "30d", type=str)
+            str_bucket = request.args.get("bucket", "day", type=str)
+            str_warehouse_no = request.args.get("warehouse_no", "", type=str)
+            n_item_category = request.args.get("itemCategory", 0, type=int)
+            n_task_type = request.args.get("taskType", 0, type=int)
+            obj_service = CWarehouseAnalyticsService()
+
+            if str_id == "value-trend":
+                dict_extra_data = obj_service.get_value_trend(
+                    n_date=n_date,
+                    str_timezone=str_timezone,
+                    str_period=str_period,
+                    str_bucket=str_bucket,
+                    str_warehouse_no=str_warehouse_no,
+                    n_item_category=n_item_category,
+                )
+            elif str_id == "space-utilization":
+                dict_extra_data = obj_service.get_space_utilization(
+                    n_date=n_date,
+                    str_timezone=str_timezone,
+                    str_period=str_period,
+                    str_bucket=str_bucket,
+                    str_warehouse_no=str_warehouse_no,
+                )
+            elif str_id == "risk-breakdown":
+                dict_extra_data = obj_service.get_risk_breakdown(
+                    n_date=n_date,
+                    str_timezone=str_timezone,
+                    str_period=str_period,
+                    str_bucket=str_bucket,
+                    str_warehouse_no=str_warehouse_no,
+                    n_item_category=n_item_category,
+                )
+            elif str_id == "task-sla":
+                dict_extra_data = obj_service.get_task_sla(
+                    n_date=n_date,
+                    str_timezone=str_timezone,
+                    str_period=str_period,
+                    str_bucket=str_bucket,
+                    str_warehouse_no=str_warehouse_no,
+                    n_task_type=n_task_type,
+                )
+            else:
+                dict_extra_data = obj_service.get_overview(
+                    n_date=n_date,
+                    str_timezone=str_timezone,
+                    str_period=str_period,
+                    str_bucket=str_bucket,
+                    str_warehouse_no=str_warehouse_no,
+                    n_item_category=n_item_category,
+                    n_task_type=n_task_type,
+                )
+        except Exception as obj_error:
+            n_status_code = 400
+            n_code = EErrorCode.ERROR_OTHER_ERROR
+            str_message = "throw exception (error: %s)" % str(obj_error)
+            CLogger().log(CLogger.LOG_LEVELERROR, "[CWarehouseAnalytics] throw exception (error: %s)" % str(obj_error))
         return n_status_code, n_code, str_message, dict_extra_data

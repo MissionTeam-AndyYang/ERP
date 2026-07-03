@@ -1,6 +1,6 @@
 # Warehouse Analytics API 流程與演算法提案
 
-狀態：Proposal / Pending Engineer Review
+狀態：Confirmed / Backend Implemented
 對應 API 提案：`docs/spec/api-proposal/warehouse_analytics_proposal.md`
 對應靜態預覽：`docs/spec/api-proposal/warehouse_analytics_static_preview.html`
 

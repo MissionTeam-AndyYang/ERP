@@ -40,6 +40,7 @@ from package.dbwrapper.table import (
     CTableWorkflowTaskState,
 )
 from package.restserver.api.v2.warehouse import (
+    CWarehouseAnalyticsService,
     CWarehouseDashboardService,
     CWarehouseInventoryLotService,
     CWarehouseInventoryService,
@@ -834,6 +835,91 @@ def test_task_workbench_detail_returns_empty_payload_when_task_missing():
     }
 
 
+def test_warehouse_analytics_service_returns_confirmed_overview_dataset():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+
+    dict_payload = CWarehouseAnalyticsService().get_overview(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_period="7d",
+        str_bucket="day",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        obj_session=obj_session,
+    )
+
+    assert dict_payload["range"]["period"] == "7d"
+    assert dict_payload["range"]["bucket"] == "day"
+    assert dict_payload["kpi"]["totalInventoryValue"] == 900
+    assert dict_payload["kpi"]["usedPallets"] == 2.0
+    assert dict_payload["kpi"]["openTaskCount"] == 2
+    assert dict_payload["kpi"]["riskLotCount"] == 1
+    assert len(dict_payload["valueTrend"]) == 7
+    assert dict_payload["valueTrend"][-1]["itemCategory"] == EItemCategory.PM
+    assert dict_payload["valueTrend"][-1]["inventoryValue"] == 900
+    assert dict_payload["spaceTrend"][-1]["warehouseNo"] == "WH-A"
+    assert dict_payload["spaceTrend"][-1]["usedPallets"] == 2.0
+    assert all("drilldownQuery" not in dict_row for dict_row in dict_payload["riskBreakdown"])
+    assert all("drilldownQuery" not in dict_row for dict_row in dict_payload["taskSla"])
+
+    dict_task_sla = {
+        dict_row["taskType"]: dict_row
+        for dict_row in dict_payload["taskSla"]
+    }
+    assert dict_task_sla[EWorkflowTaskType.INBOUND]["openTaskCount"] == 1
+    assert dict_task_sla[EWorkflowTaskType.OUTBOUND]["openTaskCount"] == 1
+    assert dict_task_sla[EWorkflowTaskType.OUTBOUND]["completedTaskCount"] == 0
+
+
+def test_warehouse_analytics_detail_endpoints_return_expected_sections():
+    obj_session = build_session()
+    n_now = seed_dashboard_base(obj_session)
+    obj_service = CWarehouseAnalyticsService()
+
+    dict_value = obj_service.get_value_trend(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_period="7d",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        obj_session=obj_session,
+    )
+    assert dict_value["summaryByCategory"][0]["itemCategory"] == EItemCategory.PM
+    assert len(dict_value["valueTrend"]) == 7
+
+    dict_space = obj_service.get_space_utilization(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_period="7d",
+        str_warehouse_no="WH-A",
+        obj_session=obj_session,
+    )
+    assert dict_space["summaryByWarehouse"][0]["warehouseNo"] == "WH-A"
+    assert dict_space["spaceTrend"][-1]["utilizationRate"] == 20.0
+
+    dict_risk = obj_service.get_risk_breakdown(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_period="7d",
+        str_warehouse_no="WH-A",
+        n_item_category=EItemCategory.PM,
+        obj_session=obj_session,
+    )
+    assert dict_risk["riskSummary"]["riskLotCount"] == 1
+    assert dict_risk["topRiskLots"][0]["lotKey"] == "WH-A|RM-001|B-RM-001"
+
+    dict_task = obj_service.get_task_sla(
+        n_date=n_now,
+        str_timezone="Asia/Taipei",
+        str_period="7d",
+        str_warehouse_no="WH-A",
+        obj_session=obj_session,
+    )
+    assert dict_task["summaryByTaskType"][0]["openTaskCount"] == 1
+    assert dict_task["overdueTrend"][-1]["overdueTaskCount"] == 0
+
+
 def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     from flask import Flask
 
@@ -903,6 +989,52 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
             "workflowTasks": [],
         }
 
+    def fake_get_analytics_overview(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "timezone": "Asia/Taipei",
+            "range": {"period": "30d", "bucket": "day"},
+            "kpi": {"totalInventoryValue": 100},
+            "valueTrend": [],
+            "spaceTrend": [],
+            "riskBreakdown": [],
+            "taskSla": [],
+        }
+
+    def fake_get_value_trend(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "range": {"period": "30d"},
+            "summaryByCategory": [],
+            "valueTrend": [],
+        }
+
+    def fake_get_space_utilization(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "range": {"period": "30d"},
+            "summaryByWarehouse": [],
+            "spaceTrend": [],
+        }
+
+    def fake_get_risk_breakdown(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "range": {"period": "30d"},
+            "riskSummary": {},
+            "riskBreakdown": [],
+            "topRiskLots": [],
+        }
+
+    def fake_get_task_sla(self, **dict_kwargs):
+        return {
+            "serverTimestamp": 1700000000,
+            "range": {"period": "30d"},
+            "summaryByTaskType": [],
+            "summaryByDepartment": [],
+            "overdueTrend": [],
+        }
+
     monkeypatch.setenv("TOKEN_ENABLED", "1")
     monkeypatch.setattr(CWarehouseInventoryService, "get_inventory", fake_get_inventory)
     monkeypatch.setattr(CWarehouseInventoryLotService, "get_lots", fake_get_lots)
@@ -910,6 +1042,11 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     monkeypatch.setattr(CWarehouseTaskService, "get_tasks", fake_get_tasks)
     monkeypatch.setattr(CWarehouseTaskWorkbenchService, "get_task_workbench", fake_get_task_workbench)
     monkeypatch.setattr(CWarehouseTaskWorkbenchService, "get_task_detail", fake_get_task_detail)
+    monkeypatch.setattr(CWarehouseAnalyticsService, "get_overview", fake_get_analytics_overview)
+    monkeypatch.setattr(CWarehouseAnalyticsService, "get_value_trend", fake_get_value_trend)
+    monkeypatch.setattr(CWarehouseAnalyticsService, "get_space_utilization", fake_get_space_utilization)
+    monkeypatch.setattr(CWarehouseAnalyticsService, "get_risk_breakdown", fake_get_risk_breakdown)
+    monkeypatch.setattr(CWarehouseAnalyticsService, "get_task_sla", fake_get_task_sla)
 
     obj_app = Flask(__name__)
     obj_app.register_blueprint(warehouse_v2)
@@ -937,6 +1074,26 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     )
     obj_task_detail_response = obj_client.get(
         "/api/v2/warehouse/task-workbench/tasks/TASK-OUT-001",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_analytics_overview_response = obj_client.get(
+        "/api/v2/warehouse/analytics/overview",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_analytics_value_response = obj_client.get(
+        "/api/v2/warehouse/analytics/value-trend",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_analytics_space_response = obj_client.get(
+        "/api/v2/warehouse/analytics/space-utilization",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_analytics_risk_response = obj_client.get(
+        "/api/v2/warehouse/analytics/risk-breakdown",
+        headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
+    )
+    obj_analytics_task_response = obj_client.get(
+        "/api/v2/warehouse/analytics/task-sla",
         headers={"x-auth-token": "test-token", "x-timezone": "Asia/Taipei"},
     )
 
@@ -969,6 +1126,20 @@ def test_inventory_and_tasks_routes_return_existing_api_envelope(monkeypatch):
     dict_task_detail_data = json.loads(obj_task_detail_response.data.decode("utf8"))
     assert dict_task_detail_data["code"] == 0
     assert dict_task_detail_data["payload"]["task"]["taskId"] == "TASK-OUT-001"
+
+    assert obj_analytics_overview_response.status_code == 200
+    dict_analytics_overview = json.loads(obj_analytics_overview_response.data.decode("utf8"))
+    assert dict_analytics_overview["code"] == 0
+    assert dict_analytics_overview["payload"]["kpi"]["totalInventoryValue"] == 100
+
+    assert obj_analytics_value_response.status_code == 200
+    assert json.loads(obj_analytics_value_response.data.decode("utf8"))["payload"]["valueTrend"] == []
+    assert obj_analytics_space_response.status_code == 200
+    assert json.loads(obj_analytics_space_response.data.decode("utf8"))["payload"]["spaceTrend"] == []
+    assert obj_analytics_risk_response.status_code == 200
+    assert json.loads(obj_analytics_risk_response.data.decode("utf8"))["payload"]["riskBreakdown"] == []
+    assert obj_analytics_task_response.status_code == 200
+    assert json.loads(obj_analytics_task_response.data.decode("utf8"))["payload"]["summaryByTaskType"] == []
 
 
 def test_dashboard_route_returns_existing_api_envelope(monkeypatch):

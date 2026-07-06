@@ -30,6 +30,17 @@
 | `warehouse_task_execution_static_preview.html` | 任務執行工作區前端靜態預覽；已延至 V2。 |
 | `warehouse_inventory_detail_proposal.md` | 庫存批號清單與批號追蹤 API 提案。 |
 | `warehouse_inventory_detail_flow_algorithm.md` | 庫存批號清單與批號追蹤後端流程。 |
+| `warehouse_inventory_movement_ledger_proposal.md` | 庫存異動流水帳 API 提案；已延至下一版，非本版 core 優先項目。 |
+| `warehouse_inventory_movement_ledger_flow_algorithm.md` | 庫存異動流水帳後端流程；已延至下一版，非本版 core 優先項目。 |
+| `warehouse_inventory_movement_ledger_static_preview.html` | 庫存異動流水帳靜態預覽；已延至下一版。 |
+
+## Core Module V1 文件索引
+
+| 文件 | 用途 |
+| --- | --- |
+| `orders_dashboard_proposal.md` | `OrdersWorkspaceScreen` 訂單履約風險總覽 API 提案。 |
+| `orders_dashboard_flow_algorithm.md` | 訂單履約風險總覽後端流程與演算法提案。 |
+| `orders_dashboard_static_preview.html` | 訂單履約風險總覽前端靜態預覽。 |
 
 ## 狀態規範
 
@@ -40,6 +51,7 @@
 | Engineer Review In Progress | 工程師正在提問或檢視。 |
 | Engineer Confirmed / Ready for Implementation | 工程師已確認可進入正式文件或程式實作。 |
 | Implemented / Pending Runtime Review | 已實作，待有 DB 環境執行結果確認。 |
+| Deferred to next version / Not in current V1 core scope | 因本版優先 phase 為 core 的畫面，延伸或追溯畫面保留文件但不在本版 review / 實作。 |
 
 ## 文件原則
 

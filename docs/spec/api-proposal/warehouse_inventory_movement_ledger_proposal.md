@@ -1,13 +1,17 @@
 # Warehouse Inventory Movement Ledger API Proposal
 
-> Status: Proposal / Pending Engineer Review
+> Status: Deferred to next version / Not in current V1 core scope
 > Target UI Preview: `docs/spec/api-proposal/warehouse_inventory_movement_ledger_static_preview.html`
 > Flow / Algorithm: `docs/spec/api-proposal/warehouse_inventory_movement_ledger_flow_algorithm.md`
-> Related V1 Rule: Warehouse V1 frontend is read-only; this proposal contains GET APIs only.
+> Related V1 Rule: 第一版前端畫面規劃優先實作 phase 為 core 的畫面；`WarehouseInventoryMovementLedgerScreen` 延至下一版，本版不進行工程師 review、後端實作或前端串接。
+
+## Deferral Note
+
+依 2026-07-06 規劃確認，第一版前端畫面優先實作 phase 為 core 的畫面。`WarehouseInventoryMovementLedgerScreen` 屬於 Warehouse V1 extension / traceability 延伸畫面，因此本版規劃中略過，保留本文件作為下一版 read-only 追溯畫面的討論基礎。
 
 ## Screen Intent
 
-`WarehouseInventoryMovementLedgerScreen` 是 `WarehouseAnalyticsScreen` 後建議的下一個 read-only 畫面。此畫面用於查詢「庫存異動流水帳」，協助管理者、倉庫主管與工程師確認庫存數量、庫存價值、批號來源與入出庫紀錄是否一致。
+`WarehouseInventoryMovementLedgerScreen` 是原先為 `WarehouseAnalyticsScreen` 後續延伸所設計的 read-only 追溯畫面；依 2026-07-06 規劃確認，已延至下一版。此畫面用於查詢「庫存異動流水帳」，協助管理者、倉庫主管與工程師確認庫存數量、庫存價值、批號來源與入出庫紀錄是否一致。
 
 此畫面回答以下問題：
 
@@ -22,8 +26,8 @@
 
 | URL | Method | Description | Status | Review Note |
 | --- | --- | --- | --- | --- |
-| `/api/v2/warehouse/inventory/movements` | GET | 查詢庫存異動流水帳明細 | Proposal / Pending Engineer Review | 以 `inventory_record` 為主要資料來源，支援期間、倉庫、料品、批號、來源單據、異動方向、排序與分頁。 |
-| `/api/v2/warehouse/inventory/movements/summary` | GET | 查詢庫存異動摘要 | Proposal / Pending Engineer Review | 以同一組篩選條件回傳入庫、出庫、淨異動與異動筆數摘要，供頁面 KPI 與圖表使用。 |
+| `/api/v2/warehouse/inventory/movements` | GET | 查詢庫存異動流水帳明細 | Deferred to next version | 以 `inventory_record` 為主要資料來源，支援期間、倉庫、料品、批號、來源單據、異動方向、排序與分頁。 |
+| `/api/v2/warehouse/inventory/movements/summary` | GET | 查詢庫存異動摘要 | Deferred to next version | 以同一組篩選條件回傳入庫、出庫、淨異動與異動筆數摘要，供頁面 KPI 與圖表使用。 |
 
 ## Shared Query Parameters
 
@@ -260,7 +264,7 @@
 
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
-| 是否同意 Analytics 後下一個 read-only 畫面為 `WarehouseInventoryMovementLedgerScreen` | 確認 V1 下一步仍聚焦查詢與追溯，不進入 mutation。 | 待工程師回覆 | 建議採用，因可支援 Analytics、批號明細與任務追蹤的共同 drill-down。 |
+| 是否同意 Analytics 後下一個 read-only 畫面為 `WarehouseInventoryMovementLedgerScreen` | 2026-07-06 已調整為第一版優先 phase core 畫面。 | 已延至下一版 | 本版略過，不進行 review / 實作；文件保留作為下一版追溯畫面基礎。 |
 | `category` 是否足以表示入庫/出庫方向 | 需確認 `inventory_record.category` enum 與現有資料一致。 | 待工程師回覆 | 建議第一版直接使用 `inventory_record.category`，不新增 `direction` 欄位。 |
 | `batchRefCategory` / `batchRefNo` 是否需要回傳 | 可協助區分批號由採購進貨或產製流程產生。 | 待工程師回覆 | 建議保留，來源為 `batch_number.refCategory/ref_no`。 |
 | summary 數量在混合單位時是否只作參考 | 多料品混合查詢時數量單位可能不同。 | 待工程師回覆 | 建議金額摘要作為主要分析指標；數量摘要僅在同料品或同單位篩選下精確解讀。 |

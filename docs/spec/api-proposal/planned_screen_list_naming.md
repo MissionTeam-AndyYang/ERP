@@ -28,7 +28,7 @@ Naming rules:
 | P2 | V1 Core | `WarehouseInventoryLotListScreen` | Screen | 庫存批號明細清單 | `/warehouse/inventory/lots` | 已有第一版，已串接 inventory lots API | `GET /api/v2/warehouse/inventory/lots` | 批號層級清單畫面，支援倉庫、料品類別、料號、批號、風險、任務、可用狀態、關鍵字、排序與分頁。 |
 | P3 | V1 Core | `WarehouseInventoryLotDetailPanel` | Panel | 庫存批號追蹤面板 | `WarehouseInventoryLotListScreen` 右側 panel；窄版可作為 drawer 或 detail route | 已有第一版，已串接 inventory lot detail API | `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` | 顯示單一批號的庫存摘要、入出庫紀錄、預留、品檢保留、板位異動、未完成任務與風險。 |
 | P4 | V1 Extension | `WarehouseAnalyticsScreen` | Screen | 倉庫分析工作區 | 建議 route：`/warehouse/analytics`；由 Warehouse nav 或總覽 KPI drill-down 進入 | Backend Implemented / Pending Engineer Runtime Review | `GET /api/v2/warehouse/analytics/overview`、`GET /api/v2/warehouse/analytics/value-trend`、`GET /api/v2/warehouse/analytics/space-utilization`、`GET /api/v2/warehouse/analytics/risk-breakdown`、`GET /api/v2/warehouse/analytics/task-sla` | read-only 延伸畫面，分析庫存價值、倉位使用、風險分布與任務 SLA；不包含 POST / PUT。 |
-| P5 | V1 Extension | `WarehouseInventoryMovementLedgerScreen` | Screen | 庫存異動流水帳 | 建議 route：`/warehouse/inventory/movements`；由 Analytics、批號追蹤或任務工作台 drill-down 進入 | Proposal / Pending Engineer Review | `GET /api/v2/warehouse/inventory/movements`、`GET /api/v2/warehouse/inventory/movements/summary` | read-only 追溯畫面，以 `inventory_record` 查詢入庫、出庫、批號、來源單據、數量與金額異動；不包含 POST / PUT。 |
+| P5 | V2 Deferred | `WarehouseInventoryMovementLedgerScreen` | Screen | 庫存異動流水帳 | 建議 route：`/warehouse/inventory/movements`；由 Analytics、批號追蹤或任務工作台 drill-down 進入 | Deferred to next version；Warehouse V1 core 優先範圍暫不實作 | `GET /api/v2/warehouse/inventory/movements`、`GET /api/v2/warehouse/inventory/movements/summary` | read-only 追溯畫面，以 `inventory_record` 查詢入庫、出庫、批號、來源單據、數量與金額異動；因第一版優先 phase 為 core 的畫面，本畫面延至下一版。 |
 
 ## 倉庫中心 Screen State Naming
 
@@ -69,7 +69,7 @@ Naming rules:
 | `WarehouseInventoryLotListScreen` | 已有第一版，已串接 inventory lots API。 | 依後端 runtime payload 檢查欄位呈現、篩選結果、分頁與空狀態。 |
 | `WarehouseInventoryLotDetailPanel` | 已有第一版，已串接 inventory lot detail API。 | 依後端 runtime payload 檢查入出庫紀錄、預留、品檢、板位、任務與風險資料集呈現。 |
 | `WarehouseAnalyticsScreen` | 後端 API 已依工程師確認後提案實作；待工程師 runtime review。 | 等待工程師確認 API 程式與 runtime 結果，再進行前端串接細緻化。 |
-| `WarehouseInventoryMovementLedgerScreen` | 新增 read-only proposal；待工程師 review。 | 建立庫存異動流水帳與摘要 API，支援 Analytics、批號明細與任務工作台的追溯 drill-down。 |
+| `WarehouseInventoryMovementLedgerScreen` | Deferred to next version；本版略過。 | 暫不進行工程師 review、後端實作或前端串接；文件保留作為下一版追溯畫面討論基礎。 |
 
 ## Roadmap Coverage Confirmation
 
@@ -80,8 +80,8 @@ Naming rules:
 1. runtime review 與 API payload 欄位對齊。
 2. 空狀態、錯誤狀態與 mock fallback 細緻化。
 3. `WarehouseAnalyticsScreen` 的後端 API runtime review。
-4. `WarehouseInventoryMovementLedgerScreen` 的 read-only proposal review 與後續實作評估。
-5. `WarehouseTaskExecutionScreen` 的 V2 mutation / validation 邊界討論。
+4. 優先轉入下一個 phase 為 core 的跨模組畫面 API 設計，例如 Orders fulfillment-risk read-only API。
+5. `WarehouseInventoryMovementLedgerScreen` 與 `WarehouseTaskExecutionScreen` 皆延至下一版討論。
 
 因此，討論「整個規劃畫面清單」時，應以 `Full Screen Roadmap` 主表為準；討論「現階段下一步實作」時，才依 `Current Completion Summary` 的 next focus 決定。
 

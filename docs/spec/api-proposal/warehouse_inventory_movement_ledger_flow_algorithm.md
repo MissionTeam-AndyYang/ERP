@@ -1,12 +1,14 @@
 # Warehouse Inventory Movement Ledger API 流程與演算法提案
 
-狀態：Proposal / Pending Engineer Review  
-對應 API 提案：`docs/spec/api-proposal/warehouse_inventory_movement_ledger_proposal.md`  
+狀態：Deferred to next version / Not in current V1 core scope
+對應 API 提案：`docs/spec/api-proposal/warehouse_inventory_movement_ledger_proposal.md`
 對應靜態預覽：`docs/spec/api-proposal/warehouse_inventory_movement_ledger_static_preview.html`
 
 ## 文件定位
 
 本文件描述 `WarehouseInventoryMovementLedgerScreen` 所需 read-only API 的後端查詢流程與演算法。此畫面用於查詢庫存異動流水帳，不建立、不修改、不刪除任何庫存資料，也不更新 workflow task。
+
+依 2026-07-06 規劃確認，第一版前端畫面優先實作 phase 為 core 的畫面；`WarehouseInventoryMovementLedgerScreen` 延至下一版，本版不進行工程師 review、後端實作或前端串接。本文件僅保留作為下一版追溯畫面設計基礎。
 
 第一版建議 endpoint：
 
@@ -210,7 +212,7 @@ movementCount
 
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
-| 是否同意此畫面作為 Analytics 後的下一個 V1 read-only 畫面 | 確認後續仍沿用 GET-only 開發節奏。 | 待工程師回覆 | 建議採用。 |
+| 是否同意此畫面作為 Analytics 後的下一個 V1 read-only 畫面 | 2026-07-06 已調整為第一版優先 phase core 畫面。 | 已延至下一版 | 本版略過，不進行 review / 實作。 |
 | `inventory_record.category` 的 enum 是否可直接作為 API `category` | 影響入庫/出庫方向判斷。 | 待工程師回覆 | 建議直接沿用資料庫欄位，不新增 `direction`。 |
 | `inventory_record.date = 0` 是否允許 fallback 至 `creationTime` | 影響異動時間查詢準確性。 | 待工程師回覆 | 建議第一版不 fallback，除非工程師確認歷史資料需要。 |
 | 是否需要新增索引 | 影響大資料量下查詢效能。 | 待工程師回覆 | 建議實測後評估 `date + warehouse_no + item_no + batchNumber` 或 `date + ref_no` 組合索引。 |

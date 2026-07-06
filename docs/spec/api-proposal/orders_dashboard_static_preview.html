@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orders Dashboard Static Preview</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #d8dee8;
+      --text: #202938;
+      --muted: #687385;
+      --blue: #2563eb;
+      --green: #138a63;
+      --red: #c2410c;
+      --amber: #b7791f;
+      --slate: #475569;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 24px; font-weight: 700; }
+    h2 { font-size: 16px; font-weight: 700; }
+    h3 { font-size: 13px; color: var(--muted); font-weight: 700; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .sub { color: var(--muted); margin-top: 4px; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .chip, .button {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel);
+      padding: 7px 10px;
+      white-space: nowrap;
+    }
+    .button.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .grid { display: grid; gap: 12px; }
+    .kpis {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      margin-bottom: 12px;
+    }
+    .main {
+      grid-template-columns: minmax(0, 1.2fr) minmax(380px, .8fr);
+      align-items: start;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .kpi {
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .label { color: var(--muted); font-size: 12px; }
+    .value { font-size: 22px; font-weight: 700; }
+    .delta { font-size: 12px; color: var(--muted); }
+    .green { color: var(--green); }
+    .red { color: var(--red); }
+    .amber { color: var(--amber); }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .tab.active {
+      color: #fff;
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    th {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      background: #fbfcfe;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 56px;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge.good { background: #dcfce7; color: #166534; }
+    .badge.warn { background: #fef3c7; color: #92400e; }
+    .badge.bad { background: #ffedd5; color: #9a3412; }
+    .stack { display: grid; gap: 12px; }
+    .row {
+      display: grid;
+      grid-template-columns: 104px minmax(0, 1fr) 82px;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 0;
+    }
+    .row:last-child { border-bottom: 0; }
+    .timeline {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr) 72px;
+      gap: 8px;
+      align-items: start;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--line);
+      margin-top: 5px;
+    }
+    .dot.done { background: var(--green); }
+    .dot.warn { background: var(--amber); }
+    .dot.bad { background: var(--red); }
+    @media (max-width: 1100px) {
+      .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .main { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .shell { padding: 16px; }
+      .header { flex-direction: column; }
+      .toolbar { justify-content: flex-start; }
+      .kpis { grid-template-columns: 1fr; }
+      table { min-width: 1080px; }
+      .table-wrap { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="header">
+      <div>
+        <h1>訂單履約風險工作台</h1>
+        <p class="sub">優先檢視交期承諾、生產可行性、毛利與收款風險。</p>
+      </div>
+      <div class="toolbar">
+        <div class="chip">期間：最近 30 天</div>
+        <div class="chip">客戶：全部</div>
+        <div class="chip">狀態：進行中</div>
+        <button class="button primary">重新查詢</button>
+      </div>
+    </section>
+
+    <section class="grid kpis">
+      <div class="panel kpi">
+        <span class="label">進行中訂單</span>
+        <span class="value">42</span>
+        <span class="delta">含正式訂單與待承諾訂單</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">高交期風險</span>
+        <span class="value red">6</span>
+        <span class="delta">缺料、產能、品檢或出貨阻擋</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">可承諾比例</span>
+        <span class="value green">78.6%</span>
+        <span class="delta">ATP/CTP 已通過</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">毛利風險</span>
+        <span class="value amber">5</span>
+        <span class="delta">低毛利或成本資料不足</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">收款風險</span>
+        <span class="value amber">3</span>
+        <span class="delta">未收或逾期應收</span>
+      </div>
+      <div class="panel kpi">
+        <span class="label">訂單金額</span>
+        <span class="value">$18.2M</span>
+        <span class="delta">依目前篩選條件</span>
+      </div>
+    </section>
+
+    <section class="tabs">
+      <span class="tab active">訂單總覽</span>
+      <span class="tab">接單承諾</span>
+      <span class="tab">交期風險</span>
+      <span class="tab">履約進度</span>
+      <span class="tab">毛利與收款</span>
+    </section>
+
+    <section class="grid main">
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 140px;">訂單 / 客戶</th>
+                <th style="width: 190px;">產品</th>
+                <th style="width: 92px;">數量</th>
+                <th style="width: 110px;">交期</th>
+                <th style="width: 104px;">接單承諾</th>
+                <th style="width: 112px;">生產可行性</th>
+                <th style="width: 112px;">履約階段</th>
+                <th style="width: 92px;">毛利</th>
+                <th style="width: 96px;">收款</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>SO-260701<br><span class="label">安德食品</span></td>
+                <td>高蛋白穀物杯<br><span class="label">FG-0981</span></td>
+                <td>12,000</td>
+                <td>07/12</td>
+                <td><span class="badge warn">需協調</span></td>
+                <td><span class="badge warn">需協調</span></td>
+                <td>備料中</td>
+                <td class="amber">18.2%</td>
+                <td>未收</td>
+              </tr>
+              <tr>
+                <td>SO-260702<br><span class="label">東禾通路</span></td>
+                <td>營養穀物棒<br><span class="label">FG-1208</span></td>
+                <td>8,400</td>
+                <td>07/09</td>
+                <td><span class="badge bad">不可承諾</span></td>
+                <td><span class="badge bad">不可如期</span></td>
+                <td>已排產</td>
+                <td class="red">9.4%</td>
+                <td>部分</td>
+              </tr>
+              <tr>
+                <td>SO-260703<br><span class="label">青木商社</span></td>
+                <td>燕麥飲粉包<br><span class="label">FG-0882</span></td>
+                <td>20,000</td>
+                <td>07/18</td>
+                <td><span class="badge good">可承諾</span></td>
+                <td><span class="badge good">可生產</span></td>
+                <td>待出貨</td>
+                <td class="green">24.7%</td>
+                <td>正常</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside class="stack">
+        <div class="panel">
+          <h2>接單承諾檢核</h2>
+          <div class="row">
+            <strong>ATP 庫存</strong>
+            <span>成品可用數不足，需排產補足 3,600</span>
+            <span class="badge warn">注意</span>
+          </div>
+          <div class="row">
+            <strong>物料缺口</strong>
+            <span>杏仁粉原料低於安全水位，採購需確認到貨</span>
+            <span class="badge bad">阻擋</span>
+          </div>
+          <div class="row">
+            <strong>產能</strong>
+            <span>07/08 後段線尚有 6 小時可排</span>
+            <span class="badge good">通過</span>
+          </div>
+          <div class="row">
+            <strong>品檢/出貨</strong>
+            <span>待品質放行，出貨時段尚可安排</span>
+            <span class="badge warn">注意</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>履約追蹤</h2>
+          <div class="timeline">
+            <div class="step"><span class="dot done"></span><span>正式訂單成立<br><span class="label">SO-260701</span></span><span class="badge good">完成</span></div>
+            <div class="step"><span class="dot warn"></span><span>接單承諾檢核<br><span class="label">需協調物料與品檢</span></span><span class="badge warn">進行中</span></div>
+            <div class="step"><span class="dot warn"></span><span>材料請購 / 採購<br><span class="label">等待供應商到貨確認</span></span><span class="badge warn">待處理</span></div>
+            <div class="step"><span class="dot"></span><span>生產 / 品檢 / 出貨<br><span class="label">尚未完成</span></span><span class="badge">待處理</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>API 設計重點</h2>
+          <p class="sub">後端回傳結構化 enum code 與數值，前端負責多國語言、狀態文字與導向 query string。此畫面不執行任何新增或修改。</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

@@ -3,6 +3,24 @@ import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { StatusTone } from "@/types/dashboard";
 import type {
   InventoryCategory,
+  WarehouseAnalyticsBucket,
+  WarehouseAnalyticsCategorySummary,
+  WarehouseAnalyticsOverviewData,
+  WarehouseAnalyticsOverdueTrendPoint,
+  WarehouseAnalyticsPeriod,
+  WarehouseAnalyticsRange,
+  WarehouseAnalyticsRiskBreakdownData,
+  WarehouseAnalyticsRiskBreakdownItem,
+  WarehouseAnalyticsRiskSummary,
+  WarehouseAnalyticsSpaceTrendPoint,
+  WarehouseAnalyticsSpaceUtilizationData,
+  WarehouseAnalyticsTaskDepartmentSummary,
+  WarehouseAnalyticsTaskSlaData,
+  WarehouseAnalyticsTaskSlaItem,
+  WarehouseAnalyticsTopRiskLot,
+  WarehouseAnalyticsValueTrendData,
+  WarehouseAnalyticsValueTrendPoint,
+  WarehouseAnalyticsWarehouseSummary,
   WarehouseCapacity,
   WarehouseCategorySummary,
   WarehouseDashboardData,
@@ -377,6 +395,149 @@ type ApiWarehouseTaskDetailPayload = {
   timeline?: ApiWarehouseTaskTimelineEvent[];
 };
 
+type ApiWarehouseAnalyticsRange = {
+  period?: string;
+  bucket?: string;
+  startTimestamp?: number;
+  endTimestamp?: number;
+};
+
+type ApiWarehouseAnalyticsKpi = {
+  totalInventoryValue?: number;
+  valueChangeRate?: number;
+  usedPallets?: number;
+  spaceUtilizationRate?: number;
+  riskLotCount?: number;
+  openTaskCount?: number;
+  overdueTaskRate?: number;
+};
+
+type ApiWarehouseAnalyticsValueTrendPoint = {
+  bucketStart?: number;
+  bucketLabel?: string;
+  itemCategory?: number;
+  inventoryValue?: number;
+  availableValue?: number;
+  reservedValue?: number;
+  qualityHoldValue?: number;
+};
+
+type ApiWarehouseAnalyticsSpaceTrendPoint = {
+  bucketStart?: number;
+  warehouseNo?: string;
+  warehouseName?: string;
+  usedPallets?: number;
+  reservedPallets?: number;
+  availablePallets?: number;
+  utilizationRate?: number;
+};
+
+type ApiWarehouseAnalyticsRiskBreakdownItem = {
+  riskType?: string;
+  riskLevel?: number;
+  lotCount?: number;
+  inventoryValue?: number;
+  quantity?: number;
+};
+
+type ApiWarehouseAnalyticsTaskSlaItem = {
+  taskType?: number;
+  openTaskCount?: number;
+  completedTaskCount?: number;
+  overdueTaskCount?: number;
+  blockedTaskCount?: number;
+  onTimeRate?: number;
+  averageLeadTimeHours?: number;
+};
+
+type ApiWarehouseAnalyticsOverviewPayload = {
+  serverTimestamp?: number;
+  timezone?: string;
+  range?: ApiWarehouseAnalyticsRange;
+  kpi?: ApiWarehouseAnalyticsKpi;
+  valueTrend?: ApiWarehouseAnalyticsValueTrendPoint[];
+  spaceTrend?: ApiWarehouseAnalyticsSpaceTrendPoint[];
+  riskBreakdown?: ApiWarehouseAnalyticsRiskBreakdownItem[];
+  taskSla?: ApiWarehouseAnalyticsTaskSlaItem[];
+};
+
+type ApiWarehouseAnalyticsCategorySummary = {
+  itemCategory?: number;
+  inventoryValue?: number;
+  availableValue?: number;
+  reservedValue?: number;
+  qualityHoldValue?: number;
+};
+
+type ApiWarehouseAnalyticsWarehouseSummary = {
+  warehouseNo?: string;
+  warehouseName?: string;
+  usedPallets?: number;
+  reservedPallets?: number;
+  availablePallets?: number;
+  utilizationRate?: number;
+};
+
+type ApiWarehouseAnalyticsRiskSummary = {
+  riskLotCount?: number;
+  highRiskLotCount?: number;
+  inventoryValue?: number;
+  quantity?: number;
+};
+
+type ApiWarehouseAnalyticsTopRiskLot = {
+  lotKey?: string;
+  warehouseNo?: string;
+  warehouseName?: string;
+  itemNo?: string;
+  itemName?: string;
+  batchNo?: string;
+  riskType?: string;
+  riskLevel?: number;
+  inventoryValue?: number;
+  quantity?: number;
+};
+
+type ApiWarehouseAnalyticsTaskDepartmentSummary = {
+  ownerDepartment?: number;
+  openTaskCount?: number;
+  overdueTaskCount?: number;
+  blockedTaskCount?: number;
+};
+
+type ApiWarehouseAnalyticsOverdueTrendPoint = {
+  bucketStart?: number;
+  bucketLabel?: string;
+  overdueTaskCount?: number;
+  blockedTaskCount?: number;
+};
+
+type ApiWarehouseAnalyticsValueTrendPayload = {
+  range?: ApiWarehouseAnalyticsRange;
+  summaryByCategory?: ApiWarehouseAnalyticsCategorySummary[];
+  valueTrend?: ApiWarehouseAnalyticsValueTrendPoint[];
+};
+
+type ApiWarehouseAnalyticsSpaceUtilizationPayload = {
+  range?: ApiWarehouseAnalyticsRange;
+  summaryByWarehouse?: ApiWarehouseAnalyticsWarehouseSummary[];
+  spaceTrend?: ApiWarehouseAnalyticsSpaceTrendPoint[];
+};
+
+type ApiWarehouseAnalyticsRiskBreakdownPayload = {
+  range?: ApiWarehouseAnalyticsRange;
+  riskSummary?: ApiWarehouseAnalyticsRiskSummary;
+  riskBreakdown?: ApiWarehouseAnalyticsRiskBreakdownItem[];
+  topRiskLots?: ApiWarehouseAnalyticsTopRiskLot[];
+};
+
+type ApiWarehouseAnalyticsTaskSlaPayload = {
+  range?: ApiWarehouseAnalyticsRange;
+  summaryByTaskType?: ApiWarehouseAnalyticsTaskSlaItem[];
+  summaryByDepartment?: ApiWarehouseAnalyticsTaskDepartmentSummary[];
+  overdueTrend?: ApiWarehouseAnalyticsOverdueTrendPoint[];
+};
+
 export type WarehouseDashboardResult = {
   data: WarehouseDashboardData;
   source: WarehouseDataSource;
@@ -444,6 +605,45 @@ export type WarehouseTaskWorkbenchResult = {
 
 export type WarehouseTaskDetailResult = {
   detail?: WarehouseTaskDetail;
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseAnalyticsQuery = {
+  date?: number;
+  period?: WarehouseAnalyticsPeriod;
+  bucket?: WarehouseAnalyticsBucket;
+  warehouseNo?: string;
+  itemCategory?: number;
+  taskType?: number;
+};
+
+export type WarehouseAnalyticsOverviewResult = {
+  data: WarehouseAnalyticsOverviewData;
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseAnalyticsValueTrendResult = {
+  data: WarehouseAnalyticsValueTrendData;
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseAnalyticsSpaceUtilizationResult = {
+  data: WarehouseAnalyticsSpaceUtilizationData;
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseAnalyticsRiskBreakdownResult = {
+  data: WarehouseAnalyticsRiskBreakdownData;
+  source: WarehouseDataSource;
+  error?: string;
+};
+
+export type WarehouseAnalyticsTaskSlaResult = {
+  data: WarehouseAnalyticsTaskSlaData;
   source: WarehouseDataSource;
   error?: string;
 };
@@ -1470,6 +1670,438 @@ function mockTaskDetail(taskId?: string): WarehouseTaskDetail | undefined {
   };
 }
 
+function normalizeAnalyticsPeriod(value?: string): WarehouseAnalyticsPeriod {
+  if (value === "7d" || value === "90d") {
+    return value;
+  }
+  return "30d";
+}
+
+function normalizeAnalyticsBucket(value?: string): WarehouseAnalyticsBucket {
+  if (value === "week" || value === "month") {
+    return value;
+  }
+  return "day";
+}
+
+function mapAnalyticsRange(range?: ApiWarehouseAnalyticsRange): WarehouseAnalyticsRange {
+  return {
+    period: normalizeAnalyticsPeriod(range?.period),
+    bucket: normalizeAnalyticsBucket(range?.bucket),
+    startDate: timestampToDate(range?.startTimestamp),
+    endDate: timestampToDate(range?.endTimestamp)
+  };
+}
+
+function mapAnalyticsValueTrendPoint(
+  item: ApiWarehouseAnalyticsValueTrendPoint
+): WarehouseAnalyticsValueTrendPoint {
+  return {
+    bucketStart: timestampToDate(item.bucketStart),
+    bucketLabel: item.bucketLabel ?? timestampToDate(item.bucketStart),
+    itemCategory: item.itemCategory,
+    inventoryValue: item.inventoryValue ?? 0,
+    availableValue: item.availableValue ?? 0,
+    reservedValue: item.reservedValue ?? 0,
+    qualityHoldValue: item.qualityHoldValue ?? 0
+  };
+}
+
+function mapAnalyticsSpaceTrendPoint(
+  item: ApiWarehouseAnalyticsSpaceTrendPoint
+): WarehouseAnalyticsSpaceTrendPoint {
+  return {
+    bucketStart: timestampToDate(item.bucketStart),
+    warehouseNo: item.warehouseNo ?? "",
+    warehouseName: item.warehouseName ?? "",
+    usedPallets: item.usedPallets ?? 0,
+    reservedPallets: item.reservedPallets ?? 0,
+    availablePallets: item.availablePallets ?? 0,
+    utilizationRate: item.utilizationRate ?? 0
+  };
+}
+
+function mapAnalyticsRiskBreakdownItem(
+  item: ApiWarehouseAnalyticsRiskBreakdownItem
+): WarehouseAnalyticsRiskBreakdownItem {
+  return {
+    riskType: item.riskType ?? "UNKNOWN",
+    riskLevel: item.riskLevel,
+    lotCount: item.lotCount ?? 0,
+    inventoryValue: item.inventoryValue ?? 0,
+    quantity: item.quantity ?? 0
+  };
+}
+
+function mapAnalyticsTaskSlaItem(item: ApiWarehouseAnalyticsTaskSlaItem): WarehouseAnalyticsTaskSlaItem {
+  return {
+    taskType: item.taskType,
+    openTaskCount: item.openTaskCount ?? 0,
+    completedTaskCount: item.completedTaskCount ?? 0,
+    overdueTaskCount: item.overdueTaskCount ?? 0,
+    blockedTaskCount: item.blockedTaskCount ?? 0,
+    onTimeRate: item.onTimeRate ?? 0,
+    averageLeadTimeHours: item.averageLeadTimeHours ?? 0
+  };
+}
+
+function mapAnalyticsOverviewPayload(payload: ApiWarehouseAnalyticsOverviewPayload): WarehouseAnalyticsOverviewData {
+  return {
+    serverDate: timestampToDateTime(payload.serverTimestamp),
+    timezone: payload.timezone ?? "Asia/Taipei",
+    range: mapAnalyticsRange(payload.range),
+    kpi: {
+      totalInventoryValue: payload.kpi?.totalInventoryValue ?? 0,
+      valueChangeRate: payload.kpi?.valueChangeRate ?? 0,
+      usedPallets: payload.kpi?.usedPallets ?? 0,
+      spaceUtilizationRate: payload.kpi?.spaceUtilizationRate ?? 0,
+      riskLotCount: payload.kpi?.riskLotCount ?? 0,
+      openTaskCount: payload.kpi?.openTaskCount ?? 0,
+      overdueTaskRate: payload.kpi?.overdueTaskRate ?? 0
+    },
+    valueTrend: withFallbackArray<ApiWarehouseAnalyticsValueTrendPoint>(payload.valueTrend, []).map(
+      mapAnalyticsValueTrendPoint
+    ),
+    spaceTrend: withFallbackArray<ApiWarehouseAnalyticsSpaceTrendPoint>(payload.spaceTrend, []).map(
+      mapAnalyticsSpaceTrendPoint
+    ),
+    riskBreakdown: withFallbackArray<ApiWarehouseAnalyticsRiskBreakdownItem>(payload.riskBreakdown, []).map(
+      mapAnalyticsRiskBreakdownItem
+    ),
+    taskSla: withFallbackArray<ApiWarehouseAnalyticsTaskSlaItem>(payload.taskSla, []).map(mapAnalyticsTaskSlaItem)
+  };
+}
+
+function mapAnalyticsCategorySummary(
+  item: ApiWarehouseAnalyticsCategorySummary
+): WarehouseAnalyticsCategorySummary {
+  return {
+    itemCategory: item.itemCategory,
+    inventoryValue: item.inventoryValue ?? 0,
+    availableValue: item.availableValue ?? 0,
+    reservedValue: item.reservedValue ?? 0,
+    qualityHoldValue: item.qualityHoldValue ?? 0
+  };
+}
+
+function mapAnalyticsWarehouseSummary(
+  item: ApiWarehouseAnalyticsWarehouseSummary
+): WarehouseAnalyticsWarehouseSummary {
+  return {
+    warehouseNo: item.warehouseNo ?? "",
+    warehouseName: item.warehouseName ?? "",
+    usedPallets: item.usedPallets ?? 0,
+    reservedPallets: item.reservedPallets ?? 0,
+    availablePallets: item.availablePallets ?? 0,
+    utilizationRate: item.utilizationRate ?? 0
+  };
+}
+
+function mapAnalyticsRiskSummary(summary?: ApiWarehouseAnalyticsRiskSummary): WarehouseAnalyticsRiskSummary {
+  return {
+    riskLotCount: summary?.riskLotCount ?? 0,
+    highRiskLotCount: summary?.highRiskLotCount ?? 0,
+    inventoryValue: summary?.inventoryValue ?? 0,
+    quantity: summary?.quantity ?? 0
+  };
+}
+
+function mapAnalyticsTopRiskLot(item: ApiWarehouseAnalyticsTopRiskLot, index: number): WarehouseAnalyticsTopRiskLot {
+  return {
+    lotKey: item.lotKey ?? `${item.warehouseNo ?? ""}|${item.itemNo ?? ""}|${item.batchNo ?? index}`,
+    warehouseNo: item.warehouseNo ?? "",
+    warehouseName: item.warehouseName ?? "",
+    itemNo: item.itemNo ?? "",
+    itemName: item.itemName ?? "",
+    batchNo: item.batchNo ?? "",
+    riskType: item.riskType ?? "UNKNOWN",
+    riskLevel: item.riskLevel,
+    inventoryValue: item.inventoryValue ?? 0,
+    quantity: item.quantity ?? 0
+  };
+}
+
+function mapAnalyticsDepartmentSummary(
+  item: ApiWarehouseAnalyticsTaskDepartmentSummary
+): WarehouseAnalyticsTaskDepartmentSummary {
+  return {
+    ownerDepartment: item.ownerDepartment,
+    openTaskCount: item.openTaskCount ?? 0,
+    overdueTaskCount: item.overdueTaskCount ?? 0,
+    blockedTaskCount: item.blockedTaskCount ?? 0
+  };
+}
+
+function mapAnalyticsOverdueTrendPoint(
+  item: ApiWarehouseAnalyticsOverdueTrendPoint
+): WarehouseAnalyticsOverdueTrendPoint {
+  return {
+    bucketStart: timestampToDate(item.bucketStart),
+    bucketLabel: item.bucketLabel ?? timestampToDate(item.bucketStart),
+    overdueTaskCount: item.overdueTaskCount ?? 0,
+    blockedTaskCount: item.blockedTaskCount ?? 0
+  };
+}
+
+function mapAnalyticsValueTrendPayload(
+  payload: ApiWarehouseAnalyticsValueTrendPayload
+): WarehouseAnalyticsValueTrendData {
+  return {
+    range: mapAnalyticsRange(payload.range),
+    summaryByCategory: withFallbackArray<ApiWarehouseAnalyticsCategorySummary>(
+      payload.summaryByCategory,
+      []
+    ).map(mapAnalyticsCategorySummary),
+    valueTrend: withFallbackArray<ApiWarehouseAnalyticsValueTrendPoint>(payload.valueTrend, []).map(
+      mapAnalyticsValueTrendPoint
+    )
+  };
+}
+
+function mapAnalyticsSpaceUtilizationPayload(
+  payload: ApiWarehouseAnalyticsSpaceUtilizationPayload
+): WarehouseAnalyticsSpaceUtilizationData {
+  return {
+    range: mapAnalyticsRange(payload.range),
+    summaryByWarehouse: withFallbackArray<ApiWarehouseAnalyticsWarehouseSummary>(
+      payload.summaryByWarehouse,
+      []
+    ).map(mapAnalyticsWarehouseSummary),
+    spaceTrend: withFallbackArray<ApiWarehouseAnalyticsSpaceTrendPoint>(payload.spaceTrend, []).map(
+      mapAnalyticsSpaceTrendPoint
+    )
+  };
+}
+
+function mapAnalyticsRiskBreakdownPayload(
+  payload: ApiWarehouseAnalyticsRiskBreakdownPayload
+): WarehouseAnalyticsRiskBreakdownData {
+  return {
+    range: mapAnalyticsRange(payload.range),
+    riskSummary: mapAnalyticsRiskSummary(payload.riskSummary),
+    riskBreakdown: withFallbackArray<ApiWarehouseAnalyticsRiskBreakdownItem>(payload.riskBreakdown, []).map(
+      mapAnalyticsRiskBreakdownItem
+    ),
+    topRiskLots: withFallbackArray<ApiWarehouseAnalyticsTopRiskLot>(payload.topRiskLots, []).map(
+      mapAnalyticsTopRiskLot
+    )
+  };
+}
+
+function mapAnalyticsTaskSlaPayload(payload: ApiWarehouseAnalyticsTaskSlaPayload): WarehouseAnalyticsTaskSlaData {
+  return {
+    range: mapAnalyticsRange(payload.range),
+    summaryByTaskType: withFallbackArray<ApiWarehouseAnalyticsTaskSlaItem>(payload.summaryByTaskType, []).map(
+      mapAnalyticsTaskSlaItem
+    ),
+    summaryByDepartment: withFallbackArray<ApiWarehouseAnalyticsTaskDepartmentSummary>(
+      payload.summaryByDepartment,
+      []
+    ).map(mapAnalyticsDepartmentSummary),
+    overdueTrend: withFallbackArray<ApiWarehouseAnalyticsOverdueTrendPoint>(payload.overdueTrend, []).map(
+      mapAnalyticsOverdueTrendPoint
+    )
+  };
+}
+
+function periodDays(period: WarehouseAnalyticsPeriod) {
+  if (period === "7d") {
+    return 7;
+  }
+  if (period === "90d") {
+    return 90;
+  }
+  return 30;
+}
+
+function buildMockAnalyticsPayload(query: WarehouseAnalyticsQuery = {}): ApiWarehouseAnalyticsOverviewPayload {
+  const period = query.period ?? "30d";
+  const bucket = query.bucket ?? "day";
+  const now = Math.floor(Date.now() / 1000);
+  const start = now - periodDays(period) * 86400;
+  const records = warehouseDashboardMock.records;
+  const capacities = warehouseDashboardMock.capacities;
+  const risks = warehouseDashboardMock.risks;
+  const tasks = warehouseDashboardMock.tasks;
+  const totalInventoryValue = records.reduce((sum, item) => sum + item.amount, 0);
+  const usedPallets = capacities.reduce((sum, item) => sum + item.usedPallets, 0);
+  const totalPallets = capacities.reduce((sum, item) => sum + item.totalPallets, 0);
+
+  const valueTrend: ApiWarehouseAnalyticsValueTrendPoint[] = warehouseDashboardMock.categorySummaries.map(
+    (item, index) => ({
+      bucketStart: start + index * Math.max(Math.floor((now - start) / 5), 86400),
+      bucketLabel: item.category,
+      itemCategory: index + 1,
+      inventoryValue: item.amount,
+      availableValue: item.availableAmount,
+      reservedValue: item.reservedAmount,
+      qualityHoldValue: Math.round(item.amount * 0.03)
+    })
+  );
+
+  return {
+    serverTimestamp: now,
+    timezone: "Asia/Taipei",
+    range: {
+      period,
+      bucket,
+      startTimestamp: start,
+      endTimestamp: now
+    },
+    kpi: {
+      totalInventoryValue,
+      valueChangeRate: 4.8,
+      usedPallets,
+      spaceUtilizationRate: totalPallets ? (usedPallets / totalPallets) * 100 : 0,
+      riskLotCount: risks.length,
+      openTaskCount: tasks.length,
+      overdueTaskRate: tasks.length ? (tasks.filter((task) => task.tone === "danger").length / tasks.length) * 100 : 0
+    },
+    valueTrend,
+    spaceTrend: capacities.map((item, index) => ({
+      bucketStart: start + index * 86400,
+      bucketLabel: item.warehouseName,
+      warehouseNo: item.id,
+      warehouseName: item.warehouseName,
+      usedPallets: item.usedPallets,
+      reservedPallets: item.reservedPallets,
+      availablePallets: item.availablePallets,
+      utilizationRate: item.totalPallets ? ((item.usedPallets + item.reservedPallets) / item.totalPallets) * 100 : 0
+    })),
+    riskBreakdown: [
+      {
+        riskType: "TURNOVER_OVER_30_DAYS",
+        riskLevel: 2,
+        lotCount: risks.filter((risk) => risk.type === "迴轉超過一個月").length || 1,
+        inventoryValue: Math.round(totalInventoryValue * 0.18),
+        quantity: 620
+      },
+      {
+        riskType: "SHELF_LIFE_LT_ONE_THIRD",
+        riskLevel: 3,
+        lotCount: risks.filter((risk) => risk.type === "少於 1/3 效期").length || 1,
+        inventoryValue: Math.round(totalInventoryValue * 0.12),
+        quantity: 310
+      },
+      {
+        riskType: "BELOW_SAFETY_STOCK",
+        riskLevel: 3,
+        lotCount: risks.filter((risk) => risk.type === "低於安全水位").length || 1,
+        inventoryValue: Math.round(totalInventoryValue * 0.08),
+        quantity: 140
+      }
+    ],
+    taskSla: [
+      {
+        taskType: 4,
+        openTaskCount: tasks.filter((task) => task.type === "入庫").length || 2,
+        completedTaskCount: 9,
+        overdueTaskCount: 1,
+        blockedTaskCount: 0,
+        onTimeRate: 91.4,
+        averageLeadTimeHours: 5.2
+      },
+      {
+        taskType: 5,
+        openTaskCount: tasks.filter((task) => task.type === "出庫").length || 3,
+        completedTaskCount: 12,
+        overdueTaskCount: 2,
+        blockedTaskCount: 1,
+        onTimeRate: 86.7,
+        averageLeadTimeHours: 4.6
+      },
+      {
+        taskType: 6,
+        openTaskCount: tasks.filter((task) => task.type === "移倉").length || 1,
+        completedTaskCount: 6,
+        overdueTaskCount: 0,
+        blockedTaskCount: 0,
+        onTimeRate: 96.2,
+        averageLeadTimeHours: 3.1
+      }
+    ]
+  };
+}
+
+function mockAnalyticsOverview(query: WarehouseAnalyticsQuery = {}): WarehouseAnalyticsOverviewData {
+  return mapAnalyticsOverviewPayload(buildMockAnalyticsPayload(query));
+}
+
+function mockAnalyticsValueTrend(query: WarehouseAnalyticsQuery = {}): WarehouseAnalyticsValueTrendData {
+  const payload = buildMockAnalyticsPayload(query);
+  return {
+    range: mapAnalyticsRange(payload.range),
+    summaryByCategory: payload.valueTrend?.map((item) => mapAnalyticsCategorySummary(item)) ?? [],
+    valueTrend: payload.valueTrend?.map(mapAnalyticsValueTrendPoint) ?? []
+  };
+}
+
+function mockAnalyticsSpaceUtilization(query: WarehouseAnalyticsQuery = {}): WarehouseAnalyticsSpaceUtilizationData {
+  const payload = buildMockAnalyticsPayload(query);
+  return {
+    range: mapAnalyticsRange(payload.range),
+    summaryByWarehouse: payload.spaceTrend?.map((item) => mapAnalyticsWarehouseSummary(item)) ?? [],
+    spaceTrend: payload.spaceTrend?.map(mapAnalyticsSpaceTrendPoint) ?? []
+  };
+}
+
+function mockAnalyticsRiskBreakdown(query: WarehouseAnalyticsQuery = {}): WarehouseAnalyticsRiskBreakdownData {
+  const payload = buildMockAnalyticsPayload(query);
+  const riskBreakdown = payload.riskBreakdown?.map(mapAnalyticsRiskBreakdownItem) ?? [];
+  return {
+    range: mapAnalyticsRange(payload.range),
+    riskSummary: {
+      riskLotCount: riskBreakdown.reduce((sum, item) => sum + item.lotCount, 0),
+      highRiskLotCount: riskBreakdown.filter((item) => (item.riskLevel ?? 0) >= 3).length,
+      inventoryValue: riskBreakdown.reduce((sum, item) => sum + item.inventoryValue, 0),
+      quantity: riskBreakdown.reduce((sum, item) => sum + item.quantity, 0)
+    },
+    riskBreakdown,
+    topRiskLots: warehouseDashboardMock.records.slice(0, 5).map((record, index) => ({
+      lotKey: record.id,
+      warehouseNo: record.warehouseNo,
+      warehouseName: record.warehouseName,
+      itemNo: record.itemNo,
+      itemName: record.itemName,
+      batchNo: record.batchNo,
+      riskType: index % 2 === 0 ? "SHELF_LIFE_LT_ONE_THIRD" : "TURNOVER_OVER_30_DAYS",
+      riskLevel: record.tone === "danger" ? 3 : 2,
+      inventoryValue: record.amount,
+      quantity: record.quantity
+    }))
+  };
+}
+
+function mockAnalyticsTaskSla(query: WarehouseAnalyticsQuery = {}): WarehouseAnalyticsTaskSlaData {
+  const payload = buildMockAnalyticsPayload(query);
+  return {
+    range: mapAnalyticsRange(payload.range),
+    summaryByTaskType: payload.taskSla?.map(mapAnalyticsTaskSlaItem) ?? [],
+    summaryByDepartment: [
+      {
+        ownerDepartment: 7,
+        openTaskCount: payload.kpi?.openTaskCount ?? 0,
+        overdueTaskCount: 2,
+        blockedTaskCount: 1
+      }
+    ],
+    overdueTrend: [
+      {
+        bucketStart: payload.range?.startTimestamp,
+        bucketLabel: "Start",
+        overdueTaskCount: 1,
+        blockedTaskCount: 0
+      },
+      {
+        bucketStart: payload.range?.endTimestamp,
+        bucketLabel: "Now",
+        overdueTaskCount: 2,
+        blockedTaskCount: 1
+      }
+    ].map(mapAnalyticsOverdueTrendPoint)
+  };
+}
+
 function calculateDaysLeft(validDate?: number) {
   if (!validDate) {
     return 0;
@@ -1667,6 +2299,131 @@ export async function getWarehouseTaskDetail(taskId: string): Promise<WarehouseT
       detail: mockTaskDetail(taskId),
       source: "mock",
       error: error instanceof Error ? error.message : "Warehouse task detail API unavailable"
+    };
+  }
+}
+
+function buildWarehouseAnalyticsPath(endpoint: string, query: WarehouseAnalyticsQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.date !== undefined) {
+    params.set("date", String(query.date));
+  }
+  if (query.period) {
+    params.set("period", query.period);
+  }
+  if (query.bucket) {
+    params.set("bucket", query.bucket);
+  }
+  if (query.warehouseNo) {
+    params.set("warehouse_no", query.warehouseNo);
+  }
+  if (query.itemCategory !== undefined) {
+    params.set("itemCategory", String(query.itemCategory));
+  }
+  if (query.taskType !== undefined) {
+    params.set("taskType", String(query.taskType));
+  }
+
+  const queryString = params.toString();
+  return `/api/v2/warehouse/analytics/${endpoint}${queryString ? `?${queryString}` : ""}`;
+}
+
+export async function getWarehouseAnalyticsOverview(
+  query: WarehouseAnalyticsQuery = {}
+): Promise<WarehouseAnalyticsOverviewResult> {
+  try {
+    const payload = await apiGet<ApiWarehouseAnalyticsOverviewPayload>(
+      buildWarehouseAnalyticsPath("overview", query)
+    );
+    return {
+      data: mapAnalyticsOverviewPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      data: mockAnalyticsOverview(query),
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse analytics overview API unavailable"
+    };
+  }
+}
+
+export async function getWarehouseAnalyticsValueTrend(
+  query: WarehouseAnalyticsQuery = {}
+): Promise<WarehouseAnalyticsValueTrendResult> {
+  try {
+    const payload = await apiGet<ApiWarehouseAnalyticsValueTrendPayload>(
+      buildWarehouseAnalyticsPath("value-trend", query)
+    );
+    return {
+      data: mapAnalyticsValueTrendPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      data: mockAnalyticsValueTrend(query),
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse analytics value trend API unavailable"
+    };
+  }
+}
+
+export async function getWarehouseAnalyticsSpaceUtilization(
+  query: WarehouseAnalyticsQuery = {}
+): Promise<WarehouseAnalyticsSpaceUtilizationResult> {
+  try {
+    const payload = await apiGet<ApiWarehouseAnalyticsSpaceUtilizationPayload>(
+      buildWarehouseAnalyticsPath("space-utilization", query)
+    );
+    return {
+      data: mapAnalyticsSpaceUtilizationPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      data: mockAnalyticsSpaceUtilization(query),
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse analytics space utilization API unavailable"
+    };
+  }
+}
+
+export async function getWarehouseAnalyticsRiskBreakdown(
+  query: WarehouseAnalyticsQuery = {}
+): Promise<WarehouseAnalyticsRiskBreakdownResult> {
+  try {
+    const payload = await apiGet<ApiWarehouseAnalyticsRiskBreakdownPayload>(
+      buildWarehouseAnalyticsPath("risk-breakdown", query)
+    );
+    return {
+      data: mapAnalyticsRiskBreakdownPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      data: mockAnalyticsRiskBreakdown(query),
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse analytics risk breakdown API unavailable"
+    };
+  }
+}
+
+export async function getWarehouseAnalyticsTaskSla(
+  query: WarehouseAnalyticsQuery = {}
+): Promise<WarehouseAnalyticsTaskSlaResult> {
+  try {
+    const payload = await apiGet<ApiWarehouseAnalyticsTaskSlaPayload>(
+      buildWarehouseAnalyticsPath("task-sla", query)
+    );
+    return {
+      data: mapAnalyticsTaskSlaPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      data: mockAnalyticsTaskSla(query),
+      source: "mock",
+      error: error instanceof Error ? error.message : "Warehouse analytics task SLA API unavailable"
     };
   }
 }

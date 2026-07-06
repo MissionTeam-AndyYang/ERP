@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  BarChart3,
   Boxes,
   ClipboardList,
   Filter,
@@ -641,7 +642,7 @@ export default function WarehousePage() {
                 協助管理者掌握資金分佈、寄倉規劃與今日入出庫待處理事項。
               </p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto]">
+            <div className="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto_auto]">
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input
@@ -676,6 +677,14 @@ export default function WarehousePage() {
               >
                 <ListChecks className="h-4 w-4" aria-hidden="true" />
                 任務工作台
+              </Link>
+              <Link
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+                href="/warehouse/analytics"
+                title="前往倉庫分析工作區，檢視庫存價值、倉位使用、風險分布與任務 SLA。"
+              >
+                <BarChart3 className="h-4 w-4" aria-hidden="true" />
+                分析
               </Link>
               <Link
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"

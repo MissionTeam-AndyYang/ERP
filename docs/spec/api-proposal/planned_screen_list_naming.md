@@ -27,7 +27,7 @@ Naming rules:
 | P1.8 | V2 Deferred | `WarehouseTaskExecutionScreen` | Screen | 倉庫任務執行工作區 | 建議 route：`/warehouse/task-execution/tasks/{taskId}`；由 `WarehouseTaskDetailPanel` 的處理動作進入 | Deferred to V2；Warehouse V1 read-only 範圍不實作 | `GET /api/v2/warehouse/task-execution/tasks/{taskId}`、`POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/validate`、`POST /api/v2/warehouse/task-execution/tasks/{taskId}/actions/commit` | 用於任務執行前上下文、批號候選、數量限制、板位資訊、validation 與 commit；因包含 mutation 邊界，延至 V2 review。 |
 | P2 | V1 Core | `WarehouseInventoryLotListScreen` | Screen | 庫存批號明細清單 | `/warehouse/inventory/lots` | 已有第一版，已串接 inventory lots API | `GET /api/v2/warehouse/inventory/lots` | 批號層級清單畫面，支援倉庫、料品類別、料號、批號、風險、任務、可用狀態、關鍵字、排序與分頁。 |
 | P3 | V1 Core | `WarehouseInventoryLotDetailPanel` | Panel | 庫存批號追蹤面板 | `WarehouseInventoryLotListScreen` 右側 panel；窄版可作為 drawer 或 detail route | 已有第一版，已串接 inventory lot detail API | `GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}` | 顯示單一批號的庫存摘要、入出庫紀錄、預留、品檢保留、板位異動、未完成任務與風險。 |
-| P4 | V1 Extension | `WarehouseAnalyticsScreen` | Screen | 倉庫分析工作區 | 建議 route：`/warehouse/analytics`；由 Warehouse nav 或總覽 KPI drill-down 進入 | Backend Implemented / Pending Engineer Runtime Review | `GET /api/v2/warehouse/analytics/overview`、`GET /api/v2/warehouse/analytics/value-trend`、`GET /api/v2/warehouse/analytics/space-utilization`、`GET /api/v2/warehouse/analytics/risk-breakdown`、`GET /api/v2/warehouse/analytics/task-sla` | read-only 延伸畫面，分析庫存價值、倉位使用、風險分布與任務 SLA；不包含 POST / PUT。 |
+| P4 | V1 Extension | `WarehouseAnalyticsScreen` | Screen | 倉庫分析工作區 | `/warehouse/analytics`；由 Warehouse nav 或總覽 KPI drill-down 進入 | 已有第一版，已串接 analytics overview 與 4 個 detail API | `GET /api/v2/warehouse/analytics/overview`、`GET /api/v2/warehouse/analytics/value-trend`、`GET /api/v2/warehouse/analytics/space-utilization`、`GET /api/v2/warehouse/analytics/risk-breakdown`、`GET /api/v2/warehouse/analytics/task-sla` | read-only 延伸畫面，分析庫存價值、倉位使用、風險分布與任務 SLA；不包含 POST / PUT。 |
 | P5 | V2 Deferred | `WarehouseInventoryMovementLedgerScreen` | Screen | 庫存異動流水帳 | 建議 route：`/warehouse/inventory/movements`；由 Analytics、批號追蹤或任務工作台 drill-down 進入 | Deferred to next version；Warehouse V1 core 優先範圍暫不實作 | `GET /api/v2/warehouse/inventory/movements`、`GET /api/v2/warehouse/inventory/movements/summary` | read-only 追溯畫面，以 `inventory_record` 查詢入庫、出庫、批號、來源單據、數量與金額異動；因第一版優先 phase 為 core 的畫面，本畫面延至下一版。 |
 
 ## 倉庫中心 Screen State Naming
@@ -68,7 +68,7 @@ Naming rules:
 | `WarehouseTaskExecutionScreen` | Deferred to V2；第一版 read-only 暫不實作含 POST / PUT 的畫面。 | 保留既有 proposal 作為下一版任務執行討論基礎，當前不作為下一步 API 設計目標。 |
 | `WarehouseInventoryLotListScreen` | 已有第一版，已串接 inventory lots API。 | 依後端 runtime payload 檢查欄位呈現、篩選結果、分頁與空狀態。 |
 | `WarehouseInventoryLotDetailPanel` | 已有第一版，已串接 inventory lot detail API。 | 依後端 runtime payload 檢查入出庫紀錄、預留、品檢、板位、任務與風險資料集呈現。 |
-| `WarehouseAnalyticsScreen` | 後端 API 已依工程師確認後提案實作；待工程師 runtime review。 | 等待工程師確認 API 程式與 runtime 結果，再進行前端串接細緻化。 |
+| `WarehouseAnalyticsScreen` | 已有第一版，已串接 analytics overview 與 4 個 detail API。 | 依工程師實機資料檢查 API payload、篩選條件、drill-down query 與空狀態呈現。 |
 | `WarehouseInventoryMovementLedgerScreen` | Deferred to next version；本版略過。 | 暫不進行工程師 review、後端實作或前端串接；文件保留作為下一版追溯畫面討論基礎。 |
 
 ## Roadmap Coverage Confirmation

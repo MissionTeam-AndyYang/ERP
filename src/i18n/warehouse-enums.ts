@@ -89,6 +89,9 @@ const enumDictionaries: Record<LanguageCode, Record<WarehouseEnumKind, EnumDicti
     riskType: {
       OVERDUE: "逾期",
       BLOCKED: "阻塞",
+      TURNOVER_OVER_30_DAYS: "迴轉超過一個月",
+      SHELF_LIFE_LT_ONE_THIRD: "少於 1/3 效期",
+      BELOW_SAFETY_STOCK: "低於安全水位",
       INVENTORY_SHORTAGE: "庫存不足",
       QUALITY_HOLD: "品檢保留",
       BATCH_NOT_ASSIGNED: "未指定批號",
@@ -223,6 +226,9 @@ const enumDictionaries: Record<LanguageCode, Record<WarehouseEnumKind, EnumDicti
     riskType: {
       OVERDUE: "Overdue",
       BLOCKED: "Blocked",
+      TURNOVER_OVER_30_DAYS: "Turnover over 30 days",
+      SHELF_LIFE_LT_ONE_THIRD: "Shelf life below one third",
+      BELOW_SAFETY_STOCK: "Below safety stock",
       INVENTORY_SHORTAGE: "Inventory shortage",
       QUALITY_HOLD: "Quality hold",
       BATCH_NOT_ASSIGNED: "Batch not assigned",
@@ -357,6 +363,9 @@ const enumDictionaries: Record<LanguageCode, Record<WarehouseEnumKind, EnumDicti
     riskType: {
       OVERDUE: "期限超過",
       BLOCKED: "ブロック",
+      TURNOVER_OVER_30_DAYS: "30日超の滞留",
+      SHELF_LIFE_LT_ONE_THIRD: "残り期限 1/3 未満",
+      BELOW_SAFETY_STOCK: "安全在庫未満",
       INVENTORY_SHORTAGE: "在庫不足",
       QUALITY_HOLD: "品質保留",
       BATCH_NOT_ASSIGNED: "ロット未指定",
@@ -491,6 +500,9 @@ const enumDictionaries: Record<LanguageCode, Record<WarehouseEnumKind, EnumDicti
     riskType: {
       OVERDUE: "Quá hạn",
       BLOCKED: "Bị chặn",
+      TURNOVER_OVER_30_DAYS: "Luân chuyển quá 30 ngày",
+      SHELF_LIFE_LT_ONE_THIRD: "Hạn dùng còn dưới một phần ba",
+      BELOW_SAFETY_STOCK: "Dưới mức tồn kho an toàn",
       INVENTORY_SHORTAGE: "Thiếu tồn kho",
       QUALITY_HOLD: "Giữ chất lượng",
       BATCH_NOT_ASSIGNED: "Chưa gán lô",
@@ -564,7 +576,13 @@ export function warehouseEnumLabel(kind: WarehouseEnumKind, value: number | stri
 }
 
 export function warehouseRiskTone(riskLevel?: number, riskTypes: string[] = []): StatusTone {
-  if (riskLevel === 3 || riskTypes.includes("OVERDUE") || riskTypes.includes("BLOCKED")) {
+  if (
+    riskLevel === 3 ||
+    riskTypes.includes("OVERDUE") ||
+    riskTypes.includes("BLOCKED") ||
+    riskTypes.includes("SHELF_LIFE_LT_ONE_THIRD") ||
+    riskTypes.includes("BELOW_SAFETY_STOCK")
+  ) {
     return "danger";
   }
   if (riskLevel === 2 || riskTypes.length > 0) {

@@ -370,6 +370,153 @@ export type WarehouseTaskDetail = {
   timeline: WarehouseTaskTimelineEvent[];
 };
 
+export type WarehouseAnalyticsPeriod = "7d" | "30d" | "90d";
+
+export type WarehouseAnalyticsBucket = "day" | "week" | "month";
+
+export type WarehouseAnalyticsRange = {
+  period: WarehouseAnalyticsPeriod;
+  bucket: WarehouseAnalyticsBucket;
+  startDate: string;
+  endDate: string;
+};
+
+export type WarehouseAnalyticsKpi = {
+  totalInventoryValue: number;
+  valueChangeRate: number;
+  usedPallets: number;
+  spaceUtilizationRate: number;
+  riskLotCount: number;
+  openTaskCount: number;
+  overdueTaskRate: number;
+};
+
+export type WarehouseAnalyticsValueTrendPoint = {
+  bucketStart: string;
+  bucketLabel: string;
+  itemCategory?: number;
+  inventoryValue: number;
+  availableValue: number;
+  reservedValue: number;
+  qualityHoldValue: number;
+};
+
+export type WarehouseAnalyticsSpaceTrendPoint = {
+  bucketStart: string;
+  warehouseNo: string;
+  warehouseName: string;
+  usedPallets: number;
+  reservedPallets: number;
+  availablePallets: number;
+  utilizationRate: number;
+};
+
+export type WarehouseAnalyticsRiskBreakdownItem = {
+  riskType: string;
+  riskLevel?: number;
+  lotCount: number;
+  inventoryValue: number;
+  quantity: number;
+};
+
+export type WarehouseAnalyticsTaskSlaItem = {
+  taskType?: number;
+  openTaskCount: number;
+  completedTaskCount: number;
+  overdueTaskCount: number;
+  blockedTaskCount: number;
+  onTimeRate: number;
+  averageLeadTimeHours: number;
+};
+
+export type WarehouseAnalyticsOverviewData = {
+  serverDate: string;
+  timezone: string;
+  range: WarehouseAnalyticsRange;
+  kpi: WarehouseAnalyticsKpi;
+  valueTrend: WarehouseAnalyticsValueTrendPoint[];
+  spaceTrend: WarehouseAnalyticsSpaceTrendPoint[];
+  riskBreakdown: WarehouseAnalyticsRiskBreakdownItem[];
+  taskSla: WarehouseAnalyticsTaskSlaItem[];
+};
+
+export type WarehouseAnalyticsCategorySummary = {
+  itemCategory?: number;
+  inventoryValue: number;
+  availableValue: number;
+  reservedValue: number;
+  qualityHoldValue: number;
+};
+
+export type WarehouseAnalyticsWarehouseSummary = {
+  warehouseNo: string;
+  warehouseName: string;
+  usedPallets: number;
+  reservedPallets: number;
+  availablePallets: number;
+  utilizationRate: number;
+};
+
+export type WarehouseAnalyticsRiskSummary = {
+  riskLotCount: number;
+  highRiskLotCount: number;
+  inventoryValue: number;
+  quantity: number;
+};
+
+export type WarehouseAnalyticsTopRiskLot = {
+  lotKey: string;
+  warehouseNo: string;
+  warehouseName: string;
+  itemNo: string;
+  itemName: string;
+  batchNo: string;
+  riskType: string;
+  riskLevel?: number;
+  inventoryValue: number;
+  quantity: number;
+};
+
+export type WarehouseAnalyticsTaskDepartmentSummary = {
+  ownerDepartment?: number;
+  openTaskCount: number;
+  overdueTaskCount: number;
+  blockedTaskCount: number;
+};
+
+export type WarehouseAnalyticsOverdueTrendPoint = {
+  bucketStart: string;
+  bucketLabel: string;
+  overdueTaskCount: number;
+  blockedTaskCount: number;
+};
+
+export type WarehouseAnalyticsValueTrendData = {
+  range: WarehouseAnalyticsRange;
+  summaryByCategory: WarehouseAnalyticsCategorySummary[];
+  valueTrend: WarehouseAnalyticsValueTrendPoint[];
+};
+
+export type WarehouseAnalyticsSpaceUtilizationData = {
+  range: WarehouseAnalyticsRange;
+  summaryByWarehouse: WarehouseAnalyticsWarehouseSummary[];
+  spaceTrend: WarehouseAnalyticsSpaceTrendPoint[];
+};
+
+export type WarehouseAnalyticsRiskBreakdownData = {
+  range: WarehouseAnalyticsRange;
+  riskSummary: WarehouseAnalyticsRiskSummary;
+  riskBreakdown: WarehouseAnalyticsRiskBreakdownItem[];
+  topRiskLots: WarehouseAnalyticsTopRiskLot[];
+};
+
+export type WarehouseAnalyticsTaskSlaData = {
+  range: WarehouseAnalyticsRange;
+  summaryByTaskType: WarehouseAnalyticsTaskSlaItem[];
+  summaryByDepartment: WarehouseAnalyticsTaskDepartmentSummary[];
+  overdueTrend: WarehouseAnalyticsOverdueTrendPoint[];
+};
+
 export type InventoryItem = {
   sku: string;
   name: string;

@@ -263,7 +263,7 @@ actualMarginRate = (orderAmount - actualCost) / orderAmount * 100
 
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
-| 是否同意 Orders 為 Warehouse 後下一個 core API 設計目標 | 符合第一版 phase core 優先原則。 | 待工程師回覆 | 建議採用。 |
-| `/api/v2/orders/dashboard` 是否可作新聚合 endpoint | 需與既有 `/api/v1/sale/productorder` 分工清楚。 | 待工程師回覆 | 建議 v2 endpoint 只做 V1 前端 read-only 聚合。 |
-| ATP/CTP 第一版資料來源是否足夠 | 影響接單承諾準確性。 | 待工程師回覆 | 先以 inventory、BOM、APS、work_order 可取得資料計算，缺資料回傳 unknown。 |
-| 毛利門檻如何設定 | 影響 margin risk 判斷。 | 待工程師回覆 | 未確認前不硬判低毛利，只標示 cost_missing / actual_loss。 |
+| 是否同意 Orders 為 Warehouse 後下一個 core API 設計目標 | 符合第一版 phase core 優先原則。 | 依照既定規劃安排，目前第一版前端畫面優先實作 phase 為 core 的畫面。 | 建議採用。 |
+| `/api/v2/orders/dashboard` 是否可作新聚合 endpoint | 需與既有 `/api/v1/sale/productorder` 分工清楚。 | 同意採用`/api/v2/orders/dashboard` | 建議 v2 endpoint 只做 V1 前端 read-only 聚合。 |
+| ATP/CTP 第一版資料來源是否足夠 | 影響接單承諾準確性。 | 請詳細說明 ATP 與 CTP 的概念，因為我對這兩者尚不清楚。 | 先以 inventory、BOM、APS、work_order 可取得資料計算，缺資料回傳 unknown。 |
+| 毛利門檻如何設定 | 影響 margin risk 判斷。 | 目前先保留該欄位，後續於下一版再進一步討論與決定。 | 未確認前不硬判低毛利，只標示 cost_missing / actual_loss。 |

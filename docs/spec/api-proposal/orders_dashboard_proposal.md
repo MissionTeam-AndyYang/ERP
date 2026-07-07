@@ -1,9 +1,28 @@
+# 工程師提問
+1. 查詢參數的命名規則統一為 xxx_no，因此請將 orderNo 修正為 order_no。
+
+2. 針對`/api/v2/orders/{orderNo}/dashboard`
+    - 一筆訂購訂單 (`product_order`) 可能對應到多筆出貨單 (`shipping_order`)。請重新檢視回傳資料中關於出貨資訊的資料結構設計是否合適，例如 shipTimestamp 等欄位。
+    - 出貨單在完成出庫後才會產生收款。有些客戶採用月結方式結算，有些則採用當日結算。請重新檢視回傳資料中關於出貨資訊的資料結構設計是否合適，例如 `paymentStatus` 等欄位。
+    - summary.openOrderCount 是否表示尚未完成出貨加上尚未收款的訂單總數？是否可以定義為『未完成出貨的訂單』？
+    - 請針對 summary.paymentRiskCount，詳細說明其計算邏輯與判斷依據。
+    - 針對 orders[].channel，請說明其對應的資料表欄位來源。
+    - 請比較 orders[].stage 與 `/api/v2/orders/{orderNo}/fulfillment` 中 stepCode 欄位的差異。
+    - 請詳細說明 orders[].xxxStatus 的各欄位，並指出其來源資料表或邏輯計算方式。
+    - 請進一步解釋 orders[].productionFeasibility 的含義與判斷依據。
+
+3. 針對`/api/v2/orders/{orderNo}/fulfillment`
+   - 請說明回傳 workflow 資料結構中各欄位分別對應至哪個資料表的欄位。
+   - 請詳細解釋 dependencies 的各欄位，並指出其來源資料表。
+   - 回傳資料中的備註欄位統一命名為 comment，請將原本的 note 更名為 comment。
+
 # Orders Dashboard API Proposal
 
 > Status: Proposal / Pending Engineer Review
 > Target UI Preview: `docs/spec/api-proposal/orders_dashboard_static_preview.html`
 > Flow / Algorithm: `docs/spec/api-proposal/orders_dashboard_flow_algorithm.md`
 > Related V1 Rule: 第一版前端畫面優先實作 phase 為 core 的畫面；依整體 read-only integration 順序，Warehouse core 後的下一個 core 畫面為 `OrdersWorkspaceScreen`。
+
 
 ## Screen Intent
 
@@ -295,8 +314,8 @@
 
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
-| 是否同意下一個 core API 提案為 `OrdersWorkspaceScreen` | 第一版前端規劃優先 phase 為 core；Warehouse extension 已延後。 | 待工程師回覆 | 建議採用，符合 integration plan 的 Warehouse → Orders → Production → Quality 順序。 |
-| 新增聚合 endpoint 是否採 `/api/v2/orders/dashboard` | 既有前端曾用 `/api/v1/orders/dashboard` mock fallback，但新後端實作已採 v2 模式。 | 待工程師回覆 | 建議新聚合 API 採 `/api/v2/orders/dashboard`；既有 `/api/v1/sale/productorder` 作資料來源或相容層。 |
-| `committedTimestamp` 第一版是否需要持久化欄位 | 若沒有保存承諾日，只能由 ATP/CTP 即時計算最早可行日期。 | 待工程師回覆 | 第一版 read-only 可即時計算；若未來要保存承諾結果，再新增 workflow / decision table。 |
-| 毛利資料不足時如何處理 | 實際成本可能要等生產與財務結算完成。 | 待工程師回覆 | 資料不足時回傳 0 並以 `marginRisk = cost_missing` 標示，不推測實際毛利。 |
-| 品檢與出貨阻擋狀態來源 | Orders 需要跨 Quality / Logistics / Warehouse 的 blocker 訊號。 | 待工程師回覆 | 第一版先由可取得的 work_order、shipping_order、warehouse/quality hold 訊號組成；無資料時回傳 unknown。 |
+| 是否同意下一個 core API 提案為 `OrdersWorkspaceScreen` | 第一版前端規劃優先 phase 為 core；Warehouse extension 已延後。 | 依照既定規劃安排，目前第一版前端畫面優先實作 phase 為 core 的畫面。 | 建議採用，符合 integration plan 的 Warehouse → Orders → Production → Quality 順序。 |
+| 新增聚合 endpoint 是否採 `/api/v2/orders/dashboard` | 既有前端曾用 `/api/v1/orders/dashboard` mock fallback，但新後端實作已採 v2 模式。 | 同意採用`/api/v2/orders/dashboard` | 建議新聚合 API 採 `/api/v2/orders/dashboard`；既有 `/api/v1/sale/productorder` 作資料來源或相容層。 |
+| `committedTimestamp` 第一版是否需要持久化欄位 | 若沒有保存承諾日，只能由 ATP/CTP 即時計算最早可行日期。 | 目前系統並未設計「保存承諾日」，若略過此步驟會產生哪些影響？另外，請詳細說明 ATP 與 CTP 的概念，因為我對這兩者尚不清楚。 | 第一版 read-only 可即時計算；若未來要保存承諾結果，再新增 workflow / decision table。 |
+| 毛利資料不足時如何處理 | 實際成本可能要等生產與財務結算完成。 | 採用建議 | 資料不足時回傳 0 並以 `marginRisk = cost_missing` 標示，不推測實際毛利。 |
+| 品檢與出貨阻擋狀態來源 | Orders 需要跨 Quality / Logistics / Warehouse 的 blocker 訊號。 | 不清楚 Quality、Logistics、Warehouse 的 blocker 訊號具體指涉為何。請詳細說明，並指出其對應到回傳資料中的哪些欄位。| 第一版先由可取得的 work_order、shipping_order、warehouse/quality hold 訊號組成；無資料時回傳 unknown。 |

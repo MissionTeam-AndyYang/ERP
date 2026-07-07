@@ -12,7 +12,7 @@
 
 ```txt
 GET /api/v2/orders/dashboard
-GET /api/v2/orders/{orderNo}/fulfillment
+GET /api/v2/orders/{order_no}/fulfillment
 ```
 
 ## 共用規則
@@ -31,7 +31,7 @@ GET /api/v2/orders/{orderNo}/fulfillment
 date
 period
 customer_no
-orderNo
+order_no
 commitmentDecision
 deliveryRisk
 stage
@@ -47,7 +47,7 @@ x-timezone
 2. `period` 支援 `7d`、`30d`、`90d`；未提供或不支援時 fallback 至 `30d`。
 3. `start` 小於 0 時以 0 處理。
 4. `count` 未提供時預設 50，最大值 100。
-5. 查詢主體為 `product_order`；以 `expectedDate`、`date` 或 `creationTime` 的使用規則需工程師確認。第一版建議列表預設抓尚未完成出貨/收款的 open order，再用期間輔助篩選交期與建立時間。
+5. 查詢主體為 `product_order`；以 `expectedDate`、`date` 或 `creationTime` 的使用規則需工程師確認。第一版 `openOrderCount` 明確定義為未完成出貨的訂單，付款風險另由 `paymentRiskCount` 表示。
 
 ## 共用 Step 2：建立訂單基礎資料
 
@@ -87,12 +87,28 @@ order_payment.ref_no = product_order.no
 
 處理原則：
 
-1. `shipping_order` 用於判斷是否已出貨、部分出貨、待出貨與出貨日期。
-2. `work_order` / `production_data` 用於判斷是否已排產、生產中或完成。
-3. `purchase_request` / `purchase_order` 用於判斷材料請購與採購準備。
-4. `order_payment` / `payment` 用於判斷收款與帳款風險。
+1. 一筆 `product_order` 可對應多筆 `shipping_order`，需以 `shipping_order.product_order_no` 批次查詢後依訂單分組。
+2. `shipping_order` 用於判斷是否已出貨、部分出貨、待出貨與出貨日期；dashboard 訂單列只回傳 `shipmentSummary`，多筆出貨明細放在 `shipments[]`。
+3. `work_order` / `production_data` 用於判斷是否已排產、生產中或完成。
+4. `purchase_request` / `purchase_order` 用於判斷材料請購與採購準備。
+5. 出貨單完成出庫後才會產生收款；`order_payment` / `payment` 需以出貨單或訂購單關聯判斷帳款狀態。
+6. 客戶結算方式可為日結或月結；需依 `product_order.payment_type`、`payment` 條件或既有帳款資料推算 `settlementType` 與 `paymentDueTimestamp`，無法判斷時回傳 `unknown` / 0。
 
 ## 共用 Step 4：接單承諾 ATP/CTP 檢核
+
+### ATP / CTP 概念
+
+| Term | 中文理解 | 對 Orders 的意義 |
+| --- | --- | --- |
+| ATP | Available To Promise，可承諾量。 | 先看現有可用庫存與已知入庫/保留後，判斷是否能直接承諾訂單需求。 |
+| CTP | Capable To Promise，可產製承諾。 | 若現貨不足，進一步檢查物料、產能、人員、品檢與出貨限制，判斷是否能在交期前生產並交付。 |
+
+第一版 Orders API 的 ATP/CTP 不寫入承諾結果，只即時計算 read-only 訊號。若略過「保存承諾日」欄位，影響如下：
+
+1. API 每次會依目前庫存、工單、採購與出貨資料重新計算，結果會隨資料變動。
+2. 無法追蹤「當初承諾給客戶的日期」與後續變動歷史。
+3. 無法支援承諾日審核、版本控管或主管確認紀錄。
+4. 第一版可接受此限制，因目前目標是 read-only 風險辨識；若未來要管理正式承諾，需新增承諾結果/決策紀錄資料表。
 
 第一版檢核類型：
 
@@ -145,6 +161,14 @@ else:
 | margin_risk | 預估毛利低於門檻或成本資料不足 |
 | payment_risk | 收款逾期或剩餘應收未結清 |
 
+Quality、Logistics、Warehouse blocker 在本 API 中的具體對應：
+
+| Blocker Area | Meaning | Response Fields |
+| --- | --- | --- |
+| Warehouse blocker | 可用庫存不足、預留/品檢保留導致不可出貨、倉庫尚未完成出庫。 | `commitmentChecks[].checkType = atp_inventory`、`deliveryRisks[].riskType = material_shortage` 或 `shipping_blocked`、`orders[].materialStatus`、`orders[].shippingStatus` |
+| Quality blocker | 品檢未放行、檢驗中或 hold，導致不能生產投入或不能出貨。 | `commitmentChecks[].checkType = quality_shipping`、`deliveryRisks[].riskType = quality_hold`、`orders[].qualityStatus` |
+| Logistics blocker | 出貨單未建立、物流安排未完成、出貨時段或文件阻擋。 | `deliveryRisks[].riskType = shipping_blocked`、`orders[].shippingStatus`、`shipments[]` |
+
 風險等級建議：
 
 ```txt
@@ -190,6 +214,12 @@ shipped
 6. 其他正式訂單：`accepted`。
 7. 若後續接入報價/合約到正式訂單轉換，未正式接單才用 `pending_confirmation`。
 
+`orders[].stage` 與 fulfillment `workflow[].stepCode` 的差異：
+
+1. `orders[].stage` 是列表用的單一目前階段摘要。
+2. `workflow[].stepCode` 是明細用的完整履約流程節點，一張訂單會有多筆。
+3. `stage` 可由 workflow 彙總，但不應取代 workflow；例如目前正在生產時，`stage = in_production`，而 workflow 仍需保留 order、material、production、quality、shipping、payment 等所有 step。
+
 ## 共用 Step 7：毛利與收款訊號
 
 毛利：
@@ -207,23 +237,29 @@ actualMarginRate = (orderAmount - actualCost) / orderAmount * 100
 
 收款：
 
-1. 使用 `order_payment` / `payment` 判斷已收、未收、部分收款、逾期。
-2. 若尚無明確收款資料，`paymentStatus = unknown`，`paymentRisk = normal` 或 `unknown` 需工程師確認。
+1. 使用 `shipping_order` 判斷是否已完成出貨；未出貨時通常尚不產生正式收款風險。
+2. 使用 `order_payment` / `payment` 判斷已收、未收、部分收款、逾期。
+3. 日結客戶可依出貨日期與付款條件推算 `paymentDueTimestamp`。
+4. 月結客戶可依出貨月份、付款條件與月結週期推算 `paymentDueTimestamp`。
+5. 若已出貨但查無對應帳款資料，`paymentRisk = missing_payment_record`。
+6. 若到期日已過且剩餘應收大於 0，`paymentRisk = overdue`。
+7. 若尚無明確收款資料且無法判斷付款條件，`paymentStatus = unknown`。
 
 ## GET /orders/dashboard 流程
 
 1. 依共用 Step 1 建立查詢條件。
 2. 查詢 `product_order` 取得訂單主資料。
-3. 依本頁訂單 no 批次查詢 shipping、work order、purchase、payment、APS 相關資料。
-4. 對每張訂單計算 ATP/CTP commitment checks。
-5. 對每張訂單彙總 delivery risks、stage、ownerDepartment、priority。
-6. 對每張訂單計算 marginSignals、paymentSignals。
-7. 組裝 `orders[]`，並依 `start/count` 分頁。
-8. 組裝 `summary`。
+3. 依本頁訂單 no 批次查詢 shipping、work order、purchase、payment、APS 相關資料，避免 N+1 query。
+4. 對每張訂單彙總所有出貨單，建立 `shipmentSummary` 與 top-level `shipments[]`。
+5. 對每張訂單計算 ATP/CTP commitment checks。
+6. 對每張訂單彙總 delivery risks、stage、ownerDepartment、priority。
+7. 對每張訂單計算 marginSignals、paymentSignals。
+8. 組裝 `orders[]`，並依 `start/count` 分頁。
+9. 組裝 `summary`：`openOrderCount` 為未完成出貨訂單數；`paymentRiskCount` 為存在任一收款風險的訂單去重數。
 
-## GET /orders/{orderNo}/fulfillment 流程
+## GET /orders/{order_no}/fulfillment 流程
 
-1. 確認 `product_order.no = orderNo` 是否存在；不存在時回傳空 payload 或 404 需工程師確認。
+1. 確認 `product_order.no = order_no` 是否存在；不存在時回傳空 payload 或 404 需工程師確認。
 2. 查詢此訂單的請購、採購、工單、生產、品檢、出貨、收款資料。
 3. 建立 workflow steps：
    - `order_received`
@@ -242,22 +278,25 @@ actualMarginRate = (orderAmount - actualCost) / orderAmount * 100
    - `quality`
    - `shipping`
    - `payment`
-5. 不寫入 workflow event，不建立任何單據。
+5. `workflow[].comment` 優先取來源單據 `comment`，沒有資料時回傳空字串。
+6. `dependencies[].comment` 由缺口、阻擋或狀態摘要組成；不得命名為 `note`。
+7. 不寫入 workflow event，不建立任何單據。
 
 ## 效能注意事項
 
 1. Dashboard API 是跨表聚合，第一版需限制 `period` 與 `count`，避免一次掃描過多訂單。
-2. 先批次取回各資料表資料，再於 Python 以 orderNo map 組合，避免逐筆訂單 N+1 query。
-3. `product_order.no`、`product_order.expectedDate`、`shipping_order.product_order_no`、`work_order.product_order_no`、`purchase_request.product_order_no`、`order_payment.ref_no` 需確認是否已有索引。
+2. 先批次取回各資料表資料，再於 Python 以 `product_order.no` / `order_no` map 組合，避免逐筆訂單 N+1 query。
+3. `product_order.no`、`product_order.expectedDate`、`shipping_order.product_order_no`、`work_order.product_order_no`、`purchase_request.product_order_no`、`order_payment.ref_no`、`order_payment.ref_sub_no` 需確認是否已有索引。
 4. 毛利與 ATP/CTP 若未來計算量過大，建議新增每日或訂單層級快照表；第一版先以 read-only 即時計算並限制範圍。
 
 ## 不得推測或需工程師確認
 
 1. 不得自動建立請購單、工單、出貨單或收款資料。
 2. 不得在查詢時寫入承諾結果。
-3. `committedTimestamp` 是否需持久化欄位，需工程師確認。
+3. 第一版不保存承諾日，`committedTimestamp` 為即時計算結果或 0；若未來要追蹤承諾歷史，需新增資料表。
 4. 實際毛利資料不足時不得用預估毛利代替。
 5. 品檢與出貨阻擋若無資料來源，回傳 `unknown`，不得自行判斷為正常。
+6. 無穩定資料來源的 `channel` 不回傳。
 
 ## Engineer Review Questions
 
@@ -265,5 +304,5 @@ actualMarginRate = (orderAmount - actualCost) / orderAmount * 100
 | --- | --- | --- | --- |
 | 是否同意 Orders 為 Warehouse 後下一個 core API 設計目標 | 符合第一版 phase core 優先原則。 | 依照既定規劃安排，目前第一版前端畫面優先實作 phase 為 core 的畫面。 | 建議採用。 |
 | `/api/v2/orders/dashboard` 是否可作新聚合 endpoint | 需與既有 `/api/v1/sale/productorder` 分工清楚。 | 同意採用`/api/v2/orders/dashboard` | 建議 v2 endpoint 只做 V1 前端 read-only 聚合。 |
-| ATP/CTP 第一版資料來源是否足夠 | 影響接單承諾準確性。 | 請詳細說明 ATP 與 CTP 的概念，因為我對這兩者尚不清楚。 | 先以 inventory、BOM、APS、work_order 可取得資料計算，缺資料回傳 unknown。 |
+| ATP/CTP 第一版資料來源是否足夠 | 影響接單承諾準確性。 | 請詳細說明 ATP 與 CTP 的概念，因為我對這兩者尚不清楚。 | 已新增 ATP/CTP 概念與不保存承諾日的影響；第一版先即時計算，缺資料回傳 unknown。 |
 | 毛利門檻如何設定 | 影響 margin risk 判斷。 | 目前先保留該欄位，後續於下一版再進一步討論與決定。 | 未確認前不硬判低毛利，只標示 cost_missing / actual_loss。 |

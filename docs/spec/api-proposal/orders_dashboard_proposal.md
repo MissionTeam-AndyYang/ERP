@@ -1,6 +1,17 @@
+# 工程師提問V2
+1. 將回傳欄位名稱 settlementType 更名為 paymentType。
+2. 詳細說明 paymentDueTimestamp 欄位數值來源、計算邏輯，或說明是否採用現成函式產生。
+3. 第一版先略過 ATP/CTP 的實作，並在相關欄位統一標示為「待下一版再實作」。
+4. 針對 orders[].stage 與 fulfillment workflow[].stepCode
+   - 請提供 orders[].stage 與 fulfillment.workflow[].stepCode 的 enum 以中文說明。
+   - orders[].stage 與 fulfillment.workflow[].stepCode 的欄位描述皆代表履約流程的步驟狀態代碼，是否能共用相同的 enum 定義 ? 
+   - 針對你的回覆「stage 可由 workflow steps 彙總而來，但不等於任一固定 step：例如一張訂單可能同時有 material_request = done、production = in_progress、quality_check = pending，此時 orders[].stage = in_production。」--> 其中 done、in_progress、pending 屬於哪個 enum？另外，請列出各 stepCode 對應至 orders[].stage 的關係。
+
+
+
 # 工程師提問
 1. 查詢參數的命名規則統一為 xxx_no，因此請將 orderNo 修正為 order_no。
-
+   
 2. 針對`/api/v2/orders/{orderNo}/dashboard`
     - 一筆訂購訂單 (`product_order`) 可能對應到多筆出貨單 (`shipping_order`)。請重新檢視回傳資料中關於出貨資訊的資料結構設計是否合適，例如 shipTimestamp 等欄位。
     - 出貨單在完成出庫後才會產生收款。有些客戶採用月結方式結算，有些則採用當日結算。請重新檢視回傳資料中關於出貨資訊的資料結構設計是否合適，例如 `paymentStatus` 等欄位。

@@ -7,6 +7,15 @@
    - orders[].stage 與 fulfillment.workflow[].stepCode 的欄位描述皆代表履約流程的步驟狀態代碼，是否能共用相同的 enum 定義 ? 
    - 針對你的回覆「stage 可由 workflow steps 彙總而來，但不等於任一固定 step：例如一張訂單可能同時有 material_request = done、production = in_progress、quality_check = pending，此時 orders[].stage = in_production。」--> 其中 done、in_progress、pending 屬於哪個 enum？另外，請列出各 stepCode 對應至 orders[].stage 的關係。
 
+## 工程師提問V2理解與文件更新
+
+| 工程師提問V2 | 理解與確認 | 本次文件更新 |
+| --- | --- | --- |
+| `settlementType` 更名為 `paymentType`。 | 採用。此欄位本質是付款/結算條件代碼，命名改為 `paymentType` 較貼近資料庫與業務語意。 | `shipments[]`、`paymentSignals[]` 的 JSON Structure 與 Field Description 已改為 `paymentType`。 |
+| 說明 `paymentDueTimestamp` 來源與計算邏輯。 | 第一版不新增寫入邏輯，也不推測不存在的到期日。若既有帳款已有明確到期日，優先使用既有帳款日期；若沒有，才依出貨日期、訂單付款型態與付款期間進行 read-only 推算；必要資料不足時回傳 0。 | 新增「Payment Due Timestamp Calculation」章節，並同步補充流程文件。 |
+| 第一版略過 ATP/CTP 實作，相關欄位標示待下一版再實作。 | 採用。第一版 Orders dashboard 不計算 ATP/CTP，不判斷可承諾量/可產製承諾，也不推算承諾日。 | `commitmentRate`、`committedTimestamp`、`commitmentDecision`、`productionFeasibility`、`commitmentChecks[]` 已標示「待下一版再實作」。 |
+| 提供 `orders[].stage` 與 `fulfillment.workflow[].stepCode` enum 中文說明，並釐清是否共用 enum。 | 不建議共用同一 enum。`stage` 是訂單目前整體階段摘要；`stepCode` 是履約流程節點代碼；`done/in_progress/pending` 屬於 `workflow[].status` enum。 | 新增「Stage / StepCode / Workflow Status Enum」與「StepCode to Stage Mapping」章節。 |
+
 
 
 # 工程師提問
@@ -33,7 +42,7 @@
 | --- | --- | --- |
 | 查詢參數 `orderNo` 改為 `order_no`。 | 採用。Query parameter 與 path parameter 採 `order_no`，以符合 `xxx_no` 命名規則；response 內用於前端 mapper 的 `orderNo` 暫時維持 camelCase，若工程師要求 response 全面 snake_case，需另行確認。 | Shared Query Parameters、detail endpoint path、Frontend Interaction Notes 已更新。 |
 | 一筆 `product_order` 可能對應多筆 `shipping_order`，需重檢出貨資料結構。 | 採用。移除單一 `shipTimestamp` 欄位，改為 `orders[].shipmentSummary` 與 top-level `shipments[]`，以支援多筆出貨單。 | Success Response Data、Field Description、流程文件已更新。 |
-| 出貨完成後才會產生收款，且存在月結/當日結算。 | 採用。付款訊號改以出貨單與帳款資料為基礎，新增 `settlementType`、`shippingOrderNo`、`paymentNo`、`paymentDueTimestamp` 等欄位。 | `paymentSignals[]`、`summary.paymentRiskCount` 說明與流程文件已更新。 |
+| 出貨完成後才會產生收款，且存在月結/當日結算。 | 採用。付款訊號改以出貨單與帳款資料為基礎，新增 `paymentType`、`shippingOrderNo`、`paymentNo`、`paymentDueTimestamp` 等欄位。 | `paymentSignals[]`、`summary.paymentRiskCount` 說明與流程文件已更新。 |
 | `summary.openOrderCount` 是否可定義為未完成出貨訂單。 | 採用。`openOrderCount` 明確定義為「未完成出貨的訂購單數」，不混入未收款訂單。 | Summary 欄位說明與演算法已更新。 |
 | `summary.paymentRiskCount` 需詳細說明計算邏輯。 | 採用。以出貨後已產生應收、逾期未收、部分收款或付款資料缺漏等條件判斷。 | Field Description 與 flow Step 7 已補充。 |
 | `orders[].channel` 需說明資料來源。 | 現有 DB/API 文件無穩定欄位可支援通路，因此第一版 API 不回傳 `channel`，避免推測不存在資料；前端若仍需顯示可在 mapper 補空字串。 | Success Response Data 與 Field Description 已移除 `channel`。 |
@@ -65,7 +74,7 @@
 
 | URL | Method | Description | Status | Review Note |
 | --- | --- | --- | --- | --- |
-| `/api/v2/orders/dashboard` | GET | 查詢訂單履約風險總覽 | Proposal / Pending Engineer Review | 首屏聚合 API，回傳 KPI、訂單清單、接單承諾、交期風險、毛利與收款摘要。 |
+| `/api/v2/orders/dashboard` | GET | 查詢訂單履約風險總覽 | Proposal / Pending Engineer Review | 首屏聚合 API，回傳 KPI、訂單清單、交期風險、毛利與收款摘要；第一版 ATP/CTP 接單承諾待下一版再實作。 |
 | `/api/v2/orders/{order_no}/fulfillment` | GET | 查詢單一訂單履約追蹤明細 | Proposal / Pending Engineer Review | 供右側明細或履約 tab 顯示訂單從接單、備料、生產、品檢、出貨到收款的 read-only 狀態。 |
 
 ## Shared Query Parameters
@@ -76,7 +85,7 @@
 | period | String | NO | 查詢期間代碼；第一版建議支援 `7d`、`30d`、`90d`，預設 `30d`。 |
 | customer_no | String | NO | 客戶 no，對應 `product_order.item_ref_no` / `company.no`。 |
 | order_no | String | NO | 訂購單 no，對應 `product_order.no`。 |
-| commitmentDecision | String | NO | 接單承諾結果；允許 `committable`、`coordination_required`、`not_committable`。 |
+| commitmentDecision | String | NO | 接單承諾結果；第一版 ATP/CTP 待下一版再實作，若保留查詢參數則僅支援 `deferred`。 |
 | deliveryRisk | String | NO | 交期風險；允許 `normal`、`attention`、`high_risk`。 |
 | stage | String | NO | 訂單履約階段代碼；前端負責多國語系轉換。 |
 | keyword | String | NO | 關鍵字；第一版可搜尋訂單 no、客戶名稱、產品 no、產品名稱。 |
@@ -169,22 +178,11 @@
         "amount": "Integer",
         "paymentNo": "String",
         "paymentStatus": "String",
-        "settlementType": "String",
+        "paymentType": "String",
         "paymentDueTimestamp": "Integer"
       }
     ],
-    "commitmentChecks": [
-      {
-        "orderNo": "String",
-        "checkType": "String",
-        "status": "String",
-        "riskLevel": "Integer",
-        "availableQuantity": "Float",
-        "requiredQuantity": "Float",
-        "gapQuantity": "Float",
-        "comment": "String"
-      }
-    ],
+    "commitmentChecks": [],
     "deliveryRisks": [
       {
         "orderNo": "String",
@@ -211,7 +209,7 @@
         "paymentStatus": "String",
         "shippingOrderNo": "String",
         "paymentNo": "String",
-        "settlementType": "String",
+        "paymentType": "String",
         "paymentDueTimestamp": "Integer",
         "receivedAmount": "Integer",
         "remainingAmount": "Integer",
@@ -233,7 +231,7 @@
 | payload.range.endTimestamp | Integer | 查詢截止 UTC timestamp，由 request `date` 或伺服器目前時間決定。 |  |
 | payload.summary.openOrderCount | Integer | 未完成出貨的訂購單數；以 `product_order.count` 與此訂單所有 `shipping_order.checkedCount` 加總比較，`shippedQuantity < orderQuantity` 即列入。此欄不混入未收款訂單。 |  |
 | payload.summary.highRiskOrderCount | Integer | `deliveryRisk = high_risk` 的訂購單數。 |  |
-| payload.summary.commitmentRate | Float | 可承諾訂單比例；公式為 `committableCount / checkedOrderCount * 100`，分母為 0 時回傳 0.0。 |  |
+| payload.summary.commitmentRate | Float | 待下一版再實作。第一版略過 ATP/CTP，不計算可承諾訂單比例，固定回傳 0.0。 |  |
 | payload.summary.estimatedMarginRiskCount | Integer | 預估毛利低於門檻或成本資料不足的訂單數。 |  |
 | payload.summary.paymentRiskCount | Integer | 收款風險訂單數；同一訂單只計 1 次。判斷條件包含：已有出貨單但查無對應 `order_payment`、已到 `paymentDueTimestamp` 但 `remainingAmount > 0`、部分收款未結清、或 `paymentRisk = overdue`。 |  |
 | payload.summary.totalOrderAmount | Integer | 查詢條件內訂單金額加總，來源為 `product_order.amount`。 |  |
@@ -255,12 +253,12 @@
 | payload.orders[].shipmentSummary.firstShipTimestamp | Integer | 第一筆出貨單日期，來源為此訂單 `shipping_order.date` 最小值；無出貨單時回傳 0。 |  |
 | payload.orders[].shipmentSummary.lastShipTimestamp | Integer | 最近一筆出貨單日期，來源為此訂單 `shipping_order.date` 最大值；無出貨單時回傳 0。 |  |
 | payload.orders[].shipmentSummary.shippingStatus | String | 此訂單彙總出貨狀態，依所有 `shipping_order.checkedCount` 與訂單數量判斷。 | pending、partial_shipped、shipped、blocked |
-| payload.orders[].committedTimestamp | Integer | 承諾交期；第一版若無持久化欄位，可由 ATP/CTP 檢核推算最早可行日期，無法推算時回傳 0。 |  |
+| payload.orders[].committedTimestamp | Integer | 待下一版再實作。第一版略過 ATP/CTP，不推算承諾交期，固定回傳 0。 |  |
 | payload.orders[].stage | String | 訂單履約階段代碼，前端負責多國語系轉換。 | pending_confirmation、accepted、material_preparing、scheduled、in_production、quality_check、ready_to_ship、shipped |
 | payload.orders[].deliveryRisk | String | 交期風險代碼，前端負責多國語系轉換與 tone mapping。 | normal、attention、high_risk |
-| payload.orders[].commitmentDecision | String | 接單承諾結果代碼。 | committable、coordination_required、not_committable |
-| payload.orders[].productionFeasibility | String | 生產可行性代碼。 | feasible、coordination_required、not_feasible |
-| payload.orders[].riskReason | String | 主要風險原因摘要；可由最高風險的 delivery risk / commitment check 組成。 |  |
+| payload.orders[].commitmentDecision | String | 待下一版再實作。第一版略過 ATP/CTP，固定回傳 `deferred`，前端可顯示為「待下一版再實作」。 | deferred |
+| payload.orders[].productionFeasibility | String | 待下一版再實作。第一版略過 CTP，不判斷生產可行性，固定回傳 `deferred`。 | deferred |
+| payload.orders[].riskReason | String | 主要風險原因摘要；第一版不使用 ATP/CTP 結果，僅由交期、出貨、收款、毛利或既有工單/品檢訊號組成。 |  |
 | payload.orders[].materialStatus | String | 物料準備狀態代碼，前端負責顯示文字。 | ready、shortage、pending、unknown |
 | payload.orders[].productionStatus | String | 生產狀態代碼，依工單與生產資料判斷。 | not_started、scheduled、in_progress、completed、blocked、unknown |
 | payload.orders[].qualityStatus | String | 品檢狀態代碼。 | pending、checking、released、hold、unknown |
@@ -268,14 +266,15 @@
 | payload.orders[].paymentStatus | String | 收款狀態代碼。 | unpaid、partial_paid、paid、overdue、unknown |
 | payload.orders[].ownerDepartment | Integer | 下一步主要負責部門；前端負責 enum 顯示文字轉換。 |  |
 | payload.orders[].priority | String | 管理優先級。 | high、medium、low |
-| payload.commitmentChecks[].checkType | String | ATP/CTP 檢核類型。 | atp_inventory、material_gap、capacity、staff、quality_shipping |
-| payload.commitmentChecks[].status | String | 檢核狀態代碼，前端負責顯示文字。 | pass、attention、blocked、unknown |
-| payload.commitmentChecks[].riskLevel | Integer | 風險等級；數值越高表示風險越高。 |  |
-| payload.commitmentChecks[].availableQuantity | Float | 此檢核可用數量或能力。 |  |
-| payload.commitmentChecks[].requiredQuantity | Float | 此檢核需求數量或能力。 |  |
-| payload.commitmentChecks[].gapQuantity | Float | 缺口數量或能力；公式為 `requiredQuantity - availableQuantity`，無缺口回傳 0。 |  |
-| payload.commitmentChecks[].comment | String | 檢核說明或阻擋原因；不得回傳前端顯示用固定翻譯文字。 |  |
-| payload.commitmentChecks[].orderNo | String | 此檢核對應的訂購單 no，來源為 `product_order.no`。 |  |
+| payload.commitmentChecks[] | Array | 待下一版再實作。第一版略過 ATP/CTP，固定回傳空陣列。 |  |
+| payload.commitmentChecks[].checkType | String | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 | atp_inventory、material_gap、capacity、staff、quality_shipping |
+| payload.commitmentChecks[].status | String | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 | pass、attention、blocked、unknown |
+| payload.commitmentChecks[].riskLevel | Integer | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 |  |
+| payload.commitmentChecks[].availableQuantity | Float | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 |  |
+| payload.commitmentChecks[].requiredQuantity | Float | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 |  |
+| payload.commitmentChecks[].gapQuantity | Float | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 |  |
+| payload.commitmentChecks[].comment | String | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 |  |
+| payload.commitmentChecks[].orderNo | String | 待下一版再實作。保留欄位定義供下一版 ATP/CTP 使用。 |  |
 | payload.shipments[].orderNo | String | 訂購單 no，來源為 `shipping_order.product_order_no`。 |  |
 | payload.shipments[].shippingOrderNo | String | 出貨單 no，來源為 `shipping_order.no`。 |  |
 | payload.shipments[].shipTimestamp | Integer | 出貨單日期，來源為 `shipping_order.date`。 |  |
@@ -284,10 +283,10 @@
 | payload.shipments[].amount | Integer | 出貨單金額，來源為 `shipping_order.amount + addDeleteAmount`。 |  |
 | payload.shipments[].paymentNo | String | 帳款編號，來源為 `order_payment.no`；尚未產生帳款時回傳空字串。 |  |
 | payload.shipments[].paymentStatus | String | 此出貨單關聯帳款狀態。 | unpaid、partial_paid、paid、overdue、unknown |
-| payload.shipments[].settlementType | String | 結算方式，依 `product_order.payment_type` / `payment.paymentType` 推導。 | daily、monthly、unknown |
-| payload.shipments[].paymentDueTimestamp | Integer | 應收款到期日；日結通常以出貨日或付款條件推算，月結依付款條件與月結週期推算，無法推算時回傳 0。 |  |
+| payload.shipments[].paymentType | String | 付款/結算方式，依 `product_order.payment_type` / `payment.paymentType` 推導；前端負責 enum 顯示文字轉換。 | daily、monthly、unknown |
+| payload.shipments[].paymentDueTimestamp | Integer | 應收款到期日；詳細來源與計算規則請見「Payment Due Timestamp Calculation」。無法推算時回傳 0。 |  |
 | payload.deliveryRisks[].orderNo | String | 此風險對應的訂購單 no，來源為 `product_order.no`。 |  |
-| payload.deliveryRisks[].riskType | String | 交期風險類型。 | material_shortage、capacity_shortage、staff_shortage、quality_hold、shipping_blocked、due_date_urgent、margin_risk、payment_risk |
+| payload.deliveryRisks[].riskType | String | 交期風險類型。第一版不以 ATP/CTP 產生 `material_shortage`、`capacity_shortage`、`staff_shortage`；若既有工單、出貨或品檢資料可判斷阻擋，才回傳相對應風險。 | material_shortage、capacity_shortage、staff_shortage、quality_hold、shipping_blocked、due_date_urgent、margin_risk、payment_risk |
 | payload.deliveryRisks[].riskLevel | Integer | 風險等級；數值越高表示越接近阻擋履約。 |  |
 | payload.deliveryRisks[].ownerDepartment | Integer | 風險下一步負責部門，前端負責顯示文字。 |  |
 | payload.deliveryRisks[].dueTimestamp | Integer | 此風險對應的處理期限或訂單交期；主要來源為 `product_order.expectedDate`，若是付款風險則可使用 `paymentDueTimestamp`。 |  |
@@ -302,8 +301,8 @@
 | payload.paymentSignals[].paymentStatus | String | 收款狀態代碼，依帳款與剩餘應收判斷。 | unpaid、partial_paid、paid、overdue、unknown |
 | payload.paymentSignals[].shippingOrderNo | String | 此收款訊號對應的出貨單 no；若為訂單層級但未綁定單一出貨單，可回傳空字串。 |  |
 | payload.paymentSignals[].paymentNo | String | 帳款編號，來源為 `order_payment.no`。 |  |
-| payload.paymentSignals[].settlementType | String | 結算方式。 | daily、monthly、unknown |
-| payload.paymentSignals[].paymentDueTimestamp | Integer | 應收款到期 UTC timestamp；依付款條件與結算方式推算，無法推算時回傳 0。 |  |
+| payload.paymentSignals[].paymentType | String | 付款/結算方式，依 `product_order.payment_type` / `payment.paymentType` 推導；前端負責 enum 顯示文字轉換。 | daily、monthly、unknown |
+| payload.paymentSignals[].paymentDueTimestamp | Integer | 應收款到期 UTC timestamp；詳細來源與計算規則請見「Payment Due Timestamp Calculation」。無法推算時回傳 0。 |  |
 | payload.paymentSignals[].receivedAmount | Integer | 已收金額；若資料表僅能提供帳款金額與未收狀態，需工程師確認來源。 |  |
 | payload.paymentSignals[].remainingAmount | Integer | 剩餘應收金額；通常由應收金額減已收金額計算。 |  |
 | payload.paymentSignals[].paymentRisk | String | 收款風險代碼。 | normal、unpaid、partial_paid、overdue、missing_payment_record |
@@ -317,11 +316,76 @@
 
 `stage` 可由 workflow steps 彙總而來，但不等於任一固定 step：例如一張訂單可能同時有 `material_request = done`、`production = in_progress`、`quality_check = pending`，此時 `orders[].stage = in_production`。
 
+## Stage / StepCode / Workflow Status Enum
+
+`orders[].stage`、`fulfillment.workflow[].stepCode`、`fulfillment.workflow[].status` 不建議共用同一個 enum，原因如下：
+
+1. `orders[].stage` 是訂單目前整體階段摘要，一張訂單只會有一個目前階段。
+2. `fulfillment.workflow[].stepCode` 是履約流程節點代碼，一張訂單會有多個節點。
+3. `done`、`in_progress`、`pending` 屬於 `fulfillment.workflow[].status`，用來描述單一節點的完成狀態，不屬於 `stage` 或 `stepCode`。
+
+### EOrderStage
+
+| Code | 中文說明 | 說明 |
+| --- | --- | --- |
+| pending_confirmation | 待確認 | 訂單或履約條件仍待確認。 |
+| accepted | 已接單 | 訂單已成立，但尚未進入備料或排程。 |
+| material_preparing | 備料中 | 已進入請購、採購、倉庫備料或材料可用性確認。 |
+| scheduled | 已排產 | 已建立或確認工單/排程，但尚未開始生產。 |
+| in_production | 生產中 | 工單已進入生產或已有生產實績。 |
+| quality_check | 品檢中 | 生產品項或材料/成品仍在品檢、待放行或 hold。 |
+| ready_to_ship | 待出貨 | 已完成必要生產/品檢，可進入出貨。 |
+| shipped | 已出貨 | 訂單數量已完成出貨。 |
+
+### EOrderFulfillmentStepCode
+
+| Code | 中文說明 | 說明 |
+| --- | --- | --- |
+| order_received | 訂單成立 | 訂購單已建立。 |
+| commitment_check | 接單承諾檢核 | ATP/CTP 檢核節點；第一版待下一版再實作。 |
+| material_request | 材料請購 | 依訂單需求產生或追蹤材料請購。 |
+| purchase_readiness | 採購準備 | 採購單、供應商交期或到貨準備狀態。 |
+| warehouse_readiness | 倉庫備料 | 倉庫可用量、預留、入出庫或備料狀態。 |
+| production | 生產 | 工單排程、投產與產出狀態。 |
+| quality_check | 品檢 | 檢驗、放行或 hold 狀態。 |
+| shipping | 出貨 | 出貨單建立、出庫與出貨完成狀態。 |
+| payment | 收款 | 出貨後帳款產生、收款與逾期狀態。 |
+
+### EOrderWorkflowStepStatus
+
+| Code | 中文說明 | 說明 |
+| --- | --- | --- |
+| done | 完成 | 此 workflow step 已完成。 |
+| in_progress | 進行中 | 此 workflow step 已開始但尚未完成。 |
+| pending | 待處理 | 此 workflow step 尚未開始或等待前置步驟。 |
+| blocked | 阻擋 | 此 workflow step 被缺料、品檢、出貨、收款或其他問題阻擋。 |
+| unknown | 未知 | 資料不足，無法判斷狀態。 |
+
+## StepCode to Stage Mapping
+
+`orders[].stage` 可由 workflow step 狀態彙總，但彙總時需要依流程優先順序判斷目前主要卡點。
+
+| stepCode | workflow status 範例 | 對應或影響的 stage | 說明 |
+| --- | --- | --- | --- |
+| order_received | done | accepted | 訂單成立後，若尚無其他履約進度，stage 為已接單。 |
+| commitment_check | pending / done / blocked | pending_confirmation / accepted | 第一版 ATP/CTP 待下一版再實作；未來若接單承諾未完成，可影響 `pending_confirmation`。 |
+| material_request | in_progress / blocked | material_preparing | 請購或材料準備中，stage 彙總為備料中。 |
+| purchase_readiness | in_progress / blocked | material_preparing | 採購準備仍屬備料階段。 |
+| warehouse_readiness | in_progress / blocked | material_preparing | 倉庫備料、可用量或保留狀態仍屬備料階段。 |
+| production | pending | scheduled | 已有工單但尚未生產時，stage 可為已排產。 |
+| production | in_progress | in_production | 工單已投產或已有生產實績。 |
+| production | done | quality_check / ready_to_ship | 生產完成後，若仍需品檢則進入品檢中；若已放行則待出貨。 |
+| quality_check | pending / in_progress / blocked | quality_check | 品檢待處理、進行中或 hold 時，stage 為品檢中。 |
+| quality_check | done | ready_to_ship | 品檢完成且未完全出貨時，stage 為待出貨。 |
+| shipping | pending / in_progress / blocked | ready_to_ship | 出貨尚未完成時，stage 可為待出貨。 |
+| shipping | done | shipped | 訂單數量已完成出貨。 |
+| payment | pending / in_progress / blocked / done | shipped | 收款狀態通常不改變履約 stage；由 `paymentStatus` 與 `paymentSignals[]` 額外表達。 |
+
 ## Orders Status Fields
 
 | Field | Meaning | Source / Logic |
 | --- | --- | --- |
-| `materialStatus` | 物料是否足以支援此訂單履約。 | 優先由 `purchase_request`、`purchase_order`、Warehouse 可用庫存與 BOM/APS material gap 判斷；缺資料回傳 `unknown`。 |
+| `materialStatus` | 物料是否足以支援此訂單履約。 | 第一版優先由 `purchase_request`、`purchase_order`、Warehouse 可用庫存與既有 BOM/成本資料判斷；ATP/CTP material gap 待下一版再實作，缺資料回傳 `unknown`。 |
 | `productionStatus` | 工單與生產進度。 | 由 `work_order.product_order_no`、`production_data.work_order_no`、生產投入/產出資料判斷；沒有工單為 `not_started` 或 `unknown`。 |
 | `qualityStatus` | 品檢或品質放行狀態。 | 第一版若尚無正式 Quality API，可由 quality hold、production output 是否待檢或 workflow blocker 判斷；無資料回傳 `unknown`。 |
 | `shippingStatus` | 出貨進度。 | 由 `shipping_order.product_order_no`、`expectedCount`、`checkedCount` 彙總判斷。 |
@@ -330,6 +394,8 @@
 ## Production Feasibility
 
 `orders[].productionFeasibility` 表示「依目前資料，這張訂單能否按交期完成生產並支援履約」，不是單純是否已有工單。
+
+第一版 ATP/CTP 待下一版再實作，因此此欄位第一版固定回傳 `deferred`。下列判斷邏輯保留作為下一版規劃參考，不在第一版 API 實作。
 
 判斷依據：
 
@@ -349,6 +415,26 @@
 否則:
   productionFeasibility = feasible
 ```
+
+## Payment Due Timestamp Calculation
+
+`paymentDueTimestamp` 用於判斷出貨後應收款是否到期。第一版只做 read-only 推算，不新增付款條件資料，也不建立帳款。
+
+來源優先順序：
+
+1. 若既有帳款資料已存在明確到期日欄位，優先使用該帳款到期日。
+2. 若帳款沒有明確到期日，依出貨單日期、訂單付款型態與付款期間推算。
+3. 若必要資料不足，回傳 0，並以 `paymentRisk = unknown` 或 `missing_payment_record` 表示資料不足，不自行猜測。
+
+建議推算規則：
+
+| paymentType | 中文說明 | paymentDueTimestamp 推算 |
+| --- | --- | --- |
+| daily | 日結 / 當日結算 | 以 `shipping_order.date` 為基準；若存在付款期間欄位，使用 `shipping_order.date + payment_period`。 |
+| monthly | 月結 | 以 `shipping_order.date` 所在月份的月底為基準；若存在付款期間欄位，使用 `month_end + payment_period`。若 `product_order.payment_date` 代表約定收款日，需由工程師確認後可改以該欄位推算。 |
+| unknown | 未知 | 缺少付款型態、出貨日期或付款條件時回傳 0。 |
+
+目前尚未確認 restserver 是否已有可直接使用的付款到期日 util 函式；因此本提案先定義演算法。若工程師確認已有既有函式，後續實作可改由該函式集中產生。
 
 ## GET /api/v2/orders/{order_no}/fulfillment
 
@@ -413,7 +499,7 @@
 | stepCode | refNo Source | status Source / Logic | start/end Source |
 | --- | --- | --- | --- |
 | order_received | `product_order.no` | 訂單存在即 `done`。 | `product_order.date` / `creationTime` |
-| commitment_check | 即時計算，無固定來源單號時可回傳空字串 | 依 `commitmentChecks[]` 彙總。 | 查詢時計算，無持久化時間時回傳 0 |
+| commitment_check | 第一版待下一版再實作，無固定來源單號時回傳空字串 | 第一版不計算 ATP/CTP，可回傳 `unknown` 或 `pending`。 | 第一版固定回傳 0 |
 | material_request | `purchase_request.no` | 依請購/採購是否完成判斷。 | `purchase_request.date` / `creationTime` |
 | purchase_readiness | `purchase_order.no` | 依採購單與到貨資料判斷。 | `purchase_order.date` / 到貨日期 |
 | warehouse_readiness | 出入庫或庫存相關單號 | 依 Warehouse 可用庫存、預留、品檢保留判斷。 | 對應庫存/倉庫紀錄時間 |
@@ -426,7 +512,7 @@
 
 | area | status Source / Logic | ownerDepartment | comment Source |
 | --- | --- | --- | --- |
-| inventory | Warehouse 可用庫存、預留、品檢保留與 ATP 檢核。 | 庫存不足時為 Warehouse 或 Planning，依缺口來源決定。 | ATP 缺口、批號可用性或安全水位摘要。 |
+| inventory | Warehouse 可用庫存、預留、品檢保留；ATP 檢核待下一版再實作。 | 庫存不足時為 Warehouse 或 Planning，依缺口來源決定。 | 第一版以批號可用性、安全水位或既有庫存訊號摘要；ATP 缺口待下一版再實作。 |
 | purchasing | `purchase_request` / `purchase_order` 狀態。 | Purchasing。 | 未完成採購、到貨延遲或供應商確認摘要。 |
 | production | `work_order`、`aps_quantity`、`production_data`。 | Production / Planning。 | 產能、人員或工單阻擋摘要。 |
 | quality | Quality hold、檢驗狀態或 production output 待檢狀態。 | Quality。 | 品檢未放行、hold 或檢驗中摘要。 |
@@ -438,7 +524,7 @@
 | UI Action | API Behavior |
 | --- | --- |
 | 進入 Orders 頁面 | 呼叫 `GET /api/v2/orders/dashboard?period=30d`，前端將 response normalization 成既有 Orders page shape。 |
-| 切換「接單承諾」tab | 使用 dashboard 中的 `commitmentChecks[]` 與 `orders[].commitmentDecision`，必要時以同 query 重新查詢。 |
+| 切換「接單承諾」tab | 第一版 ATP/CTP 待下一版再實作；前端可顯示 deferred 狀態與空清單，不以此 API 做承諾判斷。 |
 | 切換「交期風險」tab | 使用 `deliveryRisks[]` 與 `orders[].deliveryRisk` 篩選高風險訂單。 |
 | 點選單一訂單 | 呼叫 `GET /api/v2/orders/{order_no}/fulfillment`，顯示履約 workflow 與 dependencies。 |
 | 切換「毛利與收款」tab | 使用 `marginSignals[]` 與 `paymentSignals[]`；前端負責格式化金額與比率。 |
@@ -458,7 +544,7 @@
 | purchase_request | 訂單關聯材料請購狀態。 |
 | purchase_order | 採購準備狀態。 |
 | inventory_record | 出貨與庫存異動參考。 |
-| aps_quantity / aps_quantity_item | ATP/CTP 可行性與物料/產能建議資料。 |
+| aps_quantity / aps_quantity_item | ATP/CTP 可行性與物料/產能建議資料；第一版待下一版再實作，暫不作為 Orders dashboard 計算來源。 |
 
 ## Engineer Review Questions
 
@@ -466,6 +552,6 @@
 | --- | --- | --- | --- |
 | 是否同意下一個 core API 提案為 `OrdersWorkspaceScreen` | 第一版前端規劃優先 phase 為 core；Warehouse extension 已延後。 | 依照既定規劃安排，目前第一版前端畫面優先實作 phase 為 core 的畫面。 | 建議採用，符合 integration plan 的 Warehouse → Orders → Production → Quality 順序。 |
 | 新增聚合 endpoint 是否採 `/api/v2/orders/dashboard` | 既有前端曾用 `/api/v1/orders/dashboard` mock fallback，但新後端實作已採 v2 模式。 | 同意採用`/api/v2/orders/dashboard` | 建議新聚合 API 採 `/api/v2/orders/dashboard`；既有 `/api/v1/sale/productorder` 作資料來源或相容層。 |
-| `committedTimestamp` 第一版是否需要持久化欄位 | 若沒有保存承諾日，只能由 ATP/CTP 即時計算最早可行日期。 | 目前系統並未設計「保存承諾日」，若略過此步驟會產生哪些影響？另外，請詳細說明 ATP 與 CTP 的概念，因為我對這兩者尚不清楚。 | 第一版 read-only 可即時計算；若未來要保存承諾結果，再新增 workflow / decision table。 |
+| `committedTimestamp` 第一版是否需要持久化欄位 | 若沒有保存承諾日，第一版無法提供正式承諾日期。 | 目前系統並未設計「保存承諾日」，若略過此步驟會產生哪些影響？另外，請詳細說明 ATP 與 CTP 的概念，因為我對這兩者尚不清楚。工程師 V2 已要求第一版先略過 ATP/CTP。 | 第一版固定回傳 0 / deferred / 空陣列；若未來要保存承諾結果，再新增 workflow / decision table。 |
 | 毛利資料不足時如何處理 | 實際成本可能要等生產與財務結算完成。 | 採用建議 | 資料不足時回傳 0 並以 `marginRisk = cost_missing` 標示，不推測實際毛利。 |
 | 品檢與出貨阻擋狀態來源 | Orders 需要跨 Quality / Logistics / Warehouse 的 blocker 訊號。 | 不清楚 Quality、Logistics、Warehouse 的 blocker 訊號具體指涉為何。請詳細說明，並指出其對應到回傳資料中的哪些欄位。| 第一版先由可取得的 work_order、shipping_order、warehouse/quality hold 訊號組成；無資料時回傳 unknown。 |

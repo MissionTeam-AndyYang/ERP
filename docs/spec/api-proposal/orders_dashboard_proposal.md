@@ -1,3 +1,7 @@
+# 工程師提問V3
+1. 假設客戶下訂 1 萬盒餅乾，過程中會產生 1 筆採購單、多筆進貨單、多筆派工產製單，以及多筆出貨單。請針對 orders[].stage 與 fulfillment.workflow[].stepCode，舉例說明在此流程中會對應產生哪些步驟。
+2. g_cal_due_date 為 restserver 中用於計算月結付款到期日的 util 函式，實作時可統一集中呼叫該函式。
+
 # 工程師提問V2
 1. 將回傳欄位名稱 settlementType 更名為 paymentType。
 2. 詳細說明 paymentDueTimestamp 欄位數值來源、計算邏輯，或說明是否採用現成函式產生。

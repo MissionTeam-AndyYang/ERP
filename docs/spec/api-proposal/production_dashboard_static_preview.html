@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Production Dashboard API Preview</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --line: #dfe4ea;
+      --text: #17202a;
+      --muted: #667085;
+      --primary: #1f6feb;
+      --success: #168a4a;
+      --warning: #b7791f;
+      --danger: #c2410c;
+      --info: #0f766e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      line-height: 1.5;
+    }
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+    .sub {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .control {
+      height: 36px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 6px;
+      padding: 0 12px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    }
+    .card-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .card-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .card-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 16px;
+      align-items: start;
+    }
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .section-title h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      color: var(--muted);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .schedule {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .line-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      padding: 12px;
+    }
+    .line-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .line-name {
+      font-weight: 700;
+    }
+    .meter {
+      height: 8px;
+      background: #edf2f7;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 8px 0 10px;
+    }
+    .meter span {
+      display: block;
+      height: 100%;
+      background: var(--primary);
+      border-radius: 999px;
+    }
+    .slot {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+    .slot-id {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 13px;
+    }
+    .slot-name {
+      margin-top: 4px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .slot-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .success { background: #e9f8ef; color: var(--success); }
+    .warning { background: #fff6db; color: var(--warning); }
+    .danger { background: #fff1eb; color: var(--danger); }
+    .info { background: #e6fffb; color: var(--info); }
+    .neutral { background: #eef2f6; color: var(--muted); }
+    .stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .detail h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .mini {
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .mini span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .mini strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 14px;
+    }
+    .alert {
+      display: grid;
+      gap: 4px;
+      border-left: 4px solid var(--warning);
+      padding: 10px 12px;
+      background: #fffdf6;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .alert.danger-border { border-left-color: var(--danger); }
+    .alert.info-border { border-left-color: var(--info); }
+    @media (max-width: 1100px) {
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+      .schedule { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .shell { padding: 14px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .toolbar { justify-content: flex-start; }
+      .kpis { grid-template-columns: 1fr; }
+      table { min-width: 840px; }
+      .table-wrap { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <div>
+        <h1>生產計畫與現場品質總覽</h1>
+        <p class="sub">ProductionWorkspaceScreen · read-only API preview · `/api/v2/production/dashboard`</p>
+      </div>
+      <div class="toolbar">
+        <select class="control" aria-label="查詢期間">
+          <option>最近 7 天</option>
+          <option>最近 14 天</option>
+        </select>
+        <select class="control" aria-label="產線">
+          <option>全部產線</option>
+          <option>A1 調理線</option>
+          <option>B2 冷凍線</option>
+          <option>C3 包裝線</option>
+        </select>
+        <input class="control" aria-label="關鍵字" value="" placeholder="工單 / 產品 / 批號">
+      </div>
+    </div>
+
+    <section class="kpis" aria-label="Production KPI">
+      <div class="card">
+        <div class="card-label">一週預排工單</div>
+        <div class="card-value">38</div>
+        <div class="card-note">可用產能 22.5 hr</div>
+      </div>
+      <div class="card">
+        <div class="card-label">今日 MES 進行中</div>
+        <div class="card-value">8</div>
+        <div class="card-note">3 張需追蹤</div>
+      </div>
+      <div class="card">
+        <div class="card-label">備料 / 人員風險</div>
+        <div class="card-value">5</div>
+        <div class="card-note">缺料 2 · 人員支援 3</div>
+      </div>
+      <div class="card">
+        <div class="card-label">品檢待判 / 異常</div>
+        <div class="card-value">4</div>
+        <div class="card-note">待判 3 · hold 1</div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div>
+        <div class="card">
+          <div class="section-title">
+            <h2>週排程與產能</h2>
+            <div class="tabs">
+              <span class="tab active">週排程與產能</span>
+              <span class="tab">MES 工單現況</span>
+              <span class="tab">效率損耗品質</span>
+              <span class="tab">生產明細</span>
+            </div>
+          </div>
+
+          <div class="schedule">
+            <div class="line-card">
+              <div class="line-head">
+                <div>
+                  <div class="line-name">A1 調理線</div>
+                  <div class="slot-meta">前備 / 調拌 · 瓶頸 #3</div>
+                </div>
+                <span class="badge info">75%</span>
+              </div>
+              <div class="meter"><span style="width:75%"></span></div>
+              <div class="slot">
+                <div class="slot-id">WO-20260709-001</div>
+                <div class="slot-name">咖哩雞肉調理包</div>
+                <div class="slot-meta">08:00-14:30 · 料品 ready · 人員 ready</div>
+              </div>
+              <div class="slot">
+                <div class="slot-id">WO-20260709-006</div>
+                <div class="slot-name">麻婆豆腐調理包</div>
+                <div class="slot-meta">15:00-17:00 · 料品 partial · 人員 support_needed</div>
+              </div>
+            </div>
+
+            <div class="line-card">
+              <div class="line-head">
+                <div>
+                  <div class="line-name">B2 冷凍線</div>
+                  <div class="slot-meta">加工 / 其他 · 瓶頸 #4</div>
+                </div>
+                <span class="badge warning">65%</span>
+              </div>
+              <div class="meter"><span style="width:65%"></span></div>
+              <div class="slot">
+                <div class="slot-id">WO-20260709-002</div>
+                <div class="slot-name">綜合冷凍蔬菜</div>
+                <div class="slot-meta">13:00-16:20 · 料品 shortage · 人員 support_needed</div>
+              </div>
+            </div>
+
+            <div class="line-card">
+              <div class="line-head">
+                <div>
+                  <div class="line-name">S1 殺菌線</div>
+                  <div class="slot-meta">包裝 / 其他 · 瓶頸 #1</div>
+                </div>
+                <span class="badge danger">94%</span>
+              </div>
+              <div class="meter"><span style="width:94%"></span></div>
+              <div class="slot">
+                <div class="slot-id">WO-20260711-011</div>
+                <div class="slot-name">高溫殺菌調理包</div>
+                <div class="slot-meta">08:00-15:30 · 產能僅剩 0.5 hr</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card table-wrap">
+            <div class="section-title">
+              <h2>今日 MES 工單現況</h2>
+              <span class="badge neutral">enum 顯示文字由前端轉換</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>工單 / 產品</th>
+                  <th>產線 / 製程</th>
+                  <th>進度</th>
+                  <th>備料 / 人員</th>
+                  <th>機台</th>
+                  <th>品檢</th>
+                  <th>交期風險</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>WO-20260709-001</strong><br>咖哩雞肉調理包</td>
+                  <td>A1 調理線<br><span class="slot-meta">前備 / 調拌</span></td>
+                  <td>6912 / 9600<br><span class="badge success">72%</span></td>
+                  <td><span class="badge success">ready</span> <span class="badge success">ready</span></td>
+                  <td><span class="badge success">running</span></td>
+                  <td><span class="badge success">released</span></td>
+                  <td><span class="badge success">normal</span></td>
+                </tr>
+                <tr>
+                  <td><strong>WO-20260709-002</strong><br>綜合冷凍蔬菜</td>
+                  <td>B2 冷凍線<br><span class="slot-meta">加工 / 其他</span></td>
+                  <td>0 / 7200<br><span class="badge warning">18%</span></td>
+                  <td><span class="badge danger">shortage</span> <span class="badge warning">support_needed</span></td>
+                  <td><span class="badge warning">paused</span></td>
+                  <td><span class="badge neutral">unknown</span></td>
+                  <td><span class="badge danger">high_risk</span></td>
+                </tr>
+                <tr>
+                  <td><strong>WO-20260709-003</strong><br>即食雞胸肉</td>
+                  <td>C3 包裝線<br><span class="slot-meta">包裝 / 入箱</span></td>
+                  <td>3168 / 4800<br><span class="badge info">66%</span></td>
+                  <td><span class="badge success">ready</span> <span class="badge success">ready</span></td>
+                  <td><span class="badge success">running</span></td>
+                  <td><span class="badge info">pending_decision</span></td>
+                  <td><span class="badge warning">attention</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card table-wrap">
+            <div class="section-title">
+              <h2>效率損耗品質</h2>
+              <span class="badge neutral">productionMetrics[]</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>工單</th>
+                  <th>產時效率</th>
+                  <th>原物料損耗率</th>
+                  <th>單品人工費率</th>
+                  <th>品檢不良率</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>WO-20260709-001</td>
+                  <td>106.00%</td>
+                  <td>3.30%</td>
+                  <td>2.2300</td>
+                  <td>0.00%</td>
+                </tr>
+                <tr>
+                  <td>WO-20260709-003</td>
+                  <td>93.00%</td>
+                  <td>5.40%</td>
+                  <td>2.4500</td>
+                  <td>5.60%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <aside class="card detail">
+        <div class="section-title">
+          <div>
+            <h2>WO-20260709-003</h2>
+            <p class="sub">即食雞胸肉 · FG260709-CHICKEN</p>
+          </div>
+          <span class="badge info">quality_check</span>
+        </div>
+
+        <div class="detail-grid">
+          <div class="mini"><span>計畫產量</span><strong>4,800 包</strong></div>
+          <div class="mini"><span>已完成</span><strong>3,168 包</strong></div>
+          <div class="mini"><span>備料 / 人員</span><strong>ready / ready</strong></div>
+          <div class="mini"><span>品檢狀態</span><strong>pending_decision</strong></div>
+          <div class="mini"><span>損耗率</span><strong>5.40%</strong></div>
+          <div class="mini"><span>單品人工費率</span><strong>2.4500</strong></div>
+        </div>
+
+        <div class="alert info-border">
+          <strong>品檢待判</strong>
+          <span>QC 快篩等待判定，暫緩入庫與出貨。</span>
+        </div>
+        <div class="alert danger-border" style="margin-top:10px">
+          <strong>B2 產線備料風險</strong>
+          <span>WO-20260709-002 缺冷凍玉米粒且人員需支援，可能影響 13:00 開線。</span>
+        </div>
+        <div class="alert" style="margin-top:10px">
+          <strong>S1 殺菌線瓶頸</strong>
+          <span>2026-07-11 只剩 0.5 hr，可接單量有限。</span>
+        </div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

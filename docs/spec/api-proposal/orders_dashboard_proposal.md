@@ -2,6 +2,13 @@
 1. 假設客戶下訂 1 萬盒餅乾，過程中會產生 1 筆採購單、多筆進貨單、多筆派工產製單，以及多筆出貨單。請針對 orders[].stage 與 fulfillment.workflow[].stepCode，舉例說明在此流程中會對應產生哪些步驟。
 2. g_cal_due_date 為 restserver 中用於計算月結付款到期日的 util 函式，實作時可統一集中呼叫該函式。
 
+## 工程師提問V3理解與文件更新
+
+| 工程師提問V3 | 理解與確認 | 本次文件更新 |
+| --- | --- | --- |
+| 以「客戶下訂 1 萬盒餅乾」舉例說明 `orders[].stage` 與 `fulfillment.workflow[].stepCode` 對應關係。 | 採用。`orders[].stage` 仍維持單一目前階段摘要；`workflow[].stepCode` 需能承載同一訂單下 1 筆採購單、多筆進貨單、多筆派工產製單與多筆出貨單的流程節點。 | 新增「Example: 1 萬盒餅乾訂單履約流程」章節，補充各流程事件對應的 stage 與 workflow step。 |
+| `g_cal_due_date` 是 restserver 已有的月結付款到期日 util。 | 採用。文件不再標示 util 未確認；月結付款到期日實作時統一呼叫 `restserver/package/arap/arap.py` 的 `g_cal_due_date(str_timezone, n_year, n_month, n_day, n_payment_period)`。 | 更新「Payment Due Timestamp Calculation」與流程文件的付款到期日推算規則。 |
+
 # 工程師提問V2
 1. 將回傳欄位名稱 settlementType 更名為 paymentType。
 2. 詳細說明 paymentDueTimestamp 欄位數值來源、計算邏輯，或說明是否採用現成函式產生。
@@ -385,6 +392,76 @@
 | shipping | done | shipped | 訂單數量已完成出貨。 |
 | payment | pending / in_progress / blocked / done | shipped | 收款狀態通常不改變履約 stage；由 `paymentStatus` 與 `paymentSignals[]` 額外表達。 |
 
+## Example: 1 萬盒餅乾訂單履約流程
+
+情境：客戶下訂 1 萬盒餅乾，系統中可能產生 1 筆訂購單、1 筆採購單、多筆進貨單、多筆派工產製單，以及多筆出貨單。
+
+此範例用來說明 `orders[].stage` 與 `fulfillment.workflow[].stepCode` 的差異：
+
+1. `orders[].stage` 是 Dashboard 列表上此訂單目前最主要的階段，只會回傳一個 code。
+2. `fulfillment.workflow[].stepCode` 是履約明細中的流程節點，一張訂單會同時存在多個 step。
+3. 同一個 stepCode 可以對應多筆來源單據，例如多筆 `goods_receipt_note` 仍彙總在 `purchase_readiness` 或 `warehouse_readiness` 節點，多筆 `work_order` 仍彙總在 `production` 節點，多筆 `shipping_order` 仍彙總在 `shipping` 節點。
+
+### Example Timeline
+
+| 業務事件 | 可能來源單據 | fulfillment.workflow[].stepCode | workflow status 範例 | orders[].stage 範例 | 說明 |
+| --- | --- | --- | --- | --- | --- |
+| 客戶訂購 1 萬盒餅乾 | `product_order.no = SO-001` | order_received | done | accepted | 訂單成立，但尚未進入備料或生產。 |
+| 依訂單需求建立請購/採購 | `purchase_request.no = PR-001`、`purchase_order.no = PO-001` | material_request / purchase_readiness | in_progress | material_preparing | 訂單進入材料準備；若只有 1 筆採購單，workflow 仍可分別呈現請購與採購準備節點。 |
+| 供應商分批進貨 | `goods_receipt_note.no = GR-001`、`GR-002`、`GR-003` | purchase_readiness / warehouse_readiness | in_progress | material_preparing | 多筆進貨單代表採購到貨與倉庫入庫可能分批完成；Dashboard stage 仍彙總為備料中。 |
+| 生管建立多筆派工產製單 | `work_order.no = WO-001`、`WO-002`、`WO-003` | production | pending / in_progress | scheduled / in_production | 若派工單已建立但未投產，stage 可為 `scheduled`；任一派工單進入產製後，stage 可為 `in_production`。 |
+| 多批次產製與品檢 | `production_data.work_order_no`、品檢/hold 訊號 | production / quality_check | in_progress / pending / blocked | in_production / quality_check | 生產與品檢可交錯發生；若仍有品檢未放行或 hold，stage 可能停在 `quality_check`。 |
+| 分批出貨給客戶 | `shipping_order.no = SH-001`、`SH-002`、`SH-003` | shipping | in_progress | ready_to_ship | 已有部分出貨但未達 1 萬盒時，`shipmentSummary.shippingStatus = partial_shipped`，stage 可維持 `ready_to_ship`。 |
+| 1 萬盒全數完成出貨 | 多筆 `shipping_order.checkedCount` 加總 >= `product_order.count` | shipping | done | shipped | 出貨數量達訂購數量後，Dashboard stage 彙總為 `shipped`。 |
+| 出貨後產生月結收款 | `order_payment.no` / `payment` | payment | pending / in_progress / done | shipped | 收款狀態不改變履約 stage；由 `paymentStatus`、`paymentSignals[]` 與 `paymentDueTimestamp` 表示。 |
+
+### Example Workflow Payload Shape
+
+```json
+{
+  "orderNo": "SO-001",
+  "workflow": [
+    {
+      "stepCode": "order_received",
+      "refNo": "SO-001",
+      "status": "done"
+    },
+    {
+      "stepCode": "purchase_readiness",
+      "refNo": "PO-001",
+      "status": "in_progress"
+    },
+    {
+      "stepCode": "warehouse_readiness",
+      "refNo": "GR-001,GR-002,GR-003",
+      "status": "in_progress"
+    },
+    {
+      "stepCode": "production",
+      "refNo": "WO-001,WO-002,WO-003",
+      "status": "in_progress"
+    },
+    {
+      "stepCode": "quality_check",
+      "refNo": "",
+      "status": "pending"
+    },
+    {
+      "stepCode": "shipping",
+      "refNo": "SH-001,SH-002,SH-003",
+      "status": "in_progress"
+    },
+    {
+      "stepCode": "payment",
+      "refNo": "",
+      "status": "pending"
+    }
+  ]
+}
+```
+
+> 實作備註：若同一 stepCode 對應多筆來源單據，第一版可先以逗號串接 `refNo` 或回傳代表性單號；若後續前端需要逐筆單據 drilldown，建議下一版新增 workflow step detail 陣列，不在本版 API 中擴充。
+
 ## Orders Status Fields
 
 | Field | Meaning | Source / Logic |
@@ -435,10 +512,10 @@
 | paymentType | 中文說明 | paymentDueTimestamp 推算 |
 | --- | --- | --- |
 | daily | 日結 / 當日結算 | 以 `shipping_order.date` 為基準；若存在付款期間欄位，使用 `shipping_order.date + payment_period`。 |
-| monthly | 月結 | 以 `shipping_order.date` 所在月份的月底為基準；若存在付款期間欄位，使用 `month_end + payment_period`。若 `product_order.payment_date` 代表約定收款日，需由工程師確認後可改以該欄位推算。 |
+| monthly | 月結 | 統一呼叫 restserver 既有 `g_cal_due_date(str_timezone, n_year, n_month, n_day, n_payment_period)`；`n_year/n_month` 來自出貨月份或帳款月份，`n_day` 與 `n_payment_period` 來自付款條件。 |
 | unknown | 未知 | 缺少付款型態、出貨日期或付款條件時回傳 0。 |
 
-目前尚未確認 restserver 是否已有可直接使用的付款到期日 util 函式；因此本提案先定義演算法。若工程師確認已有既有函式，後續實作可改由該函式集中產生。
+已確認 restserver 既有月結付款到期日 util：`restserver/package/arap/arap.py` 的 `g_cal_due_date(str_timezone, n_year, n_month, n_day, n_payment_period)`。後續實作月結付款到期日時應統一集中呼叫此函式，避免 Orders API 與 AR/AP 到期日邏輯不一致。
 
 ## GET /api/v2/orders/{order_no}/fulfillment
 
@@ -486,7 +563,7 @@
 | --- | --- | --- | --- |
 | payload.orderNo | String | 訂購單 no，來源為 `product_order.no`。 |  |
 | payload.workflow[].stepCode | String | 履約步驟代碼，前端負責多國語系轉換。 | order_received、commitment_check、material_request、purchase_readiness、warehouse_readiness、production、quality_check、shipping、payment |
-| payload.workflow[].refNo | String | 對應來源單據 no，例如 `product_order.no`、`purchase_request.no`、`work_order.no`、`shipping_order.no` 或 `order_payment.no`。 |  |
+| payload.workflow[].refNo | String | 對應來源單據 no。第一版若同一 stepCode 對應多筆來源單據，可回傳代表性單號或以逗號串接，例如多筆 `goods_receipt_note.no`、`work_order.no`、`shipping_order.no`。 |  |
 | payload.workflow[].status | String | 步驟狀態代碼。 | done、in_progress、pending、blocked、unknown |
 | payload.workflow[].ownerDepartment | Integer | 此步驟負責部門。 |  |
 | payload.workflow[].startTimestamp | Integer | 步驟開始時間；依 step 來源表取 `date` 或 `creationTime`，無資料時回傳 0。 |  |
@@ -505,11 +582,11 @@
 | order_received | `product_order.no` | 訂單存在即 `done`。 | `product_order.date` / `creationTime` |
 | commitment_check | 第一版待下一版再實作，無固定來源單號時回傳空字串 | 第一版不計算 ATP/CTP，可回傳 `unknown` 或 `pending`。 | 第一版固定回傳 0 |
 | material_request | `purchase_request.no` | 依請購/採購是否完成判斷。 | `purchase_request.date` / `creationTime` |
-| purchase_readiness | `purchase_order.no` | 依採購單與到貨資料判斷。 | `purchase_order.date` / 到貨日期 |
-| warehouse_readiness | 出入庫或庫存相關單號 | 依 Warehouse 可用庫存、預留、品檢保留判斷。 | 對應庫存/倉庫紀錄時間 |
-| production | `work_order.no` | 依 `work_order`、`production_data` 判斷。 | `work_order.date`、生產資料時間 |
+| purchase_readiness | `purchase_order.no`，多筆到貨時可參考 `goods_receipt_note.purchase_order_no` | 依採購單與到貨資料判斷。 | `purchase_order.date` / 到貨日期 |
+| warehouse_readiness | `goods_receipt_note.no`、出入庫或庫存相關單號 | 依 Warehouse 可用庫存、預留、品檢保留與多筆進貨入庫狀態判斷。 | 對應進貨、庫存或倉庫紀錄時間 |
+| production | `work_order.no`，多筆派工單可彙總 | 依 `work_order`、`production_data` 判斷。 | `work_order.date`、生產資料時間 |
 | quality_check | 品檢或 hold 相關單號；第一版無來源時空字串 | 依 Quality / hold 訊號判斷。 | 品檢或 hold 紀錄時間 |
-| shipping | `shipping_order.no` | 依此訂單所有出貨單彙總。 | `shipping_order.date` |
+| shipping | `shipping_order.no`，多筆出貨單可彙總 | 依此訂單所有出貨單彙總。 | `shipping_order.date` |
 | payment | `order_payment.no` | 依帳款與收款狀態判斷。 | `order_payment.date` / 付款完成時間 |
 
 ### Fulfillment Dependency Source Mapping

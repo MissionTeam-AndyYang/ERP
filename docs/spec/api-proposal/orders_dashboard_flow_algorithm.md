@@ -258,6 +258,25 @@ stepCode 對 stage 的彙總關係：
 | shipping | done | shipped |
 | payment | 任一狀態 | 不改變履約 stage，由 paymentStatus / paymentSignals 表示 |
 
+多單據彙總規則：
+
+1. 一張訂購單可對應 1 筆或多筆採購/進貨/派工/出貨資料，但 `orders[].stage` 仍只回傳單一目前階段摘要。
+2. `workflow[].stepCode` 以履約節點彙總，不以單據筆數展開；例如 1 筆採購單與多筆進貨單可彙總在 `purchase_readiness` / `warehouse_readiness`，多筆派工單可彙總在 `production`，多筆出貨單可彙總在 `shipping`。
+3. 若同一 stepCode 對應多筆來源單據，第一版可先將 `refNo` 以代表性單號或逗號串接表示；若下一版需要逐筆 drilldown，再新增 workflow step detail 陣列。
+
+以「客戶下訂 1 萬盒餅乾」為例：
+
+| 業務事件 | 來源單據範例 | stepCode | workflow status | stage |
+| --- | --- | --- | --- | --- |
+| 訂單成立 | `product_order.no = SO-001` | order_received | done | accepted |
+| 建立 1 筆採購單 | `purchase_order.no = PO-001` | purchase_readiness | in_progress | material_preparing |
+| 分批進貨 | `goods_receipt_note.no = GR-001,GR-002,GR-003` | warehouse_readiness | in_progress | material_preparing |
+| 多筆派工產製 | `work_order.no = WO-001,WO-002,WO-003` | production | pending / in_progress | scheduled / in_production |
+| 產製後品檢 | 品檢或 hold 訊號 | quality_check | pending / in_progress / blocked | quality_check |
+| 分批出貨 | `shipping_order.no = SH-001,SH-002,SH-003` | shipping | in_progress | ready_to_ship |
+| 全數出貨 | 多筆 `shipping_order.checkedCount` 加總 >= `product_order.count` | shipping | done | shipped |
+| 出貨後收款 | `order_payment.no` / `payment` | payment | pending / in_progress / done | shipped |
+
 ## 共用 Step 7：付款到期日推算
 
 `paymentDueTimestamp` 只用於 read-only 風險判斷，不新增或修改帳款資料。
@@ -273,10 +292,10 @@ stepCode 對 stage 的彙總關係：
 | paymentType | Algorithm |
 | --- | --- |
 | daily | 以 `shipping_order.date` 為基準；若付款期間存在，使用 `shipping_order.date + payment_period`。 |
-| monthly | 以 `shipping_order.date` 所在月份的月底為基準；若付款期間存在，使用 `month_end + payment_period`。若 `product_order.payment_date` 代表約定收款日，需工程師確認後再改用該欄位。 |
+| monthly | 統一呼叫 `g_cal_due_date(str_timezone, n_year, n_month, n_day, n_payment_period)`；`n_year/n_month` 來自出貨月份或帳款月份，`n_day` 與 `n_payment_period` 來自付款條件。 |
 | unknown | 缺少付款型態、出貨日期或付款條件時回傳 0。 |
 
-目前未確認 restserver 是否已有付款到期日 util 函式，因此本文件先定義演算法；若工程師確認已有既有函式，實作時可集中呼叫該函式。
+已確認 restserver 既有月結付款到期日 util：`restserver/package/arap/arap.py` 的 `g_cal_due_date(str_timezone, n_year, n_month, n_day, n_payment_period)`。後續實作月結付款到期日時應統一集中呼叫此函式，避免 Orders API 與 AR/AP 到期日邏輯不一致。
 
 ## 共用 Step 8：毛利與收款訊號
 

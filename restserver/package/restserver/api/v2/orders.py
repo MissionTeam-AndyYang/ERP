@@ -27,6 +27,7 @@ from package.dbwrapper.table import (
 )
 from package.log.log import CLogger
 from package.util.util import (
+    util_build_period_range,
     util_round_amount,
     util_round_quantity,
     util_safe_float,
@@ -67,26 +68,9 @@ class COrdersDashboardService(object):
         str_keyword="",
         n_start=0,
         n_count=50,
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_dashboard_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                str_period,
-                str_customer_no,
-                str_order_no,
-                str_commitment_decision,
-                str_delivery_risk,
-                str_stage,
-                str_keyword,
-                n_start,
-                n_count,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_dashboard_with_session(
+            return self._get_dashboard_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
@@ -100,29 +84,58 @@ class COrdersDashboardService(object):
                 n_start,
                 n_count,
             )
+
+    def _get_dashboard_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_customer_no="",
+        str_order_no="",
+        str_commitment_decision="",
+        str_delivery_risk="",
+        str_stage="",
+        str_keyword="",
+        n_start=0,
+        n_count=50,
+    ):
+        return self.__get_dashboard_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_period,
+            str_customer_no,
+            str_order_no,
+            str_commitment_decision,
+            str_delivery_risk,
+            str_stage,
+            str_keyword,
+            n_start,
+            n_count,
+        )
 
     def get_fulfillment(
         self,
         str_order_no,
         n_date=0,
         str_timezone="",
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_fulfillment_with_session(
-                obj_session,
-                str_order_no,
-                n_date,
-                str_timezone,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_fulfillment_with_session(
+            return self._get_fulfillment_with_session(
                 obj_dbmgr.get_session(),
                 str_order_no,
                 n_date,
                 str_timezone,
             )
+
+    def _get_fulfillment_with_session(self, obj_session, str_order_no, n_date=0, str_timezone=""):
+        return self.__get_fulfillment_with_session(
+            obj_session,
+            str_order_no,
+            n_date,
+            str_timezone,
+        )
 
     def __get_dashboard_with_session(
         self,
@@ -140,7 +153,12 @@ class COrdersDashboardService(object):
         n_count,
     ):
         n_query_timestamp = n_date if n_date else util_safe_int(time.time())
-        dict_range = self.__build_range(n_query_timestamp, str_period, str_timezone)
+        dict_range = util_build_period_range(
+            n_query_timestamp,
+            str_period,
+            {"7d": 7, "30d": 30, "90d": 90},
+            "30d",
+        )
         n_start = max(util_safe_int(n_start), 0)
         n_count = min(max(util_safe_int(n_count), 1), 100)
 
@@ -861,22 +879,6 @@ class COrdersDashboardService(object):
         if str_status == "unknown":
             return "unknown"
         return "pending"
-
-    def __build_range(self, n_query_timestamp, str_period, str_timezone):
-        dict_days = {
-            "7d": 7,
-            "30d": 30,
-            "90d": 90,
-        }
-        str_period = str_period if str_period in dict_days else "30d"
-        n_days = dict_days[str_period]
-        n_end_timestamp = util_safe_int(n_query_timestamp)
-        n_start_timestamp = n_end_timestamp - n_days * 86400
-        return {
-            "period": str_period,
-            "startTimestamp": n_start_timestamp,
-            "endTimestamp": n_end_timestamp,
-        }
 
     def __payment_type_code(self, n_payment_type):
         if util_safe_int(n_payment_type) == EPaymentType.MONTH:

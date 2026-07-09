@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 import time
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from sqlalchemy.orm import class_mapper
 from package.common.common import *
 from package.dbwrapper.table import *
@@ -216,6 +217,66 @@ def util_round_amount(obj_value):
             rounding=ROUND_HALF_UP,
         )
     )
+
+
+def util_build_day_range(n_timestamp, str_timezone):
+    try:
+        obj_tz = ZoneInfo(str_timezone or "UTC")
+    except Exception:
+        obj_tz = timezone.utc
+    obj_local = datetime.fromtimestamp(util_safe_int(n_timestamp), timezone.utc).astimezone(obj_tz)
+    obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    n_start = util_safe_int(obj_start_local.astimezone(timezone.utc).timestamp())
+    return {
+        "date": obj_local.strftime("%Y-%m-%d"),
+        "startTimestamp": n_start,
+        "endTimestamp": n_start + 86399,
+    }
+
+
+def util_build_task_date_range(n_timestamp, str_timezone, str_date_range):
+    dict_day_range = util_build_day_range(n_timestamp, str_timezone)
+    str_mode = str_date_range or "today"
+    n_start = util_safe_int(dict_day_range.get("startTimestamp"))
+    if str_mode == "next_7_days":
+        return {
+            "mode": str_mode,
+            "startTimestamp": n_start,
+            "endTimestamp": n_start + 7 * 86400 - 1,
+            "applyRange": True,
+        }
+    if str_mode == "overdue":
+        return {
+            "mode": str_mode,
+            "startTimestamp": 0,
+            "endTimestamp": n_start - 1,
+            "applyRange": True,
+        }
+    if str_mode == "all_open":
+        return {
+            "mode": str_mode,
+            "startTimestamp": 0,
+            "endTimestamp": 0,
+            "applyRange": False,
+        }
+    return {
+        "mode": "today",
+        "startTimestamp": n_start,
+        "endTimestamp": n_start + 86399,
+        "applyRange": True,
+    }
+
+
+def util_build_period_range(n_query_timestamp, str_period, dict_period_days, str_default_period):
+    str_period = str_period if str_period in dict_period_days else str_default_period
+    n_days = util_safe_int(dict_period_days.get(str_period))
+    n_end_timestamp = util_safe_int(n_query_timestamp)
+    n_start_timestamp = max(n_end_timestamp - n_days * 86400, 0)
+    return {
+        "period": str_period,
+        "startTimestamp": n_start_timestamp,
+        "endTimestamp": n_end_timestamp,
+    }
 
 
 

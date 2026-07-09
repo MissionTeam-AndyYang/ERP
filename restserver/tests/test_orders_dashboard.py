@@ -51,9 +51,9 @@ def seed_orders_base(obj_session):
             no="SO-001",
             date=n_now - 5 * 86400,
             item_no="COOKIE-001",
-            item_name="餅乾禮盒",
+            item_name="é¤…ä¹¾ç¦®ç›’",
             item_ref_no="CUST-001",
-            item_ref_displayName="測試客戶",
+            item_ref_displayName="æ¸¬è©¦å®¢æˆ¶",
             unit=EUnit.BOX,
             price=20,
             count=10000,
@@ -79,7 +79,7 @@ def seed_orders_base(obj_session):
             purchase_request_no="PR-001",
             date=n_now - 4 * 86400,
             item_no="RM-COOKIE",
-            item_name="餅乾原料",
+            item_name="é¤…ä¹¾åŽŸæ–™",
             unit=EUnit.KILOGRAM,
             count=100,
             amount=30000,
@@ -89,7 +89,7 @@ def seed_orders_base(obj_session):
             purchase_order_no="PO-001",
             date=n_now - 3 * 86400,
             item_no="RM-COOKIE",
-            item_name="餅乾原料",
+            item_name="é¤…ä¹¾åŽŸæ–™",
             unit=EUnit.KILOGRAM,
             expectedCount=60,
             checkedCount=60,
@@ -99,7 +99,7 @@ def seed_orders_base(obj_session):
             purchase_order_no="PO-001",
             date=n_now - 2 * 86400,
             item_no="RM-COOKIE",
-            item_name="餅乾原料",
+            item_name="é¤…ä¹¾åŽŸæ–™",
             unit=EUnit.KILOGRAM,
             expectedCount=40,
             checkedCount=40,
@@ -109,7 +109,7 @@ def seed_orders_base(obj_session):
             date=n_now - 2 * 86400,
             product_order_no="SO-001",
             product_no="COOKIE-001",
-            product_name="餅乾禮盒",
+            product_name="é¤…ä¹¾ç¦®ç›’",
             processCount=5000,
             laborCount=8,
         ),
@@ -118,7 +118,7 @@ def seed_orders_base(obj_session):
             date=n_now - 1 * 86400,
             product_order_no="SO-001",
             product_no="COOKIE-001",
-            product_name="餅乾禮盒",
+            product_name="é¤…ä¹¾ç¦®ç›’",
             processCount=5000,
             laborCount=8,
         ),
@@ -127,7 +127,7 @@ def seed_orders_base(obj_session):
             product_order_no="SO-001",
             customer_no="CUST-001",
             product_no="COOKIE-001",
-            product_name="餅乾禮盒",
+            product_name="é¤…ä¹¾ç¦®ç›’",
             date=n_now - 1 * 86400,
         ),
         CTableShippingOrder(
@@ -135,7 +135,7 @@ def seed_orders_base(obj_session):
             product_order_no="SO-001",
             date=n_now - 3600,
             item_no="COOKIE-001",
-            item_name="餅乾禮盒",
+            item_name="é¤…ä¹¾ç¦®ç›’",
             unit=EUnit.BOX,
             expectedCount=5000,
             checkedCount=5000,
@@ -148,7 +148,7 @@ def seed_orders_base(obj_session):
             ref_no="SO-001",
             ref_sub_no="SH-001",
             item_ref_no="CUST-001",
-            item_ref_displayName="測試客戶",
+            item_ref_displayName="æ¸¬è©¦å®¢æˆ¶",
             paymentType=EPaymentType.MONTH,
             month=date(2023, 11, 1),
             amount=100000,
@@ -164,7 +164,7 @@ def test_orders_dashboard_service_returns_confirmed_dataset():
     obj_session = build_session()
     n_now = seed_orders_base(obj_session)
 
-    dict_payload = COrdersDashboardService().get_dashboard(
+    dict_payload = COrdersDashboardService()._get_dashboard_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_period="30d",
@@ -205,7 +205,7 @@ def test_orders_fulfillment_service_returns_workflow_steps():
     obj_session = build_session()
     n_now = seed_orders_base(obj_session)
 
-    dict_payload = COrdersDashboardService().get_fulfillment(
+    dict_payload = COrdersDashboardService()._get_fulfillment_with_session(
         str_order_no="SO-001",
         n_date=n_now,
         str_timezone="Asia/Taipei",

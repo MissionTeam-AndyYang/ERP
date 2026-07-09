@@ -78,14 +78,14 @@ def seed_dashboard_base(obj_session):
     obj_session.add_all([
         CTableInventoryRec(
             warehouse_no="WH-A",
-            warehouse_displayName="A倉",
+            warehouse_displayName="Aå€‰",
             ref_no="GRN-001",
             refCategory=1,
             date=n_now - 40 * 86400,
             category=EInventoryCategory.IN,
             batchNumber="B-RM-001",
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             itemCategory=EItemCategory.PM,
             itemType=1,
             unit=1,
@@ -94,14 +94,14 @@ def seed_dashboard_base(obj_session):
         ),
         CTableInventoryRec(
             warehouse_no="WH-A",
-            warehouse_displayName="A倉",
+            warehouse_displayName="Aå€‰",
             ref_no="GRN-FUTURE",
             refCategory=1,
             date=n_now + 86400,
             category=EInventoryCategory.IN,
             batchNumber="B-RM-001",
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             itemCategory=EItemCategory.PM,
             itemType=1,
             unit=1,
@@ -110,12 +110,12 @@ def seed_dashboard_base(obj_session):
         ),
         CTableInventoryRec(
             warehouse_no="WH-A",
-            warehouse_displayName="A倉",
+            warehouse_displayName="Aå€‰",
             date=n_now - 5 * 86400,
             category=EInventoryCategory.OUT,
             batchNumber="B-RM-001",
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             itemCategory=EItemCategory.PM,
             itemType=1,
             unit=1,
@@ -124,7 +124,7 @@ def seed_dashboard_base(obj_session):
         ),
         CTableInventoryItemMonthStatistic(
             warehouse_no="WH-A",
-            warehouse_displayName="Aå€‰",
+            warehouse_displayName="AÃ¥â‚¬â€°",
             date=date(2023, 10, 31),
             timezone="Asia/Taipei",
             kind=EInventoryDeltaKind.BATCHNO,
@@ -132,7 +132,7 @@ def seed_dashboard_base(obj_session):
             specified_no="B-RM-001",
             specified_name="B-RM-001",
             specified_ref_no="RM-001",
-            specified_ref_name="åŽŸæ–™A",
+            specified_ref_name="Ã¥Å½Å¸Ã¦â€“â„¢A",
             unit=1,
             startCount=0,
             startAmount=0,
@@ -144,7 +144,7 @@ def seed_dashboard_base(obj_session):
         ),
         CTableInventoryDelta(
             warehouse_no="WH-A",
-            warehouse_displayName="Aå€‰",
+            warehouse_displayName="AÃ¥â‚¬â€°",
             date=date(2023, 11, 15),
             timezone="Asia/Taipei",
             kind=EInventoryDeltaKind.BATCHNO,
@@ -152,7 +152,7 @@ def seed_dashboard_base(obj_session):
             specified_no="B-RM-001",
             specified_name="B-RM-001",
             specified_ref_no="RM-001",
-            specified_ref_name="åŽŸæ–™A",
+            specified_ref_name="Ã¥Å½Å¸Ã¦â€“â„¢A",
             in_ref_id=["GRN-001"],
             out_ref_id=["WO-001"],
             inPurchaseCount=0,
@@ -169,7 +169,7 @@ def seed_dashboard_base(obj_session):
             ref_no="PO-001",
             refCategory=1,
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             itemCategory=EItemCategory.PM,
             itemSubCategory=11,
             itemType=1,
@@ -181,7 +181,7 @@ def seed_dashboard_base(obj_session):
             no="RM-001",
             category=EItemCategory.PM,
             subCategory=11,
-            name="原料A",
+            name="åŽŸæ–™A",
             unitWarehouse=1,
         ),
         CTableWarehouseInventoryReservation(
@@ -192,7 +192,7 @@ def seed_dashboard_base(obj_session):
             warehouse_no="WH-A",
             itemCategory=EItemCategory.PM,
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             batchNumber="B-RM-001",
             unit=1,
             reservedQuantity=20,
@@ -209,7 +209,7 @@ def seed_dashboard_base(obj_session):
             warehouse_no="WH-A",
             itemCategory=EItemCategory.PM,
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             batchNumber="B-RM-001",
             unit=1,
             holdQuantity=5,
@@ -241,16 +241,16 @@ def seed_dashboard_base(obj_session):
             no="SS-001",
             itemCategory=EItemCategory.PM,
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             warehouse_no="WH-A",
             unit=1,
             safetyStock=80,
             effectiveDate=n_now - 86400,
             status=1,
         ),
-        CTableShipWarehouseAlias(no="WH-A", name="A倉", type=1),
-        CTableShipWarehouse(no="SW-A", name="A倉板位", maxCapacity=10),
-        CTableShipWarehouse(no="SW-SHIP", name="物流板位", maxCapacity=99),
+        CTableShipWarehouseAlias(no="WH-A", name="Aå€‰", type=1),
+        CTableShipWarehouse(no="SW-A", name="Aå€‰æ¿ä½", maxCapacity=10),
+        CTableShipWarehouse(no="SW-SHIP", name="ç‰©æµæ¿ä½", maxCapacity=99),
         CTableShipWarehouseContract(
             no="SWC-001",
             date=n_now,
@@ -273,7 +273,7 @@ def seed_dashboard_base(obj_session):
             ref_no="GRN-001",
             itemCategory=EItemCategory.PM,
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             batchNumber="B-RM-001",
             warehouse_no="WH-A",
             expectedQuantity=100,
@@ -292,7 +292,7 @@ def seed_dashboard_base(obj_session):
             ref_no="WO-001",
             itemCategory=EItemCategory.PM,
             item_no="RM-001",
-            item_name="原料A",
+            item_name="åŽŸæ–™A",
             batchNumber="B-RM-001",
             warehouse_no="WH-A",
             expectedQuantity=20,
@@ -356,7 +356,7 @@ def test_dashboard_service_builds_warehouse_summary():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseDashboardService().get_dashboard(
+    dict_payload = CWarehouseDashboardService()._get_dashboard_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -402,7 +402,7 @@ def test_dashboard_service_uses_record_fallback_for_missing_stat_rows():
     obj_session.add_all([
         CTableInventoryRec(
             warehouse_no="WH-A",
-            warehouse_displayName="Aå€‰",
+            warehouse_displayName="AÃ¥â‚¬â€°",
             ref_no="GRN-002",
             refCategory=1,
             date=n_now - 2 * 86400,
@@ -438,7 +438,7 @@ def test_dashboard_service_uses_record_fallback_for_missing_stat_rows():
     ])
     obj_session.commit()
 
-    dict_payload = CWarehouseDashboardService().get_dashboard(
+    dict_payload = CWarehouseDashboardService()._get_dashboard_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -461,7 +461,7 @@ def test_dashboard_service_uses_record_refresh_when_delta_date_is_stale():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseDashboardService().get_dashboard(
+    dict_payload = CWarehouseDashboardService()._get_dashboard_with_session(
         n_date=n_now + 2 * 86400,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -480,7 +480,7 @@ def test_dashboard_service_builds_risk_alerts():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseDashboardService().get_dashboard(
+    dict_payload = CWarehouseDashboardService()._get_dashboard_with_session(
         n_date=n_now,
         str_warehouse_no="WH-A",
         n_item_category=EItemCategory.PM,
@@ -503,7 +503,7 @@ def test_inventory_service_returns_confirmed_inventory_dataset():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseInventoryService().get_inventory(
+    dict_payload = CWarehouseInventoryService()._get_inventory_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -534,7 +534,7 @@ def test_inventory_lot_service_returns_confirmed_lot_dataset():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseInventoryLotService().get_lots(
+    dict_payload = CWarehouseInventoryLotService()._get_lots_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -570,14 +570,14 @@ def test_inventory_services_apply_direct_filters_before_enrichment():
     obj_session.add_all([
         CTableInventoryRec(
             warehouse_no="WH-A",
-            warehouse_displayName="A倉",
+            warehouse_displayName="Aå€‰",
             ref_no="GRN-002",
             refCategory=1,
             date=n_now - 2 * 86400,
             category=EInventoryCategory.IN,
             batchNumber="B-RM-002",
             item_no="RM-002",
-            item_name="原料B",
+            item_name="åŽŸæ–™B",
             itemCategory=EItemCategory.PM,
             itemType=1,
             unit=1,
@@ -589,7 +589,7 @@ def test_inventory_services_apply_direct_filters_before_enrichment():
             ref_no="PO-002",
             refCategory=1,
             item_no="RM-002",
-            item_name="原料B",
+            item_name="åŽŸæ–™B",
             itemCategory=EItemCategory.PM,
             itemSubCategory=12,
             itemType=1,
@@ -601,13 +601,13 @@ def test_inventory_services_apply_direct_filters_before_enrichment():
             no="RM-002",
             category=EItemCategory.PM,
             subCategory=12,
-            name="原料B",
+            name="åŽŸæ–™B",
             unitWarehouse=1,
         ),
     ])
     obj_session.commit()
 
-    dict_inventory = CWarehouseInventoryService().get_inventory(
+    dict_inventory = CWarehouseInventoryService()._get_inventory_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -619,7 +619,7 @@ def test_inventory_services_apply_direct_filters_before_enrichment():
     assert dict_inventory["results"][0]["itemNo"] == "RM-002"
     assert dict_inventory["results"][0]["batchNo"] == "B-RM-002"
 
-    dict_lots = CWarehouseInventoryLotService().get_lots(
+    dict_lots = CWarehouseInventoryLotService()._get_lots_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -639,7 +639,7 @@ def test_inventory_lot_detail_returns_tracking_datasets():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseInventoryLotService().get_lot_detail(
+    dict_payload = CWarehouseInventoryLotService()._get_lot_detail_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -676,7 +676,7 @@ def test_zero_quantity_batches_are_filtered_from_inventory_and_risks():
     obj_session.add_all([
         CTableInventoryItemMonthStatistic(
             warehouse_no="WH-A",
-            warehouse_displayName="Aå€‰",
+            warehouse_displayName="AÃ¥â‚¬â€°",
             date=date(2023, 10, 31),
             timezone="Asia/Taipei",
             kind=EInventoryDeltaKind.BATCHNO,
@@ -722,7 +722,7 @@ def test_zero_quantity_batches_are_filtered_from_inventory_and_risks():
     ])
     obj_session.commit()
 
-    dict_dashboard = CWarehouseDashboardService().get_dashboard(
+    dict_dashboard = CWarehouseDashboardService()._get_dashboard_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -733,7 +733,7 @@ def test_zero_quantity_batches_are_filtered_from_inventory_and_risks():
     assert all(dict_row["batchNo"] != "B-ZERO" for dict_row in dict_dashboard["inventory"])
     assert all(dict_row["batchNo"] != "B-ZERO" for dict_row in dict_dashboard["riskAlerts"])
 
-    dict_inventory = CWarehouseInventoryService().get_inventory(
+    dict_inventory = CWarehouseInventoryService()._get_inventory_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
@@ -747,7 +747,7 @@ def test_task_service_returns_confirmed_task_dataset():
     obj_session = build_session()
     seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseTaskService().get_tasks(
+    dict_payload = CWarehouseTaskService()._get_tasks_with_session(
         str_timezone="Asia/Taipei",
         str_warehouse_no="WH-A",
         obj_session=obj_session,
@@ -756,7 +756,7 @@ def test_task_service_returns_confirmed_task_dataset():
     assert dict_payload["total"] == 2
     assert dict_payload["count"] == 2
     assert dict_payload["results"][0]["taskId"] == "TASK-IN-001"
-    assert dict_payload["results"][0]["warehouseName"] == "A倉"
+    assert dict_payload["results"][0]["warehouseName"] == "Aå€‰"
     assert dict_payload["results"][0]["remainingQuantity"] == 100.0
     assert dict_payload["results"][1]["taskId"] == "TASK-OUT-001"
     assert dict_payload["results"][1]["remainingQuantity"] == 15.0
@@ -766,7 +766,7 @@ def test_task_workbench_service_returns_confirmed_dataset():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseTaskWorkbenchService().get_task_workbench(
+    dict_payload = CWarehouseTaskWorkbenchService()._get_task_workbench_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_date_range="today",
@@ -792,7 +792,7 @@ def test_task_workbench_detail_returns_related_lots_and_timeline():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseTaskWorkbenchService().get_task_detail(
+    dict_payload = CWarehouseTaskWorkbenchService()._get_task_detail_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_task_id="TASK-OUT-001",
@@ -821,7 +821,7 @@ def test_task_workbench_detail_returns_empty_payload_when_task_missing():
     obj_session = build_session()
     seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseTaskWorkbenchService().get_task_detail(
+    dict_payload = CWarehouseTaskWorkbenchService()._get_task_detail_with_session(
         str_task_id="MISSING-TASK",
         obj_session=obj_session,
     )
@@ -839,7 +839,7 @@ def test_warehouse_analytics_service_returns_confirmed_overview_dataset():
     obj_session = build_session()
     n_now = seed_dashboard_base(obj_session)
 
-    dict_payload = CWarehouseAnalyticsService().get_overview(
+    dict_payload = CWarehouseAnalyticsService()._get_overview_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_period="7d",
@@ -877,7 +877,7 @@ def test_warehouse_analytics_detail_endpoints_return_expected_sections():
     n_now = seed_dashboard_base(obj_session)
     obj_service = CWarehouseAnalyticsService()
 
-    dict_value = obj_service.get_value_trend(
+    dict_value = obj_service._get_value_trend_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_period="7d",
@@ -888,7 +888,7 @@ def test_warehouse_analytics_detail_endpoints_return_expected_sections():
     assert dict_value["summaryByCategory"][0]["itemCategory"] == EItemCategory.PM
     assert len(dict_value["valueTrend"]) == 7
 
-    dict_space = obj_service.get_space_utilization(
+    dict_space = obj_service._get_space_utilization_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_period="7d",
@@ -898,7 +898,7 @@ def test_warehouse_analytics_detail_endpoints_return_expected_sections():
     assert dict_space["summaryByWarehouse"][0]["warehouseNo"] == "WH-A"
     assert dict_space["spaceTrend"][-1]["utilizationRate"] == 20.0
 
-    dict_risk = obj_service.get_risk_breakdown(
+    dict_risk = obj_service._get_risk_breakdown_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_period="7d",
@@ -909,7 +909,7 @@ def test_warehouse_analytics_detail_endpoints_return_expected_sections():
     assert dict_risk["riskSummary"]["riskLotCount"] == 1
     assert dict_risk["topRiskLots"][0]["lotKey"] == "WH-A|RM-001|B-RM-001"
 
-    dict_task = obj_service.get_task_sla(
+    dict_task = obj_service._get_task_sla_with_session(
         n_date=n_now,
         str_timezone="Asia/Taipei",
         str_period="7d",

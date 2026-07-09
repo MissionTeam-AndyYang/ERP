@@ -40,6 +40,9 @@ from package.dbwrapper.table import (
 )
 from package.log.log import CLogger
 from package.util.util import (
+    util_build_day_range,
+    util_build_period_range,
+    util_build_task_date_range,
     util_round_amount,
     util_round_price,
     util_round_quantity,
@@ -128,22 +131,9 @@ class CWarehouseDashboardService(object):
         b_include_inventory=False,
         b_risk_only=False,
         n_trend_days=7,
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_dashboard_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                str_warehouse_no,
-                n_item_category,
-                b_include_inventory,
-                b_risk_only,
-                n_trend_days,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_dashboard_with_session(
+            return self._get_dashboard_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
@@ -153,6 +143,28 @@ class CWarehouseDashboardService(object):
                 b_risk_only,
                 n_trend_days,
             )
+
+    def _get_dashboard_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_warehouse_no="",
+        n_item_category=0,
+        b_include_inventory=False,
+        b_risk_only=False,
+        n_trend_days=7,
+    ):
+        return self.__get_dashboard_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+            b_include_inventory,
+            b_risk_only,
+            n_trend_days,
+        )
 
     def __get_dashboard_with_session(
         self,
@@ -166,7 +178,7 @@ class CWarehouseDashboardService(object):
         n_trend_days,
     ):
         n_query_timestamp = n_date if n_date else int(time.time())
-        dict_range = self.__build_range(n_query_timestamp, str_timezone)
+        dict_range = util_build_day_range(n_query_timestamp, str_timezone)
         lst_inventory_rows = self.__query_inventory_rows(
             obj_session,
             n_query_timestamp,
@@ -218,21 +230,6 @@ class CWarehouseDashboardService(object):
             dict_trend,
         )
         return dict_payload
-
-    def __build_range(self, n_timestamp, str_timezone):
-        try:
-            obj_tz = ZoneInfo(str_timezone or "UTC")
-        except Exception:
-            obj_tz = timezone.utc
-        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
-        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
-        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
-        n_end = n_start + 86399
-        return {
-            "date": obj_local.strftime("%Y-%m-%d"),
-            "startTimestamp": n_start,
-            "endTimestamp": n_end,
-        }
 
     def __query_local_date(self, n_timestamp, str_timezone):
         try:
@@ -1530,13 +1527,15 @@ class CWarehouseInventoryContextBuilder(object):
         b_include_open_tasks=False,
         n_task_type=0,
     ):
-        dict_dashboard = CWarehouseDashboardService().get_dashboard(
+        dict_dashboard = CWarehouseDashboardService()._get_dashboard_with_session(
+            obj_session=obj_session,
             n_date=n_query_timestamp,
             str_timezone=str_timezone,
             str_warehouse_no=str_warehouse_no,
             n_item_category=n_item_category,
             b_include_inventory=True,
-            obj_session=obj_session,
+            b_risk_only=False,
+            n_trend_days=7,
         )
         lst_inventory = self.filter_inventory_rows(
             dict_dashboard.get("inventory", []),
@@ -1687,7 +1686,7 @@ class CWarehouseInventoryContextBuilder(object):
     def query_open_tasks(self, obj_session, n_query_timestamp, str_timezone, n_task_type, set_stock_keys=None):
         if set_stock_keys is not None and not set_stock_keys:
             return {}
-        dict_range = self.__build_range(n_query_timestamp, str_timezone)
+        dict_range = util_build_day_range(n_query_timestamp, str_timezone)
         lst_filters = [
             CTableWorkflowTaskState.taskStatus.in_([
                 EWorkflowTaskStatus.PENDING,
@@ -1735,20 +1734,6 @@ class CWarehouseInventoryContextBuilder(object):
         if lst_warehouse_nos:
             lst_filters.append(obj_warehouse_column.in_(list(set(lst_warehouse_nos))))
 
-    def __build_range(self, n_timestamp, str_timezone):
-        try:
-            obj_tz = ZoneInfo(str_timezone or "UTC")
-        except Exception:
-            obj_tz = timezone.utc
-        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
-        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
-        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
-        return {
-            "date": obj_local.strftime("%Y-%m-%d"),
-            "startTimestamp": n_start,
-            "endTimestamp": n_start + 86399,
-        }
-
 
 class CWarehouseInventoryService(object):
     def get_inventory(
@@ -1762,24 +1747,9 @@ class CWarehouseInventoryService(object):
         str_risk_type="",
         n_start=0,
         n_count=50,
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_inventory_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                str_warehouse_no,
-                n_item_category,
-                str_item_no,
-                str_batch_no,
-                str_risk_type,
-                n_start,
-                n_count,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_inventory_with_session(
+            return self._get_inventory_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
@@ -1791,6 +1761,32 @@ class CWarehouseInventoryService(object):
                 n_start,
                 n_count,
             )
+
+    def _get_inventory_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_warehouse_no="",
+        n_item_category=0,
+        str_item_no="",
+        str_batch_no="",
+        str_risk_type="",
+        n_start=0,
+        n_count=50,
+    ):
+        return self.__get_inventory_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+            str_item_no,
+            str_batch_no,
+            str_risk_type,
+            n_start,
+            n_count,
+        )
 
     def __get_inventory_with_session(
         self,
@@ -1920,29 +1916,9 @@ class CWarehouseInventoryLotService(object):
         str_order="",
         n_start=0,
         n_count=50,
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_lots_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                str_warehouse_no,
-                n_item_category,
-                str_item_no,
-                str_batch_no,
-                str_risk_type,
-                n_task_type,
-                str_availability,
-                str_keyword,
-                str_sort,
-                str_order,
-                n_start,
-                n_count,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_lots_with_session(
+            return self._get_lots_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
@@ -1959,6 +1935,42 @@ class CWarehouseInventoryLotService(object):
                 n_start,
                 n_count,
             )
+
+    def _get_lots_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_warehouse_no="",
+        n_item_category=0,
+        str_item_no="",
+        str_batch_no="",
+        str_risk_type="",
+        n_task_type=0,
+        str_availability="",
+        str_keyword="",
+        str_sort="",
+        str_order="",
+        n_start=0,
+        n_count=50,
+    ):
+        return self.__get_lots_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_warehouse_no,
+            n_item_category,
+            str_item_no,
+            str_batch_no,
+            str_risk_type,
+            n_task_type,
+            str_availability,
+            str_keyword,
+            str_sort,
+            str_order,
+            n_start,
+            n_count,
+        )
 
     def get_lot_detail(
         self,
@@ -1967,20 +1979,9 @@ class CWarehouseInventoryLotService(object):
         str_warehouse_no="",
         str_item_no="",
         str_batch_no="",
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_lot_detail_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                str_warehouse_no,
-                str_item_no,
-                str_batch_no,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_lot_detail_with_session(
+            return self._get_lot_detail_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
@@ -1988,6 +1989,24 @@ class CWarehouseInventoryLotService(object):
                 str_item_no,
                 str_batch_no,
             )
+
+    def _get_lot_detail_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_warehouse_no="",
+        str_item_no="",
+        str_batch_no="",
+    ):
+        return self.__get_lot_detail_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_warehouse_no,
+            str_item_no,
+            str_batch_no,
+        )
 
     def __get_lots_with_session(
         self,
@@ -2310,7 +2329,7 @@ class CWarehouseInventoryLotService(object):
         str_item_no,
         str_batch_no,
     ):
-        dict_range = self.__build_range(n_query_timestamp, str_timezone)
+        dict_range = util_build_day_range(n_query_timestamp, str_timezone)
         lst_rows = (
             obj_session.query(CTableWorkflowTaskState)
             .filter(CTableWorkflowTaskState.warehouse_no == str_warehouse_no)
@@ -2428,20 +2447,6 @@ class CWarehouseInventoryLotService(object):
             return 0.0
         return round(max(n_valid_date - n_query_timestamp, 0) / float(n_valid_days * 86400), 4)
 
-    def __build_range(self, n_timestamp, str_timezone):
-        try:
-            obj_tz = ZoneInfo(str_timezone or "UTC")
-        except Exception:
-            obj_tz = timezone.utc
-        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
-        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
-        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
-        return {
-            "date": obj_local.strftime("%Y-%m-%d"),
-            "startTimestamp": n_start,
-            "endTimestamp": n_start + 86399,
-        }
-
     def __lot_key(self, str_warehouse_no, str_item_no, str_batch_no):
         return "%s|%s|%s" % (str_warehouse_no or "", str_item_no or "", str_batch_no or "")
 
@@ -2481,28 +2486,9 @@ class CWarehouseTaskWorkbenchService(object):
         str_order="",
         n_start=0,
         n_count=50,
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_task_workbench_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                str_date_range,
-                str_warehouse_no,
-                n_task_type,
-                str_status,
-                n_owner_department,
-                b_risk_only,
-                str_keyword,
-                str_sort,
-                str_order,
-                n_start,
-                n_count,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_task_workbench_with_session(
+            return self._get_task_workbench_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
@@ -2518,29 +2504,62 @@ class CWarehouseTaskWorkbenchService(object):
                 n_start,
                 n_count,
             )
+
+    def _get_task_workbench_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_date_range="today",
+        str_warehouse_no="",
+        n_task_type=0,
+        str_status="",
+        n_owner_department=0,
+        b_risk_only=False,
+        str_keyword="",
+        str_sort="",
+        str_order="",
+        n_start=0,
+        n_count=50,
+    ):
+        return self.__get_task_workbench_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_date_range,
+            str_warehouse_no,
+            n_task_type,
+            str_status,
+            n_owner_department,
+            b_risk_only,
+            str_keyword,
+            str_sort,
+            str_order,
+            n_start,
+            n_count,
+        )
 
     def get_task_detail(
         self,
         n_date=0,
         str_timezone="",
         str_task_id="",
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_task_detail_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                str_task_id,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_task_detail_with_session(
+            return self._get_task_detail_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
                 str_task_id,
             )
+
+    def _get_task_detail_with_session(self, obj_session, n_date=0, str_timezone="", str_task_id=""):
+        return self.__get_task_detail_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            str_task_id,
+        )
 
     def __get_task_workbench_with_session(
         self,
@@ -2560,7 +2579,7 @@ class CWarehouseTaskWorkbenchService(object):
         n_count,
     ):
         n_query_timestamp = n_date if n_date else int(time.time())
-        dict_range = self.__build_range(n_query_timestamp, str_timezone, str_date_range)
+        dict_range = util_build_task_date_range(n_query_timestamp, str_timezone, str_date_range)
         lst_rows = self.__query_task_rows(
             obj_session,
             dict_range,
@@ -3048,43 +3067,6 @@ class CWarehouseTaskWorkbenchService(object):
         )
         return {obj_row.no: obj_row.name or "" for obj_row in lst_rows}
 
-    def __build_range(self, n_timestamp, str_timezone, str_date_range):
-        try:
-            obj_tz = ZoneInfo(str_timezone or "UTC")
-        except Exception:
-            obj_tz = timezone.utc
-        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
-        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
-        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
-        str_mode = str_date_range or "today"
-        if str_mode == "next_7_days":
-            return {
-                "mode": str_mode,
-                "startTimestamp": n_start,
-                "endTimestamp": n_start + 7 * 86400 - 1,
-                "applyRange": True,
-            }
-        if str_mode == "overdue":
-            return {
-                "mode": str_mode,
-                "startTimestamp": 0,
-                "endTimestamp": n_start - 1,
-                "applyRange": True,
-            }
-        if str_mode == "all_open":
-            return {
-                "mode": str_mode,
-                "startTimestamp": 0,
-                "endTimestamp": 0,
-                "applyRange": False,
-            }
-        return {
-            "mode": "today",
-            "startTimestamp": n_start,
-            "endTimestamp": n_start + 86399,
-            "applyRange": True,
-        }
-
     def __task_status_values(self, str_status):
         if not str_status:
             return []
@@ -3114,22 +3096,9 @@ class CWarehouseTaskService(object):
         str_status="",
         n_start=0,
         n_count=50,
-        obj_session=None,
     ):
-        if obj_session:
-            return self.__get_tasks_with_session(
-                obj_session,
-                n_date,
-                str_timezone,
-                n_task_type,
-                str_warehouse_no,
-                str_status,
-                n_start,
-                n_count,
-            )
-
         with CDBMgr() as obj_dbmgr:
-            return self.__get_tasks_with_session(
+            return self._get_tasks_with_session(
                 obj_dbmgr.get_session(),
                 n_date,
                 str_timezone,
@@ -3139,6 +3108,28 @@ class CWarehouseTaskService(object):
                 n_start,
                 n_count,
             )
+
+    def _get_tasks_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        n_task_type=0,
+        str_warehouse_no="",
+        str_status="",
+        n_start=0,
+        n_count=50,
+    ):
+        return self.__get_tasks_with_session(
+            obj_session,
+            n_date,
+            str_timezone,
+            n_task_type,
+            str_warehouse_no,
+            str_status,
+            n_start,
+            n_count,
+        )
 
     def __get_tasks_with_session(
         self,
@@ -3166,7 +3157,7 @@ class CWarehouseTaskService(object):
         if str_warehouse_no:
             lst_filters.append(CTableWorkflowTaskState.warehouse_no == str_warehouse_no)
         if n_date:
-            dict_range = self.__build_range(n_date, str_timezone)
+            dict_range = util_build_day_range(n_date, str_timezone)
             lst_filters.append(CTableWorkflowTaskState.dueTimestamp <= dict_range["endTimestamp"])
 
         lst_rows = (
@@ -3191,20 +3182,6 @@ class CWarehouseTaskService(object):
             "count": len(lst_page),
             "start": n_start,
             "results": [self.__task_to_dict(obj_row, dict_warehouse_names) for obj_row in lst_page],
-        }
-
-    def __build_range(self, n_timestamp, str_timezone):
-        try:
-            obj_tz = ZoneInfo(str_timezone or "UTC")
-        except Exception:
-            obj_tz = timezone.utc
-        obj_local = datetime.fromtimestamp(n_timestamp, timezone.utc).astimezone(obj_tz)
-        obj_start_local = obj_local.replace(hour=0, minute=0, second=0, microsecond=0)
-        n_start = int(obj_start_local.astimezone(timezone.utc).timestamp())
-        return {
-            "date": obj_local.strftime("%Y-%m-%d"),
-            "startTimestamp": n_start,
-            "endTimestamp": n_start + 86399,
         }
 
     def __query_warehouse_names(self, obj_session, lst_warehouse_nos):
@@ -3291,7 +3268,6 @@ class CWarehouseAnalyticsService(object):
         str_warehouse_no="",
         n_item_category=0,
         n_task_type=0,
-        obj_session=None,
     ):
         return self.__get_payload(
             "overview",
@@ -3302,7 +3278,6 @@ class CWarehouseAnalyticsService(object):
             str_warehouse_no,
             n_item_category,
             n_task_type,
-            obj_session,
         )
 
     def get_value_trend(
@@ -3313,7 +3288,6 @@ class CWarehouseAnalyticsService(object):
         str_bucket="day",
         str_warehouse_no="",
         n_item_category=0,
-        obj_session=None,
     ):
         return self.__get_payload(
             "value-trend",
@@ -3324,7 +3298,6 @@ class CWarehouseAnalyticsService(object):
             str_warehouse_no,
             n_item_category,
             0,
-            obj_session,
         )
 
     def get_space_utilization(
@@ -3334,7 +3307,6 @@ class CWarehouseAnalyticsService(object):
         str_period="30d",
         str_bucket="day",
         str_warehouse_no="",
-        obj_session=None,
     ):
         return self.__get_payload(
             "space-utilization",
@@ -3345,7 +3317,6 @@ class CWarehouseAnalyticsService(object):
             str_warehouse_no,
             0,
             0,
-            obj_session,
         )
 
     def get_risk_breakdown(
@@ -3356,7 +3327,6 @@ class CWarehouseAnalyticsService(object):
         str_bucket="day",
         str_warehouse_no="",
         n_item_category=0,
-        obj_session=None,
     ):
         return self.__get_payload(
             "risk-breakdown",
@@ -3367,7 +3337,6 @@ class CWarehouseAnalyticsService(object):
             str_warehouse_no,
             n_item_category,
             0,
-            obj_session,
         )
 
     def get_task_sla(
@@ -3378,7 +3347,6 @@ class CWarehouseAnalyticsService(object):
         str_bucket="day",
         str_warehouse_no="",
         n_task_type=0,
-        obj_session=None,
     ):
         return self.__get_payload(
             "task-sla",
@@ -3389,7 +3357,116 @@ class CWarehouseAnalyticsService(object):
             str_warehouse_no,
             0,
             n_task_type,
+        )
+
+    def _get_overview_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_item_category=0,
+        n_task_type=0,
+    ):
+        return self._get_payload_with_session(
             obj_session,
+            "overview",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            n_item_category,
+            n_task_type,
+        )
+
+    def _get_value_trend_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_item_category=0,
+    ):
+        return self._get_payload_with_session(
+            obj_session,
+            "value-trend",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            n_item_category,
+            0,
+        )
+
+    def _get_space_utilization_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+    ):
+        return self._get_payload_with_session(
+            obj_session,
+            "space-utilization",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            0,
+            0,
+        )
+
+    def _get_risk_breakdown_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_item_category=0,
+    ):
+        return self._get_payload_with_session(
+            obj_session,
+            "risk-breakdown",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            n_item_category,
+            0,
+        )
+
+    def _get_task_sla_with_session(
+        self,
+        obj_session,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_task_type=0,
+    ):
+        return self._get_payload_with_session(
+            obj_session,
+            "task-sla",
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            0,
+            n_task_type,
         )
 
     def __get_payload(
@@ -3402,22 +3479,9 @@ class CWarehouseAnalyticsService(object):
         str_warehouse_no,
         n_item_category,
         n_task_type,
-        obj_session,
     ):
-        if obj_session:
-            return self.__get_payload_with_session(
-                obj_session,
-                str_mode,
-                n_date,
-                str_timezone,
-                str_period,
-                str_bucket,
-                str_warehouse_no,
-                n_item_category,
-                n_task_type,
-            )
         with CDBMgr() as obj_dbmgr:
-            return self.__get_payload_with_session(
+            return self._get_payload_with_session(
                 obj_dbmgr.get_session(),
                 str_mode,
                 n_date,
@@ -3428,6 +3492,30 @@ class CWarehouseAnalyticsService(object):
                 n_item_category,
                 n_task_type,
             )
+
+    def _get_payload_with_session(
+        self,
+        obj_session,
+        str_mode,
+        n_date=0,
+        str_timezone="",
+        str_period="30d",
+        str_bucket="day",
+        str_warehouse_no="",
+        n_item_category=0,
+        n_task_type=0,
+    ):
+        return self.__get_payload_with_session(
+            obj_session,
+            str_mode,
+            n_date,
+            str_timezone,
+            str_period,
+            str_bucket,
+            str_warehouse_no,
+            n_item_category,
+            n_task_type,
+        )
 
     def __get_payload_with_session(
         self,
@@ -3442,7 +3530,7 @@ class CWarehouseAnalyticsService(object):
         n_task_type,
     ):
         n_query_timestamp = n_date if n_date else int(time.time())
-        dict_range = self.__build_range(n_query_timestamp, str_timezone, str_period, str_bucket)
+        dict_range = self.__build_analytics_range(n_query_timestamp, str_period, str_bucket)
         dict_dashboard = self.__query_dashboard(
             obj_session,
             dict_range["endTimestamp"],
@@ -3533,26 +3621,28 @@ class CWarehouseAnalyticsService(object):
             "taskSla": lst_task_sla,
         }
 
-    def __build_range(self, n_query_timestamp, str_timezone, str_period, str_bucket):
-        str_period = str_period if str_period in self.PERIOD_DAYS else self.DEFAULT_PERIOD
+    def __build_analytics_range(self, n_query_timestamp, str_period, str_bucket):
+        dict_range = util_build_period_range(
+            n_query_timestamp,
+            str_period,
+            self.PERIOD_DAYS,
+            self.DEFAULT_PERIOD,
+        )
+        str_period = dict_range["period"]
         str_bucket = str_bucket if str_bucket in ["day", "week", "month"] else self.DEFAULT_BUCKET
-        n_period_days = self.PERIOD_DAYS.get(str_period, self.PERIOD_DAYS[self.DEFAULT_PERIOD])
-        n_start_timestamp = max(util_safe_int(n_query_timestamp) - n_period_days * 86400, 0)
-        return {
-            "period": str_period,
-            "bucket": str_bucket,
-            "startTimestamp": util_safe_int(n_start_timestamp),
-            "endTimestamp": util_safe_int(n_query_timestamp),
-        }
+        dict_range["bucket"] = str_bucket
+        return dict_range
 
     def __query_dashboard(self, obj_session, n_query_timestamp, str_timezone, str_warehouse_no, n_item_category):
-        return CWarehouseDashboardService().get_dashboard(
+        return CWarehouseDashboardService()._get_dashboard_with_session(
+            obj_session=obj_session,
             n_date=n_query_timestamp,
             str_timezone=str_timezone,
             str_warehouse_no=str_warehouse_no,
             n_item_category=n_item_category,
             b_include_inventory=True,
-            obj_session=obj_session,
+            b_risk_only=False,
+            n_trend_days=7,
         )
 
     def __build_kpi(self, dict_dashboard, dict_start_dashboard, dict_task_metrics):

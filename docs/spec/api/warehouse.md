@@ -9,10 +9,10 @@
 | [/api/v2/warehouse/dashboard](#get-api-v2-warehouse-dashboard) | GET | 查詢 Warehouse Dashboard 經營總覽資料 | Need Review | [新增] 依 Warehouse 第一版 UX 需求與工程師確認後之資料庫新增規劃建立；待工程師以實際 MariaDB 測試資料確認。 |
 | [/api/v2/warehouse/inventory](#get-api-v2-warehouse-inventory) | GET | 查詢 Warehouse 庫存明細資料 | Implemented / Pending Runtime Review | [新增] 工程師已確認之 Warehouse Dashboard 庫存明細 API。 |
 | [/api/v2/warehouse/inventory/lots](#get-api-v2-warehouse-inventory-lots) | GET | 查詢庫存批號明細清單 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_inventory_detail_proposal.md` 整合至正式 API 文件。 |
-| [/api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}](#get-api-v2-warehouse-inventory-lots-detail) | GET | 查詢單一庫存批號追蹤明細 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_inventory_detail_proposal.md` 整合至正式 API 文件。 |
+| [/api/v2/warehouse/inventory/lots/wh/{warehouse_no}/item/{item_no}/batch/{batch_no}](#get-api-v2-warehouse-inventory-lots-detail) | GET | 查詢單一庫存批號追蹤明細 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_inventory_detail_proposal.md` 整合至正式 API 文件。 |
 | [/api/v2/warehouse/tasks](#get-api-v2-warehouse-tasks) | GET | 查詢 Warehouse 待處理任務 | Implemented / Pending Runtime Review | [新增] 工程師已確認之 Warehouse Dashboard 待處理入出庫任務 API。 |
 | [/api/v2/warehouse/task-workbench](#get-api-v2-warehouse-task-workbench) | GET | 查詢倉庫任務工作台清單與看板摘要 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_task_workbench_proposal.md` 整合至正式 API 文件；第一版 read-only。 |
-| [/api/v2/warehouse/task-workbench/tasks/{taskId}](#get-api-v2-warehouse-task-workbench-tasks-taskid) | GET | 查詢單一倉庫任務追蹤明細 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_task_workbench_proposal.md` 整合至正式 API 文件；timeline 由 `workflow_task_event` 提供。 |
+| [/api/v2/warehouse/task-workbench/tasks/{task_id}](#get-api-v2-warehouse-task-workbench-tasks-task-id) | GET | 查詢單一倉庫任務追蹤明細 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_task_workbench_proposal.md` 整合至正式 API 文件；timeline 由 `workflow_task_event` 提供。 |
 | [/api/v2/warehouse/analytics/overview](#get-api-v2-warehouse-analytics-overview) | GET | 查詢倉庫分析總覽資料 | Implemented / Pending Runtime Review | [新增] 依已確認之 `warehouse_analytics_proposal.md` 實作；第一版 read-only。 |
 | [/api/v2/warehouse/analytics/value-trend](#get-api-v2-warehouse-analytics-value-trend) | GET | 查詢庫存價值趨勢 | Implemented / Pending Runtime Review | [新增] Analytics detail endpoint；由前端 lazy load 或圖表展開使用。 |
 | [/api/v2/warehouse/analytics/space-utilization](#get-api-v2-warehouse-analytics-space-utilization) | GET | 查詢倉位與板位使用趨勢 | Implemented / Pending Runtime Review | [新增] Analytics detail endpoint；由前端 lazy load 或圖表展開使用。 |
@@ -666,7 +666,7 @@ None
 | workflow_task_state | 提供未完成任務與下一步負責部門 |
 | ship_wh_alias | 提供倉儲別名與名稱 |
 
-## GET /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo}
+## GET /api/v2/warehouse/inventory/lots/wh/{warehouse_no}/item/{item_no}/batch/{batch_no}
 
 <a id="get-api-v2-warehouse-inventory-lots-detail"></a>
 
@@ -674,7 +674,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v2/warehouse/inventory/lots/wh/{warehouseNo}/item/{itemNo}/batch/{batchNo} | GET | 查詢單一庫存批號追蹤明細 |
+| /api/v2/warehouse/inventory/lots/wh/{warehouse_no}/item/{item_no}/batch/{batch_no} | GET | 查詢單一庫存批號追蹤明細 |
 
 ### Request Header
 
@@ -687,9 +687,9 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| warehouseNo | String | YES | 倉儲別名 no |
-| itemNo | String | YES | 料品品項編號 |
-| batchNo | String | YES | 批號 |
+| warehouse_no | String | YES | 倉儲別名 no |
+| item_no | String | YES | 料品品項編號 |
+| batch_no | String | YES | 批號 |
 
 ### Query Parameters
 
@@ -849,7 +849,7 @@ None
 
 ### Processing Flow
 
-1. 解析 path parameters，取得 warehouseNo、itemNo、batchNo；不採信前端其他暫存資料。
+1. 解析 path parameters，取得 warehouse_no、item_no、batch_no；不採信前端其他暫存資料。
 2. 重新彙總該批庫存目前數量與價值，避免使用前端帶入的暫存值。
 3. 查詢該批庫存異動紀錄，組成 inventoryRecords；category=1 表示入庫，category=2 表示出庫。API 不回傳 signed 欄位，前端若需帶方向統計，可依 category 搭配 quantity/amount 自行換算。
 4. 查詢有效預留、品檢保留、板位異動與未完成 workflow 任務。
@@ -1415,7 +1415,7 @@ None
 | ship_wh_alias | 倉儲別名與顯示名稱 |
 | batch_number | 批號來源與效期資訊 |
 
-## GET /api/v2/warehouse/task-workbench/tasks/{taskId}
+## GET /api/v2/warehouse/task-workbench/tasks/{task_id}
 
 <a id="get-api-v2-warehouse-task-workbench-tasks-taskid"></a>
 
@@ -1423,7 +1423,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v2/warehouse/task-workbench/tasks/{taskId} | GET | 查詢單一倉庫任務追蹤明細 |
+| /api/v2/warehouse/task-workbench/tasks/{task_id} | GET | 查詢單一倉庫任務追蹤明細 |
 
 ### Request Header
 
@@ -1436,7 +1436,7 @@ None
 
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
-| taskId | String | YES | 任務識別碼，對應 `workflow_task_state.taskId` |
+| task_id | String | YES | 任務識別碼，對應 `workflow_task_state.taskId` |
 
 ### Query Parameters
 
@@ -1534,7 +1534,7 @@ None
 
 ### Processing Flow
 
-1. 以 path `taskId` 查詢 `workflow_task_state`。
+1. 以 path `task_id` 查詢 `workflow_task_state`。
 2. 若查無任務，回傳空 task、quantity、relatedLots、sourceRefs 與 timeline。
 3. 建立任務對應庫存 context，計算可用數量、預留數量、品檢保留量與風險。
 4. 建立 `task`、`quantity` 與 `relatedLots`。

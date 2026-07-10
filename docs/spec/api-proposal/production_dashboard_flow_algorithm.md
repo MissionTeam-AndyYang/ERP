@@ -434,9 +434,9 @@ else:
 
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
-| 工單狀態是否可由 `production_data*` 推導 | `work_order` 目前未見明確 status 欄位。 |  | 第一版以產出量、MES 事件與品檢狀態推導，資料不足回傳 `unknown`。 |
-| 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 |  | 無正式來源時回傳 0，不自行假設每日工時。 |
-| 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 |  | 無正式來源時第一版回傳 0；後續可新增規則表。 |
-| 品檢資料來源 | Production 畫面需要品質狀態，但 Quality 模組可能尚未完整。 |  | 第一版僅用已確認來源；無資料回傳 `unknown`。 |
-| 備料可用量是否共用 Warehouse snapshot calculator | 避免重複實作庫存快照與可用量算法。 |  | 建議共用既有 Warehouse snapshot/available quantity 封裝。 |
-| 人工成本來源 | `production_data_labor` 有工時，但費率/成本需確認。 |  | 無費率來源時人工成本與單品人工費率回傳 0。 |
+| 工單狀態是否可由 `production_data*` 推導 | `work_order` 目前未見明確 status 欄位。 | 需由入庫狀態推導。 | 第一版以產出量、MES 事件與品檢狀態推導，資料不足回傳 `unknown`。 |
+| 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 | 是需要 實際的產線產能? 還是僅需 預估的產線產能?  | 無正式來源時回傳 0，不自行假設每日工時。 |
+| 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 | 產線上有多台機器， `production_data_machine`用於紀錄機具的啟動、暫停與停止時間。請確認此資料表是否能滿足你的需求。 | 無正式來源時第一版回傳 0；後續可新增規則表。 |
+| 品檢資料來源 | Production 畫面需要品質狀態，但 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示『待實作』 | 第一版僅用已確認來源；無資料回傳 `unknown`。 |
+| 備料可用量是否共用 Warehouse snapshot calculator | 避免重複實作庫存快照與可用量算法。 | 採用，「此類問題以後無須再特別提出，請直接採用共用函式。 | 建議共用既有 Warehouse snapshot/available quantity 封裝。 |
+| 人工成本來源 | `production_data_labor` 有工時，但費率/成本需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 無費率來源時人工成本與單品人工費率回傳 0。 |

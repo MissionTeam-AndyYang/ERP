@@ -1,3 +1,13 @@
+
+# 工程師提問
+
+pagination
+1. API 回傳的欄位資料，是否有額外預留未來才會使用的欄位？請僅設計目前畫面所需的欄位即可
+2. 請重新檢視並補全所有回傳欄位的描述，確保文件完整
+2. 針對 `/api/v2/production/dashboard` 
+    - 請確認 payload.pagination.total、payload.pagination.start、payload.pagination.count 的資料階層。為了統一規格，建議改為 payload.total、payload.start、payload.count
+  - scheduleByLine[].dailyCapacityMinutes
+
 # Production Dashboard API Proposal
 
 > Status: Proposal / Pending Engineer Review
@@ -486,10 +496,10 @@
 
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
-| 是否同意下一個 core API 提案為 `ProductionWorkspaceScreen` | 符合 Warehouse → Orders → Production → Quality 的第一版 core 順序。 |  | 建議採用。 |
-| `/api/v2/production/dashboard` 是否可作 Production 聚合 endpoint | 需要與既有 workorder / work / productline API 分工清楚。 |  | 建議 v2 endpoint 僅作前端 read-only 聚合，底層可重用既有查詢邏輯。 |
-| 生產工單完成狀態如何判斷 | DB 中 `work_order` 未見明確狀態欄，需由 production_data / output / 品檢 / 入庫狀態推導。 |  | 建議第一版以產出量、MES 結束時間與品檢狀態推導；資料不足回傳 `unknown`。 |
-| `dailyCapacityMinutes` 的正式來源 | 產線可用產能若無班表或產能日曆，無法準確判斷剩餘產能。 |  | 第一版可使用已確認的產線產能統計表；無資料回傳 0，不自行假設每日工時。 |
-| 換線/清潔時間來源 | 畫面需要呈現換線對產能的影響，但目前需確認資料來源。 |  | 若無設定表，第一版回傳 0，並標示後續需補資料表或規則。 |
-| 品檢狀態來源 | 使用者要求生產頁加入品檢狀態，但正式 Quality 模組可能尚未完整。 |  | 第一版只使用可驗證的 `warehouse_quality_hold` 或既有 hold 訊號；無資料回傳 `unknown`。 |
-| 人工成本與單品人工費率來源 | `production_data_labor.hours` 可算工時，但人員費率/成本來源需確認。 |  | 人工成本資料不足時回傳 0，不用假設費率。 |
+| 是否同意下一個 core API 提案為 `ProductionWorkspaceScreen` | 符合 Warehouse → Orders → Production → Quality 的第一版 core 順序。 | 採用 | 建議採用。 |
+| `/api/v2/production/dashboard` 是否可作 Production 聚合 endpoint | 需要與既有 workorder / work / productline API 分工清楚。 | 採用 | 建議 v2 endpoint 僅作前端 read-only 聚合，底層可重用既有查詢邏輯。 |
+| 生產工單完成狀態如何判斷 | DB 中 `work_order` 未見明確狀態欄，需由 production_data / output / 品檢 / 入庫狀態推導。 | 需由入庫狀態推導。 | 建議第一版以產出量、MES 結束時間與品檢狀態推導；資料不足回傳 `unknown`。 |
+| `dailyCapacityMinutes` 的正式來源 | 產線可用產能若無班表或產能日曆，無法準確判斷剩餘產能。 | 是需要 實際的產線產能? 還是僅需 預估的產線產能? | 第一版可使用已確認的產線產能統計表；無資料回傳 0，不自行假設每日工時。 |
+| 換線/清潔時間來源 | 畫面需要呈現換線對產能的影響，但目前需確認資料來源。 | 產線上有多台機器， `production_data_machine`用於紀錄機具的啟動、暫停與停止時間。請確認此資料表是否能滿足你的需求。| 若無設定表，第一版回傳 0，並標示後續需補資料表或規則。 |
+| 品檢狀態來源 | 使用者要求生產頁加入品檢狀態，但正式 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示『待實作』| 第一版只使用可驗證的 `warehouse_quality_hold` 或既有 hold 訊號；無資料回傳 `unknown`。 |
+| 人工成本與單品人工費率來源 | `production_data_labor.hours` 可算工時，但人員費率/成本來源需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 人工成本資料不足時回傳 0，不用假設費率。 |

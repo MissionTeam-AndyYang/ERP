@@ -18,6 +18,12 @@ export type OrderFulfillmentStep = {
   ref: string;
   status: "完成" | "進行中" | "待處理" | "阻擋";
   tone: StatusTone;
+  stepCode?: string;
+  statusCode?: string;
+  ownerDepartment?: number;
+  startDate?: string;
+  endDate?: string;
+  comment?: string;
 };
 
 export type OrderDependency = {
@@ -25,6 +31,10 @@ export type OrderDependency = {
   status: string;
   note: string;
   tone: StatusTone;
+  areaCode?: string;
+  statusCode?: string;
+  riskLevel?: number;
+  ownerDepartment?: number;
 };
 
 export type OrderCommitmentCheck = {
@@ -36,6 +46,7 @@ export type OrderCommitmentCheck = {
 
 export type SalesOrder = {
   id: string;
+  customerNo?: string;
   customer: string;
   channel: string;
   product: string;
@@ -49,19 +60,34 @@ export type SalesOrder = {
   dueDate: string;
   shipDate: string | null;
   stage: OrderStage;
+  stageCode?: string;
   tone: StatusTone;
   deliveryRisk: OrderRiskLevel;
+  deliveryRiskCode?: string;
   productionFeasibility: "可生產" | "需協調" | "不可如期";
+  productionFeasibilityCode?: string;
   riskReason: string;
+  riskReasonCode?: string;
   materialStatus: string;
+  materialStatusCode?: string;
   productionStatus: string;
+  productionStatusCode?: string;
   qualityStatus: string;
+  qualityStatusCode?: string;
   shippingStatus: string;
+  shippingStatusCode?: string;
   paymentStatus: string;
+  paymentStatusCode?: string;
   owner: string;
+  ownerDepartment?: number;
   priority: "高" | "中" | "低";
+  priorityCode?: string;
   committedDate: string;
   commitmentDecision: "可承諾" | "需協調" | "不可承諾";
+  commitmentDecisionCode?: string;
+  shipmentCount?: number;
+  shippedQuantity?: number;
+  remainingQuantity?: number;
   commitmentChecks: OrderCommitmentCheck[];
   dependencies: OrderDependency[];
   workflow: OrderFulfillmentStep[];
@@ -70,6 +96,36 @@ export type SalesOrder = {
 export type OrdersDashboardData = {
   summary: OrderStatusSummary[];
   orders: SalesOrder[];
+  total?: number;
+  count?: number;
+  start?: number;
+  serverDate?: string;
+  range?: {
+    period: OrdersDashboardPeriod;
+    startDate: string;
+    endDate: string;
+  };
 };
 
 export type OrdersDataSource = "api" | "mock";
+
+export type OrdersDashboardPeriod = "7d" | "30d" | "90d";
+
+export type OrdersDashboardQuery = {
+  date?: number;
+  period?: OrdersDashboardPeriod;
+  customerNo?: string;
+  orderNo?: string;
+  commitmentDecision?: string;
+  deliveryRisk?: string;
+  stage?: string;
+  keyword?: string;
+  start?: number;
+  count?: number;
+};
+
+export type OrdersFulfillmentData = {
+  orderNo: string;
+  workflow: OrderFulfillmentStep[];
+  dependencies: OrderDependency[];
+};

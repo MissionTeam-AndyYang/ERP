@@ -10,13 +10,17 @@ import {
   Search,
   Truck
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useOrdersDashboard } from "@/hooks/use-orders-dashboard";
+import type { LanguageCode } from "@/i18n/dictionary";
+import { useLanguage } from "@/i18n/language-provider";
+import { ordersEnumLabel, ordersRiskTone } from "@/i18n/orders-enums";
 import { AppLayout } from "@/layouts/app-layout";
+import { getOrdersFulfillment } from "@/services/orders-api";
 import type {
-  OrderRiskLevel,
   OrdersDashboardData,
+  OrdersFulfillmentData,
   OrderStatusSummary,
   OrderWorkspaceTab,
   SalesOrder
@@ -46,18 +50,6 @@ function formatMoney(value: number) {
   return `$${new Intl.NumberFormat("zh-TW").format(value)}`;
 }
 
-function riskTone(risk: OrderRiskLevel) {
-  if (risk === "高風險") {
-    return "danger";
-  }
-
-  if (risk === "注意") {
-    return "warning";
-  }
-
-  return "success";
-}
-
 function commitmentTone(decision: SalesOrder["commitmentDecision"]) {
   if (decision === "不可承諾") {
     return "danger";
@@ -80,6 +72,23 @@ function commitmentDateLabel(decision: SalesOrder["commitmentDecision"]) {
   }
 
   return "最早可行日";
+}
+
+function deliveryRiskLabel(order: SalesOrder, language: LanguageCode) {
+  return order.deliveryRiskCode ? ordersEnumLabel("deliveryRisk", order.deliveryRiskCode, language) : order.deliveryRisk;
+}
+
+function stageLabel(order: SalesOrder, language: LanguageCode) {
+  return order.stageCode ? ordersEnumLabel("stage", order.stageCode, language) : order.stage;
+}
+
+function enumLabel(
+  kind: Parameters<typeof ordersEnumLabel>[0],
+  value: string | undefined,
+  fallback: string,
+  language: LanguageCode
+) {
+  return value ? ordersEnumLabel(kind, value, language) : fallback;
 }
 
 function normalizeSearch(value: string) {
@@ -132,7 +141,7 @@ function getVisibleOrders(activeTab: OrderWorkspaceTab, orders: SalesOrder[]) {
   }
 
   if (activeTab === "delivery-risk") {
-    return orders.filter((order) => order.deliveryRisk !== "正常");
+    return orders.filter((order) => (order.deliveryRiskCode ? order.deliveryRiskCode !== "normal" : order.deliveryRisk !== "正常"));
   }
 
   if (activeTab === "margin-payment") {
@@ -181,12 +190,14 @@ function OrdersTable({
   orders,
   selectedId,
   searchQuery,
+  language,
   onSelect
 }: {
   activeTab: OrderWorkspaceTab;
   orders: SalesOrder[];
   selectedId: string;
   searchQuery: string;
+  language: LanguageCode;
   onSelect: (order: SalesOrder) => void;
 }) {
   const rows = useMemo(
@@ -242,24 +253,37 @@ function OrdersTable({
                   </td>
                   <td className="px-4 py-3 text-right text-textPrimary">{formatMoney(order.orderAmount)}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+                    <StatusBadge tone={ordersRiskTone(order.deliveryRiskCode)}>
+                      {deliveryRiskLabel(order, language)}
+                    </StatusBadge>
                     <p className="mt-1 text-xs text-textSecondary">{order.dueDate}</p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={commitmentTone(order.commitmentDecision)}>
-                      {order.commitmentDecision}
+                      {enumLabel("commitmentDecision", order.commitmentDecisionCode, order.commitmentDecision, language)}
                     </StatusBadge>
                     <p className="mt-1 text-xs text-textSecondary">
                       {commitmentDateLabel(order.commitmentDecision)} {order.committedDate}
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-textPrimary">{order.productionFeasibility}</p>
-                    <p className="mt-1 line-clamp-2 text-xs text-textSecondary">{order.riskReason}</p>
+                    <p className="font-medium text-textPrimary">
+                      {enumLabel(
+                        "productionFeasibility",
+                        order.productionFeasibilityCode,
+                        order.productionFeasibility,
+                        language
+                      )}
+                    </p>
+                    <p className="mt-1 line-clamp-2 text-xs text-textSecondary">
+                      {enumLabel("riskReason", order.riskReasonCode, order.riskReason, language)}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge tone={order.tone}>{order.stage}</StatusBadge>
-                    <p className="mt-1 text-xs text-textSecondary">{order.productionStatus}</p>
+                    <StatusBadge tone={order.tone}>{stageLabel(order, language)}</StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      {enumLabel("status", order.productionStatusCode, order.productionStatus, language)}
+                    </p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-textPrimary">預估 {order.estimatedMarginRate}%</p>
@@ -267,7 +291,9 @@ function OrdersTable({
                       實際 {order.actualMarginRate === null ? "未結算" : `${order.actualMarginRate}%`}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-textPrimary">{order.paymentStatus}</td>
+                  <td className="px-4 py-3 text-textPrimary">
+                    {enumLabel("paymentStatus", order.paymentStatusCode, order.paymentStatus, language)}
+                  </td>
                 </tr>
               );
             })}
@@ -278,7 +304,15 @@ function OrdersTable({
   );
 }
 
-function CommitmentCards({ orders, searchQuery }: { orders: SalesOrder[]; searchQuery: string }) {
+function CommitmentCards({
+  orders,
+  searchQuery,
+  language
+}: {
+  orders: SalesOrder[];
+  searchQuery: string;
+  language: LanguageCode;
+}) {
   const visibleOrders = orders.filter((order) => orderMatchesSearch(order, searchQuery));
 
   if (!visibleOrders.length) {
@@ -292,7 +326,7 @@ function CommitmentCards({ orders, searchQuery }: { orders: SalesOrder[]; search
           <div className="flex items-start justify-between gap-3">
             <div>
               <StatusBadge tone={commitmentTone(order.commitmentDecision)}>
-                {order.commitmentDecision}
+                {enumLabel("commitmentDecision", order.commitmentDecisionCode, order.commitmentDecision, language)}
               </StatusBadge>
               <h3 className="mt-3 font-semibold text-textPrimary">{order.id}</h3>
               <p className="mt-1 text-sm text-textSecondary">{order.product}</p>
@@ -326,9 +360,17 @@ function CommitmentCards({ orders, searchQuery }: { orders: SalesOrder[]; search
   );
 }
 
-function RiskCards({ orders, searchQuery }: { orders: SalesOrder[]; searchQuery: string }) {
+function RiskCards({
+  orders,
+  searchQuery,
+  language
+}: {
+  orders: SalesOrder[];
+  searchQuery: string;
+  language: LanguageCode;
+}) {
   const visibleOrders = orders
-    .filter((order) => order.deliveryRisk !== "正常")
+    .filter((order) => (order.deliveryRiskCode ? order.deliveryRiskCode !== "normal" : order.deliveryRisk !== "正常"))
     .filter((order) => orderMatchesSearch(order, searchQuery));
 
   if (!visibleOrders.length) {
@@ -341,13 +383,17 @@ function RiskCards({ orders, searchQuery }: { orders: SalesOrder[]; searchQuery:
         <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+              <StatusBadge tone={ordersRiskTone(order.deliveryRiskCode)}>
+                {deliveryRiskLabel(order, language)}
+              </StatusBadge>
               <h3 className="mt-3 font-semibold text-textPrimary">{order.id}</h3>
               <p className="mt-1 text-sm text-textSecondary">{order.product}</p>
             </div>
             <CalendarClock className="h-5 w-5 text-textSecondary" aria-hidden="true" />
           </div>
-          <p className="mt-3 text-sm leading-6 text-textSecondary">{order.riskReason}</p>
+          <p className="mt-3 text-sm leading-6 text-textSecondary">
+            {enumLabel("riskReason", order.riskReasonCode, order.riskReason, language)}
+          </p>
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="rounded-md bg-slate-50 p-3">
               <p className="text-xs text-textSecondary">交期</p>
@@ -355,7 +401,9 @@ function RiskCards({ orders, searchQuery }: { orders: SalesOrder[]; searchQuery:
             </div>
             <div className="rounded-md bg-slate-50 p-3">
               <p className="text-xs text-textSecondary">生產</p>
-              <p className="mt-1 font-semibold text-textPrimary">{order.productionFeasibility}</p>
+              <p className="mt-1 font-semibold text-textPrimary">
+                {enumLabel("productionFeasibility", order.productionFeasibilityCode, order.productionFeasibility, language)}
+              </p>
             </div>
           </div>
         </div>
@@ -364,7 +412,20 @@ function RiskCards({ orders, searchQuery }: { orders: SalesOrder[]; searchQuery:
   );
 }
 
-function DetailPanel({ order }: { order: SalesOrder }) {
+function DetailPanel({
+  order,
+  fulfillment,
+  isLoading,
+  language
+}: {
+  order: SalesOrder;
+  fulfillment?: OrdersFulfillmentData;
+  isLoading: boolean;
+  language: LanguageCode;
+}) {
+  const dependencies = fulfillment?.dependencies.length ? fulfillment.dependencies : order.dependencies;
+  const workflow = fulfillment?.workflow.length ? fulfillment.workflow : order.workflow;
+
   return (
     <aside className="space-y-4 rounded-lg border border-border bg-white p-4 shadow-card xl:sticky xl:top-24">
       <div className="flex items-start justify-between gap-3">
@@ -373,8 +434,9 @@ function DetailPanel({ order }: { order: SalesOrder }) {
           <h2 className="mt-1 text-lg font-semibold text-textPrimary">{order.id}</h2>
           <p className="mt-1 text-sm text-textSecondary">{order.customer}</p>
         </div>
-        <StatusBadge tone={riskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+        <StatusBadge tone={ordersRiskTone(order.deliveryRiskCode)}>{deliveryRiskLabel(order, language)}</StatusBadge>
       </div>
+      {isLoading ? <StatusBadge tone="info">Loading fulfillment API</StatusBadge> : null}
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-md bg-slate-50 p-3">
@@ -383,11 +445,15 @@ function DetailPanel({ order }: { order: SalesOrder }) {
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">生產可行性</p>
-          <p className="mt-1 font-semibold text-textPrimary">{order.productionFeasibility}</p>
+          <p className="mt-1 font-semibold text-textPrimary">
+            {enumLabel("productionFeasibility", order.productionFeasibilityCode, order.productionFeasibility, language)}
+          </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">接單承諾</p>
-          <p className="mt-1 font-semibold text-textPrimary">{order.commitmentDecision}</p>
+          <p className="mt-1 font-semibold text-textPrimary">
+            {enumLabel("commitmentDecision", order.commitmentDecisionCode, order.commitmentDecision, language)}
+          </p>
           <p className="mt-1 text-xs text-textSecondary">
             {commitmentDateLabel(order.commitmentDecision)} {order.committedDate}
           </p>
@@ -420,11 +486,15 @@ function DetailPanel({ order }: { order: SalesOrder }) {
 
       <div className="space-y-2">
         <p className="text-sm font-semibold text-textPrimary">履約依賴</p>
-        {order.dependencies.map((item) => (
+        {dependencies.map((item) => (
           <div className="rounded-md border border-border px-3 py-2" key={`${item.area}-${item.status}`}>
             <div className="flex items-center justify-between gap-3">
-              <p className="font-medium text-textPrimary">{item.area}</p>
-              <StatusBadge tone={item.tone}>{item.status}</StatusBadge>
+              <p className="font-medium text-textPrimary">
+                {enumLabel("dependencyArea", item.areaCode, item.area, language)}
+              </p>
+              <StatusBadge tone={item.tone}>
+                {enumLabel("dependencyStatus", item.statusCode, item.status, language)}
+              </StatusBadge>
             </div>
             <p className="mt-1 text-xs text-textSecondary">{item.note}</p>
           </div>
@@ -433,7 +503,7 @@ function DetailPanel({ order }: { order: SalesOrder }) {
 
       <div className="space-y-2">
         <p className="text-sm font-semibold text-textPrimary">履約流程</p>
-        {order.workflow.map((step, index) => (
+        {workflow.map((step, index) => (
           <div className="flex gap-3" key={`${step.label}-${step.ref}`}>
             <div className="flex flex-col items-center">
               <span
@@ -449,14 +519,19 @@ function DetailPanel({ order }: { order: SalesOrder }) {
               >
                 {index + 1}
               </span>
-              {index < order.workflow.length - 1 ? <span className="h-7 w-px bg-border" /> : null}
+              {index < workflow.length - 1 ? <span className="h-7 w-px bg-border" /> : null}
             </div>
             <div className="min-w-0 pb-2">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium text-textPrimary">{step.label}</p>
-                <StatusBadge tone={step.tone}>{step.status}</StatusBadge>
+                <p className="font-medium text-textPrimary">
+                  {enumLabel("workflowStep", step.stepCode, step.label, language)}
+                </p>
+                <StatusBadge tone={step.tone}>{enumLabel("status", step.statusCode, step.status, language)}</StatusBadge>
               </div>
-              <p className="mt-1 truncate text-xs text-textSecondary">{step.ref}</p>
+              <p className="mt-1 truncate text-xs text-textSecondary">
+                {step.ref}
+                {step.comment ? ` · ${step.comment}` : ""}
+              </p>
             </div>
           </div>
         ))}
@@ -470,23 +545,26 @@ function MainContent({
   data,
   selectedOrder,
   searchQuery,
+  language,
   onSelectOrder
 }: {
   activeTab: OrderWorkspaceTab;
   data: OrdersDashboardData;
   selectedOrder: SalesOrder;
   searchQuery: string;
+  language: LanguageCode;
   onSelectOrder: (order: SalesOrder) => void;
 }) {
   if (activeTab === "commitment") {
     return (
       <div className="space-y-4">
-        <CommitmentCards orders={data.orders} searchQuery={searchQuery} />
+        <CommitmentCards orders={data.orders} searchQuery={searchQuery} language={language} />
         <OrdersTable
           activeTab={activeTab}
           orders={data.orders}
           selectedId={selectedOrder.id}
           searchQuery={searchQuery}
+          language={language}
           onSelect={onSelectOrder}
         />
       </div>
@@ -496,12 +574,13 @@ function MainContent({
   if (activeTab === "delivery-risk") {
     return (
       <div className="space-y-4">
-        <RiskCards orders={data.orders} searchQuery={searchQuery} />
+        <RiskCards orders={data.orders} searchQuery={searchQuery} language={language} />
         <OrdersTable
           activeTab={activeTab}
           orders={data.orders}
           selectedId={selectedOrder.id}
           searchQuery={searchQuery}
+          language={language}
           onSelect={onSelectOrder}
         />
       </div>
@@ -514,19 +593,42 @@ function MainContent({
       orders={data.orders}
       selectedId={selectedOrder.id}
       searchQuery={searchQuery}
+      language={language}
       onSelect={onSelectOrder}
     />
   );
 }
 
 export default function OrdersPage() {
+  const { language } = useLanguage();
   const { data: ordersData, error, isLoading, source } = useOrdersDashboard();
   const [activeTab, setActiveTab] = useState<OrderWorkspaceTab>("overview");
   const [selectedOrderId, setSelectedOrderId] = useState<string>(ordersData.orders[0].id);
   const [searchValue, setSearchValue] = useState("");
+  const [selectedFulfillment, setSelectedFulfillment] = useState<OrdersFulfillmentData>();
+  const [isFulfillmentLoading, setIsFulfillmentLoading] = useState(true);
+  const [fulfillmentError, setFulfillmentError] = useState<string>();
   const searchQuery = normalizeSearch(searchValue);
   const selectedOrder =
     ordersData.orders.find((order) => order.id === selectedOrderId) ?? ordersData.orders[0];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getOrdersFulfillment(selectedOrder.id).then((result) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setSelectedFulfillment(result.data);
+      setFulfillmentError(result.error);
+      setIsFulfillmentLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedOrder.id]);
 
   return (
     <AppLayout activePath="/orders" title="訂單履約 Orders Workspace">
@@ -587,6 +689,12 @@ export default function OrdersPage() {
           </p>
         ) : null}
 
+        {fulfillmentError ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Orders fulfillment API 尚未可用，右側履約明細已使用 fallback。{fulfillmentError}
+          </p>
+        ) : null}
+
         <KpiStrip summary={ordersData.summary} />
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
@@ -624,11 +732,20 @@ export default function OrdersPage() {
               data={ordersData}
               selectedOrder={selectedOrder}
               searchQuery={searchQuery}
-              onSelectOrder={(order) => setSelectedOrderId(order.id)}
+              language={language}
+              onSelectOrder={(order) => {
+                setIsFulfillmentLoading(true);
+                setSelectedOrderId(order.id);
+              }}
             />
           </div>
 
-          <DetailPanel order={selectedOrder} />
+          <DetailPanel
+            order={selectedOrder}
+            fulfillment={selectedFulfillment?.orderNo === selectedOrder.id ? selectedFulfillment : undefined}
+            isLoading={isFulfillmentLoading}
+            language={language}
+          />
         </section>
       </div>
     </AppLayout>

@@ -1,12 +1,10 @@
 
 # 工程師提問
 
-pagination
 1. API 回傳的欄位資料，是否有額外預留未來才會使用的欄位？請僅設計目前畫面所需的欄位即可
 2. 請重新檢視並補全所有回傳欄位的描述，確保文件完整
-2. 針對 `/api/v2/production/dashboard` 
+3. 針對 `/api/v2/production/dashboard` 
     - 請確認 payload.pagination.total、payload.pagination.start、payload.pagination.count 的資料階層。為了統一規格，建議改為 payload.total、payload.start、payload.count
-  - scheduleByLine[].dailyCapacityMinutes
 
 # Production Dashboard API Proposal
 

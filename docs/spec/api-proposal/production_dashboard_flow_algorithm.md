@@ -10,7 +10,7 @@
 
 1. 一週工單排程與產線可用產能。
 2. 今日 MES 工單進度。
-3. 備料、人員、機台與品檢是否阻擋如期生產。
+3. 備料、人員、機台與入庫狀態是否阻擋如期生產。
 4. 產時效率、原物料損耗率與單品人工費率。
 
 第一版建議 endpoint：
@@ -25,7 +25,8 @@ GET /api/v2/production/work-orders/{work_order_no}/detail
 1. 所有 API 僅讀取資料，不寫入任何資料表。
 2. enum 僅回傳 code，前端負責多國語言轉換。
 3. 金額四捨五入取整數；數量與重量取至小數點第 2 位；單價取至小數點第 4 位；比率與工時取至小數點第 2 位。
-4. 若資料來源不足，回傳 `unknown`、0、false 或空陣列，並以 alert / signal 標示資料不足；不得自行推測不存在的品檢結果、人工費率或產線日產能。
+4. 若資料來源不足，回傳 `unknown`、0、false 或空陣列，並以 alert / signal 標示資料不足；不得自行推測不存在的人工費率或產線日產能。
+5. 品檢功能留待下一版實作；第一版 Production API 不查詢或推導品檢結果，僅回傳 `qualityStatus = deferred` 供前端顯示「待實作」。
 5. 查詢應以批次查詢與 map 彙整為主，避免針對每一張工單逐筆查詢造成 N+1 query。
 
 ## 共用 Step 1：解析查詢條件
@@ -101,7 +102,9 @@ production_data_output
 production_data_reuse
 production_data_labor
 production_data_machine
-warehouse_quality_hold
+process_order
+inventory_record
+batch_number
 ```
 
 處理原則：
@@ -112,7 +115,8 @@ warehouse_quality_hold
 4. 餘料與廢料由 `production_data_reuse.category` 區分。
 5. 人員工時由 `production_data_labor.hours` 加總；已指派人數優先使用 `work_order.laborList`，缺漏時以 `production_data_labor.employee_no` 去重。
 6. 機台狀態取每台設備最新一筆 `production_data_machine.action`，並彙總為工單機台狀態。
-7. 品檢狀態第一版若無 Quality API，僅採 `warehouse_quality_hold` 或已確認 hold 訊號；無資料回傳 `unknown`。
+7. 品檢狀態第一版不查詢或推導，固定回傳 `qualityStatus = deferred`。
+8. 入庫狀態由製造來源的 `inventory_record`、`batch_number.refCategory = 2` 或可追溯至 `process_order.work_order_no` 的製造入庫資料推導；若僅有產出但未入庫，工單不可判斷為 completed。
 
 ## 共用 Step 4：產線排程與產能計算
 
@@ -126,7 +130,7 @@ date + productionLineNo + oneProcess + secProcess
 
 ```txt
 scheduledMinutes = sum(work_order.processTime)
-dailyCapacityMinutes = confirmed capacity source, otherwise 0
+dailyCapacityMinutes = confirmed estimated/planning capacity source, otherwise 0
 changeoverMinutes = confirmed changeover source, otherwise 0
 availableMinutes = max(dailyCapacityMinutes - scheduledMinutes - changeoverMinutes, 0)
 utilizationRate = scheduledMinutes / dailyCapacityMinutes * 100
@@ -156,8 +160,10 @@ else:
 
 限制：
 
-1. 若尚無班表、產能日曆或產線日產能設定，`dailyCapacityMinutes` 回傳 0，不自行假設每日 8 小時或 10 小時。
-2. 若尚無換線/清潔規則，`changeoverMinutes` 回傳 0，並在 Engineer Review Questions 保留確認項。
+1. `dailyCapacityMinutes` 第一版代表預估/規劃產能，不代表 MES 實際稼動產能。
+2. 若尚無班表、產能日曆或產線日產能設定，`dailyCapacityMinutes` 回傳 0，不自行假設每日 8 小時或 10 小時。
+3. `production_data_machine` 可用於實際機台狀態與實際時間參考，但不足以直接推導計畫換線/清潔規則。
+4. 若尚無換線/清潔規則，`changeoverMinutes` 回傳 0。
 
 ## 共用 Step 5：備料 readiness 判斷
 
@@ -165,7 +171,7 @@ else:
 
 1. `aps_quantity_item` 或 BOM/APS 提供的工單所需投入料品。
 2. `production_data_input` 已領料、退料紀錄。
-3. Warehouse inventory snapshot / inventory API 可提供的可用庫存。
+3. Warehouse inventory snapshot / available quantity 共用封裝可提供的可用庫存。
 4. 若上述資料不足，回傳 `unknown`。
 
 建議狀態：
@@ -189,7 +195,7 @@ gapQuantity = max(requiredQuantity - issuedQuantity - availableQuantity, 0)
 
 注意：
 
-1. 若 Warehouse inventory snapshot 已封裝可用庫存計算，Production API 應重用該封裝模組或服務，不重複撰寫庫存快照邏輯。
+1. Warehouse inventory snapshot / available quantity 已屬共用邏輯，Production API 應直接重用該封裝模組或服務，不重複撰寫庫存快照邏輯。
 2. 不得僅因查無資料就判斷為 ready。
 
 ## 共用 Step 6：人員 readiness 判斷
@@ -232,7 +238,7 @@ scheduled
 material_ready
 running
 paused
-quality_check
+pending_inventory
 completed
 blocked
 unknown
@@ -241,10 +247,10 @@ unknown
 建議判斷：
 
 ```txt
-if qualityStatus in hold / abnormal:
-  status = blocked
+if completedQuantity >= plannedQuantity and plannedQuantity > 0 and hasInventoryInbound:
+  status = completed
 elif completedQuantity >= plannedQuantity and plannedQuantity > 0:
-  status = quality_check or completed, depending on qualityStatus
+  status = pending_inventory
 elif latest machine action = 暫停(2):
   status = paused
 elif has production_data_input or production_data_machine action 啟動(1):
@@ -313,7 +319,7 @@ else:
 
 ```txt
 laborHours = sum(production_data_labor.hours)
-laborCost = confirmed labor cost source, otherwise 0
+laborCost = sum(laborHoursByEmployeeTypeAndLevel * labor_wage.hourly)
 if laborCost > 0 and outputQuantity > 0:
   unitLaborCost = laborCost / outputQuantity
 else:
@@ -322,37 +328,26 @@ else:
 
 限制：
 
-1. 若尚無人員費率或人工成本來源，`laborCost` 與 `unitLaborCost` 回傳 0。
-2. 不得使用假設時薪推導人工成本。
+1. 費率來源優先使用 `labor_wage`：以生產/工時日期為基準，取 `date <= laborDate` 且 `type = production_data_labor.employee_type`、`level = production_data_labor.employee_level` 的最新生效時薪。
+2. 若找不到對應費率，該筆工時人工成本以 0 計，並產生 `labor_cost_missing` alert。
+3. 不得使用假設時薪推導人工成本。
 
-## 共用 Step 9：品檢狀態與阻擋判斷
+## 共用 Step 9：品檢待實作狀態
 
-第一版暫定來源：
+工程師已確認品檢相關功能留待下一版實作，現階段畫面統一顯示「待實作」。
 
-```txt
-warehouse_quality_hold
-confirmed Quality API / quality tables when available
-```
-
-建議狀態：
+第一版規則：
 
 ```txt
-not_started
-in_progress
-pending_decision
-released
-hold
-abnormal
-unknown
+qualityStatus = deferred
 ```
 
-判斷原則：
+處理原則：
 
-1. 若存在 `warehouse_quality_hold` 且 hold quantity 大於 0，`qualityStatus = hold`。
-2. 若有正式 Quality API 回傳待判資料，`qualityStatus = pending_decision`。
-3. 若有正式 Quality API 回傳放行，`qualityStatus = released`。
-4. 若無任何來源，`qualityStatus = unknown`，`qualityBlocksInventory = false`、`qualityBlocksShipment = false`，並以 alert 或 review note 表示資料不足。
-5. 不得因查無品檢資料就判斷為合格。
+1. 不查詢 `warehouse_quality_hold` 或其他 Quality 模組資料。
+2. 不建立 `qualitySignals[]`。
+3. 不以品檢狀態判斷工單是否 completed、blocked 或 deliveryRisk。
+4. 前端依 `qualityStatus = deferred` 顯示「待實作」。
 
 ## 共用 Step 10：交期與風險彙總
 
@@ -363,7 +358,6 @@ unknown
 | material_shortage | `materialStatus = shortage` 或缺口數量大於 0。 |
 | staff_shortage | `staffStatus = shortage` 或 `support_needed`。 |
 | capacity_bottleneck | 產線利用率過高或已排工時超過日產能。 |
-| quality_hold | `qualityStatus = hold / abnormal / pending_decision` 且阻擋入庫或出貨。 |
 | schedule_delay | 目前時間超過預計結束時間且工單未完成。 |
 | efficiency_loss | `efficiencyRate` 低於門檻；門檻需工程師/使用者確認，未確認前不硬判。 |
 | loss_over_threshold | `materialLossRate` 高於門檻；門檻需工程師/使用者確認，未確認前不硬判。 |
@@ -394,30 +388,29 @@ else:
 
 1. 依共用 Step 1 建立查詢條件。
 2. 查詢符合期間與條件的 `work_order`，並批次取得 `production_line` 與 `product_order`。
-3. 依工單 no 批次查詢 `production_data*`、`warehouse_quality_hold`、APS/BOM/庫存來源。
+3. 依工單 no 批次查詢 `production_data*`、`process_order`、`inventory_record`、`batch_number`、APS/BOM/庫存來源。
 4. 依共用 Step 4 建立 `scheduleByLine[]`。
 5. 依共用 Step 5、6、7 建立 `todayWorkOrders[]` 與 `readinessSignals[]`。
 6. 依共用 Step 8 建立 `productionMetrics[]`。
-7. 依共用 Step 9 建立 `qualitySignals[]`。
+7. 依共用 Step 9 將工單 `qualityStatus` 統一設為 `deferred`。
 8. 依共用 Step 10 建立 `alerts[]` 與工單 `deliveryRisk`。
-9. 彙總 `summary`，並依 `start/count` 處理分頁。
+9. 彙總 `summary`，並回傳 top-level `total`、`start`、`count`。
 
 ## GET /production/work-orders/{work_order_no}/detail 流程
 
 1. 確認 `work_order.no = work_order_no` 是否存在；不存在時回傳空 payload 或 404 需工程師確認。
-2. 查詢此工單的 `production_line`、`product_order`、APS、MES、品檢與關聯資料。
+2. 查詢此工單的 `production_line`、`product_order`、APS、MES、入庫與關聯資料。
 3. 建立 `workOrder` 基礎資料。
 4. 建立 `materials[]`：所需量、已領量、退料量、可用量與備料狀態。
 5. 建立 `mesEvents[]`：投入、產出、餘料、廢料、人員、機台事件依時間排序。
 6. 建立 `outputs[]`、`reuseAndWaste[]`、`labor[]`、`machines[]`。
-7. 建立 `quality` 摘要；無來源時回傳 `unknown`。
-8. 建立 `relatedDocuments[]`：訂單、APS、工單、生產數據、品檢保留、入庫/出貨相關單據。
+7. 建立 `relatedDocuments[]`：訂單、APS、工單、生產數據、領退餘廢產單、入庫/出貨相關單據。
 
 ## 效能注意事項
 
 1. Dashboard API 是跨表聚合，第一版需限制 `period` 與 `count`，避免一次掃描過多工單。
 2. 以工單 no 批次查詢 production data tables，再於 Python 以 dictionary map 組合，避免 N+1 query。
-3. `work_order.date`、`work_order.startTime`、`work_order.production_line_no`、`production_data*.work_order_no`、`production_data_output.batch_number`、`warehouse_quality_hold.batchNumber` 應確認是否有索引。
+3. `work_order.date`、`work_order.startTime`、`work_order.production_line_no`、`production_data*.work_order_no`、`production_data_output.batch_number`、`inventory_record.refCategory/ref_no`、`batch_number.refCategory/ref_no` 應確認是否有索引。
 4. 若 Warehouse inventory snapshot 已封裝為可共用物件，Production 備料檢查應重用該物件，避免重複維護庫存快照算法。
 5. 若未來 Production dashboard 查詢量增加，建議新增日/工單層級統計快照，不在本提案第一版新增。
 
@@ -425,18 +418,18 @@ else:
 
 1. 不得自行假設產線每日可用工時。
 2. 不得自行假設換線/清潔時間。
-3. 不得因查無品檢資料就判斷為合格。
+3. 不得因查無品檢資料就判斷為合格；第一版統一回傳 `deferred`。
 4. 不得使用假設時薪或人員費率推導人工成本。
 5. 不得在查詢時建立工單、品檢、入庫、出貨或 MES 資料。
-6. 工單完成狀態若缺少明確欄位，需由工程師確認以產出量、MES 結束時間、品檢與入庫狀態的組合規則。
+6. 工單完成狀態需納入入庫狀態；產出量達標但未入庫時回傳 `pending_inventory`。
 
 ## Engineer Review Questions
 
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
-| 工單狀態是否可由 `production_data*` 推導 | `work_order` 目前未見明確 status 欄位。 | 需由入庫狀態推導。 | 第一版以產出量、MES 事件與品檢狀態推導，資料不足回傳 `unknown`。 |
-| 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 | 是需要 實際的產線產能? 還是僅需 預估的產線產能?  | 無正式來源時回傳 0，不自行假設每日工時。 |
-| 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 | 產線上有多台機器， `production_data_machine`用於紀錄機具的啟動、暫停與停止時間。請確認此資料表是否能滿足你的需求。 | 無正式來源時第一版回傳 0；後續可新增規則表。 |
-| 品檢資料來源 | Production 畫面需要品質狀態，但 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示『待實作』 | 第一版僅用已確認來源；無資料回傳 `unknown`。 |
+| 工單狀態是否可由 `production_data*` 推導 | `work_order` 目前未見明確 status 欄位。 | 需由入庫狀態推導。 | 已採用。第一版完成狀態需納入製造入庫紀錄；產出量達標但尚未入庫時回傳 `pending_inventory`。 |
+| 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 | 是需要實際的產線產能？還是僅需預估的產線產能？ | 已調整為預估/規劃產能口徑；無正式來源時回傳 0。 |
+| 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 | 產線上有多台機器，`production_data_machine` 用於紀錄機具的啟動、暫停與停止時間。請確認此資料表是否能滿足需求。 | `production_data_machine` 可用於實際機台狀態與實際時間參考，但不足以作為預估換線/清潔規則來源；第一版無規則時回傳 0。 |
+| 品檢資料來源 | Production 畫面需要品質狀態，但 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不建立品檢明細或風險判斷，固定 `qualityStatus = deferred`。 |
 | 備料可用量是否共用 Warehouse snapshot calculator | 避免重複實作庫存快照與可用量算法。 | 採用，「此類問題以後無須再特別提出，請直接採用共用函式。 | 建議共用既有 Warehouse snapshot/available quantity 封裝。 |
-| 人工成本來源 | `production_data_labor` 有工時，但費率/成本需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 無費率來源時人工成本與單品人工費率回傳 0。 |
+| 人工成本來源 | `production_data_labor` 有工時，但費率/成本需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 已補充初版算法：以既有 `labor_wage` 的生效日、員工型態、階級取得時薪，乘以 `production_data_labor.hours` 計算人工成本；費率缺漏時產生 `labor_cost_missing`。 |

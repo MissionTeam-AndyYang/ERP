@@ -1,3 +1,10 @@
+# 工程師建議
+1. 生產投入應以 production_data_input.action = 領料(1) 加總，扣除 action = 退料(2)的加總，才是正確計算方式。實務上可能會遇到原料領出後未完全使用，進而進行退料的情況。
+2. 人員工時需以 production_data_labor.hours 加總，並搭配判斷 action，才能正確計算工作時數。
+3. 入庫狀態可透過 inventory_record.category = 入庫(1)、inventory_record.source = 產品(5)，並搭配 inventory_record.batch_number = 產出物的批號 來判斷取得。
+4. production_data_labor 資料表代表實際投入或已產生的人員數據；process_labor 資料表則代表預估投入的人員數據。
+   
+
 # Production Dashboard API 流程與演算法提案
 
 狀態：Proposal / Pending Engineer Review

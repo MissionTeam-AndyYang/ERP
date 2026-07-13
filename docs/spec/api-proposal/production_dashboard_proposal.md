@@ -1,4 +1,9 @@
 
+# 工程師提問V2
+1. `production_line`資料表是否足以支援計算 `dailyCapacityMinutes`？ 我對 `dailyCapacityMinutes` 與 `scheduledMinutes` 的差異尚不清楚。是否表示 `dailyCapacityMinutes` 不等於 `scheduledMinutes`，代表當日產能尚未完全排滿？
+2. `changeoverMinutes` 留待下一版規劃與實作，現階段於畫面上統一顯示『待實作』。
+
+
 # 工程師提問
 
 1. API 回傳的欄位資料，是否有額外預留未來才會使用的欄位？請僅設計目前畫面所需的欄位即可

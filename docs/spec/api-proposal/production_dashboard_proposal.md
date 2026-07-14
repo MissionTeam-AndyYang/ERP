@@ -1,4 +1,8 @@
 
+# 工程師提問V3
+1. 針對；`dailyCapacityMinutes` 是當日可排工時分鐘數，還需要班表、產線日曆或每日可排工時設定。
+   - 請規劃並設計『每日可排工時設定』，以支援完整的計算。
+
 # 工程師提問V2
 1. `production_line`資料表是否足以支援計算 `dailyCapacityMinutes`？ 我對 `dailyCapacityMinutes` 與 `scheduledMinutes` 的差異尚不清楚。是否表示 `dailyCapacityMinutes` 不等於 `scheduledMinutes`，代表當日產能尚未完全排滿？
 2. `changeoverMinutes` 留待下一版規劃與實作，現階段於畫面上統一顯示『待實作』。

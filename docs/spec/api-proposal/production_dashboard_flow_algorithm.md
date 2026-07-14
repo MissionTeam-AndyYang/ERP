@@ -1,8 +1,8 @@
 # 工程師建議
-1. 生產投入應以 production_data_input.action = 領料(1) 加總，扣除 action = 退料(2)的加總，才是正確計算方式。實務上可能會遇到原料領出後未完全使用，進而進行退料的情況。
-2. 人員工時需以 production_data_labor.hours 加總，並搭配判斷 action，才能正確計算工作時數。
-3. 入庫狀態可透過 inventory_record.category = 入庫(1)、inventory_record.source = 產品(5)，並搭配 inventory_record.batch_number = 產出物的批號 來判斷取得。
-4. production_data_labor 資料表代表實際投入或已產生的人員數據；process_labor 資料表則代表預估投入的人員數據。
+1. 生產投入應以 `production_data_input.action = 領料(1)` 加總，扣除 `action = 退料(2)` 的加總，才是正確計算方式。實務上可能會遇到原料領出後未完全使用，進而進行退料的情況。
+2. 人員工時需以 `production_data_labor.hours` 加總，並搭配判斷 `action`，才能正確計算工作時數。
+3. 入庫狀態可透過 `inventory_record.category = 入庫(1)`、`inventory_record.source = 產品(5)`，並搭配 `inventory_record.batchNumber = 產出物的批號` 來判斷取得。
+4. `production_data_labor` 資料表代表實際投入或已產生的人員數據；`process_labor` 資料表則代表預估投入的人員數據。
    
 
 # Production Dashboard API 流程與演算法提案
@@ -107,6 +107,7 @@ production_data
 production_data_input
 production_data_output
 production_data_reuse
+process_labor
 production_data_labor
 production_data_machine
 process_order
@@ -120,10 +121,10 @@ batch_number
 2. 生產投入由 `production_data_input.action = 領料(1)` 加總，退料由 `action = 退料(2)` 加總。
 3. 生產產出由 `production_data_output.action = 產製(1)` 加總。
 4. 餘料與廢料由 `production_data_reuse.category` 區分。
-5. 人員工時由 `production_data_labor.hours` 加總；已指派人數優先使用 `work_order.laborList`，缺漏時以 `production_data_labor.employee_no` 去重。
+5. 預估投入人員由 `process_labor` 取得，作為排程前人員 readiness 主要依據；`production_data_labor` 代表實際投入人員，用於已開工工單與人工工時計算。
 6. 機台狀態取每台設備最新一筆 `production_data_machine.action`，並彙總為工單機台狀態。
 7. 品檢狀態第一版不查詢或推導，固定回傳 `qualityStatus = deferred`。
-8. 入庫狀態由製造來源的 `inventory_record`、`batch_number.refCategory = 2` 或可追溯至 `process_order.work_order_no` 的製造入庫資料推導；若僅有產出但未入庫，工單不可判斷為 completed。
+8. 入庫狀態由 `inventory_record.category = 入庫(1)`、`inventory_record.source = 產品(5)`、`inventory_record.batchNumber = production_data_output.batch_number` 推導；若僅有產出但未入庫，工單不可判斷為 completed。
 
 ## 共用 Step 4：產線排程與產能計算
 
@@ -137,8 +138,9 @@ date + productionLineNo + oneProcess + secProcess
 
 ```txt
 scheduledMinutes = sum(work_order.processTime)
-dailyCapacityMinutes = confirmed estimated/planning capacity source, otherwise 0
-changeoverMinutes = confirmed changeover source, otherwise 0
+dailyCapacityMinutes = confirmed work calendar / line day available minutes, otherwise 0
+changeoverMinutes = 0
+changeoverStatus = deferred
 availableMinutes = max(dailyCapacityMinutes - scheduledMinutes - changeoverMinutes, 0)
 utilizationRate = scheduledMinutes / dailyCapacityMinutes * 100
 ```
@@ -167,10 +169,12 @@ else:
 
 限制：
 
-1. `dailyCapacityMinutes` 第一版代表預估/規劃產能，不代表 MES 實際稼動產能。
-2. 若尚無班表、產能日曆或產線日產能設定，`dailyCapacityMinutes` 回傳 0，不自行假設每日 8 小時或 10 小時。
-3. `production_data_machine` 可用於實際機台狀態與實際時間參考，但不足以直接推導計畫換線/清潔規則。
-4. 若尚無換線/清潔規則，`changeoverMinutes` 回傳 0。
+1. `dailyCapacityMinutes` 代表該產線當日可排工時上限，單位為分鐘；不是 `production_line.capacity`。
+2. `production_line.capacity` 是每小時產出能力，可用於未來產量/吞吐量分析，但不足以單獨推導當日可排分鐘，因為缺少班表、工作日曆、停線與休息設定。
+3. `scheduledMinutes` 是已排工時，來源為同一日期與產線下 `work_order.processTime` 加總。
+4. 若 `dailyCapacityMinutes > scheduledMinutes + changeoverMinutes`，代表當日尚有剩餘可排工時；若 `dailyCapacityMinutes = 0`，代表缺少可排工時基準，不可解讀為產線完全無產能。
+5. 第一版 `changeoverMinutes` 留待下一版規劃與實作，固定回傳 0，並回傳 `changeoverStatus = deferred` 供前端顯示「待實作」。
+6. `production_data_machine` 可用於實際機台狀態與實際時間參考，但不足以直接推導計畫換線/清潔規則。
 
 ## 共用 Step 5：備料 readiness 判斷
 
@@ -211,7 +215,7 @@ gapQuantity = max(requiredQuantity - issuedQuantity - availableQuantity, 0)
 
 ```txt
 work_order.laborCount
-work_order.laborList
+process_labor
 production_data_labor
 ```
 
@@ -219,13 +223,14 @@ production_data_labor
 
 ```txt
 requiredStaffCount = work_order.laborCount
-assignedStaffCount = count distinct laborList, otherwise count distinct production_data_labor.employee_no
+assignedStaffCount = count distinct process_labor.employee_no
+actualStaffCount = count distinct production_data_labor.employee_no
 
 if requiredStaffCount <= 0:
   staffStatus = unknown
-elif assignedStaffCount >= requiredStaffCount:
+elif assignedStaffCount >= requiredStaffCount or actualStaffCount >= requiredStaffCount:
   staffStatus = ready
-elif assignedStaffCount > 0:
+elif assignedStaffCount > 0 or actualStaffCount > 0:
   staffStatus = support_needed
 else:
   staffStatus = shortage
@@ -233,8 +238,9 @@ else:
 
 限制：
 
-1. `production_data_labor` 代表實際投入或已產生的人員數據，不一定等於排程前已指派人員。
-2. 若工程師確認 `laborList` 是正式指派人員清單，第一版應優先使用 `laborList`。
+1. `process_labor` 代表預估投入/排程配置人員，適合用於開工前 readiness 判斷。
+2. `production_data_labor` 代表實際投入或已產生的人員數據，適合用於已開工後校正 readiness 與人工工時計算。
+3. `work_order.laborList` 若存在可作輔助來源，但第一版以 `process_labor` 作為主要預估投入人員來源。
 
 ## 共用 Step 7：工單狀態與 MES 現況判斷
 
@@ -285,7 +291,7 @@ else:
 
 ```txt
 standardMinutes = work_order.processTime
-actualMinutes = sum(production_data_labor.hours) * 60
+actualMinutes = sum(production_data_labor.hours where action = 上下班(1)) * 60
 if actualMinutes <= 0:
   actualMinutes = actualEndTimestamp - actualStartTimestamp in minutes
 
@@ -308,7 +314,9 @@ production_data.materialLoss
 補算規則：
 
 ```txt
-actualInputQuantity = sum(production_data_input count where action = 領料)
+issuedQuantity = sum(production_data_input count where action = 領料)
+returnedQuantity = sum(production_data_input count where action = 退料)
+actualInputQuantity = max(issuedQuantity - returnedQuantity, 0)
 outputQuantity = sum(production_data_output count where action = 產製)
 reuseQuantity = sum(production_data_reuse count where category = 餘料)
 wasteQuantity = sum(production_data_reuse count where category = 廢料)
@@ -325,7 +333,7 @@ else:
 ### 單品人工費率
 
 ```txt
-laborHours = sum(production_data_labor.hours)
+laborHours = sum(production_data_labor.hours where action = 上下班(1))
 laborCost = sum(laborHoursByEmployeeTypeAndLevel * labor_wage.hourly)
 if laborCost > 0 and outputQuantity > 0:
   unitLaborCost = laborCost / outputQuantity
@@ -337,7 +345,8 @@ else:
 
 1. 費率來源優先使用 `labor_wage`：以生產/工時日期為基準，取 `date <= laborDate` 且 `type = production_data_labor.employee_type`、`level = production_data_labor.employee_level` 的最新生效時薪。
 2. 若找不到對應費率，該筆工時人工成本以 0 計，並產生 `labor_cost_missing` alert。
-3. 不得使用假設時薪推導人工成本。
+3. 第一版人工工作時數僅計入 `production_data_labor.action = 上下班(1)`；`休息(2)` 不計入，`清潔(3)` 若未來需列入換線/清潔或間接工時，留待下一版規劃。
+4. 不得使用假設時薪推導人工成本。
 
 ## 共用 Step 9：品檢待實作狀態
 
@@ -417,7 +426,7 @@ else:
 
 1. Dashboard API 是跨表聚合，第一版需限制 `period` 與 `count`，避免一次掃描過多工單。
 2. 以工單 no 批次查詢 production data tables，再於 Python 以 dictionary map 組合，避免 N+1 query。
-3. `work_order.date`、`work_order.startTime`、`work_order.production_line_no`、`production_data*.work_order_no`、`production_data_output.batch_number`、`inventory_record.refCategory/ref_no`、`batch_number.refCategory/ref_no` 應確認是否有索引。
+3. `work_order.date`、`work_order.startTime`、`work_order.production_line_no`、`production_data*.work_order_no`、`production_data_output.batch_number`、`process_labor.work_order_no`、`inventory_record.category/source/batchNumber` 應確認是否有索引。
 4. 若 Warehouse inventory snapshot 已封裝為可共用物件，Production 備料檢查應重用該物件，避免重複維護庫存快照算法。
 5. 若未來 Production dashboard 查詢量增加，建議新增日/工單層級統計快照，不在本提案第一版新增。
 
@@ -435,8 +444,8 @@ else:
 | 項目 | 需確認原因 | 工程師回覆 | Codex 建議 |
 | --- | --- | --- | --- |
 | 工單狀態是否可由 `production_data*` 推導 | `work_order` 目前未見明確 status 欄位。 | 需由入庫狀態推導。 | 已採用。第一版完成狀態需納入製造入庫紀錄；產出量達標但尚未入庫時回傳 `pending_inventory`。 |
-| 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 | 是需要實際的產線產能？還是僅需預估的產線產能？ | 已調整為預估/規劃產能口徑；無正式來源時回傳 0。 |
-| 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 | 產線上有多台機器，`production_data_machine` 用於紀錄機具的啟動、暫停與停止時間。請確認此資料表是否能滿足需求。 | `production_data_machine` 可用於實際機台狀態與實際時間參考，但不足以作為預估換線/清潔規則來源；第一版無規則時回傳 0。 |
+| 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 | `production_line` 是否足以支援計算？`dailyCapacityMinutes` 與 `scheduledMinutes` 是否表示尚未排滿？ | 已釐清。`production_line.capacity` 是每小時產出能力，不足以單獨計算每日可排分鐘；`dailyCapacityMinutes` 是當日可排工時上限，`scheduledMinutes` 是已排工時，兩者差額才表示剩餘可排工時。 |
+| 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 | `changeoverMinutes` 留待下一版規劃與實作，現階段畫面統一顯示「待實作」。 | 已採用。第一版固定 `changeoverMinutes = 0`、`changeoverStatus = deferred`；`production_data_machine` 不用於推導計畫換線/清潔時間。 |
 | 品檢資料來源 | Production 畫面需要品質狀態，但 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不建立品檢明細或風險判斷，固定 `qualityStatus = deferred`。 |
 | 備料可用量是否共用 Warehouse snapshot calculator | 避免重複實作庫存快照與可用量算法。 | 採用，「此類問題以後無須再特別提出，請直接採用共用函式。 | 建議共用既有 Warehouse snapshot/available quantity 封裝。 |
 | 人工成本來源 | `production_data_labor` 有工時，但費率/成本需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 已補充初版算法：以既有 `labor_wage` 的生效日、員工型態、階級取得時薪，乘以 `production_data_labor.hours` 計算人工成本；費率缺漏時產生 `labor_cost_missing`。 |

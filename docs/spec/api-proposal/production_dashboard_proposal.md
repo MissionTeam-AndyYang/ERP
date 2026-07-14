@@ -3,6 +3,13 @@
 1. 針對；`dailyCapacityMinutes` 是當日可排工時分鐘數，還需要班表、產線日曆或每日可排工時設定。
    - 請規劃並設計『每日可排工時設定』，以支援完整的計算。
 
+## 工程師提問V3理解與本次調整
+
+| 工程師提問V3 | 理解與確認 | 本次文件調整 |
+| --- | --- | --- |
+| 請規劃並設計「每日可排工時設定」。 | 採用。`production_line` 仍維持產線基本資料與每小時產出能力來源；`dailyCapacityMinutes` 應改由每日可排工時設定提供，避免以每小時產能自行推導班表、休息、停線或加班資訊。 | 新增 `[新增提案] production_line_daily_capacity` 資料表設計，並同步補充 `dailyCapacityMinutes`、`capacityStatus`、`availableMinutes`、瓶頸排序與 alert 判斷邏輯。 |
+| 無每日可排工時設定時如何處理？ | 不可推測日產能，也不可把 0 解讀為產線無產能。若該日該產線缺少設定，API 回傳 `dailyCapacityMinutes = 0`、`availableMinutes = 0`、`capacityStatus = missing_config`，並產生 `capacity_config_missing` alert。 | 補充 response 欄位、Field Description、Database Tables Used 與 Engineer Review Questions。 |
+
 # 工程師提問V2
 1. `production_line`資料表是否足以支援計算 `dailyCapacityMinutes`？ 我對 `dailyCapacityMinutes` 與 `scheduledMinutes` 的差異尚不清楚。是否表示 `dailyCapacityMinutes` 不等於 `scheduledMinutes`，代表當日產能尚未完全排滿？
 2. `changeoverMinutes` 留待下一版規劃與實作，現階段於畫面上統一顯示『待實作』。
@@ -75,7 +82,7 @@
 | work_order_no | String | NO | 派工單 no，對應 `work_order.no`。 |
 | product_order_no | String | NO | 訂購單 no，對應 `work_order.product_order_no` / `production_data.product_order_no`。 |
 | status | String | NO | 工單狀態代碼；enum 顯示文字由前端多國語言處理。 |
-| riskType | String | NO | 風險類型，允許 `material_shortage`、`staff_shortage`、`capacity_bottleneck`、`schedule_delay`、`efficiency_loss`、`loss_over_threshold`、`labor_cost_missing`。 |
+| riskType | String | NO | 風險類型，允許 `material_shortage`、`staff_shortage`、`capacity_bottleneck`、`capacity_config_missing`、`schedule_delay`、`efficiency_loss`、`loss_over_threshold`、`labor_cost_missing`。 |
 | keyword | String | NO | 關鍵字；第一版可搜尋工單 no、訂單 no、產品 no、產品名稱、產線名稱、批號。 |
 | start | Integer | NO | 分頁起始位置，預設 0。 |
 | count | Integer | NO | 分頁筆數，預設 50，第一版上限 100。 |
@@ -133,6 +140,7 @@
         "dailyCapacityMinutes": "Integer",
         "scheduledMinutes": "Integer",
         "availableMinutes": "Integer",
+        "capacityStatus": "String",
         "changeoverMinutes": "Integer",
         "changeoverStatus": "String",
         "utilizationRate": "Float",
@@ -256,9 +264,10 @@
 | payload.scheduleByLine[].productionLineName | String | 產線名稱，來源為 `production_line.name`，缺漏時回傳空字串。 |  |
 | payload.scheduleByLine[].oneProcess | Integer | 主製程代碼，來源為 `work_order.oneProcess`。 | 前備(1)、加工(2)、包裝(3)、其他(0) |
 | payload.scheduleByLine[].secProcess | Integer | 次製程代碼，來源為 `work_order.secProcess`。 | 依主製程對應 DB 文件定義 |
-| payload.scheduleByLine[].dailyCapacityMinutes | Integer | 該產線當日可排工時上限，單位為分鐘；需由班表、產線日曆或每日可排工時設定提供。`production_line.capacity` 是每小時產出能力，不足以單獨換算此欄；若缺少正式來源，回傳 0。 |  |
+| payload.scheduleByLine[].dailyCapacityMinutes | Integer | 該產線當日可排工時上限，單位為分鐘；第一版規劃由 `[新增提案] production_line_daily_capacity.availableMinutes` 提供。`production_line.capacity` 是每小時產出能力，不足以單獨換算此欄；若缺少每日可排工時設定，回傳 0。 |  |
 | payload.scheduleByLine[].scheduledMinutes | Integer | 查詢日該產線已排工單 `work_order.processTime` 加總。 |  |
 | payload.scheduleByLine[].availableMinutes | Integer | 剩餘可排工時，公式為 `dailyCapacityMinutes - scheduledMinutes - changeoverMinutes`，小於 0 時回傳 0；若 `dailyCapacityMinutes` 為 0，表示缺少可排工時基準，不代表產線完全無產能。 |  |
+| payload.scheduleByLine[].capacityStatus | String | 每日可排工時設定狀態；`configured` 表示已設定並可計算，`missing_config` 表示缺少設定，`closed` 表示該日休線或不可排，`disabled` 表示設定停用。enum 顯示文字由前端多國語言處理。 | configured、missing_config、closed、disabled |
 | payload.scheduleByLine[].changeoverMinutes | Integer | 預估換線/清潔時間；第一版留待下一版規劃與實作，固定回傳 0。 |  |
 | payload.scheduleByLine[].changeoverStatus | String | 換線/清潔時間功能狀態；第一版固定回傳 `deferred`，前端顯示「待實作」。 | deferred |
 | payload.scheduleByLine[].utilizationRate | Float | 產能利用率，`scheduledMinutes / dailyCapacityMinutes * 100`。 |  |
@@ -306,8 +315,34 @@
 | payload.productionMetrics[].laborHours | Float | 人工工作時數；第一版以 `production_data_labor.action = 上下班(1)` 的 `hours` 加總，排除 `休息(2)`，`清潔(3)` 留待下一版換線/間接工時規劃。 |  |
 | payload.productionMetrics[].laborCost | Float | 人工成本；依 `production_data_labor.hours` 搭配 `labor_wage` 生效日、員工型態與階級計算。費率缺漏的工時以 0 計，並產生 `labor_cost_missing` alert。 |  |
 | payload.productionMetrics[].unitLaborCost | Float | `laborCost / outputQuantity`；無人工成本或產出量回傳 0。 |  |
-| payload.alerts[].alertType | String | 異常或提醒類型。 | material_shortage、staff_shortage、capacity_bottleneck、schedule_delay、efficiency_loss、loss_over_threshold、labor_cost_missing |
+| payload.alerts[].alertType | String | 異常或提醒類型。 | material_shortage、staff_shortage、capacity_bottleneck、capacity_config_missing、schedule_delay、efficiency_loss、loss_over_threshold、labor_cost_missing |
 | payload.alerts[].comment | String | 風險摘要。 |  |
+
+## [新增提案] production_line_daily_capacity
+
+此資料表用於支援 Production Dashboard 第一版的 `dailyCapacityMinutes` 計算，只記錄「某產線某日期可排工時」；不取代 `production_line.capacity`，也不記錄實際 MES 運轉結果。
+
+| Field | Type | Required | Index | Description |
+| --- | --- | --- | --- | --- |
+| id | BIGINT UNSIGNED | YES | PK | 流水 id。 |
+| no | VARCHAR(60) | YES | UNIQUE | 每日可排工時設定 no。 |
+| date | INT | YES | UNIQUE(date, production_line_no) / INDEX | 排程日期 UTC timestamp；需與 API 查詢日期歸屬規則一致。 |
+| production_line_no | VARCHAR(60) | YES | UNIQUE(date, production_line_no) / INDEX | 產線 no，對應 `production_line.no`。 |
+| availableMinutes | INT | YES |  | 該產線該日期可排工時分鐘數；不含不可排休息、停線或保養時間。 |
+| status | INT | YES | INDEX | 設定狀態：啟用(1)、停用(2)、休線(3)。 |
+| comment | TEXT | NO |  | 設定備註，例如加班、保養、臨時停線原因。 |
+| creator_no | VARCHAR(60) | NO | INDEX | 建立人員 no。 |
+| creationTime | INT | YES |  | 建立時間 UTC timestamp。 |
+| lastUpdateTime | INT | NO |  | 最後更新時間 UTC timestamp。 |
+
+### production_line_daily_capacity 計算規則
+
+1. 查詢鍵為 `date + production_line_no`。
+2. `status = 啟用(1)` 時，`dailyCapacityMinutes = availableMinutes`、`capacityStatus = configured`。
+3. `status = 休線(3)` 時，`dailyCapacityMinutes = 0`、`capacityStatus = closed`。
+4. `status = 停用(2)` 時，`dailyCapacityMinutes = 0`、`capacityStatus = disabled`。
+5. 查無設定時，`dailyCapacityMinutes = 0`、`capacityStatus = missing_config`，並產生 `capacity_config_missing` alert。
+6. `availableMinutes` 小於 0 時應視為資料異常；第一版 API 回傳 0，並產生 `capacity_config_missing` alert 供工程師或管理者檢查設定。
 
 ## GET /api/v2/production/work-orders/{work_order_no}/detail
 
@@ -473,6 +508,7 @@
 | --- | --- |
 | work_order | 派工單、排程日期、產線、製程、預估數量、預估工時、預估人數。 |
 | production_line | 產線名稱、製程、廠區資訊。 |
+| [新增提案] production_line_daily_capacity | 產線每日可排工時設定，支援 `dailyCapacityMinutes`、`capacityStatus`、`availableMinutes` 與產能瓶頸判斷。 |
 | process_labor | 預估投入人員資料，用於排程前人員 readiness 與已指派人員數判斷。 |
 | aps_quantity / aps_quantity_item | APS 與預估投入料品需求；第一版用於備料需求參考，資料不足時不推測。 |
 | production_data | 生產數據主表、製造日期、產線、產品與 materialLoss。 |
@@ -494,6 +530,7 @@
 | `/api/v2/production/dashboard` 是否可作 Production 聚合 endpoint | 需要與既有 workorder / work / productline API 分工清楚。 | 採用 | 建議 v2 endpoint 僅作前端 read-only 聚合，底層可重用既有查詢邏輯。 |
 | 生產工單完成狀態如何判斷 | DB 中 `work_order` 未見明確狀態欄，需由 production_data / output / 入庫狀態推導。 | 需由入庫狀態推導。 | 已採用。第一版完成條件需納入製造入庫紀錄；產出量達標但尚未入庫時回傳 `pending_inventory`，不可直接判斷為 `completed`。 |
 | `dailyCapacityMinutes` 的正式來源 | 產線可用產能若無班表或產能日曆，無法準確判斷剩餘產能。 | `production_line`資料表是否足以支援計算？`dailyCapacityMinutes` 與 `scheduledMinutes` 是否表示尚未排滿？ | 已釐清。`production_line.capacity` 是每小時產出能力，不足以單獨計算每日可排分鐘；`dailyCapacityMinutes` 是當日可排工時上限，`scheduledMinutes` 是已排工時，兩者差額才表示剩餘可排工時。 |
+| `production_line_daily_capacity` 新增提案 | 需由工程師確認資料表命名、欄位命名、日期歸屬與建立/更新欄位是否符合既有 DB convention。 | 工程師提問V3要求規劃「每日可排工時設定」。 | 建議採此表作為第一版 `dailyCapacityMinutes` 正式來源；確認後再整合至正式 DB schema、正式 API 文件與後端實作。 |
 | 換線/清潔時間來源 | 畫面需要呈現換線對產能的影響，但目前需確認資料來源。 | `changeoverMinutes` 留待下一版規劃與實作，現階段畫面統一顯示「待實作」。 | 已採用。第一版固定 `changeoverMinutes = 0`、`changeoverStatus = deferred`；`production_data_machine` 不用於推導計畫換線/清潔時間。 |
 | 品檢狀態來源 | 使用者要求生產頁加入品檢狀態，但正式 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不回傳品檢明細資料，僅以 `qualityStatus = deferred` 供前端顯示「待實作」。 |
 | 人工成本與單品人工費率來源 | `production_data_labor.hours` 可算工時，但人員費率/成本來源需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 已補充初版算法：使用既有 `labor_wage` 依生效日、員工型態、階級取得 `hourly`，乘以 `production_data_labor.hours` 計算人工成本；費率缺漏時產生 `labor_cost_missing`。 |

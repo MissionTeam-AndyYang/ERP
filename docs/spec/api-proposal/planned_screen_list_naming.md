@@ -44,6 +44,31 @@ Naming rules:
 | P2.3 | `AvailableLotListState` | 可用庫存批號清單狀態 | `WarehouseInventoryLotListScreen` | 從可用庫存 KPI、追溯或篩選器入口 | `availability=available` |
 | P2.4 | `QualityHoldLotListState` | 品檢保留批號清單狀態 | `WarehouseInventoryLotListScreen` | 從品檢保留 KPI、篩選器或 detail drill-down | `availability=quality_hold` |
 
+## Orders Workspace Screen Roadmap
+
+本節列出 Orders Dashboard 前端畫面完成後端 API 串接後的正式畫面命名與實作狀態。Orders 第一版採 read-only 履約風險管理範圍，前端已依工程師確認的 `GET /api/v2/orders/dashboard` 與 `GET /api/v2/orders/{order_no}/fulfillment` 進行串接；Enum 顯示字串由前端負責，並支援多國語系轉換。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `OrdersWorkspaceScreen` | Screen | 訂單履約工作區 | `/orders` | 已有第一版，已串接 Orders Dashboard 與 Fulfillment API | `GET /api/v2/orders/dashboard`、`GET /api/v2/orders/{order_no}/fulfillment` | Orders 模組入口畫面，呈現訂單 KPI、訂單清單、交期風險、接單承諾、毛利與收款摘要，並透過右側 panel 檢視選取訂單履約狀態。 |
+| P0.1 | V1 Core | `OrdersOverviewView` | View | 訂單總覽視圖 | `OrdersWorkspaceScreen` 內的「訂單總覽」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/orders/dashboard` | 顯示進行中訂單、客戶、產品、交期、目前階段、交期風險、生產可行性與付款狀態。 |
+| P0.2 | V1 Core | `OrdersCommitmentView` | View | 接單承諾視圖 | `OrdersWorkspaceScreen` 內的「接單承諾」頁籤 | 已有第一版，已串接 dashboard API；ATP/CTP 依 API 文件延至下一版 | `GET /api/v2/orders/dashboard` | 顯示接單承諾判定、承諾日期與需要協調的訂單；第一版 `commitmentDecision` 以後端回傳 enum 由前端轉譯。 |
+| P0.3 | V1 Core | `OrdersDeliveryRiskView` | View | 交期風險視圖 | `OrdersWorkspaceScreen` 內的「交期風險」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/orders/dashboard` | 聚焦非正常交期風險訂單，呈現風險原因、交期、生產可行性與目前處理狀態。 |
+| P0.4 | V1 Core | `OrdersMarginPaymentView` | View | 毛利與收款視圖 | `OrdersWorkspaceScreen` 內的「毛利 / 收款」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/orders/dashboard` | 呈現預估毛利、實際毛利、付款狀態與收款風險摘要；付款與毛利訊號由 dashboard payload 映射。 |
+| P0.5 | V1 Core | `OrdersFulfillmentView` | View | 履約進度視圖 | `OrdersWorkspaceScreen` 內的「履約進度」頁籤 | 已有第一版，已串接 dashboard API 與 selected order fulfillment API | `GET /api/v2/orders/dashboard`、`GET /api/v2/orders/{order_no}/fulfillment` | 以訂單履約 workflow 視角檢視備料、生產、品檢、出貨與收款狀態；右側明細由 `OrderFulfillmentDetailPanel` 承接。 |
+| P1 | V1 Core | `OrderFulfillmentDetailPanel` | Panel | 訂單履約追蹤面板 | `OrdersWorkspaceScreen` 右側 panel；窄版可作為 drawer 或 detail route | 已有第一版，已串接 fulfillment API，API 失敗時保留 controlled fallback | `GET /api/v2/orders/{order_no}/fulfillment` | 顯示單一訂單的履約依賴、workflow 節點、負責部門、狀態、來源單號與 comment；Enum 由前端多國語系轉換。 |
+
+## Orders Workspace State Naming
+
+以下項目是 `OrdersWorkspaceScreen` 內的篩選狀態或 drill-down 情境，不是獨立畫面。若後續工程任務需實作，應寫成「在 `OrdersWorkspaceScreen` 支援 `HighRiskOrdersState`」，不要寫成「新增高風險訂單畫面」。
+
+| Priority | State Code | 顯示名稱 | 所屬畫面 | 觸發來源 | API Query / State |
+| --- | --- | --- | --- | --- | --- |
+| P0.3.1 | `HighRiskOrdersState` | 高風險訂單狀態 | `OrdersWorkspaceScreen` | 從 KPI、交期風險視圖或管理看板 drill-down | `deliveryRisk=high_risk` |
+| P0.3.2 | `AttentionOrdersState` | 注意訂單狀態 | `OrdersWorkspaceScreen` | 從交期風險摘要或風險篩選器進入 | `deliveryRisk=attention` |
+| P0.2.1 | `DeferredCommitmentOrdersState` | 待承諾協調訂單狀態 | `OrdersWorkspaceScreen` | 從接單承諾視圖或承諾檢查 KPI 進入 | `commitmentDecision=deferred` |
+| P0.4.1 | `MarginPaymentRiskOrdersState` | 毛利與收款風險訂單狀態 | `OrdersWorkspaceScreen` | 從毛利 / 收款視圖、付款風險 KPI 或財務 drill-down 進入 | 前端以 dashboard payload 的 margin / payment signal 映射；若後端後續提供 query，再同步補齊。 |
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：
@@ -70,6 +95,8 @@ Naming rules:
 | `WarehouseInventoryLotDetailPanel` | 已有第一版，已串接 inventory lot detail API。 | 依後端 runtime payload 檢查入出庫紀錄、預留、品檢、板位、任務與風險資料集呈現。 |
 | `WarehouseAnalyticsScreen` | 已有第一版，已串接 analytics overview 與 4 個 detail API。 | 依工程師實機資料檢查 API payload、篩選條件、drill-down query 與空狀態呈現。 |
 | `WarehouseInventoryMovementLedgerScreen` | Deferred to next version；本版略過。 | 暫不進行工程師 review、後端實作或前端串接；文件保留作為下一版追溯畫面討論基礎。 |
+| `OrdersWorkspaceScreen` | 已有第一版，已串接 `GET /api/v2/orders/dashboard` 與 `GET /api/v2/orders/{order_no}/fulfillment`。 | 依工程師實機資料檢查 dashboard payload、selected order fulfillment payload、enum 多國語系顯示、空狀態與 fallback 邊界。 |
+| `OrderFulfillmentDetailPanel` | 已有第一版，已串接 selected order fulfillment API。 | 依 runtime payload 檢查 workflow 節點、dependencies、來源單號、comment、負責部門與狀態 tone 呈現。 |
 
 ## Roadmap Coverage Confirmation
 

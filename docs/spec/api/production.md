@@ -151,7 +151,6 @@ None
 | payload.scheduleByLine[].utilizationRate | Float | `scheduledMinutes / dailyCapacityMinutes * 100`；分母為 0 時回傳 0。 |  |
 | payload.scheduleByLine[].bottleneckRank | Integer | 依剩餘可排工時排序的產線瓶頸排名。 |  |
 | payload.scheduleByLine[].riskLevel | Integer | 該產線排程產能風險等級。 | 0、1、3 |
-| payload.scheduleByLine[].slots[] | Array | 該日期與產線下的工單排程列。 |  |
 | payload.scheduleByLine[].slots[].workOrderNo | String | 派工單 no。 |  |
 | payload.scheduleByLine[].slots[].productOrderNo | String | 關聯訂購單 no。 |  |
 | payload.scheduleByLine[].slots[].productNo | String | 產品 no。 |  |
@@ -166,16 +165,21 @@ None
 | payload.scheduleByLine[].slots[].materialStatus | String | 備料狀態。 | `ready`, `partial`, `unknown` |
 | payload.scheduleByLine[].slots[].staffStatus | String | 人員 readiness 狀態。 | `ready`, `support_needed`, `shortage`, `unknown` |
 | payload.scheduleByLine[].slots[].deliveryRisk | String | 工單交期風險。 | `normal`, `high_risk`, `unknown` |
-| payload.todayWorkOrders[] | Array | 查詢基準日的工單清單。 |  |
 | payload.todayWorkOrders[].workOrderNo | String | 派工單 no。 |  |
 | payload.todayWorkOrders[].productOrderNo | String | 訂購單 no。 |  |
-| payload.todayWorkOrders[].productNo / productName | String | 產品 no 與產品名稱。 |  |
+| payload.todayWorkOrders[].productNo | String | 產品 no。 |  |
+| payload.todayWorkOrders[].productName | String | 產品名稱。 |  |
 | payload.todayWorkOrders[].batchNumber | String | 產出批號；無產出時為空字串。 |  |
-| payload.todayWorkOrders[].productionLineNo / productionLineName | String | 產線 no 與產線名稱。 |  |
-| payload.todayWorkOrders[].oneProcess / secProcess | Integer | 主製程與次製程代碼。 |  |
-| payload.todayWorkOrders[].plannedStartTimestamp / plannedEndTimestamp | Integer | 預計開始與結束時間。 |  |
-| payload.todayWorkOrders[].actualStartTimestamp / actualEndTimestamp | Integer | 由 MES input、machine、production data 與 output 時間推導的實際開始與結束時間；無資料時為 0。 |  |
-| payload.todayWorkOrders[].plannedQuantity / completedQuantity | Float | 預計數量與已產出數量。 |  |
+| payload.todayWorkOrders[].productionLineNo | String | 產線 no。 |  |
+| payload.todayWorkOrders[].productionLineName | String | 產線名稱。 |  |
+| payload.todayWorkOrders[].oneProcess | Integer | 主製程代碼。 |  |
+| payload.todayWorkOrders[].secProcess | Integer | 次製程代碼。 |  |
+| payload.todayWorkOrders[].plannedStartTimestamp | Integer | 預計開始時間。 |  |
+| payload.todayWorkOrders[].plannedEndTimestamp | Integer | 預計結束時間。 |  |
+| payload.todayWorkOrders[].actualStartTimestamp | Integer | 由 MES input、machine 或 production data 時間推導的實際開始時間；無資料時為 0。 |  |
+| payload.todayWorkOrders[].actualEndTimestamp | Integer | 由 MES output 或 machine 時間推導的實際結束時間；無資料時為 0。 |  |
+| payload.todayWorkOrders[].plannedQuantity | Float | 預計生產數量。 |  |
+| payload.todayWorkOrders[].completedQuantity | Float | 已產出數量。 |  |
 | payload.todayWorkOrders[].unit | Integer | 數量單位 code。 |  |
 | payload.todayWorkOrders[].progressRate | Float | `completedQuantity / plannedQuantity * 100`；計畫量為 0 時回傳 0。 |  |
 | payload.todayWorkOrders[].status | String | 工單狀態；產出達標但尚未確認製造入庫時為 `pending_inventory`。 | `scheduled`, `material_ready`, `running`, `paused`, `pending_inventory`, `completed` |
@@ -184,31 +188,37 @@ None
 | payload.todayWorkOrders[].machineStatus | String | 依最新 MES machine action 判斷的機台狀態。 | `running`, `paused`, `stopped`, `unknown` |
 | payload.todayWorkOrders[].qualityStatus | String | 第一版不查詢品檢明細，固定回傳待實作代碼。 | `deferred` |
 | payload.todayWorkOrders[].deliveryRisk | String | 依預計結束時間與查詢基準時間判斷的交期風險。 | `normal`, `high_risk`, `unknown` |
-| payload.todayWorkOrders[].ownerEmployeeNo / ownerEmployeeName | String | 主要負責人員 no 與名稱；無資料時為空字串。 |  |
-| payload.readinessSignals[] | Array | 工單備料或人員 readiness 訊號。 |  |
+| payload.todayWorkOrders[].ownerEmployeeNo | String | 主要負責人員 no；無資料時為空字串。 |  |
+| payload.todayWorkOrders[].ownerEmployeeName | String | 主要負責人員名稱；無資料時為空字串。 |  |
 | payload.readinessSignals[].workOrderNo | String | 訊號所屬派工單 no。 |  |
 | payload.readinessSignals[].signalType | String | readiness 訊號類型。 | `material`, `staff` |
 | payload.readinessSignals[].status | String | 訊號狀態。 | `ready`, `attention` |
 | payload.readinessSignals[].riskLevel | Integer | 訊號風險等級。 | 0、1 |
 | payload.readinessSignals[].ownerDepartment | Integer | 下一步負責部門 code。 |  |
-| payload.readinessSignals[].requiredQuantity / availableQuantity / gapQuantity | Float | 需求量、可用量與缺口量。 |  |
-| payload.readinessSignals[].requiredStaffCount / assignedStaffCount | Integer | 需求人數與已指派人數。 |  |
+| payload.readinessSignals[].requiredQuantity | Float | 需求數量。 |  |
+| payload.readinessSignals[].availableQuantity | Float | 可用數量；資料不足時保守回傳 0。 |  |
+| payload.readinessSignals[].gapQuantity | Float | 需求數量扣除可用數量後的缺口數量。 |  |
+| payload.readinessSignals[].requiredStaffCount | Integer | 需求人數。 |  |
+| payload.readinessSignals[].assignedStaffCount | Integer | 已指派人數。 |  |
 | payload.readinessSignals[].comment | String | 資料狀態或 readiness 補充說明。 |  |
-| payload.productionMetrics[] | Array | 工單生產效率、損耗與人工成本指標。 |  |
 | payload.productionMetrics[].workOrderNo | String | 指標所屬派工單 no。 |  |
-| payload.productionMetrics[].standardMinutes / actualMinutes | Integer | 標準工時與實際工時分鐘數。 |  |
+| payload.productionMetrics[].standardMinutes | Integer | 標準工時分鐘數。 |  |
+| payload.productionMetrics[].actualMinutes | Integer | 實際工時分鐘數。 |  |
 | payload.productionMetrics[].efficiencyRate | Float | `standardMinutes / actualMinutes * 100`；實際工時為 0 時回傳 0。 |  |
-| payload.productionMetrics[].standardInputQuantity / actualInputQuantity | Float | APS 標準投入量與扣除退料後的實際投入量。 |  |
+| payload.productionMetrics[].standardInputQuantity | Float | APS 標準投入數量。 |  |
+| payload.productionMetrics[].actualInputQuantity | Float | 扣除退料後的實際投入數量。 |  |
 | payload.productionMetrics[].outputQuantity | Float | 生產產出數量。 |  |
-| payload.productionMetrics[].reuseQuantity / wasteQuantity | Float | 餘料數量與廢料數量。 |  |
-| payload.productionMetrics[].materialLossQuantity / materialLossRate | Float | 原物料損耗量與損耗率。 |  |
+| payload.productionMetrics[].reuseQuantity | Float | 餘料數量。 |  |
+| payload.productionMetrics[].wasteQuantity | Float | 廢料數量。 |  |
+| payload.productionMetrics[].materialLossQuantity | Float | 原物料損耗數量。 |  |
+| payload.productionMetrics[].materialLossRate | Float | 原物料損耗率。 |  |
 | payload.productionMetrics[].laborHours | Float | `production_data_labor.hours` 中 action 為投入的工時加總。 |  |
 | payload.productionMetrics[].laborCost | Float | 依 `labor_wage.hourly` 與投入工時計算的人工成本。費率缺漏時該筆以 0 計算並產生 alert。 |  |
 | payload.productionMetrics[].unitLaborCost | Float | `laborCost / outputQuantity`；產出量為 0 時回傳 0。 |  |
 | payload.productionMetrics[].riskLevel | Integer | 生產指標風險等級。 | 0、1 |
-| payload.alerts[] | Array | 工單、產能、效率、損耗或資料缺漏警示。 |  |
 | payload.alerts[].alertType | String | 警示類型 code。 | `material_shortage`, `staff_shortage`, `capacity_bottleneck`, `capacity_config_missing`, `capacity_downtime`, `schedule_delay`, `efficiency_loss`, `loss_over_threshold`, `labor_cost_missing` |
-| payload.alerts[].workOrderNo / productionLineNo | String | 警示所屬工單 no 與產線 no；產能設定警示的工單 no 可為空字串。 |  |
+| payload.alerts[].workOrderNo | String | 警示所屬工單 no；產能設定警示可為空字串。 |  |
+| payload.alerts[].productionLineNo | String | 警示所屬產線 no。 |  |
 | payload.alerts[].riskLevel | Integer | 警示風險等級。 | 1、3 |
 | payload.alerts[].ownerDepartment | Integer | 負責處理部門 code。 |  |
 | payload.alerts[].comment | String | 後端產生的資料或風險補充說明；非前端多國語系 enum 顯示文字。 |  |
@@ -336,59 +346,78 @@ None
 | payload.workOrder.workOrderNo | String | 派工單 no，來源為 `work_order.no`。 |  |
 | payload.workOrder.productOrderNo | String | 訂購單 no，來源為 `work_order.product_order_no`。 |  |
 | payload.workOrder.apsNo | String | APS 排程 no，來源為 `work_order.aps_no`。 |  |
-| payload.workOrder.productNo / productName | String | 產品 no 與名稱，來源為工單欄位。 |  |
-| payload.workOrder.outputItemNo / outputItemName | String | 預計產出料品 no 與名稱。 |  |
-| payload.workOrder.productionLineNo / productionLineName | String | 產線 no 與名稱。 |  |
-| payload.workOrder.oneProcess / secProcess | Integer | 主製程與次製程代碼。 |  |
-| payload.workOrder.plannedStartTimestamp / plannedEndTimestamp | Integer | 預計開始與結束時間。 |  |
+| payload.workOrder.productNo | String | 產品 no，來源為工單欄位。 |  |
+| payload.workOrder.productName | String | 產品名稱，來源為工單欄位。 |  |
+| payload.workOrder.outputItemNo | String | 預計產出料品 no。 |  |
+| payload.workOrder.outputItemName | String | 預計產出料品名稱。 |  |
+| payload.workOrder.productionLineNo | String | 產線 no。 |  |
+| payload.workOrder.productionLineName | String | 產線名稱。 |  |
+| payload.workOrder.oneProcess | Integer | 主製程代碼。 |  |
+| payload.workOrder.secProcess | Integer | 次製程代碼。 |  |
+| payload.workOrder.plannedStartTimestamp | Integer | 預計開始時間。 |  |
+| payload.workOrder.plannedEndTimestamp | Integer | 預計結束時間。 |  |
 | payload.workOrder.plannedQuantity | Float | 預計生產數量。 |  |
 | payload.workOrder.unit | Integer | 數量單位 code。 |  |
 | payload.workOrder.plannedMinutes | Integer | 預估投入工時分鐘數。 |  |
-| payload.workOrder.requiredStaffCount / assignedStaffCount | Integer | 預估需求人數與已指派／已投入人數。 |  |
+| payload.workOrder.requiredStaffCount | Integer | 預估需求人數。 |  |
+| payload.workOrder.assignedStaffCount | Integer | 已指派／已投入人數。 |  |
 | payload.workOrder.status | String | 工單目前狀態。 | `scheduled`, `material_ready`, `running`, `paused`, `pending_inventory`, `completed` |
 | payload.workOrder.comment | String | 工單備註。 |  |
-| payload.materials[] | Array | 工單物料需求與領退料明細。 |  |
-| payload.materials[].itemNo / itemName | String | 物料 no 與名稱。 |  |
-| payload.materials[].category / itemSubCategory | Integer | 物料類別與子類別 code。 |  |
+| payload.materials[].itemNo | String | 物料 no。 |  |
+| payload.materials[].itemName | String | 物料名稱。 |  |
+| payload.materials[].category | Integer | 物料類別 code。 |  |
+| payload.materials[].itemSubCategory | Integer | 物料子類別 code。 |  |
 | payload.materials[].batchNumber | String | 實際領料批號；無資料時為空字串。 |  |
 | payload.materials[].requiredQuantity | Float | APS／工單需求數量。 |  |
-| payload.materials[].issuedQuantity / returnedQuantity | Float | 領料數量與退料數量。 |  |
+| payload.materials[].issuedQuantity | Float | 領料數量。 |  |
+| payload.materials[].returnedQuantity | Float | 退料數量。 |  |
 | payload.materials[].availableQuantity | Float | Warehouse 可用量；第一版資料不足時保守回傳 0，不推測為可用。 |  |
 | payload.materials[].unit | Integer | 物料數量單位 code。 |  |
 | payload.materials[].status | String | 物料準備狀態。 | `ready`, `unknown` |
-| payload.mesEvents[] | Array | 投入、產出、人員與機台的 MES 事件時間線。 |  |
 | payload.mesEvents[].eventType | String | MES 事件類型。 | `input`, `output`, `labor`, `machine` |
 | payload.mesEvents[].refNo | String | 事件關聯單號；無資料時為空字串。 |  |
 | payload.mesEvents[].timestamp | Integer | 事件時間 UTC timestamp。 |  |
-| payload.mesEvents[].itemNo / itemName / batchNumber | String | 事件料品、名稱與批號。 |  |
+| payload.mesEvents[].itemNo | String | 事件料品 no。 |  |
+| payload.mesEvents[].itemName | String | 事件料品名稱。 |  |
+| payload.mesEvents[].batchNumber | String | 事件批號。 |  |
 | payload.mesEvents[].quantity | Float | 事件數量。 |  |
 | payload.mesEvents[].unit | Integer | 事件數量單位 code。 |  |
-| payload.mesEvents[].employeeNo / employeeName | String | 事件人員 no 與名稱。 |  |
-| payload.mesEvents[].equipmentNo / equipmentName | String | 事件機台 no 與名稱。 |  |
+| payload.mesEvents[].employeeNo | String | 事件人員 no。 |  |
+| payload.mesEvents[].employeeName | String | 事件人員名稱。 |  |
+| payload.mesEvents[].equipmentNo | String | 事件機台 no。 |  |
+| payload.mesEvents[].equipmentName | String | 事件機台名稱。 |  |
 | payload.mesEvents[].comment | String | 事件備註。 |  |
-| payload.outputs[] | Array | `production_data_output` 產出明細。 |  |
-| payload.outputs[].itemNo / itemName | String | 產出料品 no 與名稱。 |  |
-| payload.outputs[].category / itemSubCategory | Integer | 產出料品類別與子類別 code。 |  |
-| payload.outputs[].batchNumber / serialNo | String | 產出批號與序號。 |  |
+| payload.outputs[].itemNo | String | 產出料品 no。 |  |
+| payload.outputs[].itemName | String | 產出料品名稱。 |  |
+| payload.outputs[].category | Integer | 產出料品類別 code。 |  |
+| payload.outputs[].itemSubCategory | Integer | 產出料品子類別 code。 |  |
+| payload.outputs[].batchNumber | String | 產出批號。 |  |
+| payload.outputs[].serialNo | String | 產出序號。 |  |
 | payload.outputs[].validDateTimestamp | Integer | 產出效期 UTC timestamp。 |  |
-| payload.outputs[].quantity / unit | Float / Integer | 產出數量與單位 code。 |  |
-| payload.reuseAndWaste[] | Array | `production_data_reuse` 餘料與廢料明細。 |  |
-| payload.reuseAndWaste[].itemNo / itemName / batchNumber | String | 餘料／廢料料品與批號。 |  |
-| payload.reuseAndWaste[].category / unit | Integer | 料品類別與數量單位 code。 |  |
+| payload.outputs[].quantity | Float | 產出數量。 |  |
+| payload.outputs[].unit | Integer | 產出數量單位 code。 |  |
+| payload.reuseAndWaste[].itemNo | String | 餘料／廢料料品 no。 |  |
+| payload.reuseAndWaste[].itemName | String | 餘料／廢料料品名稱。 |  |
+| payload.reuseAndWaste[].batchNumber | String | 餘料／廢料批號。 |  |
+| payload.reuseAndWaste[].category | Integer | 料品類別 code。 |  |
 | payload.reuseAndWaste[].quantity | Float | 餘料或廢料數量。 |  |
+| payload.reuseAndWaste[].unit | Integer | 數量單位 code。 |  |
 | payload.reuseAndWaste[].comment | String | 餘料／廢料備註。 |  |
-| payload.labor[] | Array | `production_data_labor` 人員投入明細。 |  |
-| payload.labor[].employeeNo / employeeName | String | 人員 no 與名稱。 |  |
-| payload.labor[].employeeType / stationStage / action | Integer | 人員型態、站點階段與工作 action code。 |  |
+| payload.labor[].employeeNo | String | 人員 no。 |  |
+| payload.labor[].employeeName | String | 人員名稱。 |  |
+| payload.labor[].employeeType | Integer | 人員型態 code。 |  |
+| payload.labor[].stationStage | Integer | 站點階段 code。 |  |
+| payload.labor[].action | Integer | 工作 action code。 |  |
 | payload.labor[].stationNo | String | 工作站 no。 |  |
-| payload.labor[].startTimestamp / endTimestamp | Integer | 人員事件開始與結束時間。 |  |
+| payload.labor[].startTimestamp | Integer | 人員事件開始時間。 |  |
+| payload.labor[].endTimestamp | Integer | 人員事件結束時間。 |  |
 | payload.labor[].hours | Float | 人員工時。 |  |
-| payload.machines[] | Array | `production_data_machine` 機台狀態明細。 |  |
-| payload.machines[].equipmentNo / equipmentName | String | 機台 no 與名稱。 |  |
+| payload.machines[].equipmentNo | String | 機台 no。 |  |
+| payload.machines[].equipmentName | String | 機台名稱。 |  |
 | payload.machines[].timestamp | Integer | 機台事件時間。 |  |
 | payload.machines[].action | Integer | 機台 action code。 | 啟動(1)、暫停(2)、停止(3) |
-| payload.machines[].speed / temperature | Float | 機台速度與溫度。 |  |
-| payload.relatedDocuments[] | Array | 可由資料來源實際追溯的關聯單據。 |  |
+| payload.machines[].speed | Float | 機台速度。 |  |
+| payload.machines[].temperature | Float | 機台溫度。 |  |
 | payload.relatedDocuments[].documentType | String | 關聯單據類型。 | `work_order`, `product_order`, `production_data`, `process_order` |
 | payload.relatedDocuments[].documentNo | String | 關聯單據 no。 |  |
 | payload.relatedDocuments[].status | String | 關聯狀態。 | `scheduled`, `linked` |

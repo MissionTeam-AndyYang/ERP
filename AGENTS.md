@@ -46,8 +46,9 @@
 - 由 後端 負責 API 設計，並產出以下文件：  
   - API 提案文件  
   - 後端流程與演算法文件（供工程師 review 後再進行實作）  
-  - 前端靜態預覽頁（供工程師評估 API 設計是否符合實際使用情境）  
-- 以上文件須統一集中放置於 `docs\spec\api-proposal\` 目錄下。  
+  - 前端靜態預覽頁（供工程師評估 API 設計是否符合實際使用情境）    
+- 以上文件須統一集中放置於 `docs\spec\api-proposal\` 目錄下。
+- 完成 API 提案文件後，請更新 docs\spec\api-proposal\planned_screen_list_naming.md 文件。
 
 **2： 後端API 設計準則**
 - 在設計後端 API 時，必須遵循 **前後端分離架構** 的經典原則：**Separation of Concerns（職責劃分）**。  
@@ -67,7 +68,7 @@
 **4：前端與 後端API 串接**  
 - 僅在工程師確認 API 程式碼後，方可進行前端與 API 串接。  
 - 前端在進行 Enum 字串轉換時，同時支援多國語言字串的轉換。
-- 完成前端與 API 串接後進行  `docs\spec\api-proposal\planned_screen_list_naming.md` 文件更新。
+- 完成前端與 API 串接後，請更新  `docs\spec\api-proposal\planned_screen_list_naming.md` 文件。
 
 ---
 

@@ -1,6 +1,13 @@
 # 工程師提問V5
 1. 是否可透過 production_line_daily_capacity 資料表，紀錄生效日、產線及該產線可排工時分鐘數；並以 production_line_downtime 資料表，紀錄產線因故障、臨時停用或維修的情況，再由兩張資料表推算出每日可排工時。或者你有其他更佳的建議？
 
+## 工程師提問V5理解與本次調整
+
+| 工程師提問V5 | 理解與確認 | 本次文件調整 |
+| --- | --- | --- |
+| 是否以 `production_line_daily_capacity` 記錄生效日、產線與可排工時，並以 `production_line_downtime` 記錄故障、停用或維修？ | 採用兩張資料表分工。`production_line_daily_capacity` 是產線可排工時的規劃基準與版本紀錄；`production_line_downtime` 是該基準上的產能扣減事件。兩者合併後才能得到指定日期的有效可排工時。 | 將 `production_line_daily_capacity.date` 改為 `effectiveDate`，以 `production_line_no + effectiveDate` 建立唯一版本；查詢某日取該日以前最新有效設定，再扣除該日已確認停用分鐘數。 |
+| 生效日設定如何套用至後續日期？ | 同一產線採「指定日期以前最新一筆設定」作為查詢日的基準；新的生效日設定會從該日開始取代舊設定，歷史資料不被覆蓋。 | 補充生效日查找、狀態、歷史版本與缺漏資料的處理規則，並同步更新流程演算法文件。 |
+
 
 # 工程師提問V4
  1. 產線每日可派工時目前皆為固定分鐘數。是否可透過新增資料表來紀錄故障停用的分鐘數？或者你有其他更佳的建議？
@@ -338,15 +345,15 @@
 
 ## [新增提案] production_line_daily_capacity
 
-此資料表用於支援 Production Dashboard 第一版的 `dailyCapacityMinutes` 計算，只記錄「某產線某日期可排工時」；不取代 `production_line.capacity`，也不記錄實際 MES 運轉結果。
+此資料表用於支援 Production Dashboard 第一版的 `dailyCapacityMinutes` 計算，記錄「某產線自某生效日起適用的可排工時」；不取代 `production_line.capacity`，也不記錄實際 MES 運轉結果。相同產線可依不同生效日保留多筆歷史設定。
 
 | Field | Type | Required | Index | Description |
 | --- | --- | --- | --- | --- |
 | id | BIGINT UNSIGNED | YES | PK | 流水 id。 |
 | no | VARCHAR(60) | YES | UNIQUE | 每日可排工時設定 no。 |
-| date | INT | YES | UNIQUE(date, production_line_no) / INDEX | 排程日期 UTC timestamp；需與 API 查詢日期歸屬規則一致。 |
-| production_line_no | VARCHAR(60) | YES | UNIQUE(date, production_line_no) / INDEX | 產線 no，對應 `production_line.no`。 |
-| availableMinutes | INT | YES |  | 該產線該日期可排工時分鐘數；不含不可排休息、停線或保養時間。 |
+| effectiveDate | INT | YES | UNIQUE(effectiveDate, production_line_no) / INDEX | 設定生效日期 UTC timestamp；自此日期起適用，查詢歷史日期時不可套用尚未生效的設定。 |
+| production_line_no | VARCHAR(60) | YES | UNIQUE(effectiveDate, production_line_no) / INDEX | 產線 no，對應 `production_line.no`。 |
+| availableMinutes | INT | YES |  | 該產線自生效日起的原始可排工時分鐘數；不含不可排休息、故障停用或維修時間。 |
 | status | INT | YES | INDEX | 設定狀態：啟用(1)、停用(2)、休線(3)。 |
 | comment | TEXT | NO |  | 設定備註，例如加班、保養、臨時停線原因。 |
 | creator_no | VARCHAR(60) | NO | INDEX | 建立人員 no。 |
@@ -355,12 +362,12 @@
 
 ### production_line_daily_capacity 計算規則
 
-1. 查詢鍵為 `date + production_line_no`。
-2. `status = 啟用(1)` 時，`dailyCapacityMinutes = availableMinutes`、`capacityStatus = configured`。
-3. `status = 休線(3)` 時，`dailyCapacityMinutes = 0`、`capacityStatus = closed`。
-4. `status = 停用(2)` 時，`dailyCapacityMinutes = 0`、`capacityStatus = disabled`。
-5. 查無設定時，`dailyCapacityMinutes = 0`、`capacityStatus = missing_config`，並產生 `capacity_config_missing` alert。
-6. `availableMinutes` 小於 0 時應視為資料異常；第一版 API 回傳 0，並產生 `capacity_config_missing` alert 供工程師或管理者檢查設定。
+1. 以 `production_line_no` 篩選產線，取得 `effectiveDate <= 查詢日期` 的最新一筆設定；同一產線同一生效日不得有多筆有效版本。
+2. `status = 啟用(1)` 時，`baseCapacityMinutes = availableMinutes`、`capacityStatus = configured`。
+3. `status = 休線(3)` 時，`baseCapacityMinutes = 0`、`capacityStatus = closed`。
+4. `status = 停用(2)` 時，`baseCapacityMinutes = 0`、`capacityStatus = disabled`。
+5. 查無生效設定時，`baseCapacityMinutes = 0`、`dailyCapacityMinutes = 0`、`capacityStatus = missing_config`，並產生 `capacity_config_missing` alert。
+6. `availableMinutes` 小於 0 時應視為資料異常；第一版 API 將基準視為 0，並產生 `capacity_config_missing` alert 供工程師或管理者檢查設定。
 
 ## [新增提案] production_line_downtime
 
@@ -555,7 +562,7 @@
 | --- | --- |
 | work_order | 派工單、排程日期、產線、製程、預估數量、預估工時、預估人數。 |
 | production_line | 產線名稱、製程、廠區資訊。 |
-| [新增提案] production_line_daily_capacity | 產線每日可排工時設定，支援 `dailyCapacityMinutes`、`capacityStatus`、`availableMinutes` 與產能瓶頸判斷。 |
+| [新增提案] production_line_daily_capacity | 產線可排工時設定的生效日與歷史版本，提供 `baseCapacityMinutes`、`dailyCapacityMinutes`、`capacityStatus` 與產能瓶頸判斷的基準。 |
 | process_labor | 預估投入人員資料，用於排程前人員 readiness 與已指派人員數判斷。 |
 | aps_quantity / aps_quantity_item | APS 與預估投入料品需求；第一版用於備料需求參考，資料不足時不推測。 |
 | production_data | 生產數據主表、製造日期、產線、產品與 materialLoss。 |
@@ -582,4 +589,5 @@
 | 換線/清潔時間來源 | 畫面需要呈現換線對產能的影響，但目前需確認資料來源。 | `changeoverMinutes` 留待下一版規劃與實作，現階段畫面統一顯示「待實作」。 | 已採用。第一版固定 `changeoverMinutes = 0`、`changeoverStatus = deferred`；`production_data_machine` 不用於推導計畫換線/清潔時間。 |
 | 品檢狀態來源 | 使用者要求生產頁加入品檢狀態，但正式 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不回傳品檢明細資料，僅以 `qualityStatus = deferred` 供前端顯示「待實作」。 |
 | `production_line_downtime` 新增提案 | V4 提問要求能記錄故障停用分鐘數，需確認資料表欄位、狀態與跨日/重疊紀錄處理方式是否符合既有 DB convention。 | 待工程師確認。 | 建議採用停用紀錄表，與每日可排工時設定分離；確認後再整合至正式 DB schema、正式 API 文件與後端實作。 |
+| `production_line_daily_capacity` 生效日版本提案 | V5 提問要求以生效日管理產線可排工時，需確認歷史版本與後續日期套用規則。 | 待工程師確認。 | 建議取 `effectiveDate <= 查詢日期` 的最新設定，並以 `production_line_no + effectiveDate` 建立唯一版本，保留歷史設定不覆寫。 |
 | 人工成本與單品人工費率來源 | `production_data_labor.hours` 可算工時，但人員費率/成本來源需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 已補充初版算法：使用既有 `labor_wage` 依生效日、員工型態、階級取得 `hourly`，乘以 `production_data_labor.hours` 計算人工成本；費率缺漏時產生 `labor_cost_missing`。 |

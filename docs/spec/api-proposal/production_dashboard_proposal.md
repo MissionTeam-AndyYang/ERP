@@ -1,6 +1,13 @@
 # 工程師提問V4
  1. 產線每日可派工時目前皆為固定分鐘數。是否可透過新增資料表來紀錄故障停用的分鐘數？或者你有其他更佳的建議？
 
+## 工程師提問V4理解與本次調整
+
+| 工程師提問V4 | 理解與確認 | 本次文件調整 |
+| --- | --- | --- |
+| 產線每日可派工時固定，是否新增資料表紀錄故障停用分鐘數？ | 採用「每日可排工時設定」與「產線故障/停用紀錄」分離的設計。每日可排工時是原始規劃基準，故障停用是該日的產能扣減事件，不直接覆寫原始設定；同一產線同一天可有多筆停用紀錄，便於追蹤原因與人工覆核。 | 新增 `[新增提案] production_line_downtime`，並在 API 回傳 `baseCapacityMinutes`、`downtimeMinutes`；`dailyCapacityMinutes` 改為扣除有效故障停用後的可排工時，並補充 `capacity_downtime` 風險類型。 |
+| 故障停用分鐘數如何計算？ | 第一版以已確認且有效的停用紀錄 `durationMinutes` 加總；若停用區間跨日，依查詢日期切割後只計入當日分鐘數。未確認、取消或資料異常的紀錄不扣減產能，但應保留給後續管理流程檢視。 | 補充停用紀錄狀態、跨日切割、重疊區間與異常值的計算規則。 |
+
 
 # 工程師提問V3
 1. 針對；`dailyCapacityMinutes` 是當日可排工時分鐘數，還需要班表、產線日曆或每日可排工時設定。
@@ -85,7 +92,7 @@
 | work_order_no | String | NO | 派工單 no，對應 `work_order.no`。 |
 | product_order_no | String | NO | 訂購單 no，對應 `work_order.product_order_no` / `production_data.product_order_no`。 |
 | status | String | NO | 工單狀態代碼；enum 顯示文字由前端多國語言處理。 |
-| riskType | String | NO | 風險類型，允許 `material_shortage`、`staff_shortage`、`capacity_bottleneck`、`capacity_config_missing`、`schedule_delay`、`efficiency_loss`、`loss_over_threshold`、`labor_cost_missing`。 |
+| riskType | String | NO | 風險類型，允許 `material_shortage`、`staff_shortage`、`capacity_bottleneck`、`capacity_config_missing`、`capacity_downtime`、`schedule_delay`、`efficiency_loss`、`loss_over_threshold`、`labor_cost_missing`。 |
 | keyword | String | NO | 關鍵字；第一版可搜尋工單 no、訂單 no、產品 no、產品名稱、產線名稱、批號。 |
 | start | Integer | NO | 分頁起始位置，預設 0。 |
 | count | Integer | NO | 分頁筆數，預設 50，第一版上限 100。 |
@@ -140,6 +147,8 @@
         "productionLineName": "String",
         "oneProcess": "Integer",
         "secProcess": "Integer",
+        "baseCapacityMinutes": "Integer",
+        "downtimeMinutes": "Integer",
         "dailyCapacityMinutes": "Integer",
         "scheduledMinutes": "Integer",
         "availableMinutes": "Integer",
@@ -267,7 +276,9 @@
 | payload.scheduleByLine[].productionLineName | String | 產線名稱，來源為 `production_line.name`，缺漏時回傳空字串。 |  |
 | payload.scheduleByLine[].oneProcess | Integer | 主製程代碼，來源為 `work_order.oneProcess`。 | 前備(1)、加工(2)、包裝(3)、其他(0) |
 | payload.scheduleByLine[].secProcess | Integer | 次製程代碼，來源為 `work_order.secProcess`。 | 依主製程對應 DB 文件定義 |
-| payload.scheduleByLine[].dailyCapacityMinutes | Integer | 該產線當日可排工時上限，單位為分鐘；第一版規劃由 `[新增提案] production_line_daily_capacity.availableMinutes` 提供。`production_line.capacity` 是每小時產出能力，不足以單獨換算此欄；若缺少每日可排工時設定，回傳 0。 |  |
+| payload.scheduleByLine[].baseCapacityMinutes | Integer | 該產線依每日可排工時設定取得的原始可排工時，單位為分鐘；來源為 `[新增提案] production_line_daily_capacity.availableMinutes`，尚未扣除故障或停用時間。 |  |
+| payload.scheduleByLine[].downtimeMinutes | Integer | 該產線該日期已確認且有效的故障/停用分鐘數；跨日紀錄只計入查詢日期涵蓋的分鐘數，未確認、取消或資料異常紀錄不納入。 |  |
+| payload.scheduleByLine[].dailyCapacityMinutes | Integer | 扣除有效故障/停用分鐘後，該產線當日可排工時，單位為分鐘；計算為 `max(baseCapacityMinutes - downtimeMinutes, 0)`。若缺少每日可排工時設定則回傳 0。 |  |
 | payload.scheduleByLine[].scheduledMinutes | Integer | 查詢日該產線已排工單 `work_order.processTime` 加總。 |  |
 | payload.scheduleByLine[].availableMinutes | Integer | 剩餘可排工時，公式為 `dailyCapacityMinutes - scheduledMinutes - changeoverMinutes`，小於 0 時回傳 0；若 `dailyCapacityMinutes` 為 0，表示缺少可排工時基準，不代表產線完全無產能。 |  |
 | payload.scheduleByLine[].capacityStatus | String | 每日可排工時設定狀態；`configured` 表示已設定並可計算，`missing_config` 表示缺少設定，`closed` 表示該日休線或不可排，`disabled` 表示設定停用。enum 顯示文字由前端多國語言處理。 | configured、missing_config、closed、disabled |
@@ -318,7 +329,7 @@
 | payload.productionMetrics[].laborHours | Float | 人工工作時數；第一版以 `production_data_labor.action = 上下班(1)` 的 `hours` 加總，排除 `休息(2)`，`清潔(3)` 留待下一版換線/間接工時規劃。 |  |
 | payload.productionMetrics[].laborCost | Float | 人工成本；依 `production_data_labor.hours` 搭配 `labor_wage` 生效日、員工型態與階級計算。費率缺漏的工時以 0 計，並產生 `labor_cost_missing` alert。 |  |
 | payload.productionMetrics[].unitLaborCost | Float | `laborCost / outputQuantity`；無人工成本或產出量回傳 0。 |  |
-| payload.alerts[].alertType | String | 異常或提醒類型。 | material_shortage、staff_shortage、capacity_bottleneck、capacity_config_missing、schedule_delay、efficiency_loss、loss_over_threshold、labor_cost_missing |
+| payload.alerts[].alertType | String | 異常或提醒類型。 | material_shortage、staff_shortage、capacity_bottleneck、capacity_config_missing、capacity_downtime、schedule_delay、efficiency_loss、loss_over_threshold、labor_cost_missing |
 | payload.alerts[].comment | String | 風險摘要。 |  |
 
 ## [新增提案] production_line_daily_capacity
@@ -346,6 +357,35 @@
 4. `status = 停用(2)` 時，`dailyCapacityMinutes = 0`、`capacityStatus = disabled`。
 5. 查無設定時，`dailyCapacityMinutes = 0`、`capacityStatus = missing_config`，並產生 `capacity_config_missing` alert。
 6. `availableMinutes` 小於 0 時應視為資料異常；第一版 API 回傳 0，並產生 `capacity_config_missing` alert 供工程師或管理者檢查設定。
+
+## [新增提案] production_line_downtime
+
+此資料表用於記錄產線因故障、臨時停用或維修而造成的可排工時扣減。它是產能調整紀錄，不取代 `production_line_daily_capacity` 的原始每日可排工時設定，也不取代 `production_data_machine` 的 MES 實際機台事件。
+
+| Field | Type | Required | Index | Description |
+| --- | --- | --- | --- | --- |
+| id | BIGINT UNSIGNED | YES | PK | 流水 id。 |
+| no | VARCHAR(60) | YES | UNIQUE | 產線停用紀錄 no。 |
+| production_line_no | VARCHAR(60) | YES | INDEX | 產線 no，對應 `production_line.no`。 |
+| startTime | INT | YES | INDEX | 停用開始時間 UTC timestamp。 |
+| endTime | INT | YES | INDEX | 停用結束時間 UTC timestamp；尚未結束時不得以未來時間任意推測，第一版應由主管確認紀錄後再提供。 |
+| durationMinutes | INT | YES |  | 經確認的停用分鐘數；應與停用區間一致，跨日資料依查詢日期切割。 |
+| reasonType | INT | YES | INDEX | 停用原因：故障(1)、維修(2)、臨時停用(3)、其他(4)。前端負責 enum 多國語言轉換。 |
+| status | INT | YES | INDEX | 紀錄狀態：待確認(1)、已確認(2)、已取消(3)。只有已確認(2)納入產能扣減。 |
+| comment | TEXT | NO |  | 停用原因或主管確認備註。 |
+| creator_no | VARCHAR(60) | NO | INDEX | 建立人員 no。 |
+| creationTime | INT | YES |  | 建立時間 UTC timestamp。 |
+| lastUpdateTime | INT | NO |  | 最後更新時間 UTC timestamp。 |
+
+### production_line_downtime 計算規則
+
+1. 以 `production_line_no` 與查詢日期的起訖時間篩選停用紀錄。
+2. 只有 `status = 已確認(2)` 的紀錄可扣減產能；待確認與已取消紀錄不納入 `downtimeMinutes`。
+3. 每筆紀錄的有效分鐘數為停用區間與查詢日期區間的交集分鐘數；不可直接將跨日 `durationMinutes` 全數計入單一日期。
+4. 同一產線同一天的重疊停用區間只計算一次，避免重複扣減；若僅有 `durationMinutes` 且無法驗證區間，該筆視為資料異常，不納入扣減並產生 `capacity_downtime` alert 供檢查。
+5. `downtimeMinutes = min(有效停用分鐘數加總, baseCapacityMinutes)`；不可讓停用時間造成負的可排工時。
+6. `dailyCapacityMinutes = max(baseCapacityMinutes - downtimeMinutes, 0)`。
+7. `downtimeMinutes > 0` 時產生 `capacity_downtime` alert；若 `dailyCapacityMinutes < scheduledMinutes`，另依既有規則產生 `capacity_bottleneck` alert。
 
 ## GET /api/v2/production/work-orders/{work_order_no}/detail
 
@@ -524,6 +564,7 @@
 | product_order | 訂購單與客戶交期參考，用於 deliveryRisk。 |
 | process_order | 領料、退料、餘料、廢料與產品單據，作為製造流程與入庫來源參考。 |
 | inventory_record / batch_number | 料品批號、庫存、來源單據與製造入庫狀態參考；工單完成狀態以 `inventory_record.category = 入庫(1)`、`inventory_record.source = 產品(5)`、`inventory_record.batchNumber = production_data_output.batch_number` 判斷，備料可用量應優先重用 Warehouse inventory snapshot。 |
+| [新增提案] production_line_downtime | 產線已確認故障、維修或臨時停用時間，用於扣減每日可排工時與產能風險提示；不作為 MES 實際機台狀態來源。 |
 
 ## Engineer Review Questions
 
@@ -536,4 +577,5 @@
 | `production_line_daily_capacity` 新增提案 | 需由工程師確認資料表命名、欄位命名、日期歸屬與建立/更新欄位是否符合既有 DB convention。 | 工程師提問V3要求規劃「每日可排工時設定」。 | 建議採此表作為第一版 `dailyCapacityMinutes` 正式來源；確認後再整合至正式 DB schema、正式 API 文件與後端實作。 |
 | 換線/清潔時間來源 | 畫面需要呈現換線對產能的影響，但目前需確認資料來源。 | `changeoverMinutes` 留待下一版規劃與實作，現階段畫面統一顯示「待實作」。 | 已採用。第一版固定 `changeoverMinutes = 0`、`changeoverStatus = deferred`；`production_data_machine` 不用於推導計畫換線/清潔時間。 |
 | 品檢狀態來源 | 使用者要求生產頁加入品檢狀態，但正式 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不回傳品檢明細資料，僅以 `qualityStatus = deferred` 供前端顯示「待實作」。 |
+| `production_line_downtime` 新增提案 | V4 提問要求能記錄故障停用分鐘數，需確認資料表欄位、狀態與跨日/重疊紀錄處理方式是否符合既有 DB convention。 | 待工程師確認。 | 建議採用停用紀錄表，與每日可排工時設定分離；確認後再整合至正式 DB schema、正式 API 文件與後端實作。 |
 | 人工成本與單品人工費率來源 | `production_data_labor.hours` 可算工時，但人員費率/成本來源需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 已補充初版算法：使用既有 `labor_wage` 依生效日、員工型態、階級取得 `hourly`，乘以 `production_data_labor.hours` 計算人工成本；費率缺漏時產生 `labor_cost_missing`。 |

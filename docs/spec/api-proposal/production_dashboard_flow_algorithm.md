@@ -73,6 +73,7 @@ x-timezone
 work_order
 production_line
 production_line_daily_capacity
+production_line_downtime
 product_order
 ```
 
@@ -141,17 +142,24 @@ date + productionLineNo + oneProcess + secProcess
 scheduledMinutes = sum(work_order.processTime)
 lineDailyCapacity = production_line_daily_capacity by date + productionLineNo
 if lineDailyCapacity.status == 啟用(1):
-  dailyCapacityMinutes = max(lineDailyCapacity.availableMinutes, 0)
+  baseCapacityMinutes = max(lineDailyCapacity.availableMinutes, 0)
   capacityStatus = configured
 elif lineDailyCapacity.status == 休線(3):
-  dailyCapacityMinutes = 0
+  baseCapacityMinutes = 0
   capacityStatus = closed
 elif lineDailyCapacity.status == 停用(2):
-  dailyCapacityMinutes = 0
+  baseCapacityMinutes = 0
   capacityStatus = disabled
 else:
-  dailyCapacityMinutes = 0
+  baseCapacityMinutes = 0
   capacityStatus = missing_config
+downtimeMinutes = sum_confirmed_non_overlapping_downtime_minutes(
+  production_line_downtime,
+  productionLineNo,
+  queryDate,
+)
+downtimeMinutes = min(downtimeMinutes, baseCapacityMinutes)
+dailyCapacityMinutes = max(baseCapacityMinutes - downtimeMinutes, 0)
 changeoverMinutes = 0
 changeoverStatus = deferred
 availableMinutes = max(dailyCapacityMinutes - scheduledMinutes - changeoverMinutes, 0)
@@ -186,15 +194,18 @@ else:
 
 限制：
 
-1. `dailyCapacityMinutes` 代表該產線當日可排工時上限，單位為分鐘；不是 `production_line.capacity`。
+1. `baseCapacityMinutes` 代表每日可排工時設定的原始上限；`dailyCapacityMinutes` 則是扣除已確認故障/停用後的有效可排工時，兩者單位皆為分鐘；兩者都不是 `production_line.capacity`。
 2. `production_line.capacity` 是每小時產出能力，可用於未來產量/吞吐量分析，但不足以單獨推導當日可排分鐘，因為缺少班表、工作日曆、停線與休息設定。
 3. 第一版新增提案 `production_line_daily_capacity` 作為每日可排工時正式來源；查詢鍵為 `date + production_line_no`。
-4. `scheduledMinutes` 是已排工時，來源為同一日期與產線下 `work_order.processTime` 加總。
-5. 若 `dailyCapacityMinutes > scheduledMinutes + changeoverMinutes`，代表當日尚有剩餘可排工時；若 `dailyCapacityMinutes = 0` 且 `capacityStatus = missing_config`，代表缺少可排工時基準，不可解讀為產線完全無產能。
-6. 若 `capacityStatus = closed`，代表該日休線或不可排；若仍有排程，需產生 `capacity_bottleneck` 或 `schedule_delay` alert。
-7. 若 `capacityStatus = disabled`，代表該日設定停用，需產生 `capacity_config_missing` alert 供管理者補正。
-8. 第一版 `changeoverMinutes` 留待下一版規劃與實作，固定回傳 0，並回傳 `changeoverStatus = deferred` 供前端顯示「待實作」。
-9. `production_data_machine` 可用於實際機台狀態與實際時間參考，但不足以直接推導計畫換線/清潔規則。
+4. `production_line_downtime` 只納入 `status = 已確認(2)` 的紀錄；以停用區間與查詢日的交集分鐘數計算，跨日需切割，重疊區間只計算一次。
+5. `downtimeMinutes` 不得超過 `baseCapacityMinutes`；`dailyCapacityMinutes = max(baseCapacityMinutes - downtimeMinutes, 0)`。
+6. `scheduledMinutes` 是已排工時，來源為同一日期與產線下 `work_order.processTime` 加總。
+7. 若 `dailyCapacityMinutes > scheduledMinutes + changeoverMinutes`，代表當日尚有剩餘可排工時；若 `dailyCapacityMinutes = 0` 且 `capacityStatus = missing_config`，代表缺少可排工時基準，不可解讀為產線完全無產能。
+8. 若 `downtimeMinutes > 0`，產生 `capacity_downtime` alert；若扣減後仍有排程超過可排工時，另產生 `capacity_bottleneck` 或 `schedule_delay` alert。
+9. 若 `capacityStatus = closed`，代表該日休線或不可排；若仍有排程，需產生 `capacity_bottleneck` 或 `schedule_delay` alert。
+10. 若 `capacityStatus = disabled`，代表該日設定停用，需產生 `capacity_config_missing` alert 供管理者補正。
+11. 第一版 `changeoverMinutes` 留待下一版規劃與實作，固定回傳 0，並回傳 `changeoverStatus = deferred` 供前端顯示「待實作」。
+12. `production_data_machine` 可用於實際機台狀態與實際時間參考，但不足以直接推導計畫換線/清潔規則；故障/停用扣減以 `production_line_downtime` 為來源。
 
 ## 共用 Step 5：備料 readiness 判斷
 
@@ -395,6 +406,7 @@ qualityStatus = deferred
 | staff_shortage | `staffStatus = shortage` 或 `support_needed`。 |
 | capacity_bottleneck | 產線利用率過高或已排工時超過日產能。 |
 | capacity_config_missing | 該日期該產線缺少每日可排工時設定，或設定停用/資料異常，導致無法準確計算剩餘產能。 |
+| capacity_downtime | 該日期該產線存在已確認的故障、維修或臨時停用時間，已扣減可排工時；停用紀錄異常時也以此類型提示檢查。 |
 | schedule_delay | 目前時間超過預計結束時間且工單未完成。 |
 | efficiency_loss | `efficiencyRate` 低於門檻；門檻需工程師/使用者確認，未確認前不硬判。 |
 | loss_over_threshold | `materialLossRate` 高於門檻；門檻需工程師/使用者確認，未確認前不硬判。 |
@@ -467,6 +479,7 @@ else:
 | 工單狀態是否可由 `production_data*` 推導 | `work_order` 目前未見明確 status 欄位。 | 需由入庫狀態推導。 | 已採用。第一版完成狀態需納入製造入庫紀錄；產出量達標但尚未入庫時回傳 `pending_inventory`。 |
 | 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 | `production_line` 是否足以支援計算？`dailyCapacityMinutes` 與 `scheduledMinutes` 是否表示尚未排滿？ | 已釐清。`production_line.capacity` 是每小時產出能力，不足以單獨計算每日可排分鐘；`dailyCapacityMinutes` 是當日可排工時上限，`scheduledMinutes` 是已排工時，兩者差額才表示剩餘可排工時。 |
 | `production_line_daily_capacity` 新增提案 | 工程師V3要求補齊每日可排工時設定，以支援完整產能計算。 | 請規劃並設計「每日可排工時設定」。 | 建議新增此表作為 `dailyCapacityMinutes` 正式來源；查無設定時回傳 `capacityStatus = missing_config` 並產生 `capacity_config_missing` alert，待工程師確認後再整合至正式 DB/API 文件。 |
+| `production_line_downtime` 新增提案 | V4 提問要求記錄故障停用分鐘數，需確認資料表欄位、狀態及跨日/重疊紀錄處理方式。 | 待工程師確認。 | 建議與每日可排工時設定分離；只將已確認且有效的停用區間扣減產能，並保留原始設定與停用紀錄供追溯。 |
 | 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 | `changeoverMinutes` 留待下一版規劃與實作，現階段畫面統一顯示「待實作」。 | 已採用。第一版固定 `changeoverMinutes = 0`、`changeoverStatus = deferred`；`production_data_machine` 不用於推導計畫換線/清潔時間。 |
 | 品檢資料來源 | Production 畫面需要品質狀態，但 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不建立品檢明細或風險判斷，固定 `qualityStatus = deferred`。 |
 | 備料可用量是否共用 Warehouse snapshot calculator | 避免重複實作庫存快照與可用量算法。 | 採用，「此類問題以後無須再特別提出，請直接採用共用函式。 | 建議共用既有 Warehouse snapshot/available quantity 封裝。 |

@@ -23,6 +23,7 @@
 - [plstatistics](./plstatistics.md)
 - [product](./product.md)
 - [productline](./productline.md)
+- [production](./production.md)
 - [purchase](./purchase.md)
 - [quotation](./quotation.md)
 - [sale](./sale.md)

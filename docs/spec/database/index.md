@@ -66,6 +66,8 @@
 - [production_data_output](#production_data_output)
 - [production_data_reuse](#production_data_reuse)
 - [production_line](#production_line)
+- [production_line_daily_capacity](#production_line_daily_capacity)
+- [production_line_downtime](#production_line_downtime)
 - [purchase_order](#purchase_order)
 - [purchase_request](#purchase_request)
 - [quotation](#quotation)
@@ -1419,6 +1421,46 @@
 | laborEfficiency | FLOAT | Yes |  |  | 每小時每人可完成的工作量 (小數點2位) ；float |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | comment | VARCHAR(128) | Yes |  |  | 說明；varchar(128) |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
 | creationTime | INT | Yes |  |  | 資料建立時間；int |  | OK | Meaning is supported by Word description, SQL constraint, enum, or relation. |
+
+
+
+## production_line_daily_capacity
+
+<summary>production_line_daily_capacity (產線每日可排工時設定)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；流水識別碼。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| no | VARCHAR(60) | No | UK(uq_production_line_daily_capacity_no) |  | 每日可排工時設定編號。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| effectiveDate | INT | No | UK(uq_production_line_daily_capacity_effective_line), IDX |  | 設定生效日；自此日期起套用至該產線，查詢歷史日期不可套用尚未生效的設定。 | UTC timestamp | OK | Engineer-confirmed V5 effective-date version rule. |
+| production_line_no | VARCHAR(60) | No | UK(uq_production_line_daily_capacity_effective_line), IDX | production_line_daily_capacity.production_line_no -> production_line.no | 產線 no。 |  | OK | Engineer-confirmed V5 effective-date version rule. |
+| availableMinutes | INT | No |  |  | 自生效日起的原始可排工時分鐘數；不含不可排休息、故障停用或維修時間。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| status | INT | No | IDX |  | 設定狀態。 | 啟用(1)、停用(2)、休線(3) | OK | Engineer-confirmed Production Dashboard extension. |
+| comment | TEXT | Yes |  |  | 設定備註。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| creator_no | VARCHAR(60) | Yes |  |  | 建立人員 no。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| creationTime | INT | No |  |  | 資料建立時間。 | UTC timestamp | OK | Engineer-confirmed Production Dashboard extension. |
+| lastUpdateTime | INT | Yes |  |  | 最後更新時間。 | UTC timestamp | OK | Engineer-confirmed Production Dashboard extension. |
+
+
+
+## production_line_downtime
+
+<summary>production_line_downtime (產線故障停用紀錄)</summary>
+
+| 欄位名稱 | 資料型態 | 允許Null | 索引 | 外鍵 | 欄位說明 | 值定義 | 狀態 | Review Note |
+|----------|----------|------|-----|------|----------|----------------|------|------|
+| id | BIGINT UNSIGNED | No | PK |  | AUTO_INCREMENT；流水識別碼。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| no | VARCHAR(60) | No | UK(uq_production_line_downtime_no) |  | 產線停用紀錄編號。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| production_line_no | VARCHAR(60) | No | IDX(idx_production_line_downtime_line_time) | production_line_downtime.production_line_no -> production_line.no | 產線 no。 |  | OK | Engineer-confirmed V4/V5 separation rule. |
+| startTime | INT | No | IDX(idx_production_line_downtime_line_time) |  | 停用開始時間。 | UTC timestamp | OK | Engineer-confirmed Production Dashboard extension. |
+| endTime | INT | No | IDX(idx_production_line_downtime_line_time) |  | 停用結束時間。 | UTC timestamp | OK | Engineer-confirmed Production Dashboard extension. |
+| durationMinutes | INT | No |  |  | 經確認的停用分鐘數；跨日查詢時依日期交集切割。 |  | OK | Engineer-confirmed V4/V5 calculation rule. |
+| reasonType | INT | No | IDX |  | 停用原因。 | 故障(1)、維修(2)、臨時停用(3)、其他(4) | OK | Engineer-confirmed Production Dashboard extension. |
+| status | INT | No | IDX(idx_production_line_downtime_status) |  | 停用紀錄狀態；只有已確認資料納入產能扣減。 | 待確認(1)、已確認(2)、已取消(3) | OK | Engineer-confirmed V4/V5 calculation rule. |
+| comment | TEXT | Yes |  |  | 停用原因或主管確認備註。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| creator_no | VARCHAR(60) | Yes |  |  | 建立人員 no。 |  | OK | Engineer-confirmed Production Dashboard extension. |
+| creationTime | INT | No |  |  | 資料建立時間。 | UTC timestamp | OK | Engineer-confirmed Production Dashboard extension. |
+| lastUpdateTime | INT | Yes |  |  | 最後更新時間。 | UTC timestamp | OK | Engineer-confirmed Production Dashboard extension. |
 
 
 

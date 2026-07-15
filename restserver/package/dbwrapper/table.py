@@ -1840,3 +1840,63 @@ class CTableWorkflowNextOwnerRule(Base):
     __table_args__ = (
         UniqueConstraint("no", name="uq_workflow_next_owner_rule_composite"),
     )
+
+
+# ------------------------------------------------------------
+# Production Dashboard API extension tables
+# ------------------------------------------------------------
+
+class CTableProductionLineDailyCapacity(Base):
+    __tablename__ = "production_line_daily_capacity"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    effectiveDate = Column(Integer)
+    production_line_no = Column(String(length=60))
+    availableMinutes = Column(Integer)
+    status = Column(Integer)
+    comment = Column(Text)
+    creator_no = Column(String(length=60))
+    creationTime = Column(Integer)
+    lastUpdateTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "effectiveDate",
+            "production_line_no",
+            name="uq_production_line_daily_capacity_effective_line",
+        ),
+        Index(
+            "idx_production_line_daily_capacity_line_effective",
+            "production_line_no",
+            "effectiveDate",
+        ),
+    )
+
+
+class CTableProductionLineDowntime(Base):
+    __tablename__ = "production_line_downtime"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    no = Column(String(length=60))
+    production_line_no = Column(String(length=60))
+    startTime = Column(Integer)
+    endTime = Column(Integer)
+    durationMinutes = Column(Integer)
+    reasonType = Column(Integer)
+    status = Column(Integer)
+    comment = Column(Text)
+    creator_no = Column(String(length=60))
+    creationTime = Column(Integer)
+    lastUpdateTime = Column(Integer)
+
+    __table_args__ = (
+        UniqueConstraint("no", name="uq_production_line_downtime_no"),
+        Index(
+            "idx_production_line_downtime_line_time",
+            "production_line_no",
+            "startTime",
+            "endTime",
+        ),
+        Index("idx_production_line_downtime_status", "status"),
+    )

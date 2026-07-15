@@ -480,9 +480,9 @@ else:
 | --- | --- | --- | --- |
 | 工單狀態是否可由 `production_data*` 推導 | `work_order` 目前未見明確 status 欄位。 | 需由入庫狀態推導。 | 已採用。第一版完成狀態需納入製造入庫紀錄；產出量達標但尚未入庫時回傳 `pending_inventory`。 |
 | 產線日產能資料來源 | 需要計算 `dailyCapacityMinutes`、`availableMinutes` 與瓶頸排序。 | `production_line` 是否足以支援計算？`dailyCapacityMinutes` 與 `scheduledMinutes` 是否表示尚未排滿？ | 已釐清。`production_line.capacity` 是每小時產出能力，不足以單獨計算每日可排分鐘；`dailyCapacityMinutes` 是當日可排工時上限，`scheduledMinutes` 是已排工時，兩者差額才表示剩餘可排工時。 |
-| `production_line_daily_capacity` 新增提案 | 工程師V3要求補齊每日可排工時設定，以支援完整產能計算。 | 請規劃並設計「每日可排工時設定」。 | 建議新增此表作為 `dailyCapacityMinutes` 正式來源；查無設定時回傳 `capacityStatus = missing_config` 並產生 `capacity_config_missing` alert，待工程師確認後再整合至正式 DB/API 文件。 |
-| `production_line_downtime` 新增提案 | V4 提問要求記錄故障停用分鐘數，需確認資料表欄位、狀態及跨日/重疊紀錄處理方式。 | 待工程師確認。 | 建議與每日可排工時設定分離；只將已確認且有效的停用區間扣減產能，並保留原始設定與停用紀錄供追溯。 |
-| `production_line_daily_capacity` 生效日版本提案 | V5 提問要求以生效日管理產線可排工時，需確認歷史版本與後續日期套用規則。 | 待工程師確認。 | 建議取 `effectiveDate <= queryDate` 的最新設定，並以 `production_line_no + effectiveDate` 建立唯一版本，保留歷史設定不覆寫。 |
+| `production_line_daily_capacity` 新增提案 | 工程師V3要求補齊每日可排工時設定，以支援完整產能計算。 | 採用 V5 提案。 | 已確認以此表作為 `baseCapacityMinutes` 正式來源；查無生效設定時回傳 `capacityStatus = missing_config` 並產生 `capacity_config_missing` alert，後續整合至正式 DB/API 文件。 |
+| `production_line_downtime` 新增提案 | V4 提問要求記錄故障停用分鐘數，需確認資料表欄位、狀態及跨日/重疊紀錄處理方式。 | 採用 V5 提案。 | 已確認與每日可排工時設定分離；只將已確認且有效的停用區間扣減產能，並保留原始設定與停用紀錄供追溯。 |
+| `production_line_daily_capacity` 生效日版本提案 | V5 提問要求以生效日管理產線可排工時，需確認歷史版本與後續日期套用規則。 | 採用 V5 提案。 | 已確認取 `effectiveDate <= queryDate` 的最新設定，並以 `production_line_no + effectiveDate` 建立唯一版本，保留歷史設定不覆寫。 |
 | 換線/清潔時間資料來源 | 使用者希望掌握產能是否足夠，換線會影響排程可行性。 | `changeoverMinutes` 留待下一版規劃與實作，現階段畫面統一顯示「待實作」。 | 已採用。第一版固定 `changeoverMinutes = 0`、`changeoverStatus = deferred`；`production_data_machine` 不用於推導計畫換線/清潔時間。 |
 | 品檢資料來源 | Production 畫面需要品質狀態，但 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不建立品檢明細或風險判斷，固定 `qualityStatus = deferred`。 |
 | 備料可用量是否共用 Warehouse snapshot calculator | 避免重複實作庫存快照與可用量算法。 | 採用，「此類問題以後無須再特別提出，請直接採用共用函式。 | 建議共用既有 Warehouse snapshot/available quantity 封裝。 |

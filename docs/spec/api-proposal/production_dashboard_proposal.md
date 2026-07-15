@@ -8,6 +8,13 @@
 | 是否以 `production_line_daily_capacity` 記錄生效日、產線與可排工時，並以 `production_line_downtime` 記錄故障、停用或維修？ | 採用兩張資料表分工。`production_line_daily_capacity` 是產線可排工時的規劃基準與版本紀錄；`production_line_downtime` 是該基準上的產能扣減事件。兩者合併後才能得到指定日期的有效可排工時。 | 將 `production_line_daily_capacity.date` 改為 `effectiveDate`，以 `production_line_no + effectiveDate` 建立唯一版本；查詢某日取該日以前最新有效設定，再扣除該日已確認停用分鐘數。 |
 | 生效日設定如何套用至後續日期？ | 同一產線採「指定日期以前最新一筆設定」作為查詢日的基準；新的生效日設定會從該日開始取代舊設定，歷史資料不被覆蓋。 | 補充生效日查找、狀態、歷史版本與缺漏資料的處理規則，並同步更新流程演算法文件。 |
 
+## 工程師回覆V5理解與本次調整
+
+| 工程師回覆 | 理解與確認 | 提案文件處理 |
+| --- | --- | --- |
+| 採用 V5 提案：以 `production_line_daily_capacity` 記錄生效日版本，並以 `production_line_downtime` 記錄故障、臨時停用或維修。 | 確認兩張表的責任分離：每日產能設定是規劃基準，停用紀錄是產能扣減事件；查詢指定日期時先取得最新生效的產能設定，再扣除已確認停用分鐘數。 | 將 V5 相關設計標記為已採用；保留跨日、重疊區間、停用狀態與歷史版本規則，後續可整合至正式 DB Schema、API 文件與後端實作。 |
+| 採用 `effectiveDate <= 查詢日期` 的最新產能設定。 | 新設定只從生效日起影響後續查詢，既有歷史版本不覆寫，避免歷史報表因設定異動而漂移。 | 維持 `production_line_no + effectiveDate` 唯一版本設計，並同步確認流程演算法使用相同查找條件。 |
+
 
 # 工程師提問V4
  1. 產線每日可派工時目前皆為固定分鐘數。是否可透過新增資料表來紀錄故障停用的分鐘數？或者你有其他更佳的建議？
@@ -585,9 +592,9 @@
 | `/api/v2/production/dashboard` 是否可作 Production 聚合 endpoint | 需要與既有 workorder / work / productline API 分工清楚。 | 採用 | 建議 v2 endpoint 僅作前端 read-only 聚合，底層可重用既有查詢邏輯。 |
 | 生產工單完成狀態如何判斷 | DB 中 `work_order` 未見明確狀態欄，需由 production_data / output / 入庫狀態推導。 | 需由入庫狀態推導。 | 已採用。第一版完成條件需納入製造入庫紀錄；產出量達標但尚未入庫時回傳 `pending_inventory`，不可直接判斷為 `completed`。 |
 | `dailyCapacityMinutes` 的正式來源 | 產線可用產能若無班表或產能日曆，無法準確判斷剩餘產能。 | `production_line`資料表是否足以支援計算？`dailyCapacityMinutes` 與 `scheduledMinutes` 是否表示尚未排滿？ | 已釐清。`production_line.capacity` 是每小時產出能力，不足以單獨計算每日可排分鐘；`dailyCapacityMinutes` 是當日可排工時上限，`scheduledMinutes` 是已排工時，兩者差額才表示剩餘可排工時。 |
-| `production_line_daily_capacity` 新增提案 | 需由工程師確認資料表命名、欄位命名、日期歸屬與建立/更新欄位是否符合既有 DB convention。 | 工程師提問V3要求規劃「每日可排工時設定」。 | 建議採此表作為第一版 `dailyCapacityMinutes` 正式來源；確認後再整合至正式 DB schema、正式 API 文件與後端實作。 |
+| `production_line_daily_capacity` 新增提案 | 需由工程師確認資料表命名、欄位命名、生效日歸屬與建立/更新欄位是否符合既有 DB convention。 | 採用 V5 提案。 | 已確認採此表作為第一版 `baseCapacityMinutes` 正式來源；以 `effectiveDate <= 查詢日期` 取最新版本，後續整合至正式 DB Schema、正式 API 文件與後端實作。 |
 | 換線/清潔時間來源 | 畫面需要呈現換線對產能的影響，但目前需確認資料來源。 | `changeoverMinutes` 留待下一版規劃與實作，現階段畫面統一顯示「待實作」。 | 已採用。第一版固定 `changeoverMinutes = 0`、`changeoverStatus = deferred`；`production_data_machine` 不用於推導計畫換線/清潔時間。 |
 | 品檢狀態來源 | 使用者要求生產頁加入品檢狀態，但正式 Quality 模組可能尚未完整。 | 相關功能留待下一版實作，現階段於畫面上統一顯示「待實作」。 | 已採用。第一版不回傳品檢明細資料，僅以 `qualityStatus = deferred` 供前端顯示「待實作」。 |
-| `production_line_downtime` 新增提案 | V4 提問要求能記錄故障停用分鐘數，需確認資料表欄位、狀態與跨日/重疊紀錄處理方式是否符合既有 DB convention。 | 採用 「V5提問」的提案。 | 建議採用停用紀錄表，與每日可排工時設定分離；確認後再整合至正式 DB schema、正式 API 文件與後端實作。 |
-| `production_line_daily_capacity` 生效日版本提案 | V5 提問要求以生效日管理產線可排工時，需確認歷史版本與後續日期套用規則。 | 採用 「V5提問」的提案。 | 建議取 `effectiveDate <= 查詢日期` 的最新設定，並以 `production_line_no + effectiveDate` 建立唯一版本，保留歷史設定不覆寫。 |
+| `production_line_downtime` 新增提案 | V4 提問要求能記錄故障停用分鐘數，需確認資料表欄位、狀態與跨日/重疊紀錄處理方式是否符合既有 DB convention。 | 採用 V5 提案。 | 已確認採用停用紀錄表，與每日可排工時設定分離；後續整合至正式 DB Schema、API 文件與後端實作。 |
+| `production_line_daily_capacity` 生效日版本提案 | V5 提問要求以生效日管理產線可排工時，需確認歷史版本與後續日期套用規則。 | 採用 V5 提案。 | 已確認採用 `effectiveDate <= 查詢日期` 的最新設定，並以 `production_line_no + effectiveDate` 建立唯一版本，保留歷史設定不覆寫。 |
 | 人工成本與單品人工費率來源 | `production_data_labor.hours` 可算工時，但人員費率/成本來源需確認。 | 目前尚未設計人工費用，請規劃相關設計。 | 已補充初版算法：使用既有 `labor_wage` 依生效日、員工型態、階級取得 `hourly`，乘以 `production_data_labor.hours` 計算人工成本；費率缺漏時產生 `labor_cost_missing`。 |

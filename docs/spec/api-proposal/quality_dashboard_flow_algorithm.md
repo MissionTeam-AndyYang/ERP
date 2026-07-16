@@ -142,8 +142,14 @@ qualityHoldValue = snapshot.qualityHoldValue
 ## 5. 需工程師確認的實作阻塞點
 
 1. `workflow_task_state` 的實際欄位是否包含 `plannedTimestamp`、`completedTimestamp`、`inspectionNo`；若名稱不同請指定正式欄位。
+    工程師回覆: 目前無法明確得知 plannedTimestamp、completedTimestamp、inspectionNo 欄位的定義，因此工程師將無法回覆相關問題。此外，workflow_task_state 乃由你規劃設計，各欄位定義理應比工程師更清楚。若仍不清楚，請詳閱資料庫文件（docs\spec\database\index.md）。
 2. `warehouse_quality_hold.no` 是否為可直接對外使用的 hold_no。
+    工程師回覆: warehouse_quality_hold 乃由你規劃設計，各欄位定義理應比工程師更清楚。若仍不清楚，請詳閱資料庫文件（docs\spec\database\index.md）。
 3. `warehouse_quality_hold.status` 的完整 enum 與部分釋放規則。
+    工程師回覆: warehouse_quality_hold 乃由你規劃設計，各欄位定義理應比工程師更清楚。若仍不清楚，請詳閱資料庫文件（docs\spec\database\index.md）。
 4. `holdValue` NULL 的處理方式。
+    工程師回覆: 請詳細說明問題，目前僅提及 holdValue，資訊不足。若未能明確補充說明，工程師將無法回覆相關問題。
 5. 品檢保留與任務的正式關聯 key。
+    工程師回覆: 請詳細描述問題，否則工程師將無法回覆相關問題。
 6. Quality API 是否可直接 import Warehouse snapshot calculator，或需新增一個共用 service facade。
+    工程師回覆: 若函式能共用，請盡量共用。若認為程式碼的擺放位置不佳，則可將共用函式集中放置於 restserver\package\restserver\api\v2\common.py。

@@ -1,3 +1,9 @@
+# 工程師提問
+1. 查詢參數的命名需統一。例如：在`/api/v2/orders/dashboard` 中查詢期間的參數命名為 period，而在此則命名為 dateRange。此命名規則請套用至後續設計的所有 API。
+2. 查詢參數的命名規則統一為 xxx_no，因此請將 warehouseNo 修正為 warehouse_no。此命名規則請套用至後續設計的所有 API。
+3. 請補全兩個 API 的 Field Description，並重新檢視整份文件。文件的格式規格請以 warehouse_inventory_detail_proposal.md 為基準。
+
+
 # Quality Dashboard API 提案
 
 > Status: Proposal / Pending Engineer Review  
@@ -179,14 +185,14 @@
 
 ## 6. 工程師需確認
 
-| 項目 | 目前提案 | 需確認內容 |
-|---|---|---|
-| 品檢任務來源 | `workflow_task_state.taskType = 8` | `sourceType`、`sourceNo` 是否可直接追到 `goods_receipt_note`、`production_data` 或其他來源單據。 |
-| 品檢保留資料 | `warehouse_quality_hold` | `status = 1` 是否代表有效保留；釋放、部分釋放與取消是否另有 event 或 status 定義。 |
-| 品檢單資料 | 目前不新增或假設 inspection table | 是否已有工程師尚未納入 schema 的品檢主檔／結果表；若有，請提供正式 table 與欄位。 |
-| `holdValue` | 直接使用資料表值 | 若為 NULL，是否應回傳 0，或需依庫存單價補算。 |
-| 明細不存在 | 建議回傳標準 not found error | 是否沿用既有 API 的錯誤 code 與 HTTP status。 |
-| 任務與保留關聯 | 以來源單據與 item/batch/warehouse 交集關聯 | 是否存在明確 task-to-hold reference，若存在應優先使用。 |
+| 項目 | 目前提案 | 需確認內容  | 工程師回覆 |
+|---|---|---|---|
+| 品檢任務來源 | `workflow_task_state.taskType = 8` | `sourceType`、`sourceNo` 是否可直接追到 `goods_receipt_note`、`production_data` 或其他來源單據。 | 請詳細說明提案內容，以及 sourceType 與 sourceNo 欄位的來源，分別取自哪一個資料表，或是由其他資料來源產生。若未能明確說明，工程師將無法回覆相關問題。|
+| 品檢保留資料 | `warehouse_quality_hold` | `status = 1` 是否代表有效保留；釋放、部分釋放與取消是否另有 event 或 status 定義。 | 請詳細說明提案內容，目前僅提及 warehouse_quality_hold 資料表，資訊不足。若未能明確補充說明，工程師將無法回覆相關問題。| 
+| 品檢單資料 | 目前不新增或假設 inspection table | 是否已有工程師尚未納入 schema 的品檢主檔／結果表；若有，請提供正式 table 與欄位。 |目前尚未規劃設計品檢單的資料表，請協助進行設計。此外，請說明在什麼情況下會產生品檢單，以利工程師理解並落實相關流程。|
+| `holdValue` | 直接使用資料表值 | 若為 NULL，是否應回傳 0，或需依庫存單價補算。 | 請詳細說明提案內容，目前僅提及 holdValue，資訊不足。若未能明確補充說明，工程師將無法回覆相關問題。|
+| 明細不存在 | 建議回傳標準 not found error | 是否沿用既有 API 的錯誤 code 與 HTTP status。 |在 restserver\package\restserver\api\v2\ 目錄下的各個 API，遇到此狀況時是如何處理的？|
+| 任務與保留關聯 | 以來源單據與 item/batch/warehouse 交集關聯 | 是否存在明確 task-to-hold reference，若存在應優先使用。 | 請詳細說明提案內容，"來源單據"是取自哪一個資料表的欄位，或是由其他資料來源產生。若未能明確說明，工程師將無法回覆相關問題。
 
 ## 7. 範例資料
 

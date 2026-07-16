@@ -65,7 +65,41 @@
 - 程式碼實作必須符合 **API 提案文件** 與 **後端流程與演算法文件** 的設計邏輯。  
 - 規劃設計中若需新增資料表，請同步產生對應的 SQL 檔案，以方便工程師匯入至資料庫。所有產生的 SQL 檔案請統一放置於 docs\database\ 目錄下。
 
-**4：前端與 後端API 串接**  
+**4：後端API 程式碼規範**  
+- URL 定義
+  - URL_PATH_V2 直接定義於 restserver\package\restserver\api\common.py。
+
+- 資料庫 ORM
+  - Database 的 Table ORM Class 集中宣告於 restserver\package\dbwrapper\table.py。
+  - 請在程式碼底部以註解作為分隔線，並於分隔線以下開始新增。
+
+- Enumerate Class
+  - Enumerate Class 集中宣告於 restserver\package\common\common.py。
+  - 請在程式碼底部以註解作為分隔線，並於分隔線以下開始新增。
+
+- 參數命名規則
+  - Booleam：以 b 開頭，例如 b_xxx
+  - Integer ：以 n 開頭，例如 n_xxx
+  - Float：以 f 開頭，例如 f_xxx
+  - String：以 str 開頭，例如 str_xxx
+  - Array / List：以 lst 開頭，例如 lst_xxx
+  - Dictionary：以 dict 開頭，例如 dict_xxx
+  - Object：以 obj 開頭，例如 obj_xxx
+  - Class：以 C 開頭，例如 CXXX
+  - Enumerate：以 E 開頭，例如 EXXX
+
+- 常用 Util 函式規範
+  -將常用的 Util 函式（例如 __safe_int、__safe_float），統一以 util_ 開頭命名，例如 util_safe_int，集中宣告於 restserver\package\util\util.py。
+  -請在程式碼底部以註解作為分隔線，並於分隔線以下開始新增。
+
+- 數字欄位規範
+  回傳欄位若為
+  - 單價：取至小數點第 4 位。
+  - 重量或數量：取至小數點第 2 位。
+  - 金額：四捨五入取整數。
+
+
+**5：前端與 後端API 串接**  
 - 僅在工程師確認 API 程式碼後，方可進行前端與 API 串接。  
 - 前端在進行 Enum 字串轉換時，同時支援多國語言字串的轉換。
 - 完成前端與 API 串接後，請更新  `docs\spec\api-proposal\planned_screen_list_naming.md` 文件。

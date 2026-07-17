@@ -35,3 +35,11 @@
 ## Residual Runtime Note
 
 The local machine does not provide the engineer's MariaDB runtime dataset. The tests therefore validate ORM/query behavior and business calculations with SQLite fixtures. MariaDB runtime verification remains required after the engineer imports `EWDB_PRODUCTION_DASHBOARD_EXTENSION_20260715.sql` and runs the endpoint against the target database.
+
+## 2026-07-17 Enum and Response-Code Review
+
+- Shared Production enum values are centralized in `restserver/package/common/common.py`.
+- Code-generated alert and readiness comments now return stable codes for frontend translation and localization; backend code contains no generated Traditional Chinese display strings.
+- Alert construction is unified through `CProductionDashboardService.__alert()`.
+- Python compile check: PASS.
+- Full restserver test suite: PASS: 24 passed.

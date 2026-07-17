@@ -177,21 +177,21 @@ else:
   sort by availableMinutes ascending, utilizationRate descending
 ```
 
-風險等級：
+風險等級由 `EProductionRiskLevel` 統一定義：
 
 ```txt
 if capacityStatus == closed and scheduledMinutes > 0:
-  riskLevel = 3
+  riskLevel = EProductionRiskLevel.DANGER
 elif capacityStatus == missing_config or capacityStatus == disabled:
-  riskLevel = 1
+  riskLevel = EProductionRiskLevel.NOTICE
 elif dailyCapacityMinutes > 0 and scheduledMinutes + changeoverMinutes > dailyCapacityMinutes:
-  riskLevel = 3
+  riskLevel = EProductionRiskLevel.DANGER
 elif dailyCapacityMinutes > 0 and utilizationRate >= 90:
-  riskLevel = 2
+  riskLevel = EProductionRiskLevel.WARNING
 elif dailyCapacityMinutes > 0 and utilizationRate >= 75:
-  riskLevel = 1
+  riskLevel = EProductionRiskLevel.NOTICE
 else:
-  riskLevel = 0
+  riskLevel = EProductionRiskLevel.NORMAL
 ```
 
 限制：

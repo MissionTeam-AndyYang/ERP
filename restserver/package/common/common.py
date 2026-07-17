@@ -418,3 +418,127 @@ class EShipWarehouseCat(object):
     SHIP = 1  #物流
     WAREHOUSE = 2 #倉儲
 
+
+# ------------------------------------------------------------
+# Production Dashboard API enums
+# ------------------------------------------------------------
+
+class EProductionRiskLevel(object):
+    NORMAL = 0
+    NOTICE = 1
+    WARNING = 2
+    DANGER = 3
+
+
+class EProductionWorkOrderStatus(object):
+    SCHEDULED = "scheduled"
+    MATERIAL_READY = "material_ready"
+    RUNNING = "running"
+    PAUSED = "paused"
+    PENDING_INVENTORY = "pending_inventory"
+    COMPLETED = "completed"
+
+
+class EProductionMaterialStatus(object):
+    READY = "ready"
+    PARTIAL = "partial"
+    UNKNOWN = "unknown"
+
+
+class EProductionStaffStatus(object):
+    READY = "ready"
+    SUPPORT_NEEDED = "support_needed"
+    SHORTAGE = "shortage"
+    UNKNOWN = "unknown"
+
+
+class EProductionMachineStatus(object):
+    RUNNING = "running"
+    PAUSED = "paused"
+    STOPPED = "stopped"
+    UNKNOWN = "unknown"
+
+
+class EProductionQualityStatus(object):
+    DEFERRED = "deferred"
+
+
+class EProductionDeliveryRisk(object):
+    NORMAL = "normal"
+    HIGH_RISK = "high_risk"
+    UNKNOWN = "unknown"
+
+
+class EProductionReadinessStatus(object):
+    READY = "ready"
+    ATTENTION = "attention"
+
+
+class EProductionSignalType(object):
+    MATERIAL = "material"
+    STAFF = "staff"
+
+
+class EProductionCapacityStatus(object):
+    CONFIGURED = "configured"
+    MISSING_CONFIG = "missing_config"
+    CLOSED = "closed"
+    DISABLED = "disabled"
+
+
+class EProductionCapacityConfigStatus(object):
+    ACTIVE = 1
+    DISABLED = 2
+    CLOSED = 3
+
+
+class EProductionDowntimeStatus(object):
+    CONFIRMED = 2
+
+
+class EProductionChangeoverStatus(object):
+    DEFERRED = "deferred"
+
+
+class EProductionAlertType(object):
+    MATERIAL_SHORTAGE = "material_shortage"
+    STAFF_SHORTAGE = "staff_shortage"
+    CAPACITY_BOTTLENECK = "capacity_bottleneck"
+    CAPACITY_CONFIG_MISSING = "capacity_config_missing"
+    CAPACITY_DOWNTIME = "capacity_downtime"
+    SCHEDULE_DELAY = "schedule_delay"
+    EFFICIENCY_LOSS = "efficiency_loss"
+    LOSS_OVER_THRESHOLD = "loss_over_threshold"
+    LABOR_COST_MISSING = "labor_cost_missing"
+
+
+class EProductionAlertComment(object):
+    MATERIAL_SHORTAGE = "production.alert.material_shortage"
+    STAFF_SHORTAGE = "production.alert.staff_shortage"
+    CAPACITY_DOWNTIME = "production.alert.capacity_downtime"
+    CAPACITY_CONFIG_MISSING = "production.alert.capacity_config_missing"
+    CAPACITY_BOTTLENECK = "production.alert.capacity_bottleneck"
+    SCHEDULE_DELAY = "production.alert.schedule_delay"
+    LABOR_COST_MISSING = "production.alert.labor_cost_missing"
+    MATERIAL_REQUIREMENT_MISSING = "production.readiness.material_requirement_missing"
+    MATERIAL_AVAILABLE_UNKNOWN = "production.readiness.material_available_unknown"
+
+
+class EMesEventType(object):
+    INPUT = "input"
+    OUTPUT = "output"
+    LABOR = "labor"
+    MACHINE = "machine"
+
+
+class EProductionDocumentType(object):
+    WORK_ORDER = "work_order"
+    PRODUCT_ORDER = "product_order"
+    PRODUCTION_DATA = "production_data"
+    PROCESS_ORDER = "process_order"
+
+
+class EProductionDocumentStatus(object):
+    SCHEDULED = "scheduled"
+    LINKED = "linked"
+

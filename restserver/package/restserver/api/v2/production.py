@@ -6,7 +6,27 @@ from sqlalchemy import and_, or_
 from sqlalchemy.sql import func
 from flask import request
 
-from package.common.common import EDepartment
+from package.common.common import (
+    EDepartment,
+    EMesEventType,
+    EProductionAlertComment,
+    EProductionAlertType,
+    EProductionCapacityConfigStatus,
+    EProductionCapacityStatus,
+    EProductionChangeoverStatus,
+    EProductionDeliveryRisk,
+    EProductionDowntimeStatus,
+    EProductionDocumentStatus,
+    EProductionDocumentType,
+    EProductionMachineStatus,
+    EProductionMaterialStatus,
+    EProductionQualityStatus,
+    EProductionReadinessStatus,
+    EProductionRiskLevel,
+    EProductionSignalType,
+    EProductionStaffStatus,
+    EProductionWorkOrderStatus,
+)
 from package.dbwrapper.dbmgr import CDBMgr
 from package.dbwrapper.table import (
     CTableAPSQuantityItem,
@@ -41,15 +61,6 @@ from package.util.util import (
 
 
 class CProductionDashboardService(object):
-    STATUS_SCHEDULED = "scheduled"
-    STATUS_MATERIAL_READY = "material_ready"
-    STATUS_RUNNING = "running"
-    STATUS_PAUSED = "paused"
-    STATUS_PENDING_INVENTORY = "pending_inventory"
-    STATUS_COMPLETED = "completed"
-    STATUS_BLOCKED = "blocked"
-    STATUS_UNKNOWN = "unknown"
-
     def get_dashboard(
         self,
         n_date=0,
@@ -120,32 +131,29 @@ class CProductionDashboardService(object):
         )
         for dict_schedule_row in dict_schedule:
             if dict_schedule_row["downtimeMinutes"] > 0:
-                lst_alerts.append({
-                    "alertType": "capacity_downtime",
-                    "workOrderNo": "",
-                    "productionLineNo": dict_schedule_row["productionLineNo"],
-                    "riskLevel": 1,
-                    "ownerDepartment": EDepartment.PLANNING,
-                    "comment": "該產線存在已確認的故障、維修或臨時停用時間。",
-                })
-            if dict_schedule_row["capacityStatus"] == "missing_config":
-                lst_alerts.append({
-                    "alertType": "capacity_config_missing",
-                    "workOrderNo": "",
-                    "productionLineNo": dict_schedule_row["productionLineNo"],
-                    "riskLevel": 1,
-                    "ownerDepartment": EDepartment.PLANNING,
-                    "comment": "查無該日期以前生效的產線可排工時設定。",
-                })
+                lst_alerts.append(self.__alert(
+                    EProductionAlertType.CAPACITY_DOWNTIME,
+                    EProductionRiskLevel.NOTICE,
+                    EDepartment.PLANNING,
+                    EProductionAlertComment.CAPACITY_DOWNTIME,
+                    str_production_line_no=dict_schedule_row["productionLineNo"],
+                ))
+            if dict_schedule_row["capacityStatus"] == EProductionCapacityStatus.MISSING_CONFIG:
+                lst_alerts.append(self.__alert(
+                    EProductionAlertType.CAPACITY_CONFIG_MISSING,
+                    EProductionRiskLevel.NOTICE,
+                    EDepartment.PLANNING,
+                    EProductionAlertComment.CAPACITY_CONFIG_MISSING,
+                    str_production_line_no=dict_schedule_row["productionLineNo"],
+                ))
             if dict_schedule_row["dailyCapacityMinutes"] < dict_schedule_row["scheduledMinutes"]:
-                lst_alerts.append({
-                    "alertType": "capacity_bottleneck",
-                    "workOrderNo": "",
-                    "productionLineNo": dict_schedule_row["productionLineNo"],
-                    "riskLevel": 3,
-                    "ownerDepartment": EDepartment.PLANNING,
-                    "comment": "扣除停用時間後的可排工時不足以容納已排工單。",
-                })
+                lst_alerts.append(self.__alert(
+                    EProductionAlertType.CAPACITY_BOTTLENECK,
+                    EProductionRiskLevel.DANGER,
+                    EDepartment.PLANNING,
+                    EProductionAlertComment.CAPACITY_BOTTLENECK,
+                    str_production_line_no=dict_schedule_row["productionLineNo"],
+                ))
         n_total = len(lst_rows)
         lst_today = [
             dict_row for dict_row in lst_rows
@@ -417,31 +425,46 @@ class CProductionDashboardService(object):
             "materialStatus": dict_material["status"],
             "staffStatus": str_staff_status,
             "machineStatus": str_machine_status,
-            "qualityStatus": "deferred",
+            "qualityStatus": EProductionQualityStatus.DEFERRED,
             "deliveryRisk": str_delivery_risk,
             "ownerEmployeeNo": obj_work_order.creator_no or "",
             "ownerEmployeeName": self.__employee_name(obj_work_order.creator_no, dict_context["employees"]),
         }
         lst_readiness = [
-            self.__build_readiness(obj_work_order, "material", dict_material, EDepartment.WAREHOUSE),
-            self.__build_readiness(obj_work_order, "staff", {
+            self.__build_readiness(obj_work_order, EProductionSignalType.MATERIAL, dict_material, EDepartment.WAREHOUSE),
+            self.__build_readiness(obj_work_order, EProductionSignalType.STAFF, {
                 "status": str_staff_status,
-                "riskLevel": 0 if str_staff_status == "ready" else 1,
+                "riskLevel": EProductionRiskLevel.NORMAL if str_staff_status == EProductionStaffStatus.READY else EProductionRiskLevel.NOTICE,
                 "requiredStaffCount": n_required_staff,
                 "assignedStaffCount": n_assigned_staff,
                 "comment": "",
             }, EDepartment.PLANNING),
         ]
         lst_alerts = []
-        if dict_material["status"] in ("shortage", "unknown"):
-            lst_alerts.append(self.__alert("material_shortage", obj_work_order, 2, EDepartment.WAREHOUSE,
-                                           "備料資料不足或存在料品缺口。"))
-        if str_staff_status in ("shortage", "support_needed"):
-            lst_alerts.append(self.__alert("staff_shortage", obj_work_order, 1, EDepartment.PLANNING,
-                                           "人員配置尚未達到工單需求。"))
-        if str_delivery_risk == "high_risk":
-            lst_alerts.append(self.__alert("schedule_delay", obj_work_order, 3, EDepartment.PLANNING,
-                                           "工單可能影響交期。"))
+        if dict_material["status"] == EProductionMaterialStatus.UNKNOWN:
+            lst_alerts.append(self.__alert(
+                EProductionAlertType.MATERIAL_SHORTAGE,
+                EProductionRiskLevel.WARNING,
+                EDepartment.WAREHOUSE,
+                EProductionAlertComment.MATERIAL_SHORTAGE,
+                obj_work_order=obj_work_order,
+            ))
+        if str_staff_status in (EProductionStaffStatus.SHORTAGE, EProductionStaffStatus.SUPPORT_NEEDED):
+            lst_alerts.append(self.__alert(
+                EProductionAlertType.STAFF_SHORTAGE,
+                EProductionRiskLevel.NOTICE,
+                EDepartment.PLANNING,
+                EProductionAlertComment.STAFF_SHORTAGE,
+                obj_work_order=obj_work_order,
+            ))
+        if str_delivery_risk == EProductionDeliveryRisk.HIGH_RISK:
+            lst_alerts.append(self.__alert(
+                EProductionAlertType.SCHEDULE_DELAY,
+                EProductionRiskLevel.DANGER,
+                EDepartment.PLANNING,
+                EProductionAlertComment.SCHEDULE_DELAY,
+                obj_work_order=obj_work_order,
+            ))
         return dict_row, lst_readiness, lst_alerts
 
     def __build_metric(self, obj_session, obj_work_order, dict_context):
@@ -482,12 +505,17 @@ class CProductionDashboardService(object):
             "laborHours": util_round_quantity(f_hours),
             "laborCost": util_round_amount(f_labor_cost),
             "unitLaborCost": util_round_quantity(f_unit_cost),
-            "riskLevel": 1 if b_missing else 0,
+            "riskLevel": EProductionRiskLevel.NOTICE if b_missing else EProductionRiskLevel.NORMAL,
         }
         lst_alerts = []
         if b_missing:
-            lst_alerts.append(self.__alert("labor_cost_missing", obj_work_order, 1, EDepartment.FINANCE,
-                                           "人工費率資料缺漏，人工成本以 0 計算。"))
+            lst_alerts.append(self.__alert(
+                EProductionAlertType.LABOR_COST_MISSING,
+                EProductionRiskLevel.NOTICE,
+                EDepartment.FINANCE,
+                EProductionAlertComment.LABOR_COST_MISSING,
+                obj_work_order=obj_work_order,
+            ))
         return dict_metric, lst_alerts
 
     def __build_schedule(self, obj_session, lst_work_orders, dict_context, str_timezone):
@@ -507,7 +535,7 @@ class CProductionDashboardService(object):
             n_base, str_capacity_status = self.__capacity_base(obj_capacity)
             lst_downtime = obj_session.query(CTableProductionLineDowntime).filter(
                 CTableProductionLineDowntime.production_line_no == str_line_no,
-                CTableProductionLineDowntime.status == 2,
+                CTableProductionLineDowntime.status == EProductionDowntimeStatus.CONFIRMED,
                 CTableProductionLineDowntime.startTime < dict_day["endTimestamp"],
                 CTableProductionLineDowntime.endTime > n_day_start,
             ).all()
@@ -517,7 +545,13 @@ class CProductionDashboardService(object):
             n_scheduled = sum(util_safe_int(obj_row.processTime) for obj_row in lst_rows)
             n_available = max(n_daily - n_scheduled, 0)
             f_utilization = n_scheduled / n_daily * 100 if n_daily > 0 else 0
-            n_risk = 3 if n_daily > 0 and n_scheduled > n_daily else (1 if str_capacity_status in ("missing_config", "disabled") else 0)
+            n_risk = EProductionRiskLevel.DANGER if n_daily > 0 and n_scheduled > n_daily else (
+                EProductionRiskLevel.NOTICE
+                if str_capacity_status in (
+                    EProductionCapacityStatus.MISSING_CONFIG,
+                    EProductionCapacityStatus.DISABLED,
+                ) else EProductionRiskLevel.NORMAL
+            )
             lst_slots = []
             for obj_work_order in lst_rows:
                 dict_row_context = self.__context_for_work_order(dict_context, obj_work_order.no)
@@ -538,7 +572,7 @@ class CProductionDashboardService(object):
                 "baseCapacityMinutes": n_base, "downtimeMinutes": n_downtime,
                 "dailyCapacityMinutes": n_daily, "scheduledMinutes": n_scheduled,
                 "availableMinutes": n_available, "capacityStatus": str_capacity_status,
-                "changeoverMinutes": 0, "changeoverStatus": "deferred",
+                "changeoverMinutes": 0, "changeoverStatus": EProductionChangeoverStatus.DEFERRED,
                 "utilizationRate": util_round_quantity(f_utilization), "bottleneckRank": 0,
                 "riskLevel": n_risk, "slots": lst_slots,
             })
@@ -557,8 +591,15 @@ class CProductionDashboardService(object):
         lst_labor = [dict_row["unitLaborCost"] for dict_row in lst_metrics if dict_row["laborCost"] > 0]
         return {
             "scheduledWorkOrderCount": len(lst_rows),
-            "todayRunningWorkOrderCount": len([dict_row for dict_row in lst_today if dict_row["status"] == "running"]),
-            "readinessRiskCount": len({dict_row["workOrderNo"] for dict_row in lst_today if dict_row["materialStatus"] != "ready" or dict_row["staffStatus"] != "ready"}),
+            "todayRunningWorkOrderCount": len([
+                dict_row for dict_row in lst_today
+                if dict_row["status"] == EProductionWorkOrderStatus.RUNNING
+            ]),
+            "readinessRiskCount": len({
+                dict_row["workOrderNo"] for dict_row in lst_today
+                if dict_row["materialStatus"] != EProductionMaterialStatus.READY
+                or dict_row["staffStatus"] != EProductionStaffStatus.READY
+            }),
             "averageEfficiencyRate": util_round_quantity(sum(lst_eff) / len(lst_eff) if lst_eff else 0),
             "averageMaterialLossRate": util_round_quantity(sum(lst_loss) / len(lst_loss) if lst_loss else 0),
             "averageUnitLaborCost": util_round_quantity(sum(lst_labor) / len(lst_labor) if lst_labor else 0),
@@ -566,13 +607,13 @@ class CProductionDashboardService(object):
 
     def __capacity_base(self, obj_capacity):
         if not obj_capacity:
-            return 0, "missing_config"
+            return 0, EProductionCapacityStatus.MISSING_CONFIG
         n_status = util_safe_int(obj_capacity.status)
-        if n_status == 1:
-            return max(util_safe_int(obj_capacity.availableMinutes), 0), "configured"
-        if n_status == 3:
-            return 0, "closed"
-        return 0, "disabled"
+        if n_status == EProductionCapacityConfigStatus.ACTIVE:
+            return max(util_safe_int(obj_capacity.availableMinutes), 0), EProductionCapacityStatus.CONFIGURED
+        if n_status == EProductionCapacityConfigStatus.CLOSED:
+            return 0, EProductionCapacityStatus.CLOSED
+        return 0, EProductionCapacityStatus.DISABLED
 
     def __merged_downtime_minutes(self, lst_downtime, n_start, n_end):
         lst_ranges = []
@@ -602,53 +643,68 @@ class CProductionDashboardService(object):
         f_returned = sum(util_safe_float(obj_row.count) for obj_row in dict_context["inputs"] if util_safe_int(obj_row.action) == 2)
         f_issued = max(f_issued - f_returned, 0)
         if f_required <= 0:
-            return {"status": "unknown", "riskLevel": 0, "requiredQuantity": 0.0, "availableQuantity": 0.0,
-                    "gapQuantity": 0.0, "requiredStaffCount": 0, "assignedStaffCount": 0, "comment": "缺少 APS/BOM 需求資料。"}
+            return {
+                "status": EProductionMaterialStatus.UNKNOWN,
+                "riskLevel": EProductionRiskLevel.NORMAL,
+                "requiredQuantity": 0.0,
+                "availableQuantity": 0.0,
+                "gapQuantity": 0.0,
+                "requiredStaffCount": 0,
+                "assignedStaffCount": 0,
+                "comment": EProductionAlertComment.MATERIAL_REQUIREMENT_MISSING,
+            }
         if f_issued >= f_required:
-            str_status = "ready"
+            str_status = EProductionMaterialStatus.READY
         elif f_issued > 0:
-            str_status = "partial"
+            str_status = EProductionMaterialStatus.PARTIAL
         else:
-            str_status = "unknown"
-        return {"status": str_status, "riskLevel": 0 if str_status == "ready" else 1,
+            str_status = EProductionMaterialStatus.UNKNOWN
+        return {"status": str_status,
+                "riskLevel": EProductionRiskLevel.NORMAL if str_status == EProductionMaterialStatus.READY else EProductionRiskLevel.NOTICE,
                 "requiredQuantity": util_round_quantity(f_required), "availableQuantity": 0.0,
                 "gapQuantity": util_round_quantity(max(f_required - f_issued, 0)),
                 "requiredStaffCount": 0, "assignedStaffCount": 0,
-                "comment": "第一版未取得 Warehouse 可用量時不推測為可用。"}
+                "comment": EProductionAlertComment.MATERIAL_AVAILABLE_UNKNOWN}
 
     def __staff_status(self, n_required, n_assigned):
         if n_required <= 0:
-            return "unknown"
+            return EProductionStaffStatus.UNKNOWN
         if n_assigned >= n_required:
-            return "ready"
-        return "support_needed" if n_assigned > 0 else "shortage"
+            return EProductionStaffStatus.READY
+        return EProductionStaffStatus.SUPPORT_NEEDED if n_assigned > 0 else EProductionStaffStatus.SHORTAGE
 
     def __machine_status(self, lst_machines):
         if not lst_machines:
-            return "unknown"
+            return EProductionMachineStatus.UNKNOWN
         obj_latest = sorted(lst_machines, key=lambda obj_row: util_safe_int(obj_row.time))[-1]
-        return {1: "running", 2: "paused", 3: "stopped"}.get(util_safe_int(obj_latest.action), "unknown")
+        return {
+            1: EProductionMachineStatus.RUNNING,
+            2: EProductionMachineStatus.PAUSED,
+            3: EProductionMachineStatus.STOPPED,
+        }.get(util_safe_int(obj_latest.action), EProductionMachineStatus.UNKNOWN)
 
     def __work_order_status(self, obj_work_order, dict_context, f_completed, str_material, str_staff, str_machine):
         f_planned = util_safe_float(obj_work_order.processCount)
         b_inventory = bool(dict_context["inventory"])
         if f_planned > 0 and f_completed >= f_planned:
-            return "completed" if b_inventory else "pending_inventory"
-        if str_machine == "paused":
-            return "paused"
+            return EProductionWorkOrderStatus.COMPLETED if b_inventory else EProductionWorkOrderStatus.PENDING_INVENTORY
+        if str_machine == EProductionMachineStatus.PAUSED:
+            return EProductionWorkOrderStatus.PAUSED
         if dict_context["inputs"] or dict_context["machines"]:
-            return "running"
-        if str_material == "ready" and str_staff == "ready":
-            return "material_ready"
-        return "scheduled"
+            return EProductionWorkOrderStatus.RUNNING
+        if str_material == EProductionMaterialStatus.READY and str_staff == EProductionStaffStatus.READY:
+            return EProductionWorkOrderStatus.MATERIAL_READY
+        return EProductionWorkOrderStatus.SCHEDULED
 
     def __delivery_risk(self, obj_work_order, str_status, n_query_timestamp):
-        if str_status in ("completed", "unknown"):
-            return "normal" if str_status == "completed" else "unknown"
+        if str_status == EProductionWorkOrderStatus.COMPLETED:
+            return EProductionDeliveryRisk.NORMAL
+        if not str_status:
+            return EProductionDeliveryRisk.UNKNOWN
         n_expected = util_safe_int(getattr(obj_work_order, "endTime", 0))
         if n_expected and n_query_timestamp > n_expected:
-            return "high_risk"
-        return "normal"
+            return EProductionDeliveryRisk.HIGH_RISK
+        return EProductionDeliveryRisk.NORMAL
 
     def __actual_times(self, dict_context):
         lst_start = [util_safe_int(obj_row.time) for obj_row in dict_context["inputs"] if obj_row.time]
@@ -669,7 +725,7 @@ class CProductionDashboardService(object):
     def __build_readiness(self, obj_work_order, str_type, dict_status, n_department):
         return {
             "workOrderNo": obj_work_order.no or "", "signalType": str_type,
-            "status": "ready" if dict_status["status"] == "ready" else "attention",
+            "status": EProductionReadinessStatus.READY if dict_status["status"] == EProductionReadinessStatus.READY else EProductionReadinessStatus.ATTENTION,
             "riskLevel": util_safe_int(dict_status.get("riskLevel")), "ownerDepartment": n_department,
             "requiredQuantity": util_round_quantity(dict_status.get("requiredQuantity", 0)),
             "availableQuantity": util_round_quantity(dict_status.get("availableQuantity", 0)),
@@ -679,10 +735,25 @@ class CProductionDashboardService(object):
             "comment": dict_status.get("comment", ""),
         }
 
-    def __alert(self, str_type, obj_work_order, n_level, n_department, str_comment):
-        return {"alertType": str_type, "workOrderNo": obj_work_order.no or "",
-                "productionLineNo": obj_work_order.production_line_no or "", "riskLevel": n_level,
-                "ownerDepartment": n_department, "comment": str_comment}
+    def __alert(
+        self,
+        str_type,
+        n_level,
+        n_department,
+        str_comment,
+        obj_work_order=None,
+        str_production_line_no="",
+    ):
+        return {
+            "alertType": str_type,
+            "workOrderNo": obj_work_order.no if obj_work_order else "",
+            "productionLineNo": str_production_line_no or (
+                obj_work_order.production_line_no if obj_work_order else ""
+            ),
+            "riskLevel": n_level,
+            "ownerDepartment": n_department,
+            "comment": str_comment,
+        }
 
     def __labor_cost(self, obj_session, lst_labor, n_date):
         f_cost = 0.0
@@ -710,7 +781,7 @@ class CProductionDashboardService(object):
                 "category": util_safe_int(obj_item.itemCategory), "itemSubCategory": 0,
                 "batchNumber": "", "requiredQuantity": util_round_quantity(obj_item.count),
                 "issuedQuantity": 0.0, "returnedQuantity": 0.0, "availableQuantity": 0.0,
-                "unit": util_safe_int(obj_item.unit), "status": "unknown",
+                "unit": util_safe_int(obj_item.unit), "status": EProductionMaterialStatus.UNKNOWN,
             }
         for obj_input in dict_context["inputs"]:
             dict_row = dict_items.setdefault(obj_input.item_no, {
@@ -718,7 +789,7 @@ class CProductionDashboardService(object):
                 "category": util_safe_int(obj_input.category), "itemSubCategory": util_safe_int(obj_input.itemSubCategory),
                 "batchNumber": obj_input.batch_number or "", "requiredQuantity": 0.0,
                 "issuedQuantity": 0.0, "returnedQuantity": 0.0, "availableQuantity": 0.0,
-                "unit": util_safe_int(obj_input.unit), "status": "unknown",
+                "unit": util_safe_int(obj_input.unit), "status": EProductionMaterialStatus.UNKNOWN,
             })
             if util_safe_int(obj_input.action) == 1:
                 dict_row["issuedQuantity"] += util_safe_float(obj_input.count)
@@ -726,7 +797,11 @@ class CProductionDashboardService(object):
                 dict_row["returnedQuantity"] += util_safe_float(obj_input.count)
         for dict_row in dict_items.values():
             f_net = max(dict_row["issuedQuantity"] - dict_row["returnedQuantity"], 0)
-            dict_row["status"] = "ready" if dict_row["requiredQuantity"] > 0 and f_net >= dict_row["requiredQuantity"] else "unknown"
+            dict_row["status"] = (
+                EProductionMaterialStatus.READY
+                if dict_row["requiredQuantity"] > 0 and f_net >= dict_row["requiredQuantity"]
+                else EProductionMaterialStatus.UNKNOWN
+            )
             for str_key in ("requiredQuantity", "issuedQuantity", "returnedQuantity", "availableQuantity"):
                 dict_row[str_key] = util_round_quantity(dict_row[str_key])
         return list(dict_items.values())
@@ -760,35 +835,35 @@ class CProductionDashboardService(object):
     def __build_mes_events(self, dict_context):
         lst_events = []
         for obj_row in dict_context["inputs"]:
-            lst_events.append({"eventType": "input", "refNo": obj_row.process_order_no or "", "timestamp": util_safe_int(obj_row.time),
+            lst_events.append({"eventType": EMesEventType.INPUT, "refNo": obj_row.process_order_no or "", "timestamp": util_safe_int(obj_row.time),
                                "itemNo": obj_row.item_no or "", "itemName": obj_row.item_name or "", "batchNumber": obj_row.batch_number or "",
                                "quantity": util_round_quantity(obj_row.count), "unit": util_safe_int(obj_row.unit), "employeeNo": "", "employeeName": "",
                                "equipmentNo": "", "equipmentName": "", "comment": obj_row.comment or ""})
         for obj_row in dict_context["outputs"]:
-            lst_events.append({"eventType": "output", "refNo": "", "timestamp": util_safe_int(obj_row.time),
+            lst_events.append({"eventType": EMesEventType.OUTPUT, "refNo": "", "timestamp": util_safe_int(obj_row.time),
                                "itemNo": obj_row.item_no or "", "itemName": obj_row.item_name or "", "batchNumber": obj_row.batch_number or "",
                                "quantity": util_round_quantity(obj_row.count), "unit": util_safe_int(obj_row.unit), "employeeNo": "", "employeeName": "",
                                "equipmentNo": "", "equipmentName": "", "comment": ""})
         for obj_row in dict_context["labor"]:
-            lst_events.append({"eventType": "labor", "refNo": "", "timestamp": util_safe_int(obj_row.startTime),
+            lst_events.append({"eventType": EMesEventType.LABOR, "refNo": "", "timestamp": util_safe_int(obj_row.startTime),
                                "itemNo": "", "itemName": "", "batchNumber": "", "quantity": 0.0, "unit": 0,
                                "employeeNo": obj_row.employee_no or "", "employeeName": obj_row.employee_name or "",
                                "equipmentNo": "", "equipmentName": "", "comment": ""})
         for obj_row in dict_context["machines"]:
-            lst_events.append({"eventType": "machine", "refNo": "", "timestamp": util_safe_int(obj_row.time),
+            lst_events.append({"eventType": EMesEventType.MACHINE, "refNo": "", "timestamp": util_safe_int(obj_row.time),
                                "itemNo": "", "itemName": "", "batchNumber": "", "quantity": 0.0, "unit": 0,
                                "employeeNo": "", "employeeName": "", "equipmentNo": obj_row.equipment_no or "",
                                "equipmentName": obj_row.equipment_name or "", "comment": ""})
         return sorted(lst_events, key=lambda dict_row: dict_row["timestamp"])
 
     def __build_related_documents(self, obj_work_order, dict_context):
-        lst_docs = [{"documentType": "work_order", "documentNo": obj_work_order.no or "", "status": "scheduled", "timestamp": util_safe_int(obj_work_order.date)}]
+        lst_docs = [{"documentType": EProductionDocumentType.WORK_ORDER, "documentNo": obj_work_order.no or "", "status": EProductionDocumentStatus.SCHEDULED, "timestamp": util_safe_int(obj_work_order.date)}]
         if obj_work_order.product_order_no:
-            lst_docs.append({"documentType": "product_order", "documentNo": obj_work_order.product_order_no, "status": "linked", "timestamp": 0})
+            lst_docs.append({"documentType": EProductionDocumentType.PRODUCT_ORDER, "documentNo": obj_work_order.product_order_no, "status": EProductionDocumentStatus.LINKED, "timestamp": 0})
         if dict_context.get("production_data"):
-            lst_docs.append({"documentType": "production_data", "documentNo": obj_work_order.no or "", "status": "linked", "timestamp": util_safe_int(dict_context["production_data"].date)})
+            lst_docs.append({"documentType": EProductionDocumentType.PRODUCTION_DATA, "documentNo": obj_work_order.no or "", "status": EProductionDocumentStatus.LINKED, "timestamp": util_safe_int(dict_context["production_data"].date)})
         set_process_no = {obj_row.process_order_no for obj_row in dict_context["inputs"] + dict_context["outputs"] if obj_row.process_order_no}
-        lst_docs.extend({"documentType": "process_order", "documentNo": str_no, "status": "linked", "timestamp": 0} for str_no in sorted(set_process_no))
+        lst_docs.extend({"documentType": EProductionDocumentType.PROCESS_ORDER, "documentNo": str_no, "status": EProductionDocumentStatus.LINKED, "timestamp": 0} for str_no in sorted(set_process_no))
         return lst_docs
 
 

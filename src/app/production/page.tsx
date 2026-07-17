@@ -12,10 +12,14 @@ import {
   ShieldCheck,
   UsersRound
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useProductionDashboard } from "@/hooks/use-production-dashboard";
+import { productionEnumLabel, productionRiskTone, productionStatusTone } from "@/i18n/production-enums";
+import type { LanguageCode } from "@/i18n/dictionary";
+import { useLanguage } from "@/i18n/language-provider";
 import { AppLayout } from "@/layouts/app-layout";
+import { getProductionWorkOrderDetail } from "@/services/production-api";
 import type {
   ProductionAlert,
   ProductionDashboardData,
@@ -57,6 +61,38 @@ function getRiskTone(risk: WorkOrder["deliveryRisk"]) {
   }
 
   return "success";
+}
+
+function orderStageLabel(order: WorkOrder, language: LanguageCode) {
+  return order.statusCode ? productionEnumLabel("status", order.statusCode, language) : order.stage;
+}
+
+function materialStatusLabel(order: WorkOrder, language: LanguageCode) {
+  return order.materialStatusCode
+    ? productionEnumLabel("materialStatus", order.materialStatusCode, language)
+    : order.materialStatus;
+}
+
+function staffStatusLabel(order: WorkOrder, language: LanguageCode) {
+  return order.staffStatusCode ? productionEnumLabel("staffStatus", order.staffStatusCode, language) : order.staffStatus;
+}
+
+function machineStatusLabel(order: WorkOrder, language: LanguageCode) {
+  return order.machineStatusCode
+    ? productionEnumLabel("machineStatus", order.machineStatusCode, language)
+    : order.machineStatus;
+}
+
+function qualityStatusLabel(order: WorkOrder, language: LanguageCode) {
+  return order.qualityStatusCode
+    ? productionEnumLabel("qualityStatus", order.qualityStatusCode, language)
+    : order.quality.status;
+}
+
+function deliveryRiskLabel(order: WorkOrder, language: LanguageCode) {
+  return order.deliveryRiskCode
+    ? productionEnumLabel("deliveryRisk", order.deliveryRiskCode, language)
+    : order.deliveryRisk;
 }
 
 function normalizeSearch(value: string) {
@@ -259,7 +295,15 @@ function WeekScheduleView({
   );
 }
 
-function AnalyticsView({ orders, searchQuery }: { orders: WorkOrder[]; searchQuery: string }) {
+function AnalyticsView({
+  orders,
+  searchQuery,
+  language
+}: {
+  orders: WorkOrder[];
+  searchQuery: string;
+  language: LanguageCode;
+}) {
   const visibleOrders = orders.filter((order) => orderMatchesSearch(order, searchQuery));
 
   if (!visibleOrders.length) {
@@ -276,7 +320,7 @@ function AnalyticsView({ orders, searchQuery }: { orders: WorkOrder[]; searchQue
               <h3 className="mt-1 font-semibold text-textPrimary">{order.product}</h3>
               <p className="mt-1 text-xs text-textSecondary">{order.line}</p>
             </div>
-            <StatusBadge tone={order.quality.tone}>{order.quality.status}</StatusBadge>
+            <StatusBadge tone={order.quality.tone}>{qualityStatusLabel(order, language)}</StatusBadge>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-md bg-slate-50 p-3">
@@ -307,7 +351,9 @@ function AnalyticsView({ orders, searchQuery }: { orders: WorkOrder[]; searchQue
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <StatusBadge tone={getRiskTone(order.deliveryRisk)}>交期 {order.deliveryRisk}</StatusBadge>
+            <StatusBadge tone={order.deliveryRiskCode ? productionRiskTone(order.deliveryRiskCode) : getRiskTone(order.deliveryRisk)}>
+              交期 {deliveryRiskLabel(order, language)}
+            </StatusBadge>
             <StatusBadge tone={order.qualityBlocksInventory ? "warning" : "success"}>
               {order.qualityBlocksInventory ? "暫緩入庫" : "可入庫"}
             </StatusBadge>
@@ -327,12 +373,14 @@ function ProductionTable({
   orders,
   selectedId,
   searchQuery,
+  language,
   onSelect
 }: {
   activeTab: ProductionWorkspaceTab;
   orders: WorkOrder[];
   selectedId: string;
   searchQuery: string;
+  language: LanguageCode;
   onSelect: (order: WorkOrder) => void;
 }) {
   const rows = useMemo(
@@ -396,27 +444,31 @@ function ProductionTable({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-textPrimary">料品 {order.materialStatus}</p>
+                    <p className="text-textPrimary">料品 {materialStatusLabel(order, language)}</p>
                     <p className="mt-1 text-xs text-textSecondary">
-                      人員 {order.assignedStaff}/{order.requiredStaff} · {order.staffStatus}
+                      人員 {order.assignedStaff}/{order.requiredStaff} · {staffStatusLabel(order, language)}
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-textPrimary">{order.machineStatus}</p>
+                    <p className="text-textPrimary">{machineStatusLabel(order, language)}</p>
                     <p className="mt-1 text-xs text-textSecondary">效率 {order.efficiencyRate}%</p>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge tone={getRiskTone(order.deliveryRisk)}>{order.deliveryRisk}</StatusBadge>
+                    <StatusBadge tone={order.deliveryRiskCode ? productionRiskTone(order.deliveryRiskCode) : getRiskTone(order.deliveryRisk)}>
+                      {deliveryRiskLabel(order, language)}
+                    </StatusBadge>
                     <p className="mt-1 text-xs text-textSecondary">
                       交期 {order.customerDueDate} · 換線 {order.changeoverMinutes} 分
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge tone={order.quality.tone}>{order.quality.status}</StatusBadge>
+                    <StatusBadge tone={order.quality.tone}>{qualityStatusLabel(order, language)}</StatusBadge>
                     <p className="mt-1 text-xs text-textSecondary">不良 {order.quality.defectRate}%</p>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge tone={order.tone}>{order.stage}</StatusBadge>
+                    <StatusBadge tone={order.statusCode ? productionStatusTone(order.statusCode) : order.tone}>
+                      {orderStageLabel(order, language)}
+                    </StatusBadge>
                   </td>
                 </tr>
               );
@@ -428,7 +480,17 @@ function ProductionTable({
   );
 }
 
-function DetailPanel({ order }: { order: WorkOrder }) {
+function DetailPanel({
+  order,
+  language,
+  isLoading,
+  error
+}: {
+  order: WorkOrder;
+  language: LanguageCode;
+  isLoading: boolean;
+  error?: string;
+}) {
   return (
     <aside className="space-y-4 rounded-lg border border-border bg-white p-4 shadow-card xl:sticky xl:top-24">
       <div className="flex items-start justify-between gap-3">
@@ -437,8 +499,16 @@ function DetailPanel({ order }: { order: WorkOrder }) {
           <h2 className="mt-1 text-lg font-semibold text-textPrimary">{order.id}</h2>
           <p className="mt-1 text-sm text-textSecondary">{order.product}</p>
         </div>
-        <StatusBadge tone={order.tone}>{order.stage}</StatusBadge>
+        <StatusBadge tone={order.statusCode ? productionStatusTone(order.statusCode) : order.tone}>
+          {isLoading ? "Loading" : orderStageLabel(order, language)}
+        </StatusBadge>
       </div>
+
+      {error ? (
+        <p className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-xs leading-5 text-warning">
+          Detail API 尚未可用，已保留清單資料。{error}
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-md bg-slate-50 p-3">
@@ -456,12 +526,12 @@ function DetailPanel({ order }: { order: WorkOrder }) {
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">料品/人員</p>
           <p className="mt-1 font-semibold text-textPrimary">
-            {order.materialStatus} / {order.staffStatus}
+            {materialStatusLabel(order, language)} / {staffStatusLabel(order, language)}
           </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">品檢狀態</p>
-          <p className="mt-1 font-semibold text-textPrimary">{order.quality.status}</p>
+          <p className="mt-1 font-semibold text-textPrimary">{qualityStatusLabel(order, language)}</p>
           <p className="mt-1 text-xs text-textSecondary">
             {order.qualityBlocksInventory ? "暫緩入庫" : "可入庫"} /{" "}
             {order.qualityBlocksShipment ? "暫緩出貨" : "可出貨"}
@@ -477,7 +547,7 @@ function DetailPanel({ order }: { order: WorkOrder }) {
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">交期風險</p>
-          <p className="mt-1 font-semibold text-textPrimary">{order.deliveryRisk}</p>
+          <p className="mt-1 font-semibold text-textPrimary">{deliveryRiskLabel(order, language)}</p>
           <p className="mt-1 text-xs text-textSecondary">交期 {order.customerDueDate}</p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
@@ -543,12 +613,14 @@ function MainContent({
   data,
   selectedOrder,
   searchQuery,
+  language,
   onSelectOrder
 }: {
   activeTab: ProductionWorkspaceTab;
   data: ProductionDashboardData;
   selectedOrder: WorkOrder;
   searchQuery: string;
+  language: LanguageCode;
   onSelectOrder: (order: WorkOrder) => void;
 }) {
   if (activeTab === "schedule") {
@@ -558,12 +630,13 @@ function MainContent({
   if (activeTab === "analytics") {
     return (
       <div className="space-y-4">
-        <AnalyticsView orders={data.orders} searchQuery={searchQuery} />
+        <AnalyticsView orders={data.orders} searchQuery={searchQuery} language={language} />
         <ProductionTable
           activeTab={activeTab}
           orders={data.orders}
           selectedId={selectedOrder.id}
           searchQuery={searchQuery}
+          language={language}
           onSelect={onSelectOrder}
         />
       </div>
@@ -576,23 +649,50 @@ function MainContent({
       orders={data.orders}
       selectedId={selectedOrder.id}
       searchQuery={searchQuery}
+      language={language}
       onSelect={onSelectOrder}
     />
   );
 }
 
 export default function ProductionPage() {
+  const { language } = useLanguage();
   const { data: productionData, error, isLoading, source } = useProductionDashboard();
   const [activeTab, setActiveTab] = useState<ProductionWorkspaceTab>("schedule");
   const [selectedOrderId, setSelectedOrderId] = useState<string>(productionData.orders[0].id);
+  const [detailOrder, setDetailOrder] = useState<WorkOrder | undefined>();
+  const [detailError, setDetailError] = useState<string | undefined>();
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const searchQuery = normalizeSearch(searchValue);
   const selectedOrderCandidate =
     productionData.orders.find((order) => order.id === selectedOrderId) ?? productionData.orders[0];
-  const selectedOrder =
+  const selectedOrderBase =
     searchQuery && !orderMatchesSearch(selectedOrderCandidate, searchQuery)
       ? productionData.orders.find((order) => orderMatchesSearch(order, searchQuery)) ?? selectedOrderCandidate
       : selectedOrderCandidate;
+  const selectedOrder = detailOrder?.id === selectedOrderBase.id ? detailOrder : selectedOrderBase;
+
+  useEffect(() => {
+    if (!selectedOrderBase?.id) {
+      return;
+    }
+
+    let isMounted = true;
+
+    getProductionWorkOrderDetail(selectedOrderBase.id, selectedOrderBase).then((result) => {
+      if (!isMounted) {
+        return;
+      }
+      setDetailOrder(result.order);
+      setDetailError(result.error);
+      setIsDetailLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedOrderBase]);
 
   return (
     <AppLayout activePath="/production" title="生產管理 Production Workspace">
@@ -689,7 +789,12 @@ export default function ProductionPage() {
               data={productionData}
               selectedOrder={selectedOrder}
               searchQuery={searchQuery}
-              onSelectOrder={(order) => setSelectedOrderId(order.id)}
+              language={language}
+              onSelectOrder={(order) => {
+                setIsDetailLoading(true);
+                setDetailError(undefined);
+                setSelectedOrderId(order.id);
+              }}
             />
 
             <div className="grid gap-3 lg:grid-cols-3">
@@ -708,7 +813,7 @@ export default function ProductionPage() {
             </div>
           </div>
 
-          <DetailPanel order={selectedOrder} />
+          <DetailPanel order={selectedOrder} language={language} isLoading={isDetailLoading} error={detailError} />
         </section>
       </div>
     </AppLayout>

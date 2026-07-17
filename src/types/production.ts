@@ -1,12 +1,12 @@
 import type { StatusTone } from "@/types/dashboard";
 
-export type WorkOrderStage = "待排程" | "待備料" | "生產中" | "品檢" | "包裝" | "完工";
+export type WorkOrderStage = string;
 
 export type ProductionWorkspaceTab = "schedule" | "mes" | "analytics" | "details";
 
-export type ProductionMaterialStatus = "足夠" | "待領料" | "短缺";
-export type ProductionStaffStatus = "足夠" | "需支援" | "不足";
-export type ProductionQualityStatus = "未開始" | "首件通過" | "檢驗中" | "待判定" | "合格" | "異常";
+export type ProductionMaterialStatus = string;
+export type ProductionStaffStatus = string;
+export type ProductionQualityStatus = string;
 
 export type ProductionMaterial = {
   itemNo: string;
@@ -17,6 +17,10 @@ export type ProductionMaterial = {
   unit: string;
   status: ProductionMaterialStatus;
   tone: StatusTone;
+  statusCode?: string;
+  unitCode?: number;
+  availableQty?: number;
+  returnedQty?: number;
 };
 
 export type ProductionWorkflowStep = {
@@ -24,6 +28,8 @@ export type ProductionWorkflowStep = {
   ref: string;
   status: "完成" | "進行中" | "待處理";
   tone: StatusTone;
+  statusCode?: string;
+  stepCode?: string;
 };
 
 export type ProductionRelatedDocument = {
@@ -31,6 +37,8 @@ export type ProductionRelatedDocument = {
   no: string;
   status: string;
   tone: StatusTone;
+  statusCode?: string;
+  timestamp?: string;
 };
 
 export type QualitySnapshot = {
@@ -41,13 +49,14 @@ export type QualitySnapshot = {
   pendingCount: number;
   result: string;
   tone: StatusTone;
+  statusCode?: string;
 };
 
 export type WorkOrder = {
   id: string;
   product: string;
   batchNo: string;
-  processType: "調理" | "冷凍" | "包裝" | "殺菌" | "備料";
+  processType: string;
   line: string;
   stage: WorkOrderStage;
   tone: StatusTone;
@@ -57,11 +66,11 @@ export type WorkOrder = {
   unit: string;
   owner: string;
   eta: string;
-  priority: "高" | "中" | "低";
+  priority: string;
   sourceOrder: string;
   bomNo: string;
   customerDueDate: string;
-  deliveryRisk: "正常" | "注意" | "高風險";
+  deliveryRisk: string;
   scheduleDate: string;
   startTime: string;
   endTime: string;
@@ -70,7 +79,7 @@ export type WorkOrder = {
   staffStatus: ProductionStaffStatus;
   requiredStaff: number;
   assignedStaff: number;
-  machineStatus: "正常" | "待機" | "異常";
+  machineStatus: string;
   standardHours: number;
   actualHours: number;
   efficiencyRate: number;
@@ -83,6 +92,18 @@ export type WorkOrder = {
   quality: QualitySnapshot;
   qualityBlocksInventory: boolean;
   qualityBlocksShipment: boolean;
+  statusCode?: string;
+  materialStatusCode?: string;
+  staffStatusCode?: string;
+  machineStatusCode?: string;
+  qualityStatusCode?: string;
+  deliveryRiskCode?: string;
+  unitCode?: number;
+  productionLineNo?: string;
+  productNo?: string;
+  ownerEmployeeNo?: string;
+  actualStartTime?: string;
+  actualEndTime?: string;
   materials: ProductionMaterial[];
   workflow: ProductionWorkflowStep[];
   relatedDocuments: ProductionRelatedDocument[];

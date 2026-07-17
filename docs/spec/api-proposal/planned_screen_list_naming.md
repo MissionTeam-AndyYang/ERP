@@ -69,6 +69,29 @@ Naming rules:
 | P0.2.1 | `DeferredCommitmentOrdersState` | 待承諾協調訂單狀態 | `OrdersWorkspaceScreen` | 從接單承諾視圖或承諾檢查 KPI 進入 | `commitmentDecision=deferred` |
 | P0.4.1 | `MarginPaymentRiskOrdersState` | 毛利與收款風險訂單狀態 | `OrdersWorkspaceScreen` | 從毛利 / 收款視圖、付款風險 KPI 或財務 drill-down 進入 | 前端以 dashboard payload 的 margin / payment signal 映射；若後端後續提供 query，再同步補齊。 |
 
+## Production Workspace Screen Roadmap
+
+本節列出 `production_dashboard_proposal.md` 後端 API 經工程師確認後，前端正式串接的 Production 第一版畫面命名與實作狀態。Production V1 採 read-only core dashboard 範圍，不建立工單、不調整排程、不寫入 MES、不建立品檢單，也不產生入庫或出貨單。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `ProductionWorkspaceScreen` | Screen | 生產管理工作區 | `/production` | 已有第一版，已串接 Production Dashboard 與 Work Order Detail API | `GET /api/v2/production/dashboard`、`GET /api/v2/production/work-orders/{work_order_no}/detail` | Production 模組入口畫面，呈現一週排程、產線產能、今日工單、備料/人員 readiness、效率損耗與警示；右側 panel 顯示選取工單明細。 |
+| P0.1 | V1 Core | `ProductionScheduleCapacityView` | View | 週排程與產能視圖 | `ProductionWorkspaceScreen` 內的「週排程與產能」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/production/dashboard` | 依日期與產線呈現 `scheduleByLine[]`，包含可排工時、已排工時、剩餘工時、瓶頸排序、產線停用與排程 slot。 |
+| P0.2 | V1 Core | `ProductionMesWorkOrderView` | View | MES 工單現況視圖 | `ProductionWorkspaceScreen` 內的「MES 工單現況」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/production/dashboard` | 呈現 `todayWorkOrders[]` 的工單狀態、進度、產線、機台、備料、人員、交期風險與品檢 deferred 狀態。 |
+| P0.3 | V1 Core | `ProductionEfficiencyLossView` | View | 效率損耗視圖 | `ProductionWorkspaceScreen` 內的「效率損耗」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/production/dashboard` | 以 `productionMetrics[]` 呈現產時效率、原物料投入/產出/餘廢料、損耗率、人工工時、人工成本與單品人工費率。 |
+| P0.4 | V1 Core | `ProductionWorkOrderDetailPanel` | Panel | 生產工單追蹤面板 | `ProductionWorkspaceScreen` 右側 panel；窄版可作 drawer 或 detail route | 已有第一版，已串接 selected work order detail API | `GET /api/v2/production/work-orders/{work_order_no}/detail` | 顯示單一工單的計畫數量、已完工量、備料、人員、流程狀態、MES event、關聯單據與 detail API fallback 狀態。 |
+
+## Production Workspace State Naming
+
+以下項目是 `ProductionWorkspaceScreen` 內的篩選狀態或 drill-down 情境，不是獨立畫面。若後續工程任務需實作，應寫成「在 `ProductionWorkspaceScreen` 支援 `ProductionCapacityBottleneckState`」，不要寫成「新增產能瓶頸畫面」。
+
+| Priority | State Code | 顯示名稱 | 所屬畫面 | 觸發來源 | API Query / State |
+| --- | --- | --- | --- | --- | --- |
+| P0.1.1 | `ProductionCapacityBottleneckState` | 產能瓶頸狀態 | `ProductionWorkspaceScreen` | 從週排程與產能視圖、警示卡或產線 utilization drill-down | 依 dashboard payload 的 `scheduleByLine[].riskLevel`、`availableMinutes`、`bottleneckRank` 前端篩選；若後端後續提供 query，再同步補齊。 |
+| P0.2.1 | `ProductionRunningWorkOrderState` | 今日生產中工單狀態 | `ProductionWorkspaceScreen` | 從今日 MES KPI 或 MES 工單現況視圖進入 | `status=running` 或以前端依 `todayWorkOrders[].status` 篩選。 |
+| P0.2.2 | `ProductionPendingInventoryState` | 待入庫工單狀態 | `ProductionWorkspaceScreen` | 從工單狀態 badge 或右側追蹤面板進入 | `status=pending_inventory` 或以前端依 `todayWorkOrders[].status` 篩選。 |
+| P0.3.1 | `ProductionEfficiencyRiskState` | 效率損耗風險狀態 | `ProductionWorkspaceScreen` | 從效率損耗視圖、警示卡或管理 KPI drill-down | 依 `productionMetrics[].riskLevel`、`efficiencyRate`、`materialLossRate` 前端篩選；若後端後續提供 query，再同步補齊。 |
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：
@@ -97,6 +120,8 @@ Naming rules:
 | `WarehouseInventoryMovementLedgerScreen` | Deferred to next version；本版略過。 | 暫不進行工程師 review、後端實作或前端串接；文件保留作為下一版追溯畫面討論基礎。 |
 | `OrdersWorkspaceScreen` | 已有第一版，已串接 `GET /api/v2/orders/dashboard` 與 `GET /api/v2/orders/{order_no}/fulfillment`。 | 依工程師實機資料檢查 dashboard payload、selected order fulfillment payload、enum 多國語系顯示、空狀態與 fallback 邊界。 |
 | `OrderFulfillmentDetailPanel` | 已有第一版，已串接 selected order fulfillment API。 | 依 runtime payload 檢查 workflow 節點、dependencies、來源單號、comment、負責部門與狀態 tone 呈現。 |
+| `ProductionWorkspaceScreen` | 已有第一版，已串接 `GET /api/v2/production/dashboard` 與 `GET /api/v2/production/work-orders/{work_order_no}/detail`；Production enum 顯示由前端多國語系轉換。 | 依工程師實機資料檢查 dashboard payload、selected work order detail payload、產線產能、readiness、metrics、alerts、空狀態與 fallback 邊界。 |
+| `ProductionWorkOrderDetailPanel` | 已有第一版，已串接 selected work order detail API，API 失敗時保留 dashboard 清單資料並顯示 controlled fallback。 | 依 runtime payload 檢查 materials、MES events、outputs、reuse/waste、labor、machines、related documents 與 status tone 呈現。 |
 
 ## Roadmap Coverage Confirmation
 

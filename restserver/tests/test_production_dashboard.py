@@ -10,7 +10,7 @@ RESTSERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(RESTSERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(RESTSERVER_ROOT))
 
-from package.common.common import EDepartment
+from package.common.common import EDepartment, EProductionAlertComment
 from package.dbwrapper.table import (
     Base,
     CTableAPSQuantityItem,
@@ -149,6 +149,10 @@ def test_production_dashboard_calculates_capacity_and_metrics():
     assert dict_payload["productionMetrics"][0]["laborCost"] == 400
     assert dict_payload["productionMetrics"][0]["unitLaborCost"] == 4.0
     assert any(dict_row["alertType"] == "capacity_downtime" for dict_row in dict_payload["alerts"])
+    assert any(
+        dict_row["comment"] == EProductionAlertComment.CAPACITY_DOWNTIME
+        for dict_row in dict_payload["alerts"]
+    )
 
 
 def test_production_dashboard_returns_unknown_material_when_requirement_is_not_issued():
@@ -161,6 +165,10 @@ def test_production_dashboard_returns_unknown_material_when_requirement_is_not_i
     )
     assert dict_payload["todayWorkOrders"][0]["materialStatus"] == "unknown"
     assert any(dict_row["alertType"] == "material_shortage" for dict_row in dict_payload["alerts"])
+    assert any(
+        dict_row["comment"] == EProductionAlertComment.MATERIAL_SHORTAGE
+        for dict_row in dict_payload["alerts"]
+    )
 
 
 def test_production_dashboard_route_uses_standard_envelope(monkeypatch):

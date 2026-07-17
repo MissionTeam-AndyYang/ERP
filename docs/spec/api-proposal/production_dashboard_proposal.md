@@ -304,8 +304,7 @@
 | payload.scheduleByLine[].changeoverStatus | String | 換線/清潔時間功能狀態；第一版固定回傳 `deferred`，前端顯示「待實作」。 | deferred |
 | payload.scheduleByLine[].utilizationRate | Float | 產能利用率，`scheduledMinutes / dailyCapacityMinutes * 100`。 |  |
 | payload.scheduleByLine[].bottleneckRank | Integer | 依 `availableMinutes` 由小到大排序的瓶頸名次；無產能基準時回傳 0。 |  |
-| payload.scheduleByLine[].riskLevel | Integer | 該產線當日最高風險等級。 | 0 normal、1 notice、2 attention、3 high_risk |
-| payload.scheduleByLine[].slots[] | Array | 該產線當日排程的工單時段。 |  |
+| payload.scheduleByLine[].riskLevel | Integer | 該產線當日最高風險等級；由 `EProductionRiskLevel` 定義。 | 0 normal、1 notice、2 warning、3 danger |
 | payload.todayWorkOrders[].workOrderNo | String | 派工單 no，來源為 `work_order.no`。 |  |
 | payload.todayWorkOrders[].productOrderNo | String | 訂購單 no，來源為 `work_order.product_order_no`。 |  |
 | payload.todayWorkOrders[].productNo | String | 產品 no，來源為 `work_order.product_no` 或 `production_data.product_no`。 |  |
@@ -321,19 +320,19 @@
 | payload.todayWorkOrders[].completedQuantity | Float | 已產出數量，來源為 `production_data_output.count` 加總。 |  |
 | payload.todayWorkOrders[].unit | Integer | 單位代碼，來源為 `work_order.processUnit` 或 `production_data_output.unit`。 |  |
 | payload.todayWorkOrders[].progressRate | Float | `completedQuantity / plannedQuantity * 100`，無計畫數量時回傳 0。 |  |
-| payload.todayWorkOrders[].status | String | 工單狀態代碼，由工單、MES 投入/產出、機台狀態與入庫狀態彙總；產出量達標但尚未入庫時回傳 `pending_inventory`。 | scheduled、material_ready、running、paused、pending_inventory、completed、blocked、unknown |
-| payload.todayWorkOrders[].materialStatus | String | 備料狀態代碼，由 BOM/APS 所需投入與 Warehouse 可用量或 `production_data_input` 領料資料判斷。 | ready、partial、shortage、unknown |
+| payload.todayWorkOrders[].status | String | 工單狀態代碼，由工單、MES 投入/產出、機台狀態與入庫狀態彙總；產出量達標但尚未入庫時回傳 `pending_inventory`。 | scheduled、material_ready、running、paused、pending_inventory、completed |
+| payload.todayWorkOrders[].materialStatus | String | 備料狀態代碼，由 BOM/APS 所需投入與 `production_data_input` 領料資料判斷；Warehouse 可用量不足時保守回傳 `unknown`。 | ready、partial、unknown |
 | payload.todayWorkOrders[].staffStatus | String | 人員狀態代碼；排程前 readiness 優先由 `process_labor` 預估投入人員與 `work_order.laborCount` 判斷，已開工後可輔以 `production_data_labor` 實際投入人員判斷。 | ready、support_needed、shortage、unknown |
 | payload.todayWorkOrders[].machineStatus | String | 機台狀態代碼，由 `production_data_machine.action` 最新狀態判斷。 | running、paused、stopped、unknown |
 | payload.todayWorkOrders[].qualityStatus | String | 品檢功能留待下一版實作；第一版固定回傳 `deferred`，前端顯示「待實作」。 | deferred |
-| payload.todayWorkOrders[].deliveryRisk | String | 工單是否可能影響交期；由排程時間、完成率、readiness、機台與入庫狀態彙總。 | normal、attention、high_risk、unknown |
+| payload.todayWorkOrders[].deliveryRisk | String | 工單是否可能影響交期；由預計結束時間與查詢基準時間判斷。 | normal、high_risk、unknown |
 | payload.todayWorkOrders[].ownerEmployeeNo | String | 工單負責人員 no，優先來源為 `work_order.creator_no` 或主管確認的 owner 欄位。 |  |
 | payload.todayWorkOrders[].ownerEmployeeName | String | 工單負責人員名稱；無資料回傳空字串。 |  |
-| payload.readinessSignals[].signalType | String | readiness 訊號類型。 | material、staff、capacity、machine、quality |
-| payload.readinessSignals[].status | String | readiness 狀態。 | ready、attention、blocked、unknown |
-| payload.readinessSignals[].riskLevel | Integer | readiness 風險等級。 | 0 normal、1 notice、2 attention、3 high_risk |
+| payload.readinessSignals[].signalType | String | readiness 訊號類型。 | material、staff |
+| payload.readinessSignals[].status | String | readiness 狀態。 | ready、attention |
+| payload.readinessSignals[].riskLevel | Integer | readiness 風險等級；由 `EProductionRiskLevel` 定義。 | 0 normal、1 notice |
 | payload.readinessSignals[].ownerDepartment | Integer | 下一步負責部門 enum；由 workflow next owner rule 或固定對應規則彙總。 |  |
-| payload.readinessSignals[].comment | String | readiness 摘要；僅描述可由資料支持的缺口或阻擋原因。 |  |
+| payload.readinessSignals[].comment | String | readiness 資料狀態 code；前端依 code 進行多國語系轉換。 | production.readiness.material_requirement_missing、production.readiness.material_available_unknown |
 | payload.productionMetrics[].standardMinutes | Integer | 標準/預估投產分鐘數，來源為 `work_order.processTime`。 |  |
 | payload.productionMetrics[].actualMinutes | Integer | 實際投產分鐘數；第一版以 `production_data_labor.action = 上下班(1)` 的 `hours` 加總後換算分鐘，排除 `休息(2)`，`清潔(3)` 留待下一版換線/間接工時規劃。 |  |
 | payload.productionMetrics[].efficiencyRate | Float | 產時效率，`standardMinutes / actualMinutes * 100`；無實際分鐘數回傳 0。 |  |
@@ -348,7 +347,7 @@
 | payload.productionMetrics[].laborCost | Float | 人工成本；依 `production_data_labor.hours` 搭配 `labor_wage` 生效日、員工型態與階級計算。費率缺漏的工時以 0 計，並產生 `labor_cost_missing` alert。 |  |
 | payload.productionMetrics[].unitLaborCost | Float | `laborCost / outputQuantity`；無人工成本或產出量回傳 0。 |  |
 | payload.alerts[].alertType | String | 異常或提醒類型。 | material_shortage、staff_shortage、capacity_bottleneck、capacity_config_missing、capacity_downtime、schedule_delay、efficiency_loss、loss_over_threshold、labor_cost_missing |
-| payload.alerts[].comment | String | 風險摘要。 |  |
+| payload.alerts[].comment | String | 後端產生的警示 code；前端依 code 進行多國語系轉換。 | production.alert.material_shortage、production.alert.staff_shortage、production.alert.capacity_downtime、production.alert.capacity_config_missing、production.alert.capacity_bottleneck、production.alert.schedule_delay、production.alert.labor_cost_missing |
 
 ## [新增提案] production_line_daily_capacity
 

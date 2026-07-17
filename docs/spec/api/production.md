@@ -150,7 +150,7 @@ None
 | payload.scheduleByLine[].changeoverStatus | String | 換線／清潔時間的實作狀態。 | `deferred` |
 | payload.scheduleByLine[].utilizationRate | Float | `scheduledMinutes / dailyCapacityMinutes * 100`；分母為 0 時回傳 0。 |  |
 | payload.scheduleByLine[].bottleneckRank | Integer | 依剩餘可排工時排序的產線瓶頸排名。 |  |
-| payload.scheduleByLine[].riskLevel | Integer | 該產線排程產能風險等級。 | 0、1、3 |
+| payload.scheduleByLine[].riskLevel | Integer | 該產線排程產能風險等級；由 `EProductionRiskLevel` 定義。 | 0、1、2、3 |
 | payload.scheduleByLine[].slots[].workOrderNo | String | 派工單 no。 |  |
 | payload.scheduleByLine[].slots[].productOrderNo | String | 關聯訂購單 no。 |  |
 | payload.scheduleByLine[].slots[].productNo | String | 產品 no。 |  |
@@ -200,7 +200,7 @@ None
 | payload.readinessSignals[].gapQuantity | Float | 需求數量扣除可用數量後的缺口數量。 |  |
 | payload.readinessSignals[].requiredStaffCount | Integer | 需求人數。 |  |
 | payload.readinessSignals[].assignedStaffCount | Integer | 已指派人數。 |  |
-| payload.readinessSignals[].comment | String | 資料狀態或 readiness 補充說明。 |  |
+| payload.readinessSignals[].comment | String | readiness 資料狀態 code；由前端依 code 進行多國語系轉換。 | `production.readiness.material_requirement_missing`, `production.readiness.material_available_unknown` |
 | payload.productionMetrics[].workOrderNo | String | 指標所屬派工單 no。 |  |
 | payload.productionMetrics[].standardMinutes | Integer | 標準工時分鐘數。 |  |
 | payload.productionMetrics[].actualMinutes | Integer | 實際工時分鐘數。 |  |
@@ -219,9 +219,9 @@ None
 | payload.alerts[].alertType | String | 警示類型 code。 | `material_shortage`, `staff_shortage`, `capacity_bottleneck`, `capacity_config_missing`, `capacity_downtime`, `schedule_delay`, `efficiency_loss`, `loss_over_threshold`, `labor_cost_missing` |
 | payload.alerts[].workOrderNo | String | 警示所屬工單 no；產能設定警示可為空字串。 |  |
 | payload.alerts[].productionLineNo | String | 警示所屬產線 no。 |  |
-| payload.alerts[].riskLevel | Integer | 警示風險等級。 | 1、3 |
+| payload.alerts[].riskLevel | Integer | 警示風險等級；由 `EProductionRiskLevel` 定義。 | 0、1、2、3 |
 | payload.alerts[].ownerDepartment | Integer | 負責處理部門 code。 |  |
-| payload.alerts[].comment | String | 後端產生的資料或風險補充說明；非前端多國語系 enum 顯示文字。 |  |
+| payload.alerts[].comment | String | 後端產生的警示 code；前端依 code 進行多國語系轉換，不是後端直接產生的顯示文字。 | `production.alert.material_shortage`, `production.alert.staff_shortage`, `production.alert.capacity_downtime`, `production.alert.capacity_config_missing`, `production.alert.capacity_bottleneck`, `production.alert.schedule_delay`, `production.alert.labor_cost_missing` |
 
 ### Processing Flow
 

@@ -4,6 +4,18 @@
 > 對應文件：`quality_dashboard_proposal.md`  
 > 狀態：Proposal / Pending Engineer Review
 
+## 工程師回覆理解與文件更新
+
+| 工程師回覆／提問 | 理解與確認 | 本次流程更新 |
+| --- | --- | --- |
+| 查詢期間與倉儲參數命名需統一。 | 採用 `period` 與 `warehouse_no`；`period` 支援 `today`、`7d`、`14d`，預設 `today`。 | Step 1 與所有查詢條件改用正式參數名稱。 |
+| `workflow_task_state` 欄位來源不明。 | 依正式 DB schema：預計處理時間是 `dueTimestamp`，任務完成判斷使用 `taskStatus = 3`；schema 沒有 `completedTimestamp`，故第一版回傳 0。品檢單號只從 `warehouse_quality_hold.inspection_no` 取得。 | Step 3、Step 4 與 detail 流程不再假設不存在欄位。 |
+| `warehouse_quality_hold` 欄位定義需明確。 | `no` 是對外 hold_no；`status` 為 1 保留中、2 已放行、3 退回、4 報廢。第一版只有 status=1 納入 active hold，未定義部分釋放推導。 | Step 2 與 detail Step 1 補充 status enum 與範圍限制。 |
+| `holdValue` NULL 的處理方式。 | 優先使用資料表值；NULL 且數量與單價俱全時，以 `holdQuantity * unitCost` 補算；仍缺資料回傳 0，不回寫資料庫。 | Step 2 與 Step 8 補充 value fallback。 |
+| 品檢保留與任務的關聯。 | 沒有直接 task-to-hold foreign key；使用 `refCategory/ref_no/ref_sub_no`，再以 item、batch、warehouse 交叉比對。完全吻合才視為 confirmed。 | Task、timeline 與 detail Step 3 更新關聯判斷。 |
+| 品檢單資料表尚未規劃。 | 第一版不假設 inspection header/result/defect table；保留資料以 `warehouse_quality_hold` 為來源，正式品檢單另開 DB extension。 | Detail Step 1 與 Step 4 明確限制來源。 |
+| 明細不存在與共用 Warehouse 計算邏輯。 | detail 沿用既有標準 not-found response；共用 Warehouse snapshot calculator，不在 Quality API 重寫補算邏輯。 | Detail Step 1、Step 2 與效能章節更新。 |
+
 ## 1. 設計原則
 
 1. 只讀查詢，不修改品檢保留、任務或來源單據。
@@ -19,8 +31,8 @@
 
 1. 讀取 `date`，未提供時使用目前 UTC timestamp。
 2. 依 `timezone` 將查詢基準日轉為當地日期。
-3. `today` 使用當日 00:00:00 至 23:59:59；`7d` 與 `14d` 使用包含基準日在內的連續日期範圍。
-4. 將非法 `dateRange` 正規化為 `today`，不可讓錯誤參數造成無限或超大範圍查詢。
+3. `period=today` 使用當日 00:00:00 至 23:59:59；`period=7d` 與 `period=14d` 使用包含基準日在內的連續日期範圍。
+4. 將非法 `period` 正規化為 `today`，不可讓錯誤參數造成無限或超大範圍查詢。
 
 ### Step 2：查詢有效品檢保留
 
@@ -29,13 +41,13 @@
 ```text
 status = 1
 date <= queryTimestamp
-warehouse_no = warehouseNo（若有）
+warehouse_no = request.warehouse_no（若有）
 item_no 對應 itemCategory（若有）
 ```
 
 1. 以 `hold_no`／`no`、item、batch、warehouse 做必要的聚合鍵。
 2. `holdQuantity`、`holdValue` 使用資料表值加總。
-3. NULL `holdValue` 的處理方式需工程師確認；未確認前不得以其他價格來源補算。
+3. NULL `holdValue` 優先以 `holdQuantity * unitCost` 補算；若任一欄位缺漏則回傳 0，不回寫資料庫。
 4. 品檢保留數量小於等於 0 的列不建立 `riskAlerts[]`，但是否保留在摘要計算中需與工程師確認。
 
 ### Step 3：查詢品檢 workflow 任務
@@ -45,13 +57,13 @@ item_no 對應 itemCategory（若有）
 1. 套用日期、倉庫、關鍵字、status 與 `riskOnly` 條件。
 2. `workflow_task_state.status` 直接轉為 API 的 `status` code，不在後端轉成中文字串。
 3. `ownerDepartment` 直接回傳資料表 code。
-4. `sourceType`、`sourceNo`、`inspectionNo` 的實際欄位來源依工程師確認結果實作；若來源欄位不存在，回傳空值並建立資料缺漏狀態，不可自行拼接單號。
+4. `refCategory`、`sourceNo` 分別取自 `workflow_task_state.refCategory`、`workflow_task_state.ref_no`；`inspectionNo` 取自關聯 `warehouse_quality_hold.inspection_no`。若來源欄位不存在或無法關聯，回傳空值，不可自行拼接單號。
 5. 逾期判斷需使用任務預計完成時間與查詢基準時間：
 
 ```text
-status not in completed/cancelled
-and plannedTimestamp > 0
-and plannedTimestamp < queryTimestamp
+taskStatus not in completed/cancelled
+and dueTimestamp > 0
+and dueTimestamp < queryTimestamp
 => status = overdue（僅 API 篩選與風險判斷，不覆寫 DB 狀態）
 ```
 
@@ -89,7 +101,7 @@ affectedWarehouseCount = 不重複 warehouse_no 數
 
 ### Step 7：資料庫分頁與排序
 
-1. `qualityTasks[]` 以 `plannedTimestamp` ASC、`taskNo` ASC 排序。
+1. `qualityTasks[]` 以 `dueTimestamp` ASC、`taskNo` ASC 排序；API 欄位名稱為 `plannedTimestamp`。
 2. `start` 最小為 0，`count` 預設 50、最大 100。
 3. `total` 為套用篩選後的任務總筆數，不是本次 page 筆數。
 4. `summary`、hold aggregates 與 alerts 不應因 page slicing 而漏算全域摘要。
@@ -106,7 +118,7 @@ affectedWarehouseCount = 不重複 warehouse_no 數
 
 ### Step 2：查詢批號庫存摘要
 
-使用既有 Warehouse inventory snapshot calculator／服務查詢同一 `warehouseNo + itemNo + batchNo`：
+使用既有 Warehouse inventory snapshot calculator／服務查詢同一 `warehouse_no + itemNo + batchNo`：
 
 ```text
 quantity = snapshot.quantity
@@ -128,7 +140,7 @@ qualityHoldValue = snapshot.qualityHoldValue
 
 ### Step 4：查詢關聯單據
 
-只回傳實際存在且可由來源欄位追溯的單據。若工程師尚未確認 `sourceType` 對應規則，`relatedDocuments[]` 暫不得擴充未知單據類型。
+只回傳實際存在且可由 `refCategory/ref_no/ref_sub_no` 追溯的單據；不得擴充未由正式 schema 確認的單據類型。
 
 ## 4. 效能與一致性
 
@@ -139,17 +151,13 @@ qualityHoldValue = snapshot.qualityHoldValue
 5. 只選取 API 實際需要欄位；不將整張表的未使用欄位轉成 JSON。
 6. 對 `warehouse_quality_hold` 建議確認 `(status, date, warehouse_no, item_no, batchNumber)` 查詢索引是否足夠；若需調整，另產生 DB extension proposal，不在本 API 提案直接修改正式 schema。
 
-## 5. 需工程師確認的實作阻塞點
+## 5. 工程師回覆
 
-1. `workflow_task_state` 的實際欄位是否包含 `plannedTimestamp`、`completedTimestamp`、`inspectionNo`；若名稱不同請指定正式欄位。
-    - 工程師回覆: 目前無法明確得知 plannedTimestamp、completedTimestamp、inspectionNo 欄位的定義，因此工程師將無法回覆相關問題。此外，workflow_task_state 乃由你規劃設計，各欄位定義理應比工程師更清楚。若仍不清楚，請詳閱資料庫文件（docs\spec\database\index.md）。
-2. `warehouse_quality_hold.no` 是否為可直接對外使用的 hold_no。
-    - 工程師回覆: warehouse_quality_hold 乃由你規劃設計，各欄位定義理應比工程師更清楚。若仍不清楚，請詳閱資料庫文件（docs\spec\database\index.md）。
-3. `warehouse_quality_hold.status` 的完整 enum 與部分釋放規則。
-    - 工程師回覆: warehouse_quality_hold 乃由你規劃設計，各欄位定義理應比工程師更清楚。若仍不清楚，請詳閱資料庫文件（docs\spec\database\index.md）。
-4. `holdValue` NULL 的處理方式。
-    - 工程師回覆: 請詳細說明問題，目前僅提及 holdValue，資訊不足。若未能明確補充說明，工程師將無法回覆相關問題。
-5. 品檢保留與任務的正式關聯 key。
-    - 工程師回覆: 請詳細描述問題，否則工程師將無法回覆相關問題。
-6. Quality API 是否可直接 import Warehouse snapshot calculator，或需新增一個共用 service facade。
-    - 工程師回覆: 若函式能共用，請盡量共用。若認為程式碼的擺放位置不佳，則可將共用函式集中放置於 restserver\package\restserver\api\v2\common.py。
+| 項目 | 工程師回覆 | 理解與流程定義 |
+| --- | --- | --- |
+| `workflow_task_state` 時間與品檢欄位 | 工程師指出需依正式資料庫文件確認欄位定義。 | `plannedTimestamp` 對應 `dueTimestamp`；完成狀態使用 `taskStatus = 3`，因 schema 沒有完成時間欄位，`completedTimestamp` 固定回傳 0；`inspectionNo` 只從 `warehouse_quality_hold.inspection_no` 取得。 |
+| `warehouse_quality_hold.no` | `warehouse_quality_hold` 為本次規劃的正式資料表，欄位定義需由提案文件明確化。 | `no` 是對外 hold_no；detail 以 `no = hold_no` 查詢，`id` 不作 API 查詢入口。 |
+| `warehouse_quality_hold.status` | 需依提案與資料庫文件明確說明狀態。 | 1=保留中、2=已放行、3=退回、4=報廢；第一版只有 1 納入 active hold，部分釋放沒有獨立事件或狀態，不作推導。 |
+| `holdValue` NULL | 工程師要求補充明確的 fallback 定義。 | 使用 `holdValue`；NULL 且 `holdQuantity`、`unitCost` 都有值時補算，否則回傳 0，不回寫資料庫。 |
+| 品檢保留與任務關聯 | 工程師要求說明來源與關聯方式。 | 使用 `refCategory/ref_no/ref_sub_no` 並交叉比對 `item_no/batchNumber/warehouse_no`；完全吻合才視為 confirmed，沒有直接 task-to-hold foreign key。 |
+| 共用 Warehouse snapshot calculator | 若能共用應盡量共用；必要時可集中至 `restserver/package/restserver/api/v2/common.py`。 | Quality detail 重用既有 calculator，不複製庫存月結、delta 與 `inventory_record` 補算邏輯；只有實際跨 API 共用時才移至共用 facade。 |

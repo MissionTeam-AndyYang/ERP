@@ -3,6 +3,22 @@
 2. 查詢參數的命名規則統一為 xxx_no，因此請將 warehouseNo 修正為 warehouse_no。此命名規則請套用至後續設計的所有 API。
 3. 請補全兩個 API 的 Field Description，並重新檢視整份文件。文件的格式規格請以 warehouse_inventory_detail_proposal.md 為基準。
 
+## 工程師提問理解與文件更新
+
+| 工程師提問 | 理解與確認 | 本次文件更新 |
+| --- | --- | --- |
+| 查詢期間參數需與 Orders API 統一。 | 採用 `period` 作為查詢期間參數；支援 `today`、`7d`、`14d`，預設 `today`。response 的 `range.period` 回傳實際採用的期間代碼。 | 將 query parameter `dateRange` 改為 `period`，並同步更新流程與範例資料。 |
+| 查詢參數命名統一為 `xxx_no`。 | 採用 `warehouse_no` 作為查詢參數名稱。response 欄位仍依現有 API camelCase 規則使用 `warehouseNo`。 | 將 query parameter `warehouseNo` 改為 `warehouse_no`；response 欄位維持 `warehouseNo`。 |
+| 需明確說明來源欄位。 | 品檢任務來源取自 `workflow_task_state.refCategory` 與 `workflow_task_state.ref_no`；品檢保留來源取自 `warehouse_quality_hold.refCategory` 與 `warehouse_quality_hold.ref_no`。API 的 `sourceNo` 對應資料庫 `ref_no`；不自行拼接或推測來源單號。 | 將 `sourceType` 統一改為 API 欄位 `refCategory`，補充來源資料表與欄位說明。 |
+| `plannedTimestamp`、`completedTimestamp`、`inspectionNo` 的來源不明。 | `plannedTimestamp` 對應 `workflow_task_state.dueTimestamp`；`completedTimestamp` 並非 `workflow_task_state` 既有欄位，第一版任務完成時回傳 `0`，不可由 `updateTime` 冒充完成時間；`inspectionNo` 僅取自 `warehouse_quality_hold.inspection_no`，無對應保留紀錄時回傳空字串。 | 更新任務欄位說明與流程，明確標示資料庫欄位及缺漏行為。 |
+| `warehouse_quality_hold.no` 是否為 `hold_no`。 | 是。`warehouse_quality_hold.no` 是品檢保留業務識別碼，對應 detail API path parameter `hold_no`；`id` 僅為資料庫流水號，不對外作查詢入口。 | 補充 detail API 查詢規則。 |
+| `warehouse_quality_hold.status` 與部分釋放規則。 | 第一版依 schema 使用 `1=保留中、2=已放行、3=退回、4=報廢`；只有 `status=1` 納入 active hold。schema 尚未定義部分釋放專用事件或狀態，故不在本版推導部分釋放流程。 | 更新有效保留、狀態 enum 與非本次範圍說明。 |
+| `holdValue` NULL 的處理方式。 | 優先使用 `warehouse_quality_hold.holdValue`；若為 NULL 且 `holdQuantity`、`unitCost` 均有值，使用 `holdQuantity * unitCost` 補算；仍無法計算時回傳 `0`，不改寫資料庫。 | 補充 holdValue fallback 演算法與欄位說明。 |
+| 品檢保留與任務的關聯方式。 | 目前 schema 沒有直接 task-to-hold foreign key。第一版使用 `refCategory/ref_no/ref_sub_no`，再以 `item_no/batchNumber/warehouse_no` 交叉比對；能完全對應才列為 confirmed，否則不將候選資料誤列為正式關聯。 | 更新任務、保留與 detail timeline 的關聯規則。 |
+| 品檢單資料表尚未規劃。 | 採用工程師回覆，第一版不假設 inspection header/result/defect table。當進貨、入庫、生產或其他流程需要對料品進行品質判定並產生保留時，先由 `warehouse_quality_hold` 保存保留資料；正式品檢單與結果資料另開 Quality DB extension proposal。 | 保留 `inspectionNo` nullable，並在非本次範圍明確標示不新增品檢單表。 |
+| 明細不存在時的錯誤處理。 | 沿用 `restserver/package/restserver/api/v2/` 既有標準 not-found response 與 HTTP status；detail 不回傳虛構的空 hold。 | 補充既有 API 錯誤處理規則。 |
+| 共用 Warehouse snapshot calculator 的位置。 | 採用共用原則。Quality API 應直接重用既有 snapshot calculator；若需跨模組使用，優先移至既有共用 service／`restserver/package/restserver/api/v2/common.py`，不在 Quality API 複製月結、delta 與 inventory_record 補算邏輯。 | 更新 detail inventory 查詢與維護性說明。 |
+
 
 # Quality Dashboard API 提案
 
@@ -37,8 +53,8 @@
 |---|---|---:|---|
 | `date` | Integer | No | 查詢基準時間，UTC timestamp；未提供時由後端使用目前時間。 |
 | `timezone` | String | No | 日期分組時區，例如 `Asia/Taipei`。 |
-| `dateRange` | String | No | `today`、`7d`、`14d`，預設 `today`。 |
-| `warehouseNo` | String | No | 限定倉儲別名 no。 |
+| `period` | String | No | `today`、`7d`、`14d`，預設 `today`。 |
+| `warehouse_no` | String | No | 限定倉儲別名 no。 |
 | `itemCategory` | Integer | No | 限定料品類別；enum 顯示文字由前端轉換。 |
 | `taskType` | Integer | No | 限定 workflow 品檢任務類型，預設為 8。 |
 | `status` | String | No | `pending`、`in_progress`、`blocked`、`overdue`、`hold`。 |
@@ -56,7 +72,7 @@
   "range": {
     "startTimestamp": "Integer",
     "endTimestamp": "Integer",
-    "dateRange": "String"
+    "period": "String"
   },
   "summary": {
     "pendingTaskCount": "Integer",
@@ -92,7 +108,7 @@
       "status": "String",
       "riskLevel": "Integer",
       "ownerDepartment": "Integer",
-      "sourceType": "Integer",
+      "refCategory": "Integer",
       "sourceNo": "String",
       "inspectionNo": "String",
       "itemNo": "String",
@@ -126,17 +142,75 @@
 }
 ```
 
-### 3.3 欄位規則
+### 3.3 Field Description
+
+| Field | Type | Description |
+|---|---|---|
+| `serverTimestamp` | Integer | API response 建立時間，UTC timestamp。 |
+| `timezone` | String | 本次日期分組所使用的 IANA 時區。 |
+| `range.startTimestamp` | Integer | 查詢範圍起始時間，UTC timestamp。 |
+| `range.endTimestamp` | Integer | 查詢範圍結束時間，UTC timestamp。 |
+| `range.period` | String | 實際採用的查詢期間代碼。 |
+| `summary.pendingTaskCount` | Integer | 狀態為待處理或進行中，且未被判定為逾期或阻塞的品檢任務數。 |
+| `summary.overdueTaskCount` | Integer | 已超過 `workflow_task_state.dueTimestamp` 且 `taskStatus` 尚未完成或取消的品檢任務數。 |
+| `summary.blockedTaskCount` | Integer | `workflow_task_state.taskStatus = 4` 的品檢任務數。 |
+| `summary.activeHoldCount` | Integer | `warehouse_quality_hold.status = 1` 的有效品檢保留筆數。 |
+| `summary.activeHoldQuantity` | Float | 有效品檢保留的 `holdQuantity` 加總，四捨五入至小數點第 2 位。 |
+| `summary.activeHoldValue` | Integer | 有效品檢保留價值加總，四捨五入取整數。 |
+| `summary.affectedItemCount` | Integer | 有效品檢保留涉及的不重複 `item_no` 數量。 |
+| `summary.affectedWarehouseCount` | Integer | 有效品檢保留涉及的不重複 `warehouse_no` 數量。 |
+| `holdByCategory[].itemCategory` | Integer | 料品品項類別，來源為料品主檔對應的類別 code。 |
+| `holdByCategory[].holdCount` | Integer | 該料品類別的有效品檢保留筆數。 |
+| `holdByCategory[].holdQuantity` | Float | 該料品類別的有效保留數量加總。 |
+| `holdByCategory[].holdValue` | Integer | 該料品類別的有效保留價值加總。 |
+| `holdByWarehouse[].warehouseNo` | String | 倉儲別名 no，來源為 `warehouse_quality_hold.warehouse_no`。 |
+| `holdByWarehouse[].holdCount` | Integer | 該倉儲的有效品檢保留筆數。 |
+| `holdByWarehouse[].holdQuantity` | Float | 該倉儲的有效保留數量加總。 |
+| `holdByWarehouse[].holdValue` | Integer | 該倉儲的有效保留價值加總。 |
+| `qualityTasks[].taskId` | String | `workflow_task_state.taskId` 任務識別碼。 |
+| `qualityTasks[].taskNo` | String | 前端顯示用任務編號；若無獨立任務編號，回傳 `taskId`。 |
+| `qualityTasks[].taskType` | Integer | 任務類型；本 API 固定查詢品檢 `8`。 |
+| `qualityTasks[].status` | String | 由 `taskStatus` 與 due time 推導的 API 狀態 code；前端轉換顯示文字。 |
+| `qualityTasks[].riskLevel` | Integer | 風險等級 code；由逾期、阻塞及品檢保留條件判斷。 |
+| `qualityTasks[].ownerDepartment` | Integer | `workflow_task_state.ownerDepartment` 下一步負責部門 code。 |
+| `qualityTasks[].refCategory` | Integer | `workflow_task_state.refCategory` 主來源類別 code。 |
+| `qualityTasks[].sourceNo` | String | `workflow_task_state.ref_no` 主來源單號。 |
+| `qualityTasks[].inspectionNo` | String | `warehouse_quality_hold.inspection_no`；無對應保留時為空字串。 |
+| `qualityTasks[].itemNo` | String | `workflow_task_state.item_no` 料品編號。 |
+| `qualityTasks[].itemName` | String | `workflow_task_state.item_name` 料品名稱。 |
+| `qualityTasks[].batchNo` | String | `workflow_task_state.batchNumber` 批號。 |
+| `qualityTasks[].warehouseNo` | String | `workflow_task_state.warehouse_no` 倉儲別名 no。 |
+| `qualityTasks[].quantity` | Float | 任務預期處理數量，優先使用 `expectedQuantity`，數量缺漏時回傳 0。 |
+| `qualityTasks[].value` | Integer | 任務對應品檢保留價值；無法對應時回傳 0。 |
+| `qualityTasks[].plannedTimestamp` | Integer | `workflow_task_state.dueTimestamp`；無值時回傳 0。 |
+| `qualityTasks[].completedTimestamp` | Integer | `workflow_task_state` 尚無完成時間欄位；第一版固定回傳 0。 |
+| `qualityTasks[].comment` | String | `workflow_task_state.blockReason` 或資料備註；後端不產生 UI 顯示文案。 |
+| `riskAlerts[].alertType` | String | 品質風險類型 code；前端依 code 轉換圖示、顏色與文字。 |
+| `riskAlerts[].riskLevel` | Integer | 風險等級 code。 |
+| `riskAlerts[].taskId` | String | 關聯任務識別碼；無任務關聯時為空字串。 |
+| `riskAlerts[].holdNo` | String | 關聯 `warehouse_quality_hold.no`；無保留關聯時為空字串。 |
+| `riskAlerts[].itemNo` | String | 關聯料品編號。 |
+| `riskAlerts[].batchNo` | String | 關聯批號。 |
+| `riskAlerts[].warehouseNo` | String | 關聯倉儲別名 no。 |
+| `riskAlerts[].quantity` | Float | 風險關聯數量，數量缺漏時回傳 0。 |
+| `riskAlerts[].value` | Integer | 風險關聯價值，無法計算時回傳 0。 |
+| `riskAlerts[].ownerDepartment` | Integer | 關聯任務的下一步負責部門 code。 |
+| `total` | Integer | 套用任務篩選條件後的任務總筆數。 |
+| `start` | Integer | 本次任務分頁起點。 |
+| `count` | Integer | 本次回傳任務筆數。 |
+
+### 3.4 欄位規則
 
 | 欄位 | 說明 |
 |---|---|
-| `summary.activeHold*` | 只計算 `warehouse_quality_hold.status = 1` 且 `date <= 查詢基準時間` 的資料；數量取 `holdQuantity` 加總，價值取 `holdValue` 加總。 |
+| `summary.activeHold*` | 只計算 `warehouse_quality_hold.status = 1` 且 `date <= 查詢基準時間` 的資料；數量取 `holdQuantity` 加總，價值依 `holdValue` fallback 規則計算。 |
 | `holdByCategory` | 依 `warehouse_quality_hold.item_no` 對應料品主檔的料品類別分組；若料品主檔無法對應，該列須標示資料缺漏，不得自行推測類別。 |
 | `holdByWarehouse` | 依 `warehouse_quality_hold.warehouse_no` 分組；顯示名稱由前端使用 warehouse enum／主檔轉換。 |
 | `qualityTasks` | 以 `workflow_task_state.taskType = 8` 為主要來源，並依查詢條件判斷狀態、日期、負責部門與來源單據。 |
 | `riskAlerts` | 由逾期、阻塞、有效品檢保留及保留數量大於 0 的資料組成；不回傳前端顯示用 message 或 recommendedAction。 |
-| Enum 欄位 | `taskType`、`status`、`ownerDepartment`、`sourceType`、`itemCategory` 僅回傳 code，由前端負責多國語系轉換。 |
+| Enum 欄位 | `taskType`、`status`、`ownerDepartment`、`refCategory`、`itemCategory` 僅回傳 code，由前端負責多國語系轉換。 |
 | 數字精度 | 數量／重量小數點 2 位；金額四捨五入至整數。 |
+| `holdValue` fallback | 優先使用資料表 `holdValue`；若為 NULL 且 `holdQuantity`、`unitCost` 均有值，使用 `holdQuantity * unitCost`；仍無法計算時回傳 0，不回寫資料庫。 |
 
 ## 4. GET /api/v2/quality/holds/{hold_no}/detail
 
@@ -156,7 +230,7 @@
     "holdQuantity": "Float",
     "holdValue": "Integer",
     "dateTimestamp": "Integer",
-    "sourceType": "Integer",
+    "refCategory": "Integer",
     "sourceNo": "String",
     "comment": "String"
   },
@@ -174,25 +248,53 @@
 }
 ```
 
-`tasks[]`、`timeline[]` 與 `relatedDocuments[]` 的實際欄位須待工程師確認 `workflow_task_state`、`workflow_task_event` 及品檢保留來源單據的關聯方式後定稿；在確認前不得假設存在 inspection header、inspection result 或 defect table。
+### 4.2 Field Description
+
+| Field | Type | Description |
+|---|---|---|
+| `hold.holdNo` | String | `warehouse_quality_hold.no` 品檢保留業務識別碼；由 path parameter `hold_no` 查詢。 |
+| `hold.inspectionNo` | String | `warehouse_quality_hold.inspection_no` 品檢單號；第一版可為空字串。 |
+| `hold.status` | Integer | `warehouse_quality_hold.status`：1 保留中、2 已放行、3 退回、4 報廢。 |
+| `hold.itemNo` | String | `warehouse_quality_hold.item_no` 料品編號。 |
+| `hold.itemName` | String | `warehouse_quality_hold.item_name` 料品名稱；若資料為 NULL 回傳空字串。 |
+| `hold.itemCategory` | Integer | `warehouse_quality_hold.itemCategory` 料品品項類別 code。 |
+| `hold.batchNo` | String | `warehouse_quality_hold.batchNumber` 批號。 |
+| `hold.warehouseNo` | String | `warehouse_quality_hold.warehouse_no` 倉儲別名 no。 |
+| `hold.holdQuantity` | Float | `warehouse_quality_hold.holdQuantity` 品檢保留數量。 |
+| `hold.holdValue` | Integer | 優先取 `warehouse_quality_hold.holdValue`；NULL 時依 `holdQuantity * unitCost` 補算，仍無法計算時為 0。 |
+| `hold.dateTimestamp` | Integer | `warehouse_quality_hold.date` 保留建立時間，UTC timestamp。 |
+| `hold.refCategory` | Integer | `warehouse_quality_hold.refCategory` 保留來源類別 code。 |
+| `hold.sourceNo` | String | `warehouse_quality_hold.ref_no` 保留來源單號。 |
+| `hold.comment` | String | `warehouse_quality_hold.reason` 保留原因；後端原樣回傳，不產生 UI 文案。 |
+| `inventory.quantity` | Float | Warehouse snapshot calculator 計算的批號目前庫存數量。 |
+| `inventory.inventoryValue` | Integer | Warehouse snapshot calculator 計算的批號目前庫存價值。 |
+| `inventory.availableQuantity` | Float | 扣除預留與品檢保留後的可用數量。 |
+| `inventory.availableValue` | Integer | 扣除預留與品檢保留後的可用價值。 |
+| `inventory.qualityHoldQuantity` | Float | 該批號有效品檢保留數量。 |
+| `inventory.qualityHoldValue` | Integer | 該批號有效品檢保留價值。 |
+| `tasks[]` | Array | 依已確認關聯規則取得的品檢 workflow 任務；無法確認關聯時回傳空陣列。 |
+| `timeline[]` | Array | 依 `workflow_task_event.eventTimestamp`、`id` 排序的任務事件；無事件時回傳空陣列。 |
+| `relatedDocuments[]` | Array | 可由 `refCategory/ref_no/ref_sub_no` 追溯的實際來源單據；未確認來源類型時回傳空陣列。 |
+
+`tasks[]`、`timeline[]` 與 `relatedDocuments[]` 不假設存在 inspection header、inspection result 或 defect table。`tasks[]` 只使用 `workflow_task_state`，`timeline[]` 只使用 `workflow_task_event`；若未來建立正式品檢單／結果表，另開 Quality DB extension proposal。
 
 ## 5. 前端責任
 
 1. 將 enum code 轉換為繁體中文、英文及其他語系字串。
 2. 依 `riskAlerts[].alertType` 選擇顏色、圖示與篩選狀態，不由後端產生 UI message。
-3. 依目前的 `warehouseNo`、`itemCategory`、`status` 組合導向 query string。
+3. 依目前的 `warehouse_no`、`itemCategory`、`status` 組合導向 query string。
 4. API 空資料、部分資料與錯誤狀態均須保留可辨識的空狀態，不以 mock 資料冒充正式結果。
 
 ## 6. 工程師需確認
 
 | 項目 | 目前提案 | 需確認內容  | 工程師回覆 |
 |---|---|---|---|
-| 品檢任務來源 | `workflow_task_state.taskType = 8` | `sourceType`、`sourceNo` 是否可直接追到 `goods_receipt_note`、`production_data` 或其他來源單據。 | 請詳細說明提案內容，以及 sourceType 與 sourceNo 欄位的來源，分別取自哪一個資料表，或是由其他資料來源產生。若未能明確說明，工程師將無法回覆相關問題。|
-| 品檢保留資料 | `warehouse_quality_hold` | `status = 1` 是否代表有效保留；釋放、部分釋放與取消是否另有 event 或 status 定義。 | 請詳細說明提案內容，目前僅提及 warehouse_quality_hold 資料表，資訊不足。若未能明確補充說明，工程師將無法回覆相關問題。| 
-| 品檢單資料 | 目前不新增或假設 inspection table | 是否已有工程師尚未納入 schema 的品檢主檔／結果表；若有，請提供正式 table 與欄位。 |目前尚未規劃設計品檢單的資料表，請協助進行設計。此外，請說明在什麼情況下會產生品檢單，以利工程師理解並落實相關流程。|
-| `holdValue` | 直接使用資料表值 | 若為 NULL，是否應回傳 0，或需依庫存單價補算。 | 請詳細說明提案內容，目前僅提及 holdValue，資訊不足。若未能明確補充說明，工程師將無法回覆相關問題。|
-| 明細不存在 | 建議回傳標準 not found error | 是否沿用既有 API 的錯誤 code 與 HTTP status。 |在 restserver\package\restserver\api\v2\ 目錄下的各個 API，遇到此狀況時是如何處理的？|
-| 任務與保留關聯 | 以來源單據與 item/batch/warehouse 交集關聯 | 是否存在明確 task-to-hold reference，若存在應優先使用。 | 請詳細說明提案內容，"來源單據"是取自哪一個資料表的欄位，或是由其他資料來源產生。若未能明確說明，工程師將無法回覆相關問題。
+| 品檢任務來源 | `workflow_task_state.taskType = 8` | `refCategory`、`sourceNo` 是否可直接追到正式來源單據。 | 已依 schema 明確定義：`refCategory` 取自 `workflow_task_state.refCategory`，`sourceNo` 取自 `workflow_task_state.ref_no`；來源單據實體再依 refCategory 對應，API 不自行拼接。|
+| 品檢保留資料 | `warehouse_quality_hold` | `status = 1` 是否代表有效保留；釋放、部分釋放與取消是否另有 event 或 status 定義。 | 依正式 schema：1=保留中、2=已放行、3=退回、4=報廢；第一版只有 1 納入 active hold，部分釋放沒有獨立事件或狀態，不作推導。 |
+| 品檢單資料 | 目前不新增或假設 inspection table | 是否已有工程師尚未納入 schema 的品檢主檔／結果表；若有，請提供正式 table 與欄位。 | 目前尚未規劃品檢單資料表；第一版只使用 `warehouse_quality_hold.inspection_no`（可為空），正式品檢單與結果另開 Quality DB extension proposal。 |
+| `holdValue` | 優先使用資料表值 | 若為 NULL，是否應回傳 0，或需依庫存單價補算。 | NULL 且 `holdQuantity`、`unitCost` 俱備時，以 `holdQuantity * unitCost` 補算；仍缺資料回傳 0，不回寫資料庫。 |
+| 明細不存在 | 建議回傳標準 not found error | 是否沿用既有 API 的錯誤 code 與 HTTP status。 | 沿用 `restserver/package/restserver/api/v2/` 既有標準 not-found response 與 HTTP status；不回傳虛構空 hold。 |
+| 任務與保留關聯 | 以來源單據與 item/batch/warehouse 交集關聯 | 是否存在明確 task-to-hold reference，若存在應優先使用。 | 目前沒有直接 task-to-hold foreign key；使用兩者的 `refCategory/ref_no/ref_sub_no` 並交叉比對 `item_no/batchNumber/warehouse_no`，完全吻合才視為 confirmed。 |
 
 ## 7. 範例資料
 
@@ -200,7 +302,7 @@
 {
   "serverTimestamp": 1784073600,
   "timezone": "Asia/Taipei",
-  "range": {"startTimestamp": 1783987200, "endTimestamp": 1784073599, "dateRange": "today"},
+  "range": {"startTimestamp": 1783987200, "endTimestamp": 1784073599, "period": "today"},
   "summary": {
     "pendingTaskCount": 8,
     "overdueTaskCount": 2,
@@ -227,7 +329,7 @@
       "status": "blocked",
       "riskLevel": 3,
       "ownerDepartment": 8,
-      "sourceType": 1,
+      "refCategory": 1,
       "sourceNo": "GRN-20260715-003",
       "inspectionNo": "INS-20260715-003",
       "itemNo": "RM-00031",

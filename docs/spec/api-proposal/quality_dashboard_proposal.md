@@ -3,7 +3,6 @@
 2. 針對"completedTimestamp 並非 workflow_task_state 既有欄位，第一版任務完成時回傳 0"。是否應該提出解決方法？例如：在資料表中新增欄位，或是從其他來源取得資料，而非直接回傳 0。抑或此欄位並非目前設計畫面所需？
 
 
-回傳欄位僅設計目前畫面所需，不應預留未來可能使用的欄位
 # 工程師提問
 1. 查詢參數的命名需統一。例如：在`/api/v2/orders/dashboard` 中查詢期間的參數命名為 period，而在此則命名為 dateRange。此命名規則請套用至後續設計的所有 API。
 2. 查詢參數的命名規則統一為 xxx_no，因此請將 warehouseNo 修正為 warehouse_no。此命名規則請套用至後續設計的所有 API。

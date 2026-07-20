@@ -31,6 +31,7 @@ from package.dbwrapper.table import (
     CTableWorkOrder,
 )
 from package.restserver.api.v2.production import CProductionDashboardService
+from package.util.util import util_build_forward_period_range
 
 
 def build_session():
@@ -148,6 +149,45 @@ def test_production_dashboard_calculates_capacity_and_metrics():
     assert dict_payload["productionMetrics"][0]["materialLossQuantity"] == 3.0
     assert dict_payload["productionMetrics"][0]["laborCost"] == 400
     assert dict_payload["productionMetrics"][0]["unitLaborCost"] == 4.0
+
+
+def test_production_period_is_query_day_and_next_six_calendar_days():
+    obj_session = build_session()
+    n_now = seed_production(obj_session)
+    n_day = n_now - (n_now % 86400)
+    obj_session.add_all([
+        CTableWorkOrder(
+            no="WO-FUTURE", date=n_day + 6 * 86400 + 3600,
+            startTime=n_day + 6 * 86400 + 3600,
+            endTime=n_day + 6 * 86400 + 7200,
+            product_no="PRODUCT-FUTURE", product_name="未來工單",
+            production_line_no="LINE-01", processTime=120,
+        ),
+        CTableWorkOrder(
+            no="WO-PAST", date=n_day - 86400 + 3600,
+            startTime=n_day - 86400 + 3600,
+            endTime=n_day - 86400 + 7200,
+            product_no="PRODUCT-PAST", product_name="過去工單",
+            production_line_no="LINE-01", processTime=120,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_range = util_build_forward_period_range(
+        n_now, "UTC", "7d", {"7d": 7, "14d": 14}, "7d",
+    )
+    assert dict_range["startTimestamp"] == n_day
+    assert dict_range["endTimestamp"] == n_day + 7 * 86400 - 1
+
+    dict_payload = CProductionDashboardService()._CProductionDashboardService__get_dashboard_with_session(
+        obj_session, n_now, "UTC", "7d", "", 0, 0, "", "", "", "", "", 0, 50,
+    )
+    set_work_order_nos = {
+        dict_slot["workOrderNo"] for dict_row in dict_payload["scheduleByLine"]
+        for dict_slot in dict_row["slots"]
+    }
+    assert "WO-FUTURE" in set_work_order_nos
+    assert "WO-PAST" not in set_work_order_nos
     assert any(dict_row["alertType"] == "capacity_downtime" for dict_row in dict_payload["alerts"])
     assert any(
         dict_row["comment"] == EProductionAlertComment.CAPACITY_DOWNTIME

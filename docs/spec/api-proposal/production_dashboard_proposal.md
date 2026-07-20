@@ -103,7 +103,7 @@
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
 | date | Integer | NO | 查詢基準日 UTC timestamp；未提供時使用伺服器目前時間。 |
-| period | String | NO | 查詢期間代碼；第一版建議支援 `7d`、`14d`，預設 `7d`。 |
+| period | String | NO | 查詢期間代碼；以查詢基準日當天起算並往後查詢連續曆日。`7d` 為當日加後續 6 日，`14d` 為當日加後續 13 日，預設 `7d`。 |
 | production_line_no | String | NO | 產線 no，對應 `production_line.no`。 |
 | oneProcess | Integer | NO | 主製程代碼，對應 `work_order.oneProcess` / `production_data.oneProcess`。 |
 | secProcess | Integer | NO | 次製程代碼，對應 `work_order.secProcess` / `production_data.secProcess`。 |
@@ -279,7 +279,9 @@
 | --- | --- | --- | --- |
 | payload.serverTimestamp | Integer | API 產生資料時的伺服器 UTC timestamp。 |  |
 | payload.timezone | String | 回傳資料使用的時區字串；預設可依 `x-timezone` 或伺服器設定。 |  |
-| payload.range.period | String | 查詢期間代碼。 | `7d`、`14d` |
+| payload.range.period | String | 實際採用的查詢期間；以查詢基準日當天起算並往後查詢連續曆日。`7d` 為當日加後續 6 日，`14d` 為當日加後續 13 日。 | `7d`、`14d` |
+| payload.range.startTimestamp | Integer | 查詢基準日當地時間 00:00:00 的 UTC timestamp。 |  |
+| payload.range.endTimestamp | Integer | 查詢期間最後一個曆日 23:59:59 的 UTC timestamp。 |  |
 | payload.summary.scheduledWorkOrderCount | Integer | 查詢期間內已排定的派工單數量，來源為 `work_order`。 |  |
 | payload.summary.todayRunningWorkOrderCount | Integer | 查詢基準日生產中或有 MES 生產數據的工單數量。 |  |
 | payload.summary.readinessRiskCount | Integer | 備料、人員或產能任一 readiness signal 非 ready 的工單去重數。 |  |
@@ -556,7 +558,7 @@
 
 | UI Action | API Behavior |
 | --- | --- |
-| 進入 Production 頁面 | 呼叫 `GET /api/v2/production/dashboard?period=7d`，前端 normalization 成既有 Production page shape。 |
+| 進入 Production 頁面 | 呼叫 `GET /api/v2/production/dashboard?period=7d`；`7d` 顯示查詢基準日當天及後續 6 日的排程，前端 normalization 成既有 Production page shape。 |
 | 切換「週排程與產能」tab | 使用 `scheduleByLine[]`，依日期、產線、製程群組呈現排程與瓶頸。 |
 | 切換「MES 工單現況」tab | 使用 `todayWorkOrders[]` 與 `readinessSignals[]`；品檢區塊第一版顯示 `qualityStatus = deferred` 的「待實作」。 |
 | 切換「效率損耗」tab | 第一版使用 `productionMetrics[]` 呈現效率、損耗與人工費率；品檢統計延至下一版。 |

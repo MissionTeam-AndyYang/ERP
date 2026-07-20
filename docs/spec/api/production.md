@@ -33,7 +33,7 @@
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | date | Integer | NO | 查詢基準 UTC timestamp；未提供時使用伺服器目前時間。 |
-| period | String | NO | 查詢期間，支援 `7d`、`14d`，預設 `7d`。 |
+| period | String | NO | 查詢期間；以查詢基準日當天起算並往後查詢連續曆日。`7d` 為當日加後續 6 日，`14d` 為當日加後續 13 日，預設 `7d`。 |
 | production_line_no | String | NO | 產線 no，對應 `production_line.no`。 |
 | oneProcess | Integer | NO | 主製程代碼，對應 `work_order.oneProcess`。 |
 | secProcess | Integer | NO | 次製程代碼，對應 `work_order.secProcess`。 |
@@ -123,9 +123,9 @@ None
 |---|---|---|---|
 | payload.serverTimestamp | Integer | Response 產生時間，UTC timestamp。 |  |
 | payload.timezone | String | 本次查詢採用的時區代碼。 |  |
-| payload.range.period | String | 實際採用的查詢期間。 | `7d`, `14d` |
-| payload.range.startTimestamp | Integer | 查詢起始 UTC timestamp。 |  |
-| payload.range.endTimestamp | Integer | 查詢結束 UTC timestamp。 |  |
+| payload.range.period | String | 實際採用的查詢期間；以查詢基準日當地時間 00:00:00 起算，包含當日往後的連續曆日。`7d` 為當日加後續 6 日，`14d` 為當日加後續 13 日。 | `7d`, `14d` |
+| payload.range.startTimestamp | Integer | 查詢基準日當地時間 00:00:00 的 UTC timestamp。 |  |
+| payload.range.endTimestamp | Integer | 查詢期間最後一個曆日 23:59:59 的 UTC timestamp。 |  |
 | payload.summary.scheduledWorkOrderCount | Integer | 查詢期間內符合條件的已排工單數。 |  |
 | payload.summary.todayRunningWorkOrderCount | Integer | 查詢基準日中狀態為 `running` 的工單數。 |  |
 | payload.summary.readinessRiskCount | Integer | 查詢基準日中備料或人員狀態不是 `ready` 的不重複工單數。 |  |
@@ -225,7 +225,7 @@ None
 
 ### Processing Flow
 
-1. 建立單一 DB session，解析 `date`、`period`、篩選條件與分頁參數。
+1. 建立單一 DB session，解析 `date`、`period`、篩選條件與分頁參數；`period=7d` 的範圍為查詢基準日當地時間 00:00:00 至第 7 個曆日 23:59:59，不是往前 7×24 小時。
 2. 於資料庫端查詢期間內的 `work_order`，批次載入產線、APS、MES、人員、人工費率、訂單與庫存入庫關聯資料。
 3. 依工單建立今日工單列、排程列、備料／人員 readiness 與狀態；不以缺少資料推測為 ready。
 4. 產能以查詢日期以前最新的 `production_line_daily_capacity` 為基準，扣除已確認且與查詢日相交的 `production_line_downtime`，再計算剩餘可排工時與瓶頸。

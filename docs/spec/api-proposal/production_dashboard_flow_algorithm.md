@@ -60,10 +60,11 @@ x-timezone
 
 1. `date` 為查詢基準 UTC timestamp；未提供時使用伺服器目前 UTC timestamp。
 2. `period` 支援 `7d`、`14d`；未提供或不支援時 fallback 至 `7d`。
-3. 依 `date` 與 `period` 建立查詢區間，第一版以工單 `work_order.date` / `startTime` 是否落在區間內為主。
-4. `start` 小於 0 時以 0 處理。
-5. `count` 未提供時預設 50，最大值 100。
-6. keyword 僅套用在工單 no、訂單 no、產品 no、產品名稱、產線名稱、批號等可查詢欄位。
+3. 依查詢基準日的當地日期建立 forward calendar range：`7d` 為當日 00:00:00 至第 7 個曆日 23:59:59（當日加後續 6 日）；`14d` 為當日加後續 13 日。不可使用 `queryTimestamp - N * 86400` 的 backward range。
+4. 依 `date` 與上述 `period` 建立查詢區間，第一版以工單 `work_order.date` / `startTime` 是否落在區間內為主。
+5. `start` 小於 0 時以 0 處理。
+6. `count` 未提供時預設 50，最大值 100。
+7. keyword 僅套用在工單 no、訂單 no、產品 no、產品名稱、產線名稱、批號等可查詢欄位。
 
 ## 共用 Step 2：建立工單基礎資料
 

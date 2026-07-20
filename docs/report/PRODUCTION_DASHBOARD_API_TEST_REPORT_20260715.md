@@ -43,3 +43,10 @@ The local machine does not provide the engineer's MariaDB runtime dataset. The t
 - Alert construction is unified through `CProductionDashboardService.__alert()`.
 - Python compile check: PASS.
 - Full restserver test suite: PASS: 24 passed.
+
+## 2026-07-20 Forward Period Range Review
+
+- `period=7d` is defined as the query date plus the next six calendar days, aligned to the query timezone's day boundaries.
+- Replaced Production's previous backward `queryTimestamp - 7 * 86400` range with a forward calendar range.
+- Added regression coverage for inclusion of a future work order and exclusion of a previous-day work order.
+- Production dashboard dedicated tests: PASS: 5 passed.

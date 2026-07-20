@@ -279,6 +279,20 @@ def util_build_period_range(n_query_timestamp, str_period, dict_period_days, str
     }
 
 
+def util_build_forward_period_range(
+    n_query_timestamp, str_timezone, str_period, dict_period_days, str_default_period,
+):
+    str_period = str_period if str_period in dict_period_days else str_default_period
+    n_days = util_safe_int(dict_period_days.get(str_period))
+    dict_day_range = util_build_day_range(n_query_timestamp, str_timezone)
+    n_start_timestamp = util_safe_int(dict_day_range.get("startTimestamp"))
+    return {
+        "period": str_period,
+        "startTimestamp": n_start_timestamp,
+        "endTimestamp": n_start_timestamp + n_days * 86400 - 1,
+    }
+
+
 
 '''
 def util_convert_time(obj_date):

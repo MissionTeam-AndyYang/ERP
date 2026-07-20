@@ -52,7 +52,7 @@ from package.restserver.api.apibase import CAPIBase
 from package.restserver.api.common import URL_PATH_V2
 from package.util.util import (
     util_build_day_range,
-    util_build_period_range,
+    util_build_forward_period_range,
     util_round_amount,
     util_round_quantity,
     util_safe_float,
@@ -92,8 +92,8 @@ class CProductionDashboardService(object):
         str_risk_type, str_keyword, n_start, n_count,
     ):
         n_query_timestamp = util_safe_int(n_date) or util_safe_int(time.time())
-        dict_range = util_build_period_range(
-            n_query_timestamp, str_period, {"7d": 7, "14d": 14}, "7d"
+        dict_range = util_build_forward_period_range(
+            n_query_timestamp, str_timezone, str_period, {"7d": 7, "14d": 14}, "7d"
         )
         n_start = max(util_safe_int(n_start), 0)
         n_count = min(max(util_safe_int(n_count), 1), 100)

@@ -1,4 +1,5 @@
 import { ordersDashboardMock } from "@/mock/orders";
+import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { StatusTone } from "@/types/dashboard";
 import type {
@@ -583,16 +584,21 @@ function buildDashboardPath(query: OrdersDashboardQuery = {}) {
   return `/api/v2/orders/dashboard?${params.toString()}`;
 }
 
-export async function getOrdersDashboard(query: OrdersDashboardQuery = {}): Promise<OrdersDashboardResult> {
+export async function getOrdersDashboard(
+  query: OrdersDashboardQuery = {},
+  dataSourceMode: DataSourceMode = "api"
+): Promise<OrdersDashboardResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: ordersDashboardMock,
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiOrdersDashboardPayload>(buildDashboardPath(query));
-    const data = mapOrdersDashboardPayload(payload);
     return {
-      data: {
-        ...data,
-        summary: data.summary.length ? data.summary : ordersDashboardMock.summary,
-        orders: data.orders.length ? data.orders : ordersDashboardMock.orders
-      },
+      data: mapOrdersDashboardPayload(payload),
       source: "api"
     };
   } catch (error) {
@@ -604,7 +610,24 @@ export async function getOrdersDashboard(query: OrdersDashboardQuery = {}): Prom
   }
 }
 
-export async function getOrdersFulfillment(orderNo: string): Promise<OrdersFulfillmentResult> {
+export async function getOrdersFulfillment(
+  orderNo: string,
+  dataSourceMode: DataSourceMode = "api"
+): Promise<OrdersFulfillmentResult> {
+  if (dataSourceMode === "mock") {
+    const fallback = ordersDashboardMock.orders.find((order) => order.id === orderNo);
+    return {
+      data: fallback
+        ? {
+            orderNo,
+            workflow: fallback.workflow,
+            dependencies: fallback.dependencies
+          }
+        : undefined,
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiOrdersFulfillmentPayload>(
       `/api/v2/orders/${encodeURIComponent(orderNo)}/fulfillment`

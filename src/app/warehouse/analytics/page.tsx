@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { LanguageCode } from "@/i18n/dictionary";
 import { useLanguage } from "@/i18n/language-provider";
@@ -466,6 +467,7 @@ function TaskSlaPanel({
 export default function WarehouseAnalyticsPage() {
   const { language } = useLanguage();
   const [period, setPeriod] = useState<WarehouseAnalyticsPeriod>("30d");
+  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
   const [bucket, setBucket] = useState<WarehouseAnalyticsBucket>("day");
   const [warehouseNo, setWarehouseNo] = useState("");
   const [itemCategory, setItemCategory] = useState<number | "all">("all");
@@ -494,11 +496,11 @@ export default function WarehouseAnalyticsPage() {
     let isMounted = true;
 
     Promise.all([
-      getWarehouseAnalyticsOverview(query),
-      getWarehouseAnalyticsValueTrend(query),
-      getWarehouseAnalyticsSpaceUtilization(query),
-      getWarehouseAnalyticsRiskBreakdown(query),
-      getWarehouseAnalyticsTaskSla(query)
+      getWarehouseAnalyticsOverview(query, dataSourceMode),
+      getWarehouseAnalyticsValueTrend(query, dataSourceMode),
+      getWarehouseAnalyticsSpaceUtilization(query, dataSourceMode),
+      getWarehouseAnalyticsRiskBreakdown(query, dataSourceMode),
+      getWarehouseAnalyticsTaskSla(query, dataSourceMode)
     ]).then(([overviewResult, valueTrendResult, spaceResult, riskResult, taskResult]) => {
       if (!isMounted) {
         return;
@@ -529,7 +531,7 @@ export default function WarehouseAnalyticsPage() {
     return () => {
       isMounted = false;
     };
-  }, [query, reloadKey]);
+  }, [dataSourceMode, query, reloadKey]);
 
   const handleRefresh = useCallback(() => {
     setIsLoading(true);
@@ -552,6 +554,7 @@ export default function WarehouseAnalyticsPage() {
                   {source === "api" ? "API data" : "Mock fallback"}
                 </StatusBadge>
                 {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h1 className="mt-3 text-2xl font-semibold text-textPrimary">倉庫分析工作區</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">

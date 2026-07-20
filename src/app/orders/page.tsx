@@ -11,6 +11,7 @@ import {
   Truck
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useOrdersDashboard } from "@/hooks/use-orders-dashboard";
 import type { LanguageCode } from "@/i18n/dictionary";
@@ -423,8 +424,8 @@ function DetailPanel({
   isLoading: boolean;
   language: LanguageCode;
 }) {
-  const dependencies = fulfillment?.dependencies.length ? fulfillment.dependencies : order.dependencies;
-  const workflow = fulfillment?.workflow.length ? fulfillment.workflow : order.workflow;
+  const dependencies = fulfillment ? fulfillment.dependencies : order.dependencies;
+  const workflow = fulfillment ? fulfillment.workflow : order.workflow;
 
   return (
     <aside className="space-y-4 rounded-lg border border-border bg-white p-4 shadow-card xl:sticky xl:top-24">
@@ -543,14 +544,14 @@ function DetailPanel({
 function MainContent({
   activeTab,
   data,
-  selectedOrder,
+  selectedId,
   searchQuery,
   language,
   onSelectOrder
 }: {
   activeTab: OrderWorkspaceTab;
   data: OrdersDashboardData;
-  selectedOrder: SalesOrder;
+  selectedId: string;
   searchQuery: string;
   language: LanguageCode;
   onSelectOrder: (order: SalesOrder) => void;
@@ -562,7 +563,7 @@ function MainContent({
         <OrdersTable
           activeTab={activeTab}
           orders={data.orders}
-          selectedId={selectedOrder.id}
+          selectedId={selectedId}
           searchQuery={searchQuery}
           language={language}
           onSelect={onSelectOrder}
@@ -578,7 +579,7 @@ function MainContent({
         <OrdersTable
           activeTab={activeTab}
           orders={data.orders}
-          selectedId={selectedOrder.id}
+          selectedId={selectedId}
           searchQuery={searchQuery}
           language={language}
           onSelect={onSelectOrder}
@@ -591,7 +592,7 @@ function MainContent({
     <OrdersTable
       activeTab={activeTab}
       orders={data.orders}
-      selectedId={selectedOrder.id}
+      selectedId={selectedId}
       searchQuery={searchQuery}
       language={language}
       onSelect={onSelectOrder}
@@ -601,7 +602,8 @@ function MainContent({
 
 export default function OrdersPage() {
   const { language } = useLanguage();
-  const { data: ordersData, error, isLoading, source } = useOrdersDashboard();
+  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
+  const { data: ordersData, error, isLoading, source } = useOrdersDashboard(dataSourceMode);
   const [activeTab, setActiveTab] = useState<OrderWorkspaceTab>("overview");
   const [selectedOrderId, setSelectedOrderId] = useState<string>(ordersData.orders[0].id);
   const [searchValue, setSearchValue] = useState("");
@@ -613,9 +615,13 @@ export default function OrdersPage() {
     ordersData.orders.find((order) => order.id === selectedOrderId) ?? ordersData.orders[0];
 
   useEffect(() => {
+    if (!selectedOrder?.id) {
+      return;
+    }
+
     let isMounted = true;
 
-    getOrdersFulfillment(selectedOrder.id).then((result) => {
+    getOrdersFulfillment(selectedOrder.id, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -628,7 +634,7 @@ export default function OrdersPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedOrder.id]);
+  }, [dataSourceMode, selectedOrder?.id]);
 
   return (
     <AppLayout activePath="/orders" title="訂單履約 Orders Workspace">
@@ -643,6 +649,7 @@ export default function OrdersPage() {
                   {source === "api" ? "API data" : "Mock fallback"}
                 </StatusBadge>
                 {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單承諾與履約風險總覽</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
@@ -730,7 +737,7 @@ export default function OrdersPage() {
             <MainContent
               activeTab={activeTab}
               data={ordersData}
-              selectedOrder={selectedOrder}
+              selectedId={selectedOrder?.id ?? ""}
               searchQuery={searchQuery}
               language={language}
               onSelectOrder={(order) => {
@@ -740,12 +747,18 @@ export default function OrdersPage() {
             />
           </div>
 
-          <DetailPanel
-            order={selectedOrder}
-            fulfillment={selectedFulfillment?.orderNo === selectedOrder.id ? selectedFulfillment : undefined}
-            isLoading={isFulfillmentLoading}
-            language={language}
-          />
+          {selectedOrder ? (
+            <DetailPanel
+              order={selectedOrder}
+              fulfillment={selectedFulfillment?.orderNo === selectedOrder.id ? selectedFulfillment : undefined}
+              isLoading={isFulfillmentLoading}
+              language={language}
+            />
+          ) : (
+            <aside className="rounded-lg border border-dashed border-border bg-white p-4 text-sm text-textSecondary shadow-card">
+              目前沒有可顯示的訂單明細。
+            </aside>
+          )}
         </section>
       </div>
     </AppLayout>

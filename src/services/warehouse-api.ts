@@ -1,4 +1,5 @@
 import { warehouseDashboardMock } from "@/mock/warehouse";
+import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { StatusTone } from "@/types/dashboard";
 import type {
@@ -2162,23 +2163,20 @@ function normalizeWarehouseDashboard(payload: ApiWarehousePayload): WarehouseDas
   };
 }
 
-export async function getWarehouseDashboard(): Promise<WarehouseDashboardResult> {
+export async function getWarehouseDashboard(dataSourceMode: DataSourceMode = "api"): Promise<WarehouseDashboardResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: warehouseDashboardMock,
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehousePayload>(
       "/api/v2/warehouse/dashboard?trendDays=7"
     );
-    const data = normalizeWarehouseDashboard(payload);
     return {
-      data: {
-        kpis: data.kpis.length ? data.kpis : warehouseDashboardMock.kpis,
-        categorySummaries: data.categorySummaries.length
-          ? data.categorySummaries
-          : warehouseDashboardMock.categorySummaries,
-        capacities: data.capacities.length ? data.capacities : warehouseDashboardMock.capacities,
-        records: data.records,
-        risks: data.risks,
-        tasks: data.tasks
-      },
+      data: normalizeWarehouseDashboard(payload),
       source: "api"
     };
   } catch (error) {
@@ -2190,7 +2188,14 @@ export async function getWarehouseDashboard(): Promise<WarehouseDashboardResult>
   }
 }
 
-export async function getWarehouseInventory(): Promise<WarehouseInventoryResult> {
+export async function getWarehouseInventory(dataSourceMode: DataSourceMode = "api"): Promise<WarehouseInventoryResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      records: warehouseDashboardMock.records,
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehousePayload & { results?: ApiWarehouseInventory[] }>(
       "/api/v2/warehouse/inventory?count=100"
@@ -2212,7 +2217,14 @@ export async function getWarehouseInventory(): Promise<WarehouseInventoryResult>
   }
 }
 
-export async function getWarehouseTasks(): Promise<WarehouseTasksResult> {
+export async function getWarehouseTasks(dataSourceMode: DataSourceMode = "api"): Promise<WarehouseTasksResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      tasks: warehouseDashboardMock.tasks,
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehousePayload & { results?: ApiWarehouseTask[] }>(
       "/api/v2/warehouse/tasks?count=100"
@@ -2268,8 +2280,16 @@ function buildTaskWorkbenchPath(query: WarehouseTaskWorkbenchQuery = {}) {
 }
 
 export async function getWarehouseTaskWorkbench(
-  query: WarehouseTaskWorkbenchQuery = {}
+  query: WarehouseTaskWorkbenchQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseTaskWorkbenchResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: mockTaskWorkbench(),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseTaskWorkbenchPayload>(buildTaskWorkbenchPath(query));
     return {
@@ -2285,7 +2305,17 @@ export async function getWarehouseTaskWorkbench(
   }
 }
 
-export async function getWarehouseTaskDetail(taskId: string): Promise<WarehouseTaskDetailResult> {
+export async function getWarehouseTaskDetail(
+  taskId: string,
+  dataSourceMode: DataSourceMode = "api"
+): Promise<WarehouseTaskDetailResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      detail: mockTaskDetail(taskId),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseTaskDetailPayload>(
       `/api/v2/warehouse/task-workbench/tasks/${encodeURIComponent(taskId)}`
@@ -2329,8 +2359,16 @@ function buildWarehouseAnalyticsPath(endpoint: string, query: WarehouseAnalytics
 }
 
 export async function getWarehouseAnalyticsOverview(
-  query: WarehouseAnalyticsQuery = {}
+  query: WarehouseAnalyticsQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseAnalyticsOverviewResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: mockAnalyticsOverview(query),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseAnalyticsOverviewPayload>(
       buildWarehouseAnalyticsPath("overview", query)
@@ -2349,8 +2387,16 @@ export async function getWarehouseAnalyticsOverview(
 }
 
 export async function getWarehouseAnalyticsValueTrend(
-  query: WarehouseAnalyticsQuery = {}
+  query: WarehouseAnalyticsQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseAnalyticsValueTrendResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: mockAnalyticsValueTrend(query),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseAnalyticsValueTrendPayload>(
       buildWarehouseAnalyticsPath("value-trend", query)
@@ -2369,8 +2415,16 @@ export async function getWarehouseAnalyticsValueTrend(
 }
 
 export async function getWarehouseAnalyticsSpaceUtilization(
-  query: WarehouseAnalyticsQuery = {}
+  query: WarehouseAnalyticsQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseAnalyticsSpaceUtilizationResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: mockAnalyticsSpaceUtilization(query),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseAnalyticsSpaceUtilizationPayload>(
       buildWarehouseAnalyticsPath("space-utilization", query)
@@ -2389,8 +2443,16 @@ export async function getWarehouseAnalyticsSpaceUtilization(
 }
 
 export async function getWarehouseAnalyticsRiskBreakdown(
-  query: WarehouseAnalyticsQuery = {}
+  query: WarehouseAnalyticsQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseAnalyticsRiskBreakdownResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: mockAnalyticsRiskBreakdown(query),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseAnalyticsRiskBreakdownPayload>(
       buildWarehouseAnalyticsPath("risk-breakdown", query)
@@ -2409,8 +2471,16 @@ export async function getWarehouseAnalyticsRiskBreakdown(
 }
 
 export async function getWarehouseAnalyticsTaskSla(
-  query: WarehouseAnalyticsQuery = {}
+  query: WarehouseAnalyticsQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseAnalyticsTaskSlaResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: mockAnalyticsTaskSla(query),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseAnalyticsTaskSlaPayload>(
       buildWarehouseAnalyticsPath("task-sla", query)
@@ -2467,8 +2537,16 @@ function buildLotListPath(query: WarehouseInventoryLotsQuery = {}) {
 }
 
 export async function getWarehouseInventoryLots(
-  query: WarehouseInventoryLotsQuery = {}
+  query: WarehouseInventoryLotsQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseInventoryLotsResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: mockLotList(),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWarehouseInventoryLotListPayload>(buildLotListPath(query));
     return {
@@ -2485,8 +2563,19 @@ export async function getWarehouseInventoryLots(
 }
 
 export async function getWarehouseInventoryLotDetail(
-  lot: Pick<WarehouseInventoryLot, "warehouseNo" | "itemNo" | "batchNo">
+  lot: Pick<WarehouseInventoryLot, "warehouseNo" | "itemNo" | "batchNo">,
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<WarehouseInventoryLotDetailResult> {
+  if (dataSourceMode === "mock") {
+    const fallbackLot = mockLotList().lots.find(
+      (item) => item.warehouseNo === lot.warehouseNo && item.itemNo === lot.itemNo && item.batchNo === lot.batchNo
+    );
+    return {
+      detail: mockLotDetail(fallbackLot),
+      source: "mock"
+    };
+  }
+
   const path = `/api/v2/warehouse/inventory/lots/wh/${encodeURIComponent(lot.warehouseNo)}/item/${encodeURIComponent(
     lot.itemNo
   )}/batch/${encodeURIComponent(lot.batchNo)}`;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { productionDashboardMock } from "@/mock/production";
 import { getProductionDashboard } from "@/services/production-api";
 import type { ProductionDashboardData, ProductionDataSource } from "@/types/production";
@@ -12,7 +13,7 @@ export type ProductionDashboardState = {
   error?: string;
 };
 
-export function useProductionDashboard(): ProductionDashboardState {
+export function useProductionDashboard(dataSourceMode: DataSourceMode = "api"): ProductionDashboardState {
   const [state, setState] = useState<ProductionDashboardState>({
     data: productionDashboardMock,
     source: "mock",
@@ -22,7 +23,7 @@ export function useProductionDashboard(): ProductionDashboardState {
   useEffect(() => {
     let isMounted = true;
 
-    getProductionDashboard().then((result) => {
+    getProductionDashboard({}, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -38,7 +39,7 @@ export function useProductionDashboard(): ProductionDashboardState {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dataSourceMode]);
 
   return state;
 }

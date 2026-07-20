@@ -1,4 +1,5 @@
 import { productionDashboardMock } from "@/mock/production";
+import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { productionEnumLabel, productionRiskTone, productionStatusTone } from "@/i18n/production-enums";
 import { defaultLanguage } from "@/i18n/dictionary";
 import { apiGet, withFallbackArray } from "@/services/api-client";
@@ -655,9 +656,9 @@ function mergeDetailPayload(payload: ApiWorkOrderDetail, fallback?: WorkOrder): 
     unitCode: workOrder?.unit ?? fallback?.unitCode,
     productionLineNo: workOrder?.productionLineNo ?? fallback?.productionLineNo,
     productNo: workOrder?.productNo ?? fallback?.productNo,
-    materials: materials.length ? materials : fallback?.materials ?? [],
-    workflow: workflow.length ? workflow : fallback?.workflow ?? [],
-    relatedDocuments: documents.length ? documents : fallback?.relatedDocuments ?? []
+    materials: payload.materials ? materials : fallback?.materials ?? [],
+    workflow: payload.mesEvents ? workflow : fallback?.workflow ?? [],
+    relatedDocuments: payload.relatedDocuments ? documents : fallback?.relatedDocuments ?? []
   };
 }
 
@@ -682,18 +683,20 @@ function buildDashboardPath(query: ProductionDashboardQuery = {}) {
 }
 
 export async function getProductionDashboard(
-  query: ProductionDashboardQuery = {}
+  query: ProductionDashboardQuery = {},
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<ProductionDashboardResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      data: productionDashboardMock,
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiProductionDashboardPayload>(buildDashboardPath(query));
-    const data = mapDashboardPayload(payload);
     return {
-      data: {
-        summary: data.summary.length ? data.summary : productionDashboardMock.summary,
-        orders: data.orders.length ? data.orders : productionDashboardMock.orders,
-        weekSchedule: data.weekSchedule.length ? data.weekSchedule : productionDashboardMock.weekSchedule,
-        alerts: data.alerts.length ? data.alerts : productionDashboardMock.alerts
-      },
+      data: mapDashboardPayload(payload),
       source: "api"
     };
   } catch (error) {
@@ -707,8 +710,16 @@ export async function getProductionDashboard(
 
 export async function getProductionWorkOrderDetail(
   workOrderNo: string,
-  fallback?: WorkOrder
+  fallback?: WorkOrder,
+  dataSourceMode: DataSourceMode = "api"
 ): Promise<ProductionWorkOrderDetailResult> {
+  if (dataSourceMode === "mock") {
+    return {
+      order: fallback ?? productionDashboardMock.orders.find((order) => order.id === workOrderNo),
+      source: "mock"
+    };
+  }
+
   try {
     const payload = await apiGet<ApiWorkOrderDetail>(
       `/api/v2/production/work-orders/${encodeURIComponent(workOrderNo)}/detail`

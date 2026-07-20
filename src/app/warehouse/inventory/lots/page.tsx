@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AppLayout } from "@/layouts/app-layout";
 import {
@@ -314,6 +315,7 @@ function DetailPanel({
 }
 
 export default function WarehouseInventoryLotsPage() {
+  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
   const [data, setData] = useState<WarehouseInventoryLotListData>(emptyLotList);
   const [detail, setDetail] = useState<WarehouseInventoryLotDetail | undefined>();
   const [selectedLot, setSelectedLot] = useState<WarehouseInventoryLot | undefined>();
@@ -341,7 +343,7 @@ export default function WarehouseInventoryLotsPage() {
   useEffect(() => {
     let isMounted = true;
 
-    getWarehouseInventoryLots(query).then((result) => {
+    getWarehouseInventoryLots(query, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -359,7 +361,7 @@ export default function WarehouseInventoryLotsPage() {
     return () => {
       isMounted = false;
     };
-  }, [query]);
+  }, [dataSourceMode, query]);
 
   useEffect(() => {
     if (!selectedLot) {
@@ -368,7 +370,7 @@ export default function WarehouseInventoryLotsPage() {
 
     let isMounted = true;
 
-    getWarehouseInventoryLotDetail(selectedLot).then((result) => {
+    getWarehouseInventoryLotDetail(selectedLot, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -380,7 +382,7 @@ export default function WarehouseInventoryLotsPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedLot]);
+  }, [dataSourceMode, selectedLot]);
 
   function handleSelectLot(lot: WarehouseInventoryLot) {
     setSelectedLot(lot);
@@ -399,6 +401,7 @@ export default function WarehouseInventoryLotsPage() {
                   {source === "api" ? "API data" : "Mock fallback"}
                 </StatusBadge>
                 {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">庫存批號明細清單</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">

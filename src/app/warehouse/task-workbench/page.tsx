@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useLanguage } from "@/i18n/language-provider";
 import {
@@ -424,6 +425,7 @@ function DetailPanel({ detail, isLoading }: { detail?: WarehouseTaskDetail; isLo
 
 export default function WarehouseTaskWorkbenchPage() {
   const { language } = useLanguage();
+  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
   const [data, setData] = useState<WarehouseTaskWorkbenchData>(emptyWorkbench);
   const [source, setSource] = useState<WarehouseDataSource>("mock");
   const [error, setError] = useState<string | undefined>();
@@ -472,7 +474,7 @@ export default function WarehouseTaskWorkbenchPage() {
   useEffect(() => {
     let isMounted = true;
 
-    getWarehouseTaskWorkbench(query).then((result) => {
+    getWarehouseTaskWorkbench(query, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -489,7 +491,7 @@ export default function WarehouseTaskWorkbenchPage() {
     return () => {
       isMounted = false;
     };
-  }, [query]);
+  }, [dataSourceMode, query]);
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -498,7 +500,7 @@ export default function WarehouseTaskWorkbenchPage() {
 
     let isMounted = true;
 
-    getWarehouseTaskDetail(selectedTaskId).then((result) => {
+    getWarehouseTaskDetail(selectedTaskId, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -510,7 +512,7 @@ export default function WarehouseTaskWorkbenchPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedTaskId]);
+  }, [dataSourceMode, selectedTaskId]);
 
   function handleSelectTask(task: WarehouseTaskWorkbenchItem) {
     setIsDetailLoading(true);
@@ -529,6 +531,7 @@ export default function WarehouseTaskWorkbenchPage() {
                   {source === "api" ? "API data" : "Mock fallback"}
                 </StatusBadge>
                 {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">倉庫任務工作台</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useWarehouseDashboard } from "@/hooks/use-warehouse-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
@@ -603,8 +604,9 @@ function MainContent({
 }
 
 export default function WarehousePage() {
+  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
   const { data: warehouseData, error, isLoading, isInventoryLoading, source, loadInventory, loadTasks } =
-    useWarehouseDashboard();
+    useWarehouseDashboard(dataSourceMode);
   const [activeTab, setActiveTab] = useState<WarehouseWorkspaceTab>("value-space");
   const [selectedRecordId, setSelectedRecordId] = useState<string>(warehouseData.records[0]?.id ?? "");
   const [searchValue, setSearchValue] = useState("");
@@ -635,6 +637,7 @@ export default function WarehousePage() {
                   {source === "api" ? "API data" : "Mock fallback"}
                 </StatusBadge>
                 {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">倉庫經營總覽</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
@@ -642,7 +645,7 @@ export default function WarehousePage() {
                 協助管理者掌握資金分佈、寄倉規劃與今日入出庫待處理事項。
               </p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto_auto]">
+            <div className="grid gap-2 sm:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto_auto_auto]">
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
                 <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
                 <input

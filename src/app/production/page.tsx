@@ -13,6 +13,7 @@ import {
   UsersRound
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useProductionDashboard } from "@/hooks/use-production-dashboard";
 import { productionEnumLabel, productionRiskTone, productionStatusTone } from "@/i18n/production-enums";
@@ -611,14 +612,14 @@ function DetailPanel({
 function MainContent({
   activeTab,
   data,
-  selectedOrder,
+  selectedId,
   searchQuery,
   language,
   onSelectOrder
 }: {
   activeTab: ProductionWorkspaceTab;
   data: ProductionDashboardData;
-  selectedOrder: WorkOrder;
+  selectedId: string;
   searchQuery: string;
   language: LanguageCode;
   onSelectOrder: (order: WorkOrder) => void;
@@ -634,7 +635,7 @@ function MainContent({
         <ProductionTable
           activeTab={activeTab}
           orders={data.orders}
-          selectedId={selectedOrder.id}
+          selectedId={selectedId}
           searchQuery={searchQuery}
           language={language}
           onSelect={onSelectOrder}
@@ -647,7 +648,7 @@ function MainContent({
     <ProductionTable
       activeTab={activeTab}
       orders={data.orders}
-      selectedId={selectedOrder.id}
+      selectedId={selectedId}
       searchQuery={searchQuery}
       language={language}
       onSelect={onSelectOrder}
@@ -657,7 +658,8 @@ function MainContent({
 
 export default function ProductionPage() {
   const { language } = useLanguage();
-  const { data: productionData, error, isLoading, source } = useProductionDashboard();
+  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
+  const { data: productionData, error, isLoading, source } = useProductionDashboard(dataSourceMode);
   const [activeTab, setActiveTab] = useState<ProductionWorkspaceTab>("schedule");
   const [selectedOrderId, setSelectedOrderId] = useState<string>(productionData.orders[0].id);
   const [detailOrder, setDetailOrder] = useState<WorkOrder | undefined>();
@@ -671,7 +673,7 @@ export default function ProductionPage() {
     searchQuery && !orderMatchesSearch(selectedOrderCandidate, searchQuery)
       ? productionData.orders.find((order) => orderMatchesSearch(order, searchQuery)) ?? selectedOrderCandidate
       : selectedOrderCandidate;
-  const selectedOrder = detailOrder?.id === selectedOrderBase.id ? detailOrder : selectedOrderBase;
+  const selectedOrder = selectedOrderBase && detailOrder?.id === selectedOrderBase.id ? detailOrder : selectedOrderBase;
 
   useEffect(() => {
     if (!selectedOrderBase?.id) {
@@ -680,7 +682,7 @@ export default function ProductionPage() {
 
     let isMounted = true;
 
-    getProductionWorkOrderDetail(selectedOrderBase.id, selectedOrderBase).then((result) => {
+    getProductionWorkOrderDetail(selectedOrderBase.id, selectedOrderBase, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -692,7 +694,7 @@ export default function ProductionPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedOrderBase]);
+  }, [dataSourceMode, selectedOrderBase]);
 
   return (
     <AppLayout activePath="/production" title="生產管理 Production Workspace">
@@ -707,6 +709,7 @@ export default function ProductionPage() {
                   {source === "api" ? "API data" : "Mock fallback"}
                 </StatusBadge>
                 {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">生產計畫與現場品質總覽</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
@@ -787,7 +790,7 @@ export default function ProductionPage() {
             <MainContent
               activeTab={activeTab}
               data={productionData}
-              selectedOrder={selectedOrder}
+              selectedId={selectedOrder?.id ?? ""}
               searchQuery={searchQuery}
               language={language}
               onSelectOrder={(order) => {
@@ -813,7 +816,13 @@ export default function ProductionPage() {
             </div>
           </div>
 
-          <DetailPanel order={selectedOrder} language={language} isLoading={isDetailLoading} error={detailError} />
+          {selectedOrder ? (
+            <DetailPanel order={selectedOrder} language={language} isLoading={isDetailLoading} error={detailError} />
+          ) : (
+            <aside className="rounded-lg border border-dashed border-border bg-white p-4 text-sm text-textSecondary shadow-card">
+              目前沒有可顯示的生產工單明細。
+            </aside>
+          )}
         </section>
       </div>
     </AppLayout>

@@ -163,6 +163,9 @@ export type ProductionAlert = {
   title: string;
   description: string;
   tone: StatusTone;
+  titleCode?: string;
+  descriptionCode?: string;
+  count?: number;
 };
 
 export type ProductionDashboardData = {

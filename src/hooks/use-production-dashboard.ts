@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { productionDashboardMock } from "@/mock/production";
-import { getProductionDashboard } from "@/services/production-api";
+import { getProductionDashboard, normalizeProductionDashboardData } from "@/services/production-api";
 import type { ProductionDashboardData, ProductionDataSource } from "@/types/production";
 
 export type ProductionDashboardState = {
@@ -15,7 +15,7 @@ export type ProductionDashboardState = {
 
 export function useProductionDashboard(dataSourceMode: DataSourceMode = "api"): ProductionDashboardState {
   const [state, setState] = useState<ProductionDashboardState>({
-    data: productionDashboardMock,
+    data: normalizeProductionDashboardData(productionDashboardMock),
     source: "mock",
     isLoading: true
   });

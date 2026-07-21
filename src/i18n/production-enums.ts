@@ -4,6 +4,7 @@ import type { StatusTone } from "@/types/dashboard";
 type EnumDictionary = Record<string, string>;
 
 type ProductionEnumKind =
+  | "alertComment"
   | "alertType"
   | "capacityStatus"
   | "changeoverStatus"
@@ -22,6 +23,18 @@ type ProductionEnumKind =
   | "workflowStep";
 
 const zhTW: Record<ProductionEnumKind, EnumDictionary> = {
+  alertComment: {
+    "production.alert.material_shortage": "備料不足，請確認可用庫存與領料狀態。",
+    "production.alert.staff_shortage": "人員配置不足，請確認班表或支援安排。",
+    "production.alert.capacity_downtime": "產線目前停用或休線，請確認排程可行性。",
+    "production.alert.capacity_config_missing": "此產線缺少產能設定，請補齊日產能與換線設定。",
+    "production.alert.capacity_bottleneck": "產能接近瓶頸，請檢視負荷與排程分配。",
+    "production.alert.schedule_delay": "工單進度落後，請優先掌握今日可完成項目。",
+    "production.alert.efficiency_loss": "實際工時高於標準，請檢視效率損耗原因。",
+    "production.alert.loss_over_threshold": "原物料損耗高於門檻，請檢查投料與回收紀錄。",
+    "production.alert.labor_cost_missing": "人工費率資料缺漏，請補齊成本設定。",
+    unknown: "請確認生產資料與後續處理責任。"
+  },
   alertType: {
     material_shortage: "缺料",
     staff_shortage: "人員不足",
@@ -162,6 +175,18 @@ const zhTW: Record<ProductionEnumKind, EnumDictionary> = {
 };
 
 const en: Record<ProductionEnumKind, EnumDictionary> = {
+  alertComment: {
+    "production.alert.material_shortage": "Material readiness is short. Check available stock and issuing status.",
+    "production.alert.staff_shortage": "Staff assignment is short. Check shift or support planning.",
+    "production.alert.capacity_downtime": "The production line is stopped or closed. Check scheduling feasibility.",
+    "production.alert.capacity_config_missing": "This line is missing capacity settings. Complete daily capacity and changeover setup.",
+    "production.alert.capacity_bottleneck": "Capacity is near a bottleneck. Review load and schedule allocation.",
+    "production.alert.schedule_delay": "The work order is behind schedule. Prioritize what can be completed today.",
+    "production.alert.efficiency_loss": "Actual hours exceed standard hours. Review efficiency loss causes.",
+    "production.alert.loss_over_threshold": "Material loss exceeds threshold. Check input and reuse records.",
+    "production.alert.labor_cost_missing": "Labor rate data is missing. Complete cost settings.",
+    unknown: "Check production data and the responsible follow-up action."
+  },
   alertType: {
     material_shortage: "Material shortage",
     staff_shortage: "Staff shortage",

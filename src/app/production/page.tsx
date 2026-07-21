@@ -44,12 +44,44 @@ const tabDescriptions: Record<ProductionWorkspaceTab, string> = {
   details: "查看工單、批號、BOM、備料、品檢與入庫 workflow 明細。"
 };
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("zh-TW").format(value);
+function safeNumber(value: number | undefined) {
+  return value !== undefined && Number.isFinite(value) ? value : 0;
 }
 
-function formatMoney(value: number) {
-  return `$${new Intl.NumberFormat("zh-TW").format(value)}`;
+function formatNumber(value: number | undefined, fractionDigits = 0) {
+  return new Intl.NumberFormat("zh-TW", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits
+  }).format(safeNumber(value));
+}
+
+function formatMoney(value: number | undefined) {
+  return `$${formatNumber(value)}`;
+}
+
+function formatPercent(value: number | undefined) {
+  return `${formatNumber(value, 2)}%`;
+}
+
+function formatHours(value: number | undefined) {
+  return `${formatNumber(value, 2)} hr`;
+}
+
+function safePercent(numerator: number | undefined, denominator: number | undefined) {
+  const base = safeNumber(denominator);
+  if (base <= 0) {
+    return 0;
+  }
+  return (safeNumber(numerator) / base) * 100;
+}
+
+function progressWidth(value: number | undefined) {
+  const percentage = Math.max(0, Math.min(100, safeNumber(value)));
+  return `${percentage}%`;
+}
+
+function displayText(value: string | undefined) {
+  return value && value.trim() ? value : "-";
 }
 
 function getRiskTone(risk: WorkOrder["deliveryRisk"]) {
@@ -104,9 +136,12 @@ function includesSearch(value: string | number | boolean, search: string) {
   return String(value).toLocaleLowerCase().includes(search);
 }
 
-function orderMatchesSearch(order: WorkOrder, search: string) {
+function orderMatchesSearch(order: WorkOrder | undefined, search: string) {
   if (!search) {
     return true;
+  }
+  if (!order) {
+    return false;
   }
 
   return [
@@ -138,11 +173,11 @@ function orderMatchesSearch(order: WorkOrder, search: string) {
 
 function getVisibleOrders(activeTab: ProductionWorkspaceTab, orders: WorkOrder[]) {
   if (activeTab === "mes") {
-    return orders.filter((order) => order.scheduleDate === "2026-05-23");
+    return orders;
   }
 
   if (activeTab === "analytics") {
-    return [...orders].sort((a, b) => a.efficiencyRate - b.efficiencyRate);
+    return [...orders].sort((a, b) => safeNumber(a.efficiencyRate) - safeNumber(b.efficiencyRate));
   }
 
   return orders;
@@ -244,7 +279,7 @@ function WeekScheduleView({
           </div>
           <div className="mt-4 grid gap-3 xl:grid-cols-3">
             {day.lines.map((line) => {
-              const usedRatio = Math.round((line.usedHours / line.dailyCapacityHours) * 100);
+              const usedRatio = safePercent(line.usedHours, line.dailyCapacityHours);
               return (
                 <div className="rounded-lg border border-border bg-slate-50 p-4" key={`${day.date}-${line.line}`}>
                   <div className="flex items-start justify-between gap-3">
@@ -253,16 +288,16 @@ function WeekScheduleView({
                         {line.line} · {line.processType}
                       </p>
                       <p className="mt-1 text-xs text-textSecondary">
-                        已排 {line.usedHours} hr / 可用 {line.availableHours} hr / 換線 {line.changeoverHours} hr
+                        已排 {formatHours(line.usedHours)} / 可用 {formatHours(line.availableHours)} / 換線 {formatHours(line.changeoverHours)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <StatusBadge tone={line.tone}>{usedRatio}%</StatusBadge>
+                      <StatusBadge tone={line.tone}>{formatPercent(usedRatio)}</StatusBadge>
                       <span className="text-xs text-textSecondary">瓶頸 #{line.bottleneckRank}</span>
                     </div>
                   </div>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${usedRatio}%` }} />
+                    <div className="h-full rounded-full bg-primary" style={{ width: progressWidth(usedRatio) }} />
                   </div>
                   <div className="mt-3 space-y-2">
                     {line.slots.map((slot) => (
@@ -326,26 +361,26 @@ function AnalyticsView({
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-md bg-slate-50 p-3">
               <p className="text-xs text-textSecondary">產時效率</p>
-              <p className="mt-1 font-semibold text-textPrimary">{order.efficiencyRate}%</p>
+              <p className="mt-1 font-semibold text-textPrimary">{formatPercent(order.efficiencyRate)}</p>
               <p className="mt-1 text-xs text-textSecondary">
-                標準 {order.standardHours} hr / 實際 {order.actualHours} hr
+                標準 {formatHours(order.standardHours)} / 實際 {formatHours(order.actualHours)}
               </p>
             </div>
             <div className="rounded-md bg-slate-50 p-3">
               <p className="text-xs text-textSecondary">損耗率</p>
-              <p className="mt-1 font-semibold text-textPrimary">{order.materialLossRate}%</p>
+              <p className="mt-1 font-semibold text-textPrimary">{formatPercent(order.materialLossRate)}</p>
               <p className="mt-1 text-xs text-textSecondary">
-                {formatNumber(order.actualMaterialQty)} / {formatNumber(order.standardMaterialQty)}
+                {formatNumber(order.actualMaterialQty, 2)} / {formatNumber(order.standardMaterialQty, 2)}
               </p>
             </div>
             <div className="rounded-md bg-slate-50 p-3">
               <p className="text-xs text-textSecondary">單品人工費</p>
               <p className="mt-1 font-semibold text-textPrimary">{formatMoney(order.unitLaborCost)}</p>
-              <p className="mt-1 text-xs text-textSecondary">{order.laborHours} 人時</p>
+              <p className="mt-1 text-xs text-textSecondary">{formatNumber(order.laborHours, 2)} 人時</p>
             </div>
             <div className="rounded-md bg-slate-50 p-3">
               <p className="text-xs text-textSecondary">品質不良率</p>
-              <p className="mt-1 font-semibold text-textPrimary">{order.quality.defectRate}%</p>
+              <p className="mt-1 font-semibold text-textPrimary">{formatPercent(order.quality.defectRate)}</p>
               <p className="mt-1 text-xs text-textSecondary">
                 待判 {order.quality.pendingCount} · 樣本 {order.quality.sampleCount}
               </p>
@@ -427,21 +462,21 @@ function ProductionTable({
                     <p className="mt-1 text-xs text-textSecondary">{order.id}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-textPrimary">{order.scheduleDate}</p>
+                    <p className="text-textPrimary">{displayText(order.scheduleDate)}</p>
                     <p className="mt-1 text-xs text-textSecondary">
-                      {order.line} · {order.startTime}-{order.endTime}
+                      {displayText(order.line)} · {displayText(order.startTime)}-{displayText(order.endTime)}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-textPrimary">{order.processType}</td>
                   <td className="px-4 py-3 text-right font-semibold text-textPrimary">
-                    {formatNumber(order.completedQty)} / {formatNumber(order.plannedQty)} {order.unit}
+                    {formatNumber(order.completedQty, 2)} / {formatNumber(order.plannedQty, 2)} {order.unit}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${order.progress}%` }} />
+                        <div className="h-full rounded-full bg-primary" style={{ width: progressWidth(order.progress) }} />
                       </div>
-                      <span className="text-xs text-textSecondary">{order.progress}%</span>
+                      <span className="text-xs text-textSecondary">{formatPercent(order.progress)}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -452,19 +487,19 @@ function ProductionTable({
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-textPrimary">{machineStatusLabel(order, language)}</p>
-                    <p className="mt-1 text-xs text-textSecondary">效率 {order.efficiencyRate}%</p>
+                    <p className="mt-1 text-xs text-textSecondary">效率 {formatPercent(order.efficiencyRate)}</p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={order.deliveryRiskCode ? productionRiskTone(order.deliveryRiskCode) : getRiskTone(order.deliveryRisk)}>
                       {deliveryRiskLabel(order, language)}
                     </StatusBadge>
                     <p className="mt-1 text-xs text-textSecondary">
-                      交期 {order.customerDueDate} · 換線 {order.changeoverMinutes} 分
+                      交期 {displayText(order.customerDueDate)} · 換線 {formatNumber(order.changeoverMinutes)} 分
                     </p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={order.quality.tone}>{qualityStatusLabel(order, language)}</StatusBadge>
-                    <p className="mt-1 text-xs text-textSecondary">不良 {order.quality.defectRate}%</p>
+                    <p className="mt-1 text-xs text-textSecondary">不良 {formatPercent(order.quality.defectRate)}</p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={order.statusCode ? productionStatusTone(order.statusCode) : order.tone}>
@@ -515,13 +550,13 @@ function DetailPanel({
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">計畫產量</p>
           <p className="mt-1 font-semibold text-textPrimary">
-            {formatNumber(order.plannedQty)} {order.unit}
+            {formatNumber(order.plannedQty, 2)} {order.unit}
           </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">已完成</p>
           <p className="mt-1 font-semibold text-textPrimary">
-            {formatNumber(order.completedQty)} {order.unit}
+            {formatNumber(order.completedQty, 2)} {order.unit}
           </p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
@@ -540,7 +575,7 @@ function DetailPanel({
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">損耗率</p>
-          <p className="mt-1 font-semibold text-textPrimary">{order.materialLossRate}%</p>
+          <p className="mt-1 font-semibold text-textPrimary">{formatPercent(order.materialLossRate)}</p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">單品人工費</p>
@@ -549,11 +584,11 @@ function DetailPanel({
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">交期風險</p>
           <p className="mt-1 font-semibold text-textPrimary">{deliveryRiskLabel(order, language)}</p>
-          <p className="mt-1 text-xs text-textSecondary">交期 {order.customerDueDate}</p>
+          <p className="mt-1 text-xs text-textSecondary">交期 {displayText(order.customerDueDate)}</p>
         </div>
         <div className="rounded-md bg-slate-50 p-3">
           <p className="text-xs text-textSecondary">換線時間</p>
-          <p className="mt-1 font-semibold text-textPrimary">{order.changeoverMinutes} 分</p>
+          <p className="mt-1 font-semibold text-textPrimary">{formatNumber(order.changeoverMinutes)} 分</p>
         </div>
       </div>
 
@@ -600,7 +635,7 @@ function DetailPanel({
               <StatusBadge tone={item.tone}>{item.status}</StatusBadge>
             </div>
             <p className="mt-2 text-xs text-textSecondary">
-              {formatNumber(item.issuedQty)} / {formatNumber(item.requiredQty)} {item.unit}
+              {formatNumber(item.issuedQty, 2)} / {formatNumber(item.requiredQty, 2)} {item.unit}
             </p>
           </div>
         ))}
@@ -661,7 +696,7 @@ export default function ProductionPage() {
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
   const { data: productionData, error, isLoading, source } = useProductionDashboard(dataSourceMode);
   const [activeTab, setActiveTab] = useState<ProductionWorkspaceTab>("schedule");
-  const [selectedOrderId, setSelectedOrderId] = useState<string>(productionData.orders[0].id);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(productionData.orders[0]?.id ?? "");
   const [detailOrder, setDetailOrder] = useState<WorkOrder | undefined>();
   const [detailError, setDetailError] = useState<string | undefined>();
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -670,7 +705,7 @@ export default function ProductionPage() {
   const selectedOrderCandidate =
     productionData.orders.find((order) => order.id === selectedOrderId) ?? productionData.orders[0];
   const selectedOrderBase =
-    searchQuery && !orderMatchesSearch(selectedOrderCandidate, searchQuery)
+    selectedOrderCandidate && searchQuery && !orderMatchesSearch(selectedOrderCandidate, searchQuery)
       ? productionData.orders.find((order) => orderMatchesSearch(order, searchQuery)) ?? selectedOrderCandidate
       : selectedOrderCandidate;
   const selectedOrder = selectedOrderBase && detailOrder?.id === selectedOrderBase.id ? detailOrder : selectedOrderBase;
@@ -803,13 +838,22 @@ export default function ProductionPage() {
             <div className="grid gap-3 lg:grid-cols-3">
               {productionData.alerts.map((item: ProductionAlert) => {
                 const Icon = item.tone === "danger" ? AlertTriangle : item.tone === "info" ? ShieldCheck : BarChart3;
+                const title = item.titleCode
+                  ? productionEnumLabel("alertType", item.titleCode, language)
+                  : item.title;
+                const description = item.descriptionCode
+                  ? productionEnumLabel("alertComment", item.descriptionCode, language)
+                  : item.description;
                 return (
                   <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.id}>
                     <div className="flex items-center gap-2">
                       <Icon className="h-4 w-4 text-textSecondary" aria-hidden="true" />
-                      <StatusBadge tone={item.tone}>{item.title}</StatusBadge>
+                      <StatusBadge tone={item.tone}>{title}</StatusBadge>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-textSecondary">{item.description}</p>
+                    <p className="mt-3 text-sm leading-6 text-textSecondary">
+                      {description}
+                      {(item.count ?? 0) > 1 ? `（共 ${formatNumber(item.count)} 筆）` : ""}
+                    </p>
                   </div>
                 );
               })}

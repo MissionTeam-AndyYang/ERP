@@ -304,6 +304,16 @@ function progressRate(completed = 0, planned = 0, provided?: number) {
   return Math.max(0, Math.min(100, Math.round((completed / planned) * 100)));
 }
 
+function firstDate(...timestamps: (number | undefined)[]) {
+  const timestamp = timestamps.find((value) => value !== undefined && value !== null && value > 0);
+  return timestampToDate(timestamp);
+}
+
+function firstTime(...timestamps: (number | undefined)[]) {
+  const timestamp = timestamps.find((value) => value !== undefined && value !== null && value > 0);
+  return timestampToTime(timestamp);
+}
+
 function mapSummary(payload: ApiProductionDashboardPayload): ProductionSummaryItem[] {
   const summary = payload.summary ?? {};
   return [
@@ -443,15 +453,15 @@ function mapOrder(
     completedQty,
     unit: unitLabel(item.unit),
     owner: item.ownerEmployeeName || item.ownerEmployeeNo || productionEnumLabel("department", staffSignal?.ownerDepartment, locale),
-    eta: timestampToTime(item.plannedEndTimestamp),
+    eta: firstTime(item.plannedEndTimestamp, item.actualEndTimestamp),
     priority: deliveryRisk === "high_risk" ? "高" : "中",
     sourceOrder: item.productOrderNo ?? "",
     bomNo: "",
     customerDueDate: "",
     deliveryRisk: productionEnumLabel("deliveryRisk", deliveryRisk, locale),
-    scheduleDate: timestampToDate(item.plannedStartTimestamp),
-    startTime: timestampToTime(item.plannedStartTimestamp),
-    endTime: timestampToTime(item.plannedEndTimestamp),
+    scheduleDate: firstDate(item.plannedStartTimestamp, item.actualStartTimestamp, item.actualEndTimestamp),
+    startTime: firstTime(item.plannedStartTimestamp, item.actualStartTimestamp),
+    endTime: firstTime(item.plannedEndTimestamp, item.actualEndTimestamp),
     changeoverMinutes: 0,
     materialStatus: mapMaterialStatus(materialStatus),
     staffStatus: mapStaffStatus(staffStatus),
@@ -552,14 +562,31 @@ function mapSchedule(payload: ApiProductionDashboardPayload): ProductionDaySched
 }
 
 function mapAlerts(payload: ApiProductionDashboardPayload): ProductionAlert[] {
-  return withFallbackArray<ApiProductionAlert>(payload.alerts, []).map((alert, index) => ({
-    id: `${alert.alertType ?? "production-alert"}-${alert.workOrderNo ?? alert.productionLineNo ?? index}`,
-    title: productionEnumLabel("alertType", alert.alertType, locale),
-    description:
-      alert.comment ||
-      `${alert.workOrderNo ?? alert.productionLineNo ?? ""} · ${productionEnumLabel("department", alert.ownerDepartment, locale)}`,
-    tone: productionStatusTone(alert.alertType, alert.riskLevel)
-  }));
+  const grouped = new Map<string, ProductionAlert>();
+
+  withFallbackArray<ApiProductionAlert>(payload.alerts, []).forEach((alert, index) => {
+    const titleCode = alert.alertType ?? "unknown";
+    const descriptionCode = alert.comment ?? "unknown";
+    const key = `${titleCode}-${descriptionCode}`;
+    const current = grouped.get(key);
+
+    if (current) {
+      current.count = (current.count ?? 1) + 1;
+      return;
+    }
+
+    grouped.set(key, {
+      id: `${key}-${index}`,
+      title: productionEnumLabel("alertType", titleCode, locale),
+      description: productionEnumLabel("alertComment", descriptionCode, locale),
+      tone: productionStatusTone(alert.alertType, alert.riskLevel),
+      titleCode,
+      descriptionCode,
+      count: 1
+    });
+  });
+
+  return Array.from(grouped.values());
 }
 
 function mapDashboardPayload(payload: ApiProductionDashboardPayload): ProductionDashboardData {
@@ -574,6 +601,13 @@ function mapDashboardPayload(payload: ApiProductionDashboardPayload): Production
     orders,
     weekSchedule: mapSchedule(payload),
     alerts: mapAlerts(payload)
+  };
+}
+
+export function normalizeProductionDashboardData(data: ProductionDashboardData): ProductionDashboardData {
+  return {
+    ...data,
+    orders: data.orders.map((order) => normalizeWorkOrderWorkflow(order) ?? order)
   };
 }
 
@@ -596,18 +630,139 @@ function mapDetailMaterials(payload: ApiWorkOrderDetail): ProductionMaterial[] {
   );
 }
 
-function mapDetailWorkflow(payload: ApiWorkOrderDetail): ProductionWorkflowStep[] {
-  const events = withFallbackArray<NonNullable<ApiWorkOrderDetail["mesEvents"]>[number]>(payload.mesEvents, []).map(
-    (event, index) => ({
-      label: productionEnumLabel("workflowStep", event.eventType, locale),
-      ref: event.refNo || event.comment || `event-${index + 1}`,
-      status: "進行中" as const,
-      tone: "info" as const,
-      stepCode: event.eventType,
-      statusCode: event.eventType
-    })
-  );
-  return events.length ? events : [];
+function detailStepStatus(statusCode: string, completedStatus: string, inProgressStatus: string) {
+  if (statusCode === completedStatus) {
+    return "完成" as const;
+  }
+  if (statusCode === inProgressStatus) {
+    return "進行中" as const;
+  }
+  return "待處理" as const;
+}
+
+function mapDetailWorkflow(payload: ApiWorkOrderDetail, fallback?: WorkOrder): ProductionWorkflowStep[] {
+  const workOrder = payload.workOrder;
+  const materials = withFallbackArray<NonNullable<ApiWorkOrderDetail["materials"]>[number]>(payload.materials, []);
+  const outputs = withFallbackArray<NonNullable<ApiWorkOrderDetail["outputs"]>[number]>(payload.outputs, []);
+  const workOrderStatus = workOrder?.status ?? fallback?.statusCode ?? "unknown";
+  const materialStatus =
+    materials.length > 0 && materials.every((item) => item.status === "ready")
+      ? "ready"
+      : materials.length > 0
+        ? "partial"
+        : fallback?.materialStatusCode ?? "unknown";
+  const outputQuantity = outputs.reduce((total, item) => total + (item.quantity ?? 0), 0);
+  const productionStatus =
+    workOrderStatus === "completed" || workOrderStatus === "pending_inventory"
+      ? "completed"
+      : outputQuantity > 0 || workOrderStatus === "running"
+        ? "running"
+        : "scheduled";
+  const qualityStatus = fallback?.qualityStatusCode ?? "deferred";
+  const inventoryStatus = workOrderStatus === "completed" ? "completed" : "pending_inventory";
+
+  return [
+    {
+      label: productionEnumLabel("workflowStep", "work_order", locale),
+      ref: workOrder?.workOrderNo ?? fallback?.id ?? "",
+      status: "完成",
+      tone: "success",
+      stepCode: "work_order",
+      statusCode: "completed"
+    },
+    {
+      label: productionEnumLabel("workflowStep", "material", locale),
+      ref: productionEnumLabel("materialStatus", materialStatus, locale),
+      status: detailStepStatus(materialStatus, "ready", "partial"),
+      tone: productionStatusTone(materialStatus),
+      stepCode: "material",
+      statusCode: materialStatus
+    },
+    {
+      label: productionEnumLabel("workflowStep", "production", locale),
+      ref: `${formatNumber(outputQuantity || fallback?.completedQty || 0)} ${unitLabel(workOrder?.unit) || fallback?.unit || ""}`,
+      status: detailStepStatus(productionStatus, "completed", "running"),
+      tone: productionStatusTone(productionStatus),
+      stepCode: "production",
+      statusCode: productionStatus
+    },
+    {
+      label: productionEnumLabel("workflowStep", "quality", locale),
+      ref: productionEnumLabel("qualityStatus", qualityStatus, locale),
+      status: "待處理",
+      tone: productionStatusTone(qualityStatus),
+      stepCode: "quality",
+      statusCode: qualityStatus
+    },
+    {
+      label: productionEnumLabel("workflowStep", "inventory", locale),
+      ref: productionEnumLabel("status", inventoryStatus, locale),
+      status: inventoryStatus === "completed" ? "完成" : "待處理",
+      tone: productionStatusTone(inventoryStatus),
+      stepCode: "inventory",
+      statusCode: inventoryStatus
+    }
+  ];
+}
+
+function buildWorkflowFromWorkOrder(order: WorkOrder): ProductionWorkflowStep[] {
+  const status = order.statusCode ?? "unknown";
+  const materialStatus = order.materialStatusCode ?? "unknown";
+  const productionStatus =
+    status === "completed" || status === "pending_inventory"
+      ? "completed"
+      : order.completedQty > 0 || status === "running"
+        ? "running"
+        : "scheduled";
+  const qualityStatus = order.qualityStatusCode ?? "deferred";
+  const inventoryStatus = status === "completed" ? "completed" : "pending_inventory";
+
+  return [
+    {
+      label: productionEnumLabel("workflowStep", "work_order", locale),
+      ref: order.id,
+      status: "完成",
+      tone: "success",
+      stepCode: "work_order",
+      statusCode: "completed"
+    },
+    {
+      label: productionEnumLabel("workflowStep", "material", locale),
+      ref: productionEnumLabel("materialStatus", materialStatus, locale),
+      status: materialStatus === "ready" ? "完成" : materialStatus === "partial" ? "進行中" : "待處理",
+      tone: productionStatusTone(materialStatus),
+      stepCode: "material",
+      statusCode: materialStatus
+    },
+    {
+      label: productionEnumLabel("workflowStep", "production", locale),
+      ref: `${formatNumber(order.completedQty)} ${order.unit}`,
+      status: productionStatus === "completed" ? "完成" : productionStatus === "running" ? "進行中" : "待處理",
+      tone: productionStatusTone(productionStatus),
+      stepCode: "production",
+      statusCode: productionStatus
+    },
+    {
+      label: productionEnumLabel("workflowStep", "quality", locale),
+      ref: productionEnumLabel("qualityStatus", qualityStatus, locale),
+      status: "待處理",
+      tone: productionStatusTone(qualityStatus),
+      stepCode: "quality",
+      statusCode: qualityStatus
+    },
+    {
+      label: productionEnumLabel("workflowStep", "inventory", locale),
+      ref: productionEnumLabel("status", inventoryStatus, locale),
+      status: inventoryStatus === "completed" ? "完成" : "待處理",
+      tone: productionStatusTone(inventoryStatus),
+      stepCode: "inventory",
+      statusCode: inventoryStatus
+    }
+  ];
+}
+
+function normalizeWorkOrderWorkflow(order?: WorkOrder): WorkOrder | undefined {
+  return order ? { ...order, workflow: buildWorkflowFromWorkOrder(order) } : undefined;
 }
 
 function mapDetailDocuments(payload: ApiWorkOrderDetail): ProductionRelatedDocument[] {
@@ -632,7 +787,7 @@ function mergeDetailPayload(payload: ApiWorkOrderDetail, fallback?: WorkOrder): 
   const status = workOrder?.status ?? fallback?.statusCode ?? "unknown";
   const plannedQty = workOrder?.plannedQuantity ?? fallback?.plannedQty ?? 0;
   const materials = mapDetailMaterials(payload);
-  const workflow = mapDetailWorkflow(payload);
+  const workflow = mapDetailWorkflow(payload, fallback);
   const documents = mapDetailDocuments(payload);
 
   return {
@@ -647,9 +802,9 @@ function mergeDetailPayload(payload: ApiWorkOrderDetail, fallback?: WorkOrder): 
     unit: unitLabel(workOrder?.unit) || fallback?.unit || "",
     requiredStaff: workOrder?.requiredStaffCount ?? fallback?.requiredStaff ?? 0,
     assignedStaff: workOrder?.assignedStaffCount ?? fallback?.assignedStaff ?? 0,
-    scheduleDate: timestampToDate(workOrder?.plannedStartTimestamp) || fallback?.scheduleDate || "",
-    startTime: timestampToTime(workOrder?.plannedStartTimestamp) || fallback?.startTime || "",
-    endTime: timestampToTime(workOrder?.plannedEndTimestamp) || fallback?.endTime || "",
+    scheduleDate: firstDate(workOrder?.plannedStartTimestamp) || fallback?.scheduleDate || "-",
+    startTime: firstTime(workOrder?.plannedStartTimestamp) || fallback?.startTime || "-",
+    endTime: firstTime(workOrder?.plannedEndTimestamp) || fallback?.endTime || "-",
     sourceOrder: workOrder?.productOrderNo ?? fallback?.sourceOrder ?? "",
     bomNo: workOrder?.apsNo ?? fallback?.bomNo ?? "",
     statusCode: status,
@@ -657,7 +812,7 @@ function mergeDetailPayload(payload: ApiWorkOrderDetail, fallback?: WorkOrder): 
     productionLineNo: workOrder?.productionLineNo ?? fallback?.productionLineNo,
     productNo: workOrder?.productNo ?? fallback?.productNo,
     materials: payload.materials ? materials : fallback?.materials ?? [],
-    workflow: payload.mesEvents ? workflow : fallback?.workflow ?? [],
+    workflow,
     relatedDocuments: payload.relatedDocuments ? documents : fallback?.relatedDocuments ?? []
   };
 }
@@ -688,7 +843,7 @@ export async function getProductionDashboard(
 ): Promise<ProductionDashboardResult> {
   if (dataSourceMode === "mock") {
     return {
-      data: productionDashboardMock,
+      data: normalizeProductionDashboardData(productionDashboardMock),
       source: "mock"
     };
   }
@@ -701,7 +856,7 @@ export async function getProductionDashboard(
     };
   } catch (error) {
     return {
-      data: productionDashboardMock,
+      data: normalizeProductionDashboardData(productionDashboardMock),
       source: "mock",
       error: error instanceof Error ? error.message : "Production API unavailable"
     };
@@ -715,7 +870,7 @@ export async function getProductionWorkOrderDetail(
 ): Promise<ProductionWorkOrderDetailResult> {
   if (dataSourceMode === "mock") {
     return {
-      order: fallback ?? productionDashboardMock.orders.find((order) => order.id === workOrderNo),
+      order: normalizeWorkOrderWorkflow(fallback ?? productionDashboardMock.orders.find((order) => order.id === workOrderNo)),
       source: "mock"
     };
   }
@@ -730,7 +885,7 @@ export async function getProductionWorkOrderDetail(
     };
   } catch (error) {
     return {
-      order: fallback,
+      order: normalizeWorkOrderWorkflow(fallback),
       source: "mock",
       error: error instanceof Error ? error.message : "Production work order detail API unavailable"
     };

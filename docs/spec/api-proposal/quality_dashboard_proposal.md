@@ -2,6 +2,13 @@
 1. 請將 plannedTimestamp 更名為 dueTimestamp。相同定義的回傳欄位命名，應盡量與資料庫欄位名稱一致，或與已實作 API 的回傳欄位名稱保持一致，不要再產生新的欄位命名。
 2. 針對"completedTimestamp 並非 workflow_task_state 既有欄位，第一版任務完成時回傳 0"。是否應該提出解決方法？例如：在資料表中新增欄位，或是從其他來源取得資料，而非直接回傳 0。抑或此欄位並非目前設計畫面所需？
 
+## 工程師提問V3理解與文件更新
+
+| 工程師提問V3 | 理解與確認 | 本次文件更新 |
+| --- | --- | --- |
+| 將 `plannedTimestamp` 更名為 `dueTimestamp`。 | 採用。該欄位實際來源是 `workflow_task_state.dueTimestamp`，不再建立不同語意的 API 欄位名稱。 | `qualityTasks[].plannedTimestamp` 全面更名為 `qualityTasks[].dueTimestamp`，並同步更新欄位說明、範例與流程文件。 |
+| `completedTimestamp` 沒有 `workflow_task_state` 欄位來源。 | 採用移除欄位。第一版畫面可依 `taskStatus` 判斷任務是否完成，數量與保留狀態也已有獨立欄位；目前沒有足夠需求新增完成時間欄位，也不可用 `updateTime` 冒充完成時間。 | 從 Success Response Data、Field Description、範例及流程文件移除 `completedTimestamp`；不新增 Quality DB Schema。 |
+
 # 工程師提問
 1. 查詢參數的命名需統一。例如：在`/api/v2/orders/dashboard` 中查詢期間的參數命名為 period，而在此則命名為 dateRange。此命名規則請套用至後續設計的所有 API。
 2. 查詢參數的命名規則統一為 xxx_no，因此請將 warehouseNo 修正為 warehouse_no。此命名規則請套用至後續設計的所有 API。
@@ -14,7 +21,7 @@
 | 查詢期間參數需與 Orders API 統一。 | 採用 `period` 作為查詢期間參數；支援 `today`、`7d`、`14d`，預設 `today`。response 的 `range.period` 回傳實際採用的期間代碼。 | 將 query parameter `dateRange` 改為 `period`，並同步更新流程與範例資料。 |
 | 查詢參數命名統一為 `xxx_no`。 | 採用 `warehouse_no` 作為查詢參數名稱。response 欄位仍依現有 API camelCase 規則使用 `warehouseNo`。 | 將 query parameter `warehouseNo` 改為 `warehouse_no`；response 欄位維持 `warehouseNo`。 |
 | 需明確說明來源欄位。 | 品檢任務來源取自 `workflow_task_state.refCategory` 與 `workflow_task_state.ref_no`；品檢保留來源取自 `warehouse_quality_hold.refCategory` 與 `warehouse_quality_hold.ref_no`。API 的 `sourceNo` 對應資料庫 `ref_no`；不自行拼接或推測來源單號。 | 將 `sourceType` 統一改為 API 欄位 `refCategory`，補充來源資料表與欄位說明。 |
-| `plannedTimestamp`、`completedTimestamp`、`inspectionNo` 的來源不明。 | `plannedTimestamp` 對應 `workflow_task_state.dueTimestamp`；`completedTimestamp` 並非 `workflow_task_state` 既有欄位，第一版任務完成時回傳 `0`，不可由 `updateTime` 冒充完成時間；`inspectionNo` 僅取自 `warehouse_quality_hold.inspection_no`，無對應保留紀錄時回傳空字串。 | 更新任務欄位說明與流程，明確標示資料庫欄位及缺漏行為。 |
+| `dueTimestamp`、`inspectionNo` 的來源。 | `dueTimestamp` 對應 `workflow_task_state.dueTimestamp`；`inspectionNo` 僅取自 `warehouse_quality_hold.inspection_no`，無對應保留紀錄時回傳空字串。任務完成使用 `taskStatus = 3`，不另回傳完成時間。 | 更新任務欄位說明與流程，移除沒有資料來源的 `completedTimestamp`。 |
 | `warehouse_quality_hold.no` 是否為 `hold_no`。 | 是。`warehouse_quality_hold.no` 是品檢保留業務識別碼，對應 detail API path parameter `hold_no`；`id` 僅為資料庫流水號，不對外作查詢入口。 | 補充 detail API 查詢規則。 |
 | `warehouse_quality_hold.status` 與部分釋放規則。 | 第一版依 schema 使用 `1=保留中、2=已放行、3=退回、4=報廢`；只有 `status=1` 納入 active hold。schema 尚未定義部分釋放專用事件或狀態，故不在本版推導部分釋放流程。 | 更新有效保留、狀態 enum 與非本次範圍說明。 |
 | `holdValue` NULL 的處理方式。 | 優先使用 `warehouse_quality_hold.holdValue`；若為 NULL 且 `holdQuantity`、`unitCost` 均有值，使用 `holdQuantity * unitCost` 補算；仍無法計算時回傳 `0`，不改寫資料庫。 | 補充 holdValue fallback 演算法與欄位說明。 |
@@ -121,8 +128,7 @@
       "warehouseNo": "String",
       "quantity": "Float",
       "value": "Integer",
-      "plannedTimestamp": "Integer",
-      "completedTimestamp": "Integer",
+      "dueTimestamp": "Integer",
       "comment": "String"
     }
   ],
@@ -186,8 +192,7 @@
 | `qualityTasks[].warehouseNo` | String | `workflow_task_state.warehouse_no` 倉儲別名 no。 |
 | `qualityTasks[].quantity` | Float | 任務預期處理數量，優先使用 `expectedQuantity`，數量缺漏時回傳 0。 |
 | `qualityTasks[].value` | Integer | 任務對應品檢保留價值；無法對應時回傳 0。 |
-| `qualityTasks[].plannedTimestamp` | Integer | `workflow_task_state.dueTimestamp`；無值時回傳 0。 |
-| `qualityTasks[].completedTimestamp` | Integer | `workflow_task_state` 尚無完成時間欄位；第一版固定回傳 0。 |
+| `qualityTasks[].dueTimestamp` | Integer | `workflow_task_state.dueTimestamp` 預計處理時間；無值時回傳 0。 |
 | `qualityTasks[].comment` | String | `workflow_task_state.blockReason` 或資料備註；後端不產生 UI 顯示文案。 |
 | `riskAlerts[].alertType` | String | 品質風險類型 code；前端依 code 轉換圖示、顏色與文字。 |
 | `riskAlerts[].riskLevel` | Integer | 風險等級 code。 |
@@ -342,8 +347,7 @@
       "warehouseNo": "WH-RM",
       "quantity": 840.00,
       "value": 172000,
-      "plannedTimestamp": 1784066400,
-      "completedTimestamp": 0,
+      "dueTimestamp": 1784066400,
       "comment": "等待品保判定"
     }
   ],

@@ -9,7 +9,7 @@
 | 工程師回覆／提問 | 理解與確認 | 本次流程更新 |
 | --- | --- | --- |
 | 查詢期間與倉儲參數命名需統一。 | 採用 `period` 與 `warehouse_no`；`period` 支援 `today`、`7d`、`14d`，預設 `today`。 | Step 1 與所有查詢條件改用正式參數名稱。 |
-| `workflow_task_state` 欄位來源不明。 | 依正式 DB schema：預計處理時間是 `dueTimestamp`，任務完成判斷使用 `taskStatus = 3`；schema 沒有 `completedTimestamp`，故第一版回傳 0。品檢單號只從 `warehouse_quality_hold.inspection_no` 取得。 | Step 3、Step 4 與 detail 流程不再假設不存在欄位。 |
+| `workflow_task_state` 欄位來源不明。 | 依正式 DB schema：預計處理時間是 `dueTimestamp`，任務完成判斷使用 `taskStatus = 3`；schema 沒有完成時間欄位，因此第一版不回傳 `completedTimestamp`。品檢單號只從 `warehouse_quality_hold.inspection_no` 取得。 | Step 3、Step 4 與 detail 流程不再假設不存在欄位。 |
 | `warehouse_quality_hold` 欄位定義需明確。 | `no` 是對外 hold_no；`status` 為 1 保留中、2 已放行、3 退回、4 報廢。第一版只有 status=1 納入 active hold，未定義部分釋放推導。 | Step 2 與 detail Step 1 補充 status enum 與範圍限制。 |
 | `holdValue` NULL 的處理方式。 | 優先使用資料表值；NULL 且數量與單價俱全時，以 `holdQuantity * unitCost` 補算；仍缺資料回傳 0，不回寫資料庫。 | Step 2 與 Step 8 補充 value fallback。 |
 | 品檢保留與任務的關聯。 | 沒有直接 task-to-hold foreign key；使用 `refCategory/ref_no/ref_sub_no`，再以 item、batch、warehouse 交叉比對。完全吻合才視為 confirmed。 | Task、timeline 與 detail Step 3 更新關聯判斷。 |
@@ -101,7 +101,7 @@ affectedWarehouseCount = 不重複 warehouse_no 數
 
 ### Step 7：資料庫分頁與排序
 
-1. `qualityTasks[]` 以 `dueTimestamp` ASC、`taskNo` ASC 排序；API 欄位名稱為 `plannedTimestamp`。
+1. `qualityTasks[]` 以 `dueTimestamp` ASC、`taskNo` ASC 排序；API 欄位名稱與 `workflow_task_state.dueTimestamp` 一致。
 2. `start` 最小為 0，`count` 預設 50、最大 100。
 3. `total` 為套用篩選後的任務總筆數，不是本次 page 筆數。
 4. `summary`、hold aggregates 與 alerts 不應因 page slicing 而漏算全域摘要。
@@ -155,7 +155,7 @@ qualityHoldValue = snapshot.qualityHoldValue
 
 | 項目 | 工程師回覆 | 理解與流程定義 |
 | --- | --- | --- |
-| `workflow_task_state` 時間與品檢欄位 | 工程師指出需依正式資料庫文件確認欄位定義。 | `plannedTimestamp` 對應 `dueTimestamp`；完成狀態使用 `taskStatus = 3`，因 schema 沒有完成時間欄位，`completedTimestamp` 固定回傳 0；`inspectionNo` 只從 `warehouse_quality_hold.inspection_no` 取得。 |
+| `workflow_task_state` 時間與品檢欄位 | 工程師指出需依正式資料庫文件確認欄位定義。 | API 使用 `dueTimestamp` 對應 `workflow_task_state.dueTimestamp`；完成狀態使用 `taskStatus = 3`，不回傳沒有資料來源的 `completedTimestamp`；`inspectionNo` 只從 `warehouse_quality_hold.inspection_no` 取得。 |
 | `warehouse_quality_hold.no` | `warehouse_quality_hold` 為本次規劃的正式資料表，欄位定義需由提案文件明確化。 | `no` 是對外 hold_no；detail 以 `no = hold_no` 查詢，`id` 不作 API 查詢入口。 |
 | `warehouse_quality_hold.status` | 需依提案與資料庫文件明確說明狀態。 | 1=保留中、2=已放行、3=退回、4=報廢；第一版只有 1 納入 active hold，部分釋放沒有獨立事件或狀態，不作推導。 |
 | `holdValue` NULL | 工程師要求補充明確的 fallback 定義。 | 使用 `holdValue`；NULL 且 `holdQuantity`、`unitCost` 都有值時補算，否則回傳 0，不回寫資料庫。 |

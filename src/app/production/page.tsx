@@ -404,15 +404,13 @@ function AnalyticsView({
   );
 }
 
-function ProductionTable({
-  activeTab,
+function MesStatusTable({
   orders,
   selectedId,
   searchQuery,
   language,
   onSelect
 }: {
-  activeTab: ProductionWorkspaceTab;
   orders: WorkOrder[];
   selectedId: string;
   searchQuery: string;
@@ -420,30 +418,26 @@ function ProductionTable({
   onSelect: (order: WorkOrder) => void;
 }) {
   const rows = useMemo(
-    () => getVisibleOrders(activeTab, orders).filter((order) => orderMatchesSearch(order, searchQuery)),
-    [activeTab, orders, searchQuery]
+    () => orders.filter((order) => orderMatchesSearch(order, searchQuery)),
+    [orders, searchQuery]
   );
 
   if (!rows.length) {
-    return <EmptyState message="目前查無符合條件的生產工單。" />;
+    return <EmptyState message="目前查無符合條件的 MES 工單現況。" />;
   }
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
       <div className="overflow-x-auto">
-        <table className="min-w-[1120px] w-full border-collapse text-sm">
+        <table className="min-w-[980px] w-full border-collapse text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
             <tr>
               <th className="px-4 py-3">工單 / 產品</th>
-              <th className="px-4 py-3">日期 / 產線</th>
-              <th className="px-4 py-3">製程</th>
-              <th className="px-4 py-3 text-right">產量</th>
+              <th className="px-4 py-3">今日時段 / 產線</th>
+              <th className="px-4 py-3">MES 狀態</th>
               <th className="px-4 py-3">進度</th>
-              <th className="px-4 py-3">料品 / 人員</th>
-              <th className="px-4 py-3">MES</th>
-              <th className="px-4 py-3">交期 / 換線</th>
-              <th className="px-4 py-3">品檢</th>
-              <th className="px-4 py-3">狀態</th>
+              <th className="px-4 py-3">現場資源</th>
+              <th className="px-4 py-3">待注意項目</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -451,9 +445,7 @@ function ProductionTable({
               const isSelected = order.id === selectedId;
               return (
                 <tr
-                  className={`cursor-pointer transition ${
-                    isSelected ? "bg-info/10" : "hover:bg-slate-50"
-                  }`}
+                  className={`cursor-pointer transition ${isSelected ? "bg-info/10" : "hover:bg-slate-50"}`}
                   key={order.id}
                   onClick={() => onSelect(order)}
                 >
@@ -467,9 +459,11 @@ function ProductionTable({
                       {displayText(order.line)} · {displayText(order.startTime)}-{displayText(order.endTime)}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-textPrimary">{order.processType}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-textPrimary">
-                    {formatNumber(order.completedQty, 2)} / {formatNumber(order.plannedQty, 2)} {order.unit}
+                  <td className="px-4 py-3">
+                    <StatusBadge tone={order.statusCode ? productionStatusTone(order.statusCode) : order.tone}>
+                      {orderStageLabel(order, language)}
+                    </StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">{machineStatusLabel(order, language)}</p>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -478,33 +472,191 @@ function ProductionTable({
                       </div>
                       <span className="text-xs text-textSecondary">{formatPercent(order.progress)}</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-textPrimary">料品 {materialStatusLabel(order, language)}</p>
                     <p className="mt-1 text-xs text-textSecondary">
-                      人員 {order.assignedStaff}/{order.requiredStaff} · {staffStatusLabel(order, language)}
+                      {formatNumber(order.completedQty, 2)} / {formatNumber(order.plannedQty, 2)} {order.unit}
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-textPrimary">{machineStatusLabel(order, language)}</p>
-                    <p className="mt-1 text-xs text-textSecondary">效率 {formatPercent(order.efficiencyRate)}</p>
+                    <p className="text-textPrimary">人員 {order.assignedStaff}/{order.requiredStaff}</p>
+                    <p className="mt-1 text-xs text-textSecondary">料品 {materialStatusLabel(order, language)}</p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={order.deliveryRiskCode ? productionRiskTone(order.deliveryRiskCode) : getRiskTone(order.deliveryRisk)}>
-                      {deliveryRiskLabel(order, language)}
+                      交期 {deliveryRiskLabel(order, language)}
                     </StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">品檢 {qualityStatusLabel(order, language)}</p>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsMetricsTable({
+  orders,
+  selectedId,
+  searchQuery,
+  language,
+  onSelect
+}: {
+  orders: WorkOrder[];
+  selectedId: string;
+  searchQuery: string;
+  language: LanguageCode;
+  onSelect: (order: WorkOrder) => void;
+}) {
+  const rows = useMemo(
+    () =>
+      getVisibleOrders("analytics", orders).filter((order) => orderMatchesSearch(order, searchQuery)),
+    [orders, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的效率、損耗與品質清單。" />;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
+      <div className="overflow-x-auto">
+        <table className="min-w-[1040px] w-full border-collapse text-sm">
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
+            <tr>
+              <th className="px-4 py-3">工單 / 產品</th>
+              <th className="px-4 py-3 text-right">產時效率</th>
+              <th className="px-4 py-3">標準 / 實際工時</th>
+              <th className="px-4 py-3 text-right">原料損耗</th>
+              <th className="px-4 py-3 text-right">單品人工費</th>
+              <th className="px-4 py-3">品質結果</th>
+              <th className="px-4 py-3">交期影響</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((order) => {
+              const isSelected = order.id === selectedId;
+              return (
+                <tr
+                  className={`cursor-pointer transition ${isSelected ? "bg-info/10" : "hover:bg-slate-50"}`}
+                  key={order.id}
+                  onClick={() => onSelect(order)}
+                >
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-textPrimary">{order.product}</p>
+                    <p className="mt-1 text-xs text-textSecondary">{order.id}</p>
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-textPrimary">
+                    {formatPercent(order.efficiencyRate)}
+                  </td>
+                  <td className="px-4 py-3 text-textSecondary">
+                    {formatHours(order.standardHours)} / {formatHours(order.actualHours)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <p className="font-semibold text-textPrimary">{formatPercent(order.materialLossRate)}</p>
                     <p className="mt-1 text-xs text-textSecondary">
-                      交期 {displayText(order.customerDueDate)} · 換線 {formatNumber(order.changeoverMinutes)} 分
+                      {formatNumber(order.actualMaterialQty, 2)} / {formatNumber(order.standardMaterialQty, 2)}
                     </p>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <p className="font-semibold text-textPrimary">{formatMoney(order.unitLaborCost)}</p>
+                    <p className="mt-1 text-xs text-textSecondary">{formatNumber(order.laborHours, 2)} 人時</p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={order.quality.tone}>{qualityStatusLabel(order, language)}</StatusBadge>
                     <p className="mt-1 text-xs text-textSecondary">不良 {formatPercent(order.quality.defectRate)}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge tone={order.statusCode ? productionStatusTone(order.statusCode) : order.tone}>
-                      {orderStageLabel(order, language)}
+                    <StatusBadge tone={order.deliveryRiskCode ? productionRiskTone(order.deliveryRiskCode) : getRiskTone(order.deliveryRisk)}>
+                      {deliveryRiskLabel(order, language)}
                     </StatusBadge>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      {order.qualityBlocksInventory ? "暫緩入庫" : "可入庫"} / {order.qualityBlocksShipment ? "暫緩出貨" : "可出貨"}
+                    </p>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ProductionDetailTable({
+  orders,
+  selectedId,
+  searchQuery,
+  onSelect
+}: {
+  orders: WorkOrder[];
+  selectedId: string;
+  searchQuery: string;
+  onSelect: (order: WorkOrder) => void;
+}) {
+  const rows = useMemo(
+    () => orders.filter((order) => orderMatchesSearch(order, searchQuery)),
+    [orders, searchQuery]
+  );
+
+  if (!rows.length) {
+    return <EmptyState message="目前查無符合條件的生產明細。" />;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
+      <div className="overflow-x-auto">
+        <table className="min-w-[1040px] w-full border-collapse text-sm">
+          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-textSecondary">
+            <tr>
+              <th className="px-4 py-3">工單 / 批號</th>
+              <th className="px-4 py-3">BOM / 來源訂單</th>
+              <th className="px-4 py-3">計畫時段</th>
+              <th className="px-4 py-3">流程進度</th>
+              <th className="px-4 py-3">備料明細</th>
+              <th className="px-4 py-3">關聯單據</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((order) => {
+              const isSelected = order.id === selectedId;
+              const completedSteps = order.workflow.filter((step) => step.status === "完成").length;
+              const nextStep = order.workflow.find((step) => step.status !== "完成") ?? order.workflow.at(-1);
+              return (
+                <tr
+                  className={`cursor-pointer transition ${isSelected ? "bg-info/10" : "hover:bg-slate-50"}`}
+                  key={order.id}
+                  onClick={() => onSelect(order)}
+                >
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-textPrimary">{order.id}</p>
+                    <p className="mt-1 text-xs text-textSecondary">{displayText(order.batchNo)}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-textPrimary">{displayText(order.bomNo)}</p>
+                    <p className="mt-1 text-xs text-textSecondary">{displayText(order.sourceOrder)}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-textPrimary">{displayText(order.scheduleDate)}</p>
+                    <p className="mt-1 text-xs text-textSecondary">
+                      {displayText(order.startTime)}-{displayText(order.endTime)}
+                    </p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-textPrimary">
+                      {completedSteps}/{order.workflow.length || 5}
+                    </p>
+                    <p className="mt-1 text-xs text-textSecondary">下一步 {nextStep?.label ?? "-"}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-textPrimary">{order.materials.length} 筆</p>
+                    <p className="mt-1 text-xs text-textSecondary">料品 {displayText(order.materialStatus)}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-textPrimary">{order.relatedDocuments.length} 筆</p>
+                    <p className="mt-1 text-xs text-textSecondary">點選工單查看右側明細</p>
                   </td>
                 </tr>
               );
@@ -667,8 +819,7 @@ function MainContent({
     return (
       <div className="space-y-4">
         <AnalyticsView orders={data.orders} searchQuery={searchQuery} language={language} />
-        <ProductionTable
-          activeTab={activeTab}
+        <AnalyticsMetricsTable
           orders={data.orders}
           selectedId={selectedId}
           searchQuery={searchQuery}
@@ -679,13 +830,23 @@ function MainContent({
     );
   }
 
+  if (activeTab === "mes") {
+    return (
+      <MesStatusTable
+        orders={data.orders}
+        selectedId={selectedId}
+        searchQuery={searchQuery}
+        language={language}
+        onSelect={onSelectOrder}
+      />
+    );
+  }
+
   return (
-    <ProductionTable
-      activeTab={activeTab}
+    <ProductionDetailTable
       orders={data.orders}
       selectedId={selectedId}
       searchQuery={searchQuery}
-      language={language}
       onSelect={onSelectOrder}
     />
   );
@@ -741,7 +902,7 @@ export default function ProductionPage() {
                 <StatusBadge tone="info">EWDB 20260522</StatusBadge>
                 <StatusBadge tone="neutral">排程 / MES / 效率 / 品質</StatusBadge>
                 <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? "API data" : "Mock fallback"}
+                  {source === "api" ? (error ? "API error" : "API data") : "Mock data"}
                 </StatusBadge>
                 {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
                 <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
@@ -786,7 +947,7 @@ export default function ProductionPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Production API 尚未可用，已使用 mock fallback。{error}
+            Production API 呼叫失敗，已停止顯示 mock 資料。請確認後端服務與 API 回應。{error}
           </p>
         ) : null}
 

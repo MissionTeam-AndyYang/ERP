@@ -251,6 +251,18 @@ export type ProductionWorkOrderDetailResult = {
 
 const locale = defaultLanguage;
 
+export const emptyProductionDashboardData: ProductionDashboardData = {
+  summary: [
+    { label: "一週預排工單", value: "0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "今日 MES 進行中", value: "0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "備料/人員風險", value: "0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "效率 / 損耗 / 人工", value: "0.00%", hint: "API 尚未提供資料", tone: "info" }
+  ],
+  orders: [],
+  weekSchedule: [],
+  alerts: []
+};
+
 function formatNumber(value: number, maximumFractionDigits = 1) {
   return new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
 }
@@ -856,8 +868,8 @@ export async function getProductionDashboard(
     };
   } catch (error) {
     return {
-      data: normalizeProductionDashboardData(productionDashboardMock),
-      source: "mock",
+      data: emptyProductionDashboardData,
+      source: "api",
       error: error instanceof Error ? error.message : "Production API unavailable"
     };
   }
@@ -885,8 +897,8 @@ export async function getProductionWorkOrderDetail(
     };
   } catch (error) {
     return {
-      order: normalizeWorkOrderWorkflow(fallback),
-      source: "mock",
+      order: fallback,
+      source: "api",
       error: error instanceof Error ? error.message : "Production work order detail API unavailable"
     };
   }

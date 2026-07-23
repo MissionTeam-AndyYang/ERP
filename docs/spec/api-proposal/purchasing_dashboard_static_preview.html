@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>採購中心 API 靜態預覽</title>
+  <style>
+    :root { --ink:#172033; --muted:#64748b; --line:#dbe3ee; --panel:#fff; --bg:#f5f7fb; --blue:#2563eb; --red:#c2410c; --amber:#a16207; --green:#047857; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 "Segoe UI", "Microsoft JhengHei", sans-serif; }
+    .shell { max-width:1480px; margin:0 auto; padding:28px; }
+    .top { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:24px; }
+    h1,h2,h3,p { margin:0; } h1 { font-size:26px; letter-spacing:.01em; } h2 { font-size:18px; } h3 { font-size:15px; }
+    .eyebrow { color:var(--muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+    .muted { color:var(--muted); } .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    button, select, input { border:1px solid var(--line); background:#fff; border-radius:7px; padding:9px 12px; color:var(--ink); }
+    button { cursor:pointer; font-weight:700; } button.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+    .grid { display:grid; gap:14px; } .kpis { grid-template-columns:repeat(5, minmax(0,1fr)); margin-bottom:20px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; box-shadow:0 2px 8px #102a4308; }
+    .kpi-value { font-size:25px; font-weight:800; margin-top:8px; } .kpi-note { color:var(--muted); font-size:12px; margin-top:5px; }
+    .layout { grid-template-columns:minmax(0,1fr) 350px; align-items:start; } .tabs { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+    .table-wrap { overflow:auto; } table { width:100%; min-width:980px; border-collapse:collapse; } th,td { padding:12px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; } th { color:var(--muted); font-size:12px; background:#f8fafc; } tbody tr { cursor:pointer; } tbody tr:hover { background:#f8fbff; }
+    .badge { display:inline-block; border-radius:999px; padding:3px 8px; font-size:12px; font-weight:800; background:#e2e8f0; } .danger { color:var(--red); background:#ffedd5; } .warning { color:var(--amber); background:#fef3c7; } .success { color:var(--green); background:#d1fae5; }
+    .detail { position:sticky; top:20px; } .detail-row { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); } .detail-row span:first-child { color:var(--muted); }
+    .notice { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:12px; border-radius:7px; margin-top:14px; }
+    @media (max-width:900px) { .shell { padding:18px; } .top { flex-direction:column; } .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .layout { grid-template-columns:1fr; } .detail { position:static; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div><p class="eyebrow">Purchasing Workspace · API Preview</p><h1>採購與備料風險總覽</h1><p class="muted">以採購需求、交期、到貨驗收與供應商資料支援生產與出貨履約。</p></div>
+      <div class="toolbar"><select aria-label="查詢期間"><option>近 30 日</option><option>近 7 日</option><option>今日</option></select><input aria-label="搜尋" placeholder="料品 / 請購 / 採購單 / 供應商"><button>篩選</button></div>
+    </header>
+    <section class="grid kpis">
+      <div class="card"><p class="eyebrow">未完成請購</p><div class="kpi-value">12</div><p class="kpi-note">仍有需求未轉採購</p></div>
+      <div class="card"><p class="eyebrow">未完成採購</p><div class="kpi-value">8</div><p class="kpi-note">採購量尚未完成到貨</p></div>
+      <div class="card"><p class="eyebrow">交期風險</p><div class="kpi-value" style="color:var(--red)">3</div><p class="kpi-note">已超過預計到貨日</p></div>
+      <div class="card"><p class="eyebrow">待驗收／入庫</p><div class="kpi-value">5</div><p class="kpi-note">需要倉庫或品保接續處理</p></div>
+      <div class="card"><p class="eyebrow">採購金額</p><div class="kpi-value">$1,248,000</div><p class="kpi-note">查詢範圍內已下單金額</p></div>
+    </section>
+    <div class="grid layout">
+      <section class="card">
+        <div class="tabs" role="tablist"><button class="active" data-tab="demand">採購需求</button><button data-tab="risk">交期風險</button><button data-tab="receiving">到貨驗收入庫</button><button data-tab="supplier">供應商追蹤</button></div>
+        <div class="table-wrap"><table><thead><tr><th>料品／需求</th><th>供應商</th><th>數量</th><th>金額</th><th>庫存可用性</th><th>到貨／驗收</th><th>風險</th><th>階段</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table></div>
+        <div class="notice">本頁為 API 設計預覽。`riskLevel`、`stageCode`、收貨與入庫狀態均由 code 回傳，正式畫面由前端進行多國語系轉換。</div>
+      </section>
+      <aside class="card detail"><p class="eyebrow">Selected Purchase Request</p><h2 id="detailTitle">PR-202607-018 · 麵粉</h2><p class="muted" id="detailSub">採購需求明細</p><div id="detailBody" style="margin-top:12px"></div></aside>
+    </div>
+  </main>
+  <script>
+    const data = [
+      { request:"PR-202607-018", order:"PO-202607-011", item:"麵粉", no:"RM-00031", supplier:"永盛原料", qty:"1,200 kg", amount:"$420,000", stock:"現有 820 / 可用 440", arrival:"2026-07-24", risk:"high_risk", riskText:"late_arrival", stage:"arrival_pending", detail:["需求來源：SO-202607-055","安全水位：600 kg","供應商合約：CT-2026-044","負責部門：採購"] },
+      { request:"PR-202607-021", order:"", item:"膠捲", no:"FL-00008", supplier:"尚未指定", qty:"420 捲", amount:"$0", stock:"現有 90 / 可用 60", arrival:"待確認", risk:"notice", riskText:"purchase_order_missing", stage:"quote_pending", detail:["需求來源：WO-202607-008","安全水位：120 捲","採購報價：待補","負責部門：採購"] },
+      { request:"PR-202607-024", order:"PO-202607-019", item:"包材紙箱", no:"PK-00102", supplier:"宏達包材", qty:"3,000 箱", amount:"$168,000", stock:"現有 2,100 / 可用 1,760", arrival:"2026-07-20", risk:"normal", riskText:"", stage:"ordered", detail:["需求來源：SO-202607-061","安全水位：1,000 箱","供應商合約：CT-2026-051","負責部門：採購"] }
+    ];
+    let active = "demand";
+    function render() { const filtered = active === "risk" ? data.filter(x => x.risk !== "normal") : active === "receiving" ? data.filter(x => x.stage === "receiving" || x.stage === "arrival_pending") : data; document.querySelector("#rows").innerHTML = filtered.map((x,i) => `<tr data-index="${data.indexOf(x)}"><td><strong>${x.item}</strong><br><small>${x.no} · ${x.request}</small></td><td>${x.supplier}<br><small>${x.order || "尚未下單"}</small></td><td>${x.qty}</td><td>${x.amount}</td><td>${x.stock}</td><td>${x.arrival}</td><td>${x.risk === "high_risk" ? `<span class="badge danger">高風險</span>` : x.risk === "notice" ? `<span class="badge warning">注意</span>` : `<span class="badge success">正常</span>`}<br><small>${x.riskText || "-"}</small></td><td><span class="badge">${x.stage}</span></td></tr>`).join(""); document.querySelectorAll("tr[data-index]").forEach(row => row.onclick = () => select(Number(row.dataset.index))); }
+    function select(i) { const x = data[i]; document.querySelector("#detailTitle").textContent = `${x.request} · ${x.item}`; document.querySelector("#detailSub").textContent = `${x.no} · ${x.supplier}`; document.querySelector("#detailBody").innerHTML = x.detail.map(v => `<div class="detail-row"><span>${v.split("：")[0]}</span><strong>${v.split("：").slice(1).join("：")}</strong></div>`).join(""); }
+    document.querySelectorAll("button[data-tab]").forEach(button => button.onclick = () => { document.querySelectorAll("button[data-tab]").forEach(b => b.classList.remove("active")); button.classList.add("active"); active = button.dataset.tab; render(); }); render(); select(0);
+  </script>
+</body>
+</html>

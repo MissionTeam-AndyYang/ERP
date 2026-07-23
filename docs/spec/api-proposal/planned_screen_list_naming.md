@@ -81,6 +81,19 @@ Naming rules:
 | P0.3 | V1 Core | `ProductionEfficiencyLossView` | View | 效率損耗視圖 | `ProductionWorkspaceScreen` 內的「效率損耗」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/production/dashboard` | 以 `productionMetrics[]` 呈現產時效率、原物料投入/產出/餘廢料、損耗率、人工工時、人工成本與單品人工費率。 |
 | P0.4 | V1 Core | `ProductionWorkOrderDetailPanel` | Panel | 生產工單追蹤面板 | `ProductionWorkspaceScreen` 右側 panel；窄版可作 drawer 或 detail route | 已有第一版，已串接 selected work order detail API | `GET /api/v2/production/work-orders/{work_order_no}/detail` | 顯示單一工單的計畫數量、已完工量、備料、人員、流程狀態、MES event、關聯單據與 detail API fallback 狀態。 |
 
+## Purchasing Workspace Screen Roadmap
+
+`PurchasingWorkspaceScreen` 第一版採 read-only core 範圍，優先支援採購需求、交期風險、到貨驗收入庫與供應商追蹤四個 view；Quality inspection detail、採購 mutation 與 APS shortage algorithm 不在本次範圍。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `PurchasingWorkspaceScreen` | Screen | 採購與備料工作區 | `/purchasing` | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/dashboard` | 採購中心入口，呈現採購 KPI、需求列、交期風險、到貨驗收與供應商追蹤。 |
+| P0.1 | V1 Core | `PurchasingDemandView` | View | 採購需求視圖 | `PurchasingWorkspaceScreen` 內的「採購需求」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/dashboard` | 以請購、採購、庫存與安全水位掌握需求是否已轉單。 |
+| P0.2 | V1 Core | `PurchasingDeliveryRiskView` | View | 交期風險視圖 | `PurchasingWorkspaceScreen` 內的「交期風險」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/dashboard?risk_only=true` | 聚焦逾期到貨、缺採購單、低於安全水位與 workflow 阻塞。 |
+| P0.3 | V1 Core | `PurchasingReceivingView` | View | 到貨驗收入庫視圖 | `PurchasingWorkspaceScreen` 內的「到貨驗收入庫」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/dashboard` | 顯示進貨數量、退回、待驗收與入庫狀態；Quality 文件缺漏以 deferred／unknown 表示。 |
+| P0.4 | V1 Core | `PurchasingSupplierView` | View | 供應商追蹤視圖 | `PurchasingWorkspaceScreen` 內的「供應商追蹤」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/dashboard?supplier_no={supplier_no}` | 依供應商、報價、合約與交期風險檢視採購支援能力。 |
+| P1 | V1 Core | `PurchasingRequestDetailPanel` | Panel | 請購需求追蹤面板 | `PurchasingWorkspaceScreen` 右側 panel；窄版可作 drawer 或 detail route | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/requests/{purchase_request_no}/detail` | 顯示請購、採購、進貨、庫存、供應商與 workflow 關聯。 |
+
 ## Production Workspace State Naming
 
 以下項目是 `ProductionWorkspaceScreen` 內的篩選狀態或 drill-down 情境，不是獨立畫面。若後續工程任務需實作，應寫成「在 `ProductionWorkspaceScreen` 支援 `ProductionCapacityBottleneckState`」，不要寫成「新增產能瓶頸畫面」。

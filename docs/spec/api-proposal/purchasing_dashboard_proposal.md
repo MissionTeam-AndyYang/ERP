@@ -1,6 +1,6 @@
 # Purchasing Dashboard API 提案
 
-> Status: Proposal / Pending Engineer Review  
+> Status: Superseded by `purchasing_purchase_order_first_proposal.md`; retained for historical reference
 > Screen: `PurchasingWorkspaceScreen`  
 > Route: `/purchasing`  
 > Scope: V1 Core、read-only

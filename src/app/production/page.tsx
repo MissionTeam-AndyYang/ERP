@@ -21,6 +21,7 @@ import type { LanguageCode } from "@/i18n/dictionary";
 import { useLanguage } from "@/i18n/language-provider";
 import { AppLayout } from "@/layouts/app-layout";
 import { getProductionWorkOrderDetail } from "@/services/production-api";
+import type { ProductionDashboardQuery } from "@/services/production-api";
 import type {
   ProductionAlert,
   ProductionDashboardData,
@@ -82,6 +83,36 @@ function progressWidth(value: number | undefined) {
 
 function displayText(value: string | undefined) {
   return value && value.trim() ? value : "-";
+}
+
+function dateInputToTimestamp(value: string) {
+  if (!value) {
+    return undefined;
+  }
+  const timestamp = new Date(`${value}T00:00:00+08:00`).getTime();
+  return Number.isFinite(timestamp) ? Math.floor(timestamp / 1000) : undefined;
+}
+
+function daysBetween(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00+08:00`).getTime();
+  const end = new Date(`${endDate}T00:00:00+08:00`).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    return 1;
+  }
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+function dashboardPeriodFromRange(startDate: string, endDate: string): ProductionDashboardQuery["period"] {
+  return daysBetween(startDate, endDate) > 7 ? "14d" : "7d";
+}
+
+function todayDateInput() {
+  return new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Asia/Taipei",
+    year: "numeric"
+  }).format(new Date());
 }
 
 function getRiskTone(risk: WorkOrder["deliveryRisk"]) {
@@ -681,6 +712,86 @@ function ProductionDetailTable({
   );
 }
 
+function ProductionDetailSearchPanel({
+  startDate,
+  endDate,
+  workOrderNo,
+  queryNote,
+  onStartDateChange,
+  onEndDateChange,
+  onWorkOrderNoChange,
+  onApply,
+  onClear
+}: {
+  startDate: string;
+  endDate: string;
+  workOrderNo: string;
+  queryNote: string;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
+  onWorkOrderNoChange: (value: string) => void;
+  onApply: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-white p-4 shadow-card">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">歷史工單查詢</p>
+          <h3 className="mt-1 text-lg font-semibold text-textPrimary">日期範圍 / 工單號</h3>
+          <p className="mt-1 text-sm text-textSecondary">
+            目前沿用 Production dashboard 查詢條件；日期範圍依 API 支援轉為 7 天或 14 天 forward range。
+          </p>
+        </div>
+        <div className="grid gap-2 md:grid-cols-[150px_150px_minmax(180px,1fr)_auto_auto]">
+          <label className="text-xs font-medium text-textSecondary">
+            起日
+            <input
+              className="mt-1 h-10 w-full rounded-input border border-border bg-slate-50 px-3 text-sm text-textPrimary outline-none"
+              type="date"
+              value={startDate}
+              onChange={(event) => onStartDateChange(event.target.value)}
+            />
+          </label>
+          <label className="text-xs font-medium text-textSecondary">
+            迄日
+            <input
+              className="mt-1 h-10 w-full rounded-input border border-border bg-slate-50 px-3 text-sm text-textPrimary outline-none"
+              type="date"
+              value={endDate}
+              onChange={(event) => onEndDateChange(event.target.value)}
+            />
+          </label>
+          <label className="text-xs font-medium text-textSecondary">
+            工單號
+            <input
+              className="mt-1 h-10 w-full rounded-input border border-border bg-slate-50 px-3 text-sm text-textPrimary outline-none"
+              placeholder="WO-..."
+              value={workOrderNo}
+              onChange={(event) => onWorkOrderNoChange(event.target.value)}
+            />
+          </label>
+          <button
+            className="inline-flex h-10 items-center justify-center rounded-button bg-primary px-3 text-sm font-medium text-white"
+            type="button"
+            onClick={onApply}
+          >
+            查詢
+          </button>
+          <button
+            className="inline-flex h-10 items-center justify-center rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
+            type="button"
+            onClick={onClear}
+          >
+            清除
+          </button>
+        </div>
+      </div>
+      {queryNote ? <p className="mt-3 text-xs leading-5 text-warning">{queryNote}</p> : null}
+    </div>
+  );
+}
+
 function DetailPanel({
   order,
   language,
@@ -815,6 +926,15 @@ function MainContent({
   selectedId,
   searchQuery,
   language,
+  detailStartDate,
+  detailEndDate,
+  detailWorkOrderNo,
+  detailQueryNote,
+  onDetailStartDateChange,
+  onDetailEndDateChange,
+  onDetailWorkOrderNoChange,
+  onApplyDetailQuery,
+  onClearDetailQuery,
   onSelectOrder
 }: {
   activeTab: ProductionWorkspaceTab;
@@ -822,6 +942,15 @@ function MainContent({
   selectedId: string;
   searchQuery: string;
   language: LanguageCode;
+  detailStartDate: string;
+  detailEndDate: string;
+  detailWorkOrderNo: string;
+  detailQueryNote: string;
+  onDetailStartDateChange: (value: string) => void;
+  onDetailEndDateChange: (value: string) => void;
+  onDetailWorkOrderNoChange: (value: string) => void;
+  onApplyDetailQuery: () => void;
+  onClearDetailQuery: () => void;
   onSelectOrder: (order: WorkOrder) => void;
 }) {
   if (activeTab === "schedule") {
@@ -856,20 +985,55 @@ function MainContent({
   }
 
   return (
-    <ProductionDetailTable
-      orders={data.orders}
-      selectedId={selectedId}
-      searchQuery={searchQuery}
-      onSelect={onSelectOrder}
-    />
+    <div className="space-y-4">
+      <ProductionDetailSearchPanel
+        startDate={detailStartDate}
+        endDate={detailEndDate}
+        workOrderNo={detailWorkOrderNo}
+        queryNote={detailQueryNote}
+        onStartDateChange={onDetailStartDateChange}
+        onEndDateChange={onDetailEndDateChange}
+        onWorkOrderNoChange={onDetailWorkOrderNoChange}
+        onApply={onApplyDetailQuery}
+        onClear={onClearDetailQuery}
+      />
+      <ProductionDetailTable
+        orders={data.orders}
+        selectedId={selectedId}
+        searchQuery={searchQuery}
+        onSelect={onSelectOrder}
+      />
+    </div>
   );
 }
 
 export default function ProductionPage() {
   const { language } = useLanguage();
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
-  const { data: productionData, error, isLoading, source } = useProductionDashboard(dataSourceMode);
   const [activeTab, setActiveTab] = useState<ProductionWorkspaceTab>("schedule");
+  const defaultDetailDate = useMemo(() => todayDateInput(), []);
+  const [detailStartDate, setDetailStartDate] = useState(defaultDetailDate);
+  const [detailEndDate, setDetailEndDate] = useState(defaultDetailDate);
+  const [detailWorkOrderNo, setDetailWorkOrderNo] = useState("");
+  const [detailQuery, setDetailQuery] = useState<ProductionDashboardQuery>({});
+  const detailQueryNote = useMemo(() => {
+    if (!detailStartDate || !detailEndDate) {
+      return "";
+    }
+    const dayCount = daysBetween(detailStartDate, detailEndDate);
+    if (dayCount > 14) {
+      return "目前 Production dashboard API 僅支援 7 天或 14 天 forward range；本次查詢會以起日起算最多 14 天。";
+    }
+    if (dayCount > 7) {
+      return "目前 API 會以 14 天區間查詢，並由前端列表呈現回傳工單。";
+    }
+    return "";
+  }, [detailEndDate, detailStartDate]);
+  const productionQuery = useMemo<ProductionDashboardQuery>(
+    () => (activeTab === "details" ? detailQuery : {}),
+    [activeTab, detailQuery]
+  );
+  const { data: productionData, error, isLoading, source } = useProductionDashboard(dataSourceMode, productionQuery);
   const [selectedOrderId, setSelectedOrderId] = useState<string>(productionData.orders[0]?.id ?? "");
   const [detailOrder, setDetailOrder] = useState<WorkOrder | undefined>();
   const [detailError, setDetailError] = useState<string | undefined>();
@@ -883,6 +1047,27 @@ export default function ProductionPage() {
       ? productionData.orders.find((order) => orderMatchesSearch(order, searchQuery)) ?? selectedOrderCandidate
       : selectedOrderCandidate;
   const selectedOrder = selectedOrderBase && detailOrder?.id === selectedOrderBase.id ? detailOrder : selectedOrderBase;
+  const applyDetailQuery = () => {
+    const nDate = dateInputToTimestamp(detailStartDate);
+    setActiveTab("details");
+    setSelectedOrderId("");
+    setDetailOrder(undefined);
+    setDetailError(undefined);
+    setDetailQuery({
+      date: nDate,
+      period: dashboardPeriodFromRange(detailStartDate, detailEndDate),
+      workOrderNo: detailWorkOrderNo.trim() || undefined
+    });
+  };
+  const clearDetailQuery = () => {
+    setDetailStartDate(defaultDetailDate);
+    setDetailEndDate(defaultDetailDate);
+    setDetailWorkOrderNo("");
+    setSelectedOrderId("");
+    setDetailOrder(undefined);
+    setDetailError(undefined);
+    setDetailQuery({});
+  };
 
   useEffect(() => {
     if (!selectedOrderBase?.id) {
@@ -1002,6 +1187,15 @@ export default function ProductionPage() {
               selectedId={selectedOrder?.id ?? ""}
               searchQuery={searchQuery}
               language={language}
+              detailStartDate={detailStartDate}
+              detailEndDate={detailEndDate}
+              detailWorkOrderNo={detailWorkOrderNo}
+              detailQueryNote={detailQueryNote}
+              onDetailStartDateChange={setDetailStartDate}
+              onDetailEndDateChange={setDetailEndDate}
+              onDetailWorkOrderNoChange={setDetailWorkOrderNo}
+              onApplyDetailQuery={applyDetailQuery}
+              onClearDetailQuery={clearDetailQuery}
               onSelectOrder={(order) => {
                 setIsDetailLoading(true);
                 setDetailError(undefined);

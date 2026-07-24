@@ -8,6 +8,7 @@ import {
   getProductionDashboard,
   normalizeProductionDashboardData
 } from "@/services/production-api";
+import type { ProductionDashboardQuery } from "@/services/production-api";
 import type { ProductionDashboardData, ProductionDataSource } from "@/types/production";
 
 export type ProductionDashboardState = {
@@ -17,7 +18,10 @@ export type ProductionDashboardState = {
   error?: string;
 };
 
-export function useProductionDashboard(dataSourceMode: DataSourceMode = "api"): ProductionDashboardState {
+export function useProductionDashboard(
+  dataSourceMode: DataSourceMode = "api",
+  query: ProductionDashboardQuery = {}
+): ProductionDashboardState {
   const [state, setState] = useState<ProductionDashboardState>({
     data:
       dataSourceMode === "mock"
@@ -30,7 +34,7 @@ export function useProductionDashboard(dataSourceMode: DataSourceMode = "api"): 
   useEffect(() => {
     let isMounted = true;
 
-    getProductionDashboard({}, dataSourceMode).then((result) => {
+    getProductionDashboard(query, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -46,7 +50,7 @@ export function useProductionDashboard(dataSourceMode: DataSourceMode = "api"): 
     return () => {
       isMounted = false;
     };
-  }, [dataSourceMode]);
+  }, [dataSourceMode, query]);
 
   return state;
 }

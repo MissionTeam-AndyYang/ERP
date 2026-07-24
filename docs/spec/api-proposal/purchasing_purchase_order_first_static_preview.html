@@ -217,9 +217,17 @@
         margin-top: 12px;
       }
 
+      .view-section {
+        margin-top: 18px;
+      }
+
+      .view-section .panel {
+        margin-bottom: 12px;
+      }
+
       table {
         width: 100%;
-        min-width: 1120px;
+        min-width: 1320px;
         border-collapse: collapse;
         font-size: 13px;
       }
@@ -405,10 +413,13 @@
               <thead>
                 <tr>
                   <th>採購單 / 料品</th>
+                  <th>日期</th>
                   <th>供應商</th>
                   <th class="right">訂購 / 已收</th>
+                  <th>單位</th>
+                  <th class="right">單價</th>
                   <th class="right">金額</th>
-                  <th>預計到貨</th>
+                  <th>到貨規劃</th>
                   <th>請購關聯</th>
                   <th>來源影響</th>
                   <th>收貨 / 入庫</th>
@@ -422,6 +433,10 @@
                     <p class="muted">MAT-FLOUR-001 · 高筋麵粉</p>
                   </td>
                   <td>
+                    <p>2026-07-18</p>
+                    <p class="muted">採購單日期</p>
+                  </td>
+                  <td>
                     <p>永盛食品原料</p>
                     <p class="muted">SUP-0018</p>
                   </td>
@@ -429,10 +444,18 @@
                     <p class="strong">2,000 / 800 kg</p>
                     <p class="muted">未收 1,200 kg</p>
                   </td>
+                  <td>
+                    <p>公斤</p>
+                    <p class="muted">合約交易單位</p>
+                  </td>
+                  <td class="right">
+                    <p>$43.00</p>
+                    <p class="muted">合約單價</p>
+                  </td>
                   <td class="right">$86,000</td>
                   <td>
-                    <p>2026-07-21</p>
-                    <p class="muted">逾期 3 天</p>
+                    <p>下一筆 2026-07-28</p>
+                    <p class="muted">3 筆進貨 · 已收 800 / 待收 1,200 kg</p>
                   </td>
                   <td>
                     <span class="badge warning">未連請購</span>
@@ -454,6 +477,10 @@
                     <p class="muted">PKG-BAG-103 · 透明包裝袋</p>
                   </td>
                   <td>
+                    <p>2026-07-22</p>
+                    <p class="muted">採購單日期</p>
+                  </td>
+                  <td>
                     <p>聯合包材</p>
                     <p class="muted">SUP-0042</p>
                   </td>
@@ -461,10 +488,18 @@
                     <p class="strong">30,000 / 0 pcs</p>
                     <p class="muted">待到貨</p>
                   </td>
+                  <td>
+                    <p>個</p>
+                    <p class="muted">合約交易單位</p>
+                  </td>
+                  <td class="right">
+                    <p>$1.80</p>
+                    <p class="muted">合約單價</p>
+                  </td>
                   <td class="right">$54,000</td>
                   <td>
                     <p>2026-07-26</p>
-                    <p class="muted">2 天後</p>
+                    <p class="muted">1 筆進貨 · 尚未收貨</p>
                   </td>
                   <td>
                     <span class="badge success">已連請購</span>
@@ -486,6 +521,10 @@
                     <p class="muted">MAT-SUGAR-002 · 二砂</p>
                   </td>
                   <td>
+                    <p>2026-07-23</p>
+                    <p class="muted">採購單日期</p>
+                  </td>
+                  <td>
                     <p>台灣糖品</p>
                     <p class="muted">SUP-0025</p>
                   </td>
@@ -493,10 +532,18 @@
                     <p class="strong">1,500 / 1,500 kg</p>
                     <p class="muted">收貨完成</p>
                   </td>
+                  <td>
+                    <p>公斤</p>
+                    <p class="muted">合約交易單位</p>
+                  </td>
+                  <td class="right">
+                    <p>$32.50</p>
+                    <p class="muted">合約單價</p>
+                  </td>
                   <td class="right">$48,750</td>
                   <td>
                     <p>2026-07-24</p>
-                    <p class="muted">今日</p>
+                    <p class="muted">2 筆進貨 · 收貨完成</p>
                   </td>
                   <td>
                     <span class="badge warning">未連請購</span>
@@ -531,12 +578,16 @@
               <p class="strong">$86,000</p>
             </div>
             <div class="mini">
+              <p class="label">合約單位 / 單價</p>
+              <p class="strong">公斤 / $43.00</p>
+            </div>
+            <div class="mini">
               <p class="label">到貨差額</p>
               <p class="strong">1,200 kg</p>
             </div>
             <div class="mini">
-              <p class="label">預計到貨</p>
-              <p class="strong">2026-07-21</p>
+              <p class="label">下一筆到貨</p>
+              <p class="strong">2026-07-28</p>
             </div>
             <div class="mini">
               <p class="label">資料治理</p>
@@ -575,6 +626,326 @@
             </div>
           </div>
         </aside>
+      </section>
+
+      <section class="view-section">
+        <div class="panel toolbar">
+          <div>
+            <p class="label">交期風險頁面預覽</p>
+            <h2>交期風險</h2>
+            <p class="hint">
+              以採購單到貨承諾與多筆進貨單進度判斷風險；請購需求日、工單與訂單影響作為輔助排序條件。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="badge danger">逾期未收</span>
+            <span class="badge warning">部分到貨</span>
+            <span class="badge info">影響生產</span>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="card">
+            <p class="label">高風險 PO</p>
+            <p class="value">9</p>
+            <p class="hint">逾期、未確認下一筆到貨，或缺口已影響生產備料。</p>
+          </div>
+          <div class="card">
+            <p class="label">平均逾期</p>
+            <p class="value">2.8 天</p>
+            <p class="hint">以採購單下一筆未完成進貨日期計算。</p>
+          </div>
+          <div class="card">
+            <p class="label">受影響工單</p>
+            <p class="value">14</p>
+            <p class="hint">以正式關聯或已確認排程需求顯示，不自行推測。</p>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-top: 12px; overflow-x: auto">
+          <table>
+            <thead>
+              <tr>
+                <th>風險等級</th>
+                <th>採購單 / 供應商</th>
+                <th>採購日期</th>
+                <th>料品</th>
+                <th class="right">缺口</th>
+                <th>下一筆到貨</th>
+                <th>進貨單狀態</th>
+                <th>影響來源</th>
+                <th>建議追蹤</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge danger">高風險</span></td>
+                <td>
+                  <p class="strong">PO-20260718-026</p>
+                  <p class="muted">永盛食品原料</p>
+                </td>
+                <td>2026-07-18</td>
+                <td>
+                  <p>高筋麵粉</p>
+                  <p class="muted">MAT-FLOUR-001</p>
+                </td>
+                <td class="right">
+                  <p class="strong">1,200 kg</p>
+                  <p class="muted">$51,600</p>
+                </td>
+                <td>
+                  <p>2026-07-28</p>
+                  <p class="muted">原承諾已逾期 3 天</p>
+                </td>
+                <td>
+                  <p>GR-240721-011 已收 800 kg</p>
+                  <p class="muted">另 2 筆未完成</p>
+                </td>
+                <td>
+                  <p>WO-20260725-014</p>
+                  <p class="muted">明日備料缺口</p>
+                </td>
+                <td>確認供應商補貨日期與替代供應來源。</td>
+              </tr>
+              <tr>
+                <td><span class="badge warning">注意</span></td>
+                <td>
+                  <p class="strong">PO-20260722-011</p>
+                  <p class="muted">聯合包材</p>
+                </td>
+                <td>2026-07-22</td>
+                <td>
+                  <p>透明包裝袋</p>
+                  <p class="muted">PKG-BAG-103</p>
+                </td>
+                <td class="right">
+                  <p class="strong">30,000 個</p>
+                  <p class="muted">$54,000</p>
+                </td>
+                <td>
+                  <p>2026-07-26</p>
+                  <p class="muted">2 天後</p>
+                </td>
+                <td>
+                  <p>尚無進貨單</p>
+                  <p class="muted">需供應商確認出貨</p>
+                </td>
+                <td>
+                  <p>SO-20260715-008</p>
+                  <p class="muted">包裝開線需求</p>
+                </td>
+                <td>到貨前一天確認物流與文件。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="view-section">
+        <div class="panel toolbar">
+          <div>
+            <p class="label">到貨驗收入庫頁面預覽</p>
+            <h2>到貨驗收</h2>
+            <p class="hint">
+              一張採購單可對應多筆進貨單；此頁以進貨單與入庫交接為主，回到採購單顯示原始採購脈絡。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="badge success">已收貨</span>
+            <span class="badge warning">待文件</span>
+            <span class="badge info">待上架</span>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="card">
+            <p class="label">今日進貨單</p>
+            <p class="value">18</p>
+            <p class="hint">包含同一採購單分批到貨的多筆進貨單。</p>
+          </div>
+          <div class="card">
+            <p class="label">待品檢/文件</p>
+            <p class="value">7</p>
+            <p class="hint">文件或品檢狀態未完成，不直接標示可用庫存。</p>
+          </div>
+          <div class="card">
+            <p class="label">待倉庫上架</p>
+            <p class="value">23</p>
+            <p class="hint">已收貨但尚未完成倉庫入庫或上架交接。</p>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-top: 12px; overflow-x: auto">
+          <table>
+            <thead>
+              <tr>
+                <th>進貨單</th>
+                <th>採購單 / 批次</th>
+                <th>到貨日期</th>
+                <th>料品</th>
+                <th class="right">本次到貨</th>
+                <th>驗收狀態</th>
+                <th>品檢/文件</th>
+                <th>入庫交接</th>
+                <th>後續處理</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <p class="strong">GR-20260724-018</p>
+                  <p class="muted">第 2 批到貨</p>
+                </td>
+                <td>
+                  <p>PO-20260718-026</p>
+                  <p class="muted">共 3 筆進貨單</p>
+                </td>
+                <td>2026-07-24</td>
+                <td>高筋麵粉</td>
+                <td class="right">
+                  <p class="strong">500 kg</p>
+                  <p class="muted">累計 1,300 / 2,000 kg</p>
+                </td>
+                <td><span class="badge success">已驗收</span></td>
+                <td>
+                  <p>COA 待補</p>
+                  <p class="muted">品檢暫緩放行</p>
+                </td>
+                <td><span class="badge warning">待入庫</span></td>
+                <td>通知供應商補文件，倉庫先暫存隔離區。</td>
+              </tr>
+              <tr>
+                <td>
+                  <p class="strong">GR-20260724-021</p>
+                  <p class="muted">一次到貨</p>
+                </td>
+                <td>
+                  <p>PO-20260723-004</p>
+                  <p class="muted">安全水位補貨</p>
+                </td>
+                <td>2026-07-24</td>
+                <td>二砂</td>
+                <td class="right">
+                  <p class="strong">1,500 kg</p>
+                  <p class="muted">累計 1,500 / 1,500 kg</p>
+                </td>
+                <td><span class="badge success">已驗收</span></td>
+                <td>
+                  <p>文件完整</p>
+                  <p class="muted">可送倉庫</p>
+                </td>
+                <td><span class="badge info">待上架</span></td>
+                <td>安排倉庫上架並更新可用庫存。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="view-section">
+        <div class="panel toolbar">
+          <div>
+            <p class="label">供應商頁面預覽</p>
+            <h2>供應商追蹤</h2>
+            <p class="hint">
+              以供應商彙總未結採購單、逾期到貨、平均單價與文件缺口，方便採購主管集中追蹤。
+            </p>
+          </div>
+          <div class="chips">
+            <span class="badge danger">多張逾期</span>
+            <span class="badge warning">文件缺漏</span>
+            <span class="badge success">穩定供應</span>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="card">
+            <p class="label">需追蹤供應商</p>
+            <p class="value">6</p>
+            <p class="hint">存在逾期、文件缺漏或多張 PO 未確認。</p>
+          </div>
+          <div class="card">
+            <p class="label">未結採購金額</p>
+            <p class="value">$2.14M</p>
+            <p class="hint">依供應商彙總未完成採購單金額。</p>
+          </div>
+          <div class="card">
+            <p class="label">合約單價異常</p>
+            <p class="value">3</p>
+            <p class="hint">採購單價與合約基準不同，需工程師確認正式欄位後計算。</p>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-top: 12px; overflow-x: auto">
+          <table>
+            <thead>
+              <tr>
+                <th>供應商</th>
+                <th class="right">未結 PO</th>
+                <th class="right">未收金額</th>
+                <th>主要料品</th>
+                <th>最近到貨承諾</th>
+                <th>準時狀態</th>
+                <th>文件狀態</th>
+                <th>單價狀態</th>
+                <th>採購追蹤</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <p class="strong">永盛食品原料</p>
+                  <p class="muted">SUP-0018</p>
+                </td>
+                <td class="right">7</td>
+                <td class="right">$416,000</td>
+                <td>麵粉、澱粉、糖粉</td>
+                <td>
+                  <p>2026-07-28</p>
+                  <p class="muted">2 張 PO 逾期</p>
+                </td>
+                <td><span class="badge danger">延遲</span></td>
+                <td><span class="badge warning">COA 缺漏</span></td>
+                <td><span class="badge success">合約內</span></td>
+                <td>要求補出貨排程與文件；必要時啟用替代供應商。</td>
+              </tr>
+              <tr>
+                <td>
+                  <p class="strong">聯合包材</p>
+                  <p class="muted">SUP-0042</p>
+                </td>
+                <td class="right">4</td>
+                <td class="right">$188,000</td>
+                <td>包裝袋、貼標、紙箱</td>
+                <td>
+                  <p>2026-07-26</p>
+                  <p class="muted">尚未逾期</p>
+                </td>
+                <td><span class="badge warning">需確認</span></td>
+                <td><span class="badge success">完整</span></td>
+                <td><span class="badge warning">需複核</span></td>
+                <td>確認物流排程與單價差異來源。</td>
+              </tr>
+              <tr>
+                <td>
+                  <p class="strong">台灣糖品</p>
+                  <p class="muted">SUP-0025</p>
+                </td>
+                <td class="right">2</td>
+                <td class="right">$64,500</td>
+                <td>二砂、細砂</td>
+                <td>
+                  <p>2026-07-24</p>
+                  <p class="muted">今日已到</p>
+                </td>
+                <td><span class="badge success">正常</span></td>
+                <td><span class="badge success">完整</span></td>
+                <td><span class="badge success">合約內</span></td>
+                <td>等待倉庫上架完成即可關閉追蹤。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
   </body>

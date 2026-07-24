@@ -346,60 +346,73 @@ function AnalyticsView({
     return <EmptyState message="目前查無符合條件的效率、損耗或品質資料。" />;
   }
 
+  const averageEfficiency =
+    visibleOrders.reduce((total, order) => total + safeNumber(order.efficiencyRate), 0) / visibleOrders.length;
+  const averageLoss =
+    visibleOrders.reduce((total, order) => total + safeNumber(order.materialLossRate), 0) / visibleOrders.length;
+  const lowestEfficiencyOrder = [...visibleOrders].sort(
+    (a, b) => safeNumber(a.efficiencyRate) - safeNumber(b.efficiencyRate)
+  )[0];
+  const highestLossOrder = [...visibleOrders].sort(
+    (a, b) => safeNumber(b.materialLossRate) - safeNumber(a.materialLossRate)
+  )[0];
+  const highestLaborCostOrder = [...visibleOrders].sort(
+    (a, b) => safeNumber(b.unitLaborCost) - safeNumber(a.unitLaborCost)
+  )[0];
+  const qualityAttentionCount = visibleOrders.filter(
+    (order) => order.qualityBlocksInventory || order.qualityBlocksShipment || safeNumber(order.quality.defectRate) > 0
+  ).length;
+
   return (
-    <div className="grid gap-3 lg:grid-cols-3">
-      {visibleOrders.map((order) => (
-        <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={order.id}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-primary">{order.id}</p>
-              <h3 className="mt-1 font-semibold text-textPrimary">{order.product}</h3>
-              <p className="mt-1 text-xs text-textSecondary">{order.line}</p>
-            </div>
-            <StatusBadge tone={order.quality.tone}>{qualityStatusLabel(order, language)}</StatusBadge>
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="rounded-lg border border-border bg-white p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-textSecondary">平均產時效率</p>
+            <p className="mt-2 text-2xl font-semibold text-textPrimary">{formatPercent(averageEfficiency)}</p>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-md bg-slate-50 p-3">
-              <p className="text-xs text-textSecondary">產時效率</p>
-              <p className="mt-1 font-semibold text-textPrimary">{formatPercent(order.efficiencyRate)}</p>
-              <p className="mt-1 text-xs text-textSecondary">
-                標準 {formatHours(order.standardHours)} / 實際 {formatHours(order.actualHours)}
-              </p>
-            </div>
-            <div className="rounded-md bg-slate-50 p-3">
-              <p className="text-xs text-textSecondary">損耗率</p>
-              <p className="mt-1 font-semibold text-textPrimary">{formatPercent(order.materialLossRate)}</p>
-              <p className="mt-1 text-xs text-textSecondary">
-                {formatNumber(order.actualMaterialQty, 2)} / {formatNumber(order.standardMaterialQty, 2)}
-              </p>
-            </div>
-            <div className="rounded-md bg-slate-50 p-3">
-              <p className="text-xs text-textSecondary">單品人工費</p>
-              <p className="mt-1 font-semibold text-textPrimary">{formatMoney(order.unitLaborCost)}</p>
-              <p className="mt-1 text-xs text-textSecondary">{formatNumber(order.laborHours, 2)} 人時</p>
-            </div>
-            <div className="rounded-md bg-slate-50 p-3">
-              <p className="text-xs text-textSecondary">品質不良率</p>
-              <p className="mt-1 font-semibold text-textPrimary">{formatPercent(order.quality.defectRate)}</p>
-              <p className="mt-1 text-xs text-textSecondary">
-                待判 {order.quality.pendingCount} · 樣本 {order.quality.sampleCount}
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <StatusBadge tone={order.deliveryRiskCode ? productionRiskTone(order.deliveryRiskCode) : getRiskTone(order.deliveryRisk)}>
-              交期 {deliveryRiskLabel(order, language)}
-            </StatusBadge>
-            <StatusBadge tone={order.qualityBlocksInventory ? "warning" : "success"}>
-              {order.qualityBlocksInventory ? "暫緩入庫" : "可入庫"}
-            </StatusBadge>
-            <StatusBadge tone={order.qualityBlocksShipment ? "warning" : "success"}>
-              {order.qualityBlocksShipment ? "暫緩出貨" : "可出貨"}
-            </StatusBadge>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-textSecondary">{order.quality.result}</p>
+          <StatusBadge tone={averageEfficiency >= 90 ? "success" : "warning"}>{visibleOrders.length} 筆</StatusBadge>
         </div>
-      ))}
+        <p className="mt-3 text-xs leading-5 text-textSecondary">
+          最低效率：{lowestEfficiencyOrder?.id ?? "-"} · {formatPercent(lowestEfficiencyOrder?.efficiencyRate)}
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-white p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-textSecondary">平均原料損耗</p>
+            <p className="mt-2 text-2xl font-semibold text-textPrimary">{formatPercent(averageLoss)}</p>
+          </div>
+          <StatusBadge tone={averageLoss > 5 ? "warning" : "success"}>Loss</StatusBadge>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-textSecondary">
+          最高損耗：{highestLossOrder?.id ?? "-"} · {formatPercent(highestLossOrder?.materialLossRate)}
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-white p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-textSecondary">最高單品人工費</p>
+            <p className="mt-2 text-2xl font-semibold text-textPrimary">{formatMoney(highestLaborCostOrder?.unitLaborCost)}</p>
+          </div>
+          <StatusBadge tone="info">Labor</StatusBadge>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-textSecondary">
+          {highestLaborCostOrder?.id ?? "-"} · {formatNumber(highestLaborCostOrder?.laborHours, 2)} 人時
+        </p>
+      </div>
+      <div className="rounded-lg border border-border bg-white p-4 shadow-card">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-textSecondary">品質需注意</p>
+            <p className="mt-2 text-2xl font-semibold text-textPrimary">{formatNumber(qualityAttentionCount)} 筆</p>
+          </div>
+          <StatusBadge tone={qualityAttentionCount > 0 ? "warning" : "success"}>{productionEnumLabel("workflowStep", "quality", language)}</StatusBadge>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-textSecondary">
+          含暫緩入庫、暫緩出貨或不良率大於 0 的工單。
+        </p>
+      </div>
     </div>
   );
 }

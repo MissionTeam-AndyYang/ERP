@@ -21,7 +21,7 @@
 3. 讀取 `x-timezone` header，將 `startDate` 轉為該時區 00:00:00、`endDate` 轉為該時區隔日 00:00:00 前一刻，再轉成 UTC timestamp。
 4. 不以固定日期跨度取代使用者輸入；若查詢跨度很大，仍由 DB 日期條件、索引、排序與分頁控制資源。
 5. `start` 最小為 0，`count` 預設 50、最大 100；不先查出全部資料再由 Python 切片。
-6. 對 keyword、supplier、itemCategory、riskLevel 等條件盡可能在 SQLAlchemy query 層套用。
+6. 對 keyword、supplier、riskLevel 等條件盡可能在 SQLAlchemy query 層套用；V1 不提供未被畫面使用的 `itemCategory` 回傳或篩選欄位。
 
 ## 3. 共用 Step 2：建立採購單基礎資料列
 

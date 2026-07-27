@@ -47,7 +47,6 @@
 | `startDate` | String | Yes | 查詢起始日，`YYYY-MM-DD`；含當日。 |
 | `endDate` | String | Yes | 查詢結束日，`YYYY-MM-DD`；含當日，且不得早於 `startDate`。 |
 | `supplierNo` | String | No | 供應商 `company.no`。 |
-| `itemCategory` | Integer | No | 料品品項類別 code；前端轉換多國語系。 |
 | `riskLevel` | String | No | 風險等級 code。 |
 | `keyword` | String | No | 採購單 no、進貨單 no、請購單 no、供應商 no／名稱、料號或品名。 |
 | `start` | Integer | No | 分頁起點，預設 0。 |
@@ -87,7 +86,6 @@
       "purchaseDateTimestamp": "Integer",
       "itemNo": "String",
       "itemName": "String",
-      "itemCategory": "Integer",
       "unit": "Integer",
       "supplierNo": "String",
       "supplierName": "String",
@@ -132,7 +130,6 @@
 | `items[].purchaseDateTimestamp` | Integer | 採購日期，UTC timestamp。 | `purchase_order.date` |
 | `items[].itemNo` | String | 採購交易品項 no。 | `purchase_order.item_no` |
 | `items[].itemName` | String | 採購交易品項名稱。 | `purchase_order.item_name` |
-| `items[].itemCategory` | Integer | 料品品項類別 code；依已確認的 item no mapping 追溯正式料品主檔，不使用不存在於交易單據的欄位。 | `purchase_order.item_no -> trans_items -> material/inproduct/product` |
 | `items[].unit` | Integer | 採購交易單位 code。 | `purchase_order.unit` |
 | `items[].supplierNo` | String | 供應商 company no。 | `purchase_order.item_ref_no` |
 | `items[].supplierName` | String | 供應商顯示名稱。 | `company.displayName` |
@@ -158,22 +155,131 @@
 
 查詢參數與日期規則同第 4 節；只回傳 `riskLevel != normal` 的採購單。`items[]` 使用採購單主資料列，並額外回傳：
 
+### 6.1 Success Response Data
+
+```json
+{
+  "serverTimestamp": "Integer",
+  "timezone": "String",
+  "range": {
+    "startDate": "String",
+    "endDate": "String",
+    "startTimestamp": "Integer",
+    "endTimestamp": "Integer"
+  },
+  "summary": {
+    "highRiskCount": "Integer",
+    "noticeCount": "Integer",
+    "lateCount": "Integer",
+    "affectedWorkOrderCount": "Integer",
+    "averageLateDays": "Float"
+  },
+  "items": [
+    {
+      "purchaseOrderNo": "String",
+      "purchaseDateTimestamp": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
+      "supplierNo": "String",
+      "supplierName": "String",
+      "orderedQuantity": "Float",
+      "receivedQuantity": "Float",
+      "shortageQuantity": "Float",
+      "shortageValue": "Integer",
+      "expectedArrivalTimestamp": "Integer",
+      "receivingStatusCode": "String",
+      "warehouseStatusCode": "String",
+      "riskLevel": "String",
+      "riskCode": "String",
+      "impactSourceType": "String",
+      "impactSourceNo": "String",
+      "linkedWorkOrderNo": "String",
+      "followUpCode": "String"
+    }
+  ],
+  "total": "Integer",
+  "start": "Integer",
+  "count": "Integer"
+}
+```
+
 | Field Path | Type | Description |
 |---|---|---|
+| `serverTimestamp` | Integer | Response 建立時間，UTC timestamp。 |
+| `timezone` | String | 本次日期邊界使用的 IANA timezone，來源為 `x-timezone` header。 |
+| `range.startDate` | String | 使用者指定的查詢起始日。 |
+| `range.endDate` | String | 使用者指定的查詢結束日。 |
+| `range.startTimestamp` | Integer | 起始日 local 00:00:00 轉換後的 UTC timestamp。 |
+| `range.endTimestamp` | Integer | 結束日 local 23:59:59 轉換後的 UTC timestamp。 |
+| `summary.highRiskCount` | Integer | `riskLevel=high_risk` 的採購單數。 |
+| `summary.noticeCount` | Integer | `riskLevel=notice` 的採購單數。 |
+| `summary.lateCount` | Integer | 已逾期且仍有未收缺口的採購單數。 |
+| `summary.affectedWorkOrderCount` | Integer | 具正式工單關聯的風險採購單所涉及的不重複工單數。 |
+| `summary.averageLateDays` | Float | 逾期採購單平均逾期日數，取至小數點第 2 位；無逾期資料時為 0。 |
+| `items[]` | Array | 風險採購單資料列，依風險等級、逾期天數與預計到貨日排序。 |
+| `items[].purchaseOrderNo` | String | 採購單 no。 |
+| `items[].purchaseDateTimestamp` | Integer | 採購日期，UTC timestamp。 |
+| `items[].itemNo` | String | 採購交易品項 no。 |
+| `items[].itemName` | String | 採購交易品項名稱。 |
+| `items[].supplierNo` | String | 供應商 company no。 |
+| `items[].supplierName` | String | 供應商名稱。 |
+| `items[].orderedQuantity` | Float | 採購數量，取至小數點第 2 位。 |
+| `items[].receivedQuantity` | Float | 進貨淨數量，取至小數點第 2 位。 |
 | `items[].shortageQuantity` | Float | 尚未收貨數量，取至小數點第 2 位。 |
-| `items[].shortageValue` | Integer | 尚未收貨數量對應採購金額，四捨五入取整數；不以庫存成本取代採購金額。 |
-| `items[].impactSourceType` | String | 已確認的影響來源類型 code。 | `work_order`、`sales_order`、`safety_stock`、`unknown` |
+| `items[].shortageValue` | Integer | 尚未收貨數量乘採購單價後的金額，四捨五入取整數。 |
+| `items[].expectedArrivalTimestamp` | Integer | PO 預計進貨日期，UTC timestamp。 |
+| `items[].receivingStatusCode` | String | 該 PO 全部進貨單彙總後的收貨狀態 code。 |
+| `items[].warehouseStatusCode` | String | 該 PO 全部進貨單彙總後的入庫交接狀態 code。 |
+| `items[].riskLevel` | String | 風險等級 code。 |
+| `items[].riskCode` | String | 主要風險代碼，前端轉換文字與色彩。 |
+| `items[].impactSourceType` | String | 正式影響來源類型 code；無正式關聯時為 `unknown`。 |
 | `items[].impactSourceNo` | String | 影響來源單號；無正式關聯時為空字串。 |
-| `items[].followUpCode` | String | 前端追蹤動作 code，不是後端產生的中文建議。 | `confirm_supplier_date`、`check_document`、`check_putaway`、`review_source_impact`、`unknown` |
+| `items[].linkedWorkOrderNo` | String | 已確認的生產工單 no；無正式關聯時為空字串。 |
+| `items[].followUpCode` | String | 前端追蹤動作 code，不是後端中文建議。 |
+| `total` | Integer | 套用篩選後的風險採購單總筆數。 |
+| `start` | Integer | 本次分頁起點。 |
+| `count` | Integer | 本次回傳筆數。 |
 
-回傳 `summary` 包含 `highRiskCount`、`noticeCount`、`lateCount` 與 `affectedWorkOrderCount`；`affectedWorkOrderCount` 只計算正式關聯工單，不依品號或日期相似度推測。
+回傳 `summary` 包含 `highRiskCount`、`noticeCount`、`lateCount`、`affectedWorkOrderCount` 與 `averageLateDays`；`affectedWorkOrderCount` 只計算正式關聯工單，不依品號或日期相似度推測。`followUpCode` 僅供前端選擇本地化操作提示，不是後端回傳的中文建議。
 
 ## 7. GET `/api/v2/purchasing/goods-receipts/dashboard`
 
 以 `goods_receipt_note.date` 篩選任意歷史區間，`items[]` 以進貨單為主：
 
+### 7.1 Success Response Data
+
+```json
+{
+  "serverTimestamp": "Integer",
+  "timezone": "String",
+  "range": {
+    "startDate": "String",
+    "endDate": "String",
+    "startTimestamp": "Integer",
+    "endTimestamp": "Integer"
+  },
+  "summary": {
+    "receiptCount": "Integer",
+    "pendingPutawayCount": "Integer"
+  },
+  "items": [],
+  "total": "Integer",
+  "start": "Integer",
+  "count": "Integer"
+}
+```
+
 | Field Path | Type | Description | Source / Enum |
 |---|---|---|---|
+| `serverTimestamp` | Integer | Response 建立時間，UTC timestamp。 |  |
+| `timezone` | String | 日期邊界使用的 IANA timezone。 | `x-timezone` header |
+| `range.startDate` | String | 使用者指定的查詢起始日。 |  |
+| `range.endDate` | String | 使用者指定的查詢結束日。 |  |
+| `range.startTimestamp` | Integer | 起始日 local 00:00:00 轉換後的 UTC timestamp。 |  |
+| `range.endTimestamp` | Integer | 結束日 local 23:59:59 轉換後的 UTC timestamp。 |  |
+| `summary.receiptCount` | Integer | 查詢期間內進貨單與進貨退回單總筆數。 | `goods_receipt_note` |
+| `summary.pendingPutawayCount` | Integer | 已有進貨資料但 workflow 入庫任務尚未完成的進貨資料數。 | workflow task type 4 |
+| `items[]` | Array | 進貨單資料列，依進貨日期、進貨單 no 排序。 |  |
 | `items[].goodsReceiptNoteNo` | String | 進貨單 no。 | `goods_receipt_note.no` |
 | `items[].purchaseOrderNo` | String | 關聯採購單 no；無關聯時為空字串。 | `goods_receipt_note.purchase_order_no` |
 | `items[].receiptDateTimestamp` | Integer | 進貨／進貨退回日期。 | `goods_receipt_note.date` |
@@ -185,15 +291,44 @@
 | `items[].acceptanceStatusCode` | String | 收貨處理狀態；第一版不包含品檢狀態。 | `received`、`returned`、`unknown` |
 | `items[].warehouseStatusCode` | String | 倉庫交接狀態。 | `pending_putaway`、`stocked`、`unknown` |
 | `items[].nextOwnerDepartment` | Integer | 已確認 workflow 的下一步負責部門 code。 | `workflow_task_state.ownerDepartment` |
+| `total` | Integer | 套用篩選後的進貨單總筆數。 |  |
+| `start` | Integer | 本次分頁起點。 |  |
+| `count` | Integer | 本次回傳筆數。 |  |
 
-`summary` 包含 `receiptCount` 與 `pendingPutawayCount`；V1 不回傳 `pendingQualityCount`，也不處理品檢狀態。
+`summary` 包含 `receiptCount` 與 `pendingPutawayCount`；V1 不回傳任何品檢欄位或品檢 KPI。
 
 ## 8. GET `/api/v2/purchasing/suppliers/dashboard`
 
 以 `purchase_order.date` 篩選任意歷史區間，依供應商彙總：
 
+### 8.1 Success Response Data
+
+```json
+{
+  "serverTimestamp": "Integer",
+  "timezone": "String",
+  "range": {
+    "startDate": "String",
+    "endDate": "String",
+    "startTimestamp": "Integer",
+    "endTimestamp": "Integer"
+  },
+  "items": [],
+  "total": "Integer",
+  "start": "Integer",
+  "count": "Integer"
+}
+```
+
 | Field Path | Type | Description | Source |
 |---|---|---|---|
+| `serverTimestamp` | Integer | Response 建立時間，UTC timestamp。 |  |
+| `timezone` | String | 日期邊界使用的 IANA timezone。 | `x-timezone` header |
+| `range.startDate` | String | 使用者指定的查詢起始日。 |  |
+| `range.endDate` | String | 使用者指定的查詢結束日。 |  |
+| `range.startTimestamp` | Integer | 起始日 local 00:00:00 轉換後的 UTC timestamp。 |  |
+| `range.endTimestamp` | Integer | 結束日 local 23:59:59 轉換後的 UTC timestamp。 |  |
+| `items[]` | Array | 供應商彙總資料列，依風險等級與採購金額排序。 |  |
 | `items[].supplierNo` | String | 供應商 company no。 | `purchase_order.item_ref_no` |
 | `items[].supplierName` | String | 供應商名稱。 | `company.displayName` |
 | `items[].purchaseOrderCount` | Integer | 查詢期間採購單數。 | `purchase_order` |
@@ -202,32 +337,131 @@
 | `items[].purchaseAmount` | Integer | 採購金額加總，四捨五入取整數。 | `purchase_order.amount` |
 | `items[].pendingReceiptQuantity` | Float | 尚未收貨淨數量，取至小數點第 2 位。 | PO 數量減進貨淨數量 |
 | `items[].riskLevel` | String | 供應商彙總風險 code。 | `normal`、`notice`、`high_risk`、`unknown` |
+| `total` | Integer | 套用篩選後的供應商總筆數。 |  |
+| `start` | Integer | 本次分頁起點。 |  |
+| `count` | Integer | 本次回傳供應商筆數。 |  |
 
 ## 9. GET `/api/v2/purchasing/purchase-orders/{purchase_order_no}/detail`
 
 回傳單一採購單及其正式關聯：
 
+### 9.1 Success Response Data
+
 ```json
 {
-  "purchaseOrder": {},
-  "purchaseRequest": null,
-  "supplier": {},
-  "receipts": [],
-  "source": {},
-  "inventory": {},
-  "workflow": [],
-  "relatedDocuments": {}
+  "serverTimestamp": "Integer",
+  "timezone": "String",
+  "purchaseOrder": {
+    "purchaseOrderNo": "String",
+    "purchaseDateTimestamp": "Integer",
+    "itemNo": "String",
+    "itemName": "String",
+    "unit": "Integer",
+    "supplierNo": "String",
+    "supplierName": "String",
+    "orderedQuantity": "Float",
+    "unitPrice": "Float",
+    "purchaseAmount": "Integer",
+    "expectedArrivalTimestamp": "Integer",
+    "comment": "String"
+  },
+  "purchaseRequest": {
+    "purchaseRequestNo": "String",
+    "sourceOrderNo": "String",
+    "itemNo": "String",
+    "requestedQuantity": "Float"
+  },
+  "supplier": {
+    "supplierNo": "String",
+    "supplierName": "String"
+  },
+  "receipts": [
+    {
+      "goodsReceiptNoteNo": "String",
+      "receiptDateTimestamp": "Integer",
+      "receiptCategory": "Integer",
+      "checkedQuantity": "Float",
+      "warehouseStatusCode": "String"
+    }
+  ],
+  "source": {
+    "sourceOrderNo": "String",
+    "linkedWorkOrderNo": "String"
+  },
+  "inventory": {
+    "currentQuantity": "Float",
+    "reservedQuantity": "Float",
+    "availableQuantity": "Float"
+  },
+  "workflow": [
+    {
+      "taskId": "String",
+      "taskType": "Integer",
+      "refCategory": "Integer",
+      "refNo": "String",
+      "taskStatus": "Integer",
+      "ownerDepartment": "Integer"
+    }
+  ],
+  "relatedDocuments": {
+    "quoteNo": "String",
+    "contractNo": "String"
+  }
 }
 ```
 
-- `purchaseOrder` 取自 `purchase_order`，包含數量、單價、金額、預計進貨日與原始備註。
-- `purchaseRequest` 以 `purchase_order.purchase_request_no` 查詢；無關聯時為 `null`，不可依品號自行補接。
-- `supplier` 以 `purchase_order.item_ref_no` 對應 `company`。
-- `receipts[]` 以 `goods_receipt_note.purchase_order_no` 查詢，依日期與 no 排序。
-- `source` 僅回傳已確認的 `purchase_request.product_order_no` 與正式 workflow／APS 關聯。
-- `inventory` 重用 Warehouse inventory snapshot calculator；不複製庫存補算邏輯。
-- `workflow[]` 只回傳正式可追溯的 `workflow_task_state`／`workflow_task_event` 關聯。
-- `relatedDocuments` 僅取 `quotation.category = 1`、`contract.category = 1` 且可由 `ref_no` 對應的採購資料；不推測有效期限或核准狀態。
+### 9.2 Field Description
+
+| Field Path | Type | Description | Source / Enum |
+|---|---|---|---|
+| `serverTimestamp` | Integer | Response 建立時間，UTC timestamp。 |  |
+| `timezone` | String | 本次日期邊界使用的 IANA timezone。 | `x-timezone` header |
+| `purchaseOrder` | Object | 採購單主資料；不存在時依既有 not-found response 處理。 | `purchase_order` |
+| `purchaseOrder.purchaseOrderNo` | String | 採購單 no。 | `purchase_order.no` |
+| `purchaseOrder.purchaseDateTimestamp` | Integer | 採購日期，UTC timestamp。 | `purchase_order.date` |
+| `purchaseOrder.itemNo` | String | 採購交易品項 no。 | `purchase_order.item_no` |
+| `purchaseOrder.itemName` | String | 採購交易品項名稱。 | `purchase_order.item_name` |
+| `purchaseOrder.unit` | Integer | 採購交易單位 code。 | `purchase_order.unit` |
+| `purchaseOrder.supplierNo` | String | 供應商 company no。 | `purchase_order.item_ref_no` |
+| `purchaseOrder.supplierName` | String | 供應商名稱。 | `company.displayName` |
+| `purchaseOrder.orderedQuantity` | Float | 採購數量，取至小數點第 2 位。 | `purchase_order.count` |
+| `purchaseOrder.unitPrice` | Float | 採購單價，取至小數點第 4 位。 | `purchase_order.price` |
+| `purchaseOrder.purchaseAmount` | Integer | 採購金額，四捨五入取整數。 | `purchase_order.amount` |
+| `purchaseOrder.expectedArrivalTimestamp` | Integer | 預計進貨日期，UTC timestamp。 | `purchase_order.expectedDate` |
+| `purchaseOrder.comment` | String | 採購單備註。 | `purchase_order.comment` |
+| `purchaseRequest` | Object / Null | 直接關聯的請購單；沒有 `purchase_request_no` 或找不到資料時為 `null`。 | `purchase_order.purchase_request_no` |
+| `purchaseRequest.purchaseRequestNo` | String | 請購單 no。 | `purchase_request.no` |
+| `purchaseRequest.sourceOrderNo` | String | 請購來源訂購單 no。 | `purchase_request.product_order_no` |
+| `purchaseRequest.itemNo` | String | 請購料品 no。 | `purchase_request.item_no` |
+| `purchaseRequest.requestedQuantity` | Float | 請購數量，取至小數點第 2 位。 | `purchase_request.count` |
+| `supplier` | Object / Null | 供應商資料；無正式 company 關聯時為 `null`。 | `company` |
+| `supplier.supplierNo` | String | 供應商 company no。 | `company.no` |
+| `supplier.supplierName` | String | 供應商名稱。 | `company.displayName` |
+| `receipts[]` | Array | 該採購單所有正式關聯的進貨單，依日期與 no 排序。 | `goods_receipt_note.purchase_order_no` |
+| `receipts[].goodsReceiptNoteNo` | String | 進貨單 no。 | `goods_receipt_note.no` |
+| `receipts[].receiptDateTimestamp` | Integer | 進貨／進貨退回日期，UTC timestamp。 | `goods_receipt_note.date` |
+| `receipts[].receiptCategory` | Integer | 進貨單類別 code。 | 進貨單 `0`、進貨退回 `1` |
+| `receipts[].checkedQuantity` | Float | 本張進貨單實際數量，取至小數點第 2 位。 | `goods_receipt_note.checkedCount` |
+| `receipts[].warehouseStatusCode` | String | 該進貨單的入庫交接狀態；由 workflow 主判斷、inventory 輔助驗證。 | `pending_putaway`、`stocked`、`unknown` |
+| `source` | Object | 已確認的來源訂單與工單關聯；無關聯時欄位為空字串。 | 正式 FK 或 workflow／APS relation |
+| `source.sourceOrderNo` | String | 來源訂購單 no。 | `purchase_request.product_order_no` |
+| `source.linkedWorkOrderNo` | String | 已確認的生產工單 no。 | workflow／APS relation |
+| `inventory` | Object | 依採購品項取得的目前庫存摘要。 | Warehouse inventory snapshot calculator |
+| `inventory.currentQuantity` | Float | 目前庫存數量，取至小數點第 2 位。 | Warehouse snapshot |
+| `inventory.reservedQuantity` | Float | 預留數量，取至小數點第 2 位。 | Warehouse snapshot |
+| `inventory.availableQuantity` | Float | 可用數量，取至小數點第 2 位。 | Warehouse snapshot |
+| `workflow[]` | Array | 該 PO、進貨及入庫的正式 workflow 任務與事件。 | `workflow_task_state`、`workflow_task_event` |
+| `workflow[].taskId` | String | 任務識別碼。 | `workflow_task_state.taskId` |
+| `workflow[].taskType` | Integer | 任務類型 code。 | 採購 `2`、進貨 `3`、入庫 `4` |
+| `workflow[].refCategory` | Integer | 任務來源類別 code。 | 採購 `2`、進貨／入庫 `3` |
+| `workflow[].refNo` | String | 任務來源單號。 | PO no 或 goods receipt note no |
+| `workflow[].taskStatus` | Integer | 任務狀態 code。 | 待處理 `1`、部分完成 `2`、已完成 `3`、阻塞 `4`、取消 `5` |
+| `workflow[].ownerDepartment` | Integer | 下一步負責部門 code。 | `workflow_task_state.ownerDepartment` |
+| `relatedDocuments` | Object | 可由正式關聯取得的採購報價與合約資料。 | `quotation.category=1`、`contract.category=1` |
+| `relatedDocuments.quoteNo` | String | 採購報價單 no；無正式關聯時為空字串。 | `quotation.no` |
+| `relatedDocuments.contractNo` | String | 採購合約 no；無正式關聯時為空字串。 | `contract.no` |
+
+Detail API 不回傳品檢欄位，也不由品號、日期或名稱相似度補造請購、工單、進貨或 workflow 關聯。
 
 ## 10. 前端責任
 

@@ -1,3 +1,16 @@
+# 工程師提問 V2
+1. purchasing_purchase_order_first_static_preview.html 的畫面預覽並未設計 預計到貨 欄位，而你回覆表示 「預計到貨欄位保留，V1 來源固定為 `purchase_order.expectedDate`。」。請問此規劃是依據哪一個畫面預覽進行的？
+
+2. goods_receipt_note.checkedCount欄位僅在實際入庫後才會更新數值，請問 receivingStatusCode 與 warehouseStatusCode兩個欄位是否皆有必要保留，還是僅需保留其中一個？
+
+3. 針對 /api/v2/purchasing/purchase-orders/delivery-risk
+   - 請問 impactSourceType、impactSourceNo、followUpCode 這三個欄位各自表示的意思為何？是否能提供範例加以說明？
+
+4. 針對 /api/v2/purchasing/goods-receipts/dashboard 
+   - goodsReceiptNoteNo更名no; receiptCategory更名category; receiptDateTimestamp更名dateTimestamp
+   - acceptanceStatusCode 更名 receivingStatusCode; cumulativeReceivedQuantity 更名 receivedQuantity。 字義相同，請盡量統一使用相同單字進行命名，以保持一致性。
+   - 建議在回傳欄位中補上 expectedCount，作為排定數量的呈現。
+
 # 工程師提問
 1. 請檢視所有 API 回傳欄位是否符合目前畫面規劃設計需求，若有不必要的欄位，請先暫時移除。
 2. 請檢視所有 API 的 Success Response Data 與 Field Description 是否完整齊全，若有缺漏請補全。

@@ -1,3 +1,7 @@
+
+# 工程師提問
+1. 針對 warehouseStatusCode 欄位，能否詳細說明其判斷邏輯與演算法流程?
+
 # 採購中心採購單主視角 API 後端流程與演算法
 
 > 對應畫面：`PurchasingWorkspaceScreen`  

@@ -3,7 +3,7 @@
 2. 請檢視所有 API 的 Success Response Data 與 Field Description 是否完整齊全，若有缺漏請補全。
 3. 針對 /api/v2/purchasing/purchase-orders/dashboard
    - 請詳細說明 linkedWorkOrderNo 欄位的涵義，並指出其顯示於畫面的具體位置。
-   - 由於一張採購單可能對應多張進貨單，請說明 receivingStatusCode、qualityStatusCode、warehouseStatusCode 欄位在此情境下應如何處理。
+   - 由於一張採購單可能對應多張進貨單，請說明 receivingStatusCode、warehouseStatusCode 欄位在此情境下應如何處理；品檢狀態第一版不納入。
 
 
 # 採購中心採購單主視角 API 提案
@@ -16,7 +16,7 @@
 
 ## 1. 畫面定位
 
-本版以 `purchase_order` 為採購中心的主要資料列，支援管理者與採購主管查詢任意歷史日期區間，並從採購單追蹤供應商、預計到貨、分批進貨、驗收／文件、入庫交接與來源影響。
+本版以 `purchase_order` 為採購中心的主要資料列，支援管理者與採購主管查詢任意歷史日期區間，並從採購單追蹤供應商、預計到貨、分批進貨、驗收、入庫交接與來源影響。品檢狀態不在 V1 API 處理範圍。
 
 `purchase_request` 僅作為輔助關聯：採購單已連結請購單時顯示來源；未連結時明確顯示資料缺口，不反向推測請購來源。
 
@@ -24,7 +24,7 @@
 
 ## 2. 任意歷史區間
 
-所有列表 API 支援 `startDate` 與 `endDate`，格式為 `YYYY-MM-DD`，以 `timezone` 解讀日期邊界。查詢區間不採用固定 `today`、`7d` 或 `30d` 限制；只要資料仍在系統保存範圍內，即可查詢任意歷史期間。
+所有列表 API 支援 `startDate` 與 `endDate`，格式為 `YYYY-MM-DD`。前端送出使用者所在時區的 local date，並以 HTTP header `x-timezone` 指定日期邊界時區；後端再將日期邊界轉成 UTC timestamp 查詢。查詢區間不採用固定 `today`、`7d` 或 `30d` 限制；只要資料仍在系統保存範圍內，即可查詢任意歷史期間。
 
 為避免歷史大區間造成大量回傳，API 必須搭配 DB 端日期篩選、穩定排序與分頁。頁面大小仍限制在 API 定義的 `count` 上限，但不以固定日期跨度取代使用者指定的歷史區間。
 
@@ -46,7 +46,6 @@
 |---|---|---:|---|
 | `startDate` | String | Yes | 查詢起始日，`YYYY-MM-DD`；含當日。 |
 | `endDate` | String | Yes | 查詢結束日，`YYYY-MM-DD`；含當日，且不得早於 `startDate`。 |
-| `timezone` | String | No | 日期邊界使用的 IANA timezone，預設 `Asia/Taipei`。 |
 | `supplierNo` | String | No | 供應商 `company.no`。 |
 | `itemCategory` | Integer | No | 料品品項類別 code；前端轉換多國語系。 |
 | `riskLevel` | String | No | 風險等級 code。 |
@@ -55,6 +54,12 @@
 | `count` | Integer | No | 回傳筆數，預設 50，最大 100。 |
 
 日期篩選欄位依 API 固定定義：採購單 API 使用 `purchase_order.date`；進貨單 API 使用 `goods_receipt_note.date`；供應商彙總使用 `purchase_order.date`。
+
+### 4.1 Request Header
+
+| Header | Type | Required | Description |
+|---|---|---:|---|
+| `x-timezone` | String | Yes | 前端使用的 IANA timezone，例如 `Asia/Taipei`；`startDate` 與 `endDate` 以此時區解讀，資料庫查詢使用轉換後的 UTC timestamp。 |
 
 ## 5. GET `/api/v2/purchasing/purchase-orders/dashboard`
 
@@ -97,7 +102,6 @@
       "sourceOrderNo": "String",
       "linkedWorkOrderNo": "String",
       "receivingStatusCode": "String",
-      "qualityStatusCode": "String",
       "warehouseStatusCode": "String",
       "riskLevel": "String",
       "riskCode": "String"
@@ -128,7 +132,7 @@
 | `items[].purchaseDateTimestamp` | Integer | 採購日期，UTC timestamp。 | `purchase_order.date` |
 | `items[].itemNo` | String | 採購交易品項 no。 | `purchase_order.item_no` |
 | `items[].itemName` | String | 採購交易品項名稱。 | `purchase_order.item_name` |
-| `items[].itemCategory` | Integer | 料品品項類別 code；需依 `itemNo` 追溯正式料品主檔，不使用不存在於交易單據的欄位。 | `material.category` 或正式料品主檔；跨 `trans_items` 對應待工程師確認 |
+| `items[].itemCategory` | Integer | 料品品項類別 code；依已確認的 item no mapping 追溯正式料品主檔，不使用不存在於交易單據的欄位。 | `purchase_order.item_no -> trans_items -> material/inproduct/product` |
 | `items[].unit` | Integer | 採購交易單位 code。 | `purchase_order.unit` |
 | `items[].supplierNo` | String | 供應商 company no。 | `purchase_order.item_ref_no` |
 | `items[].supplierName` | String | 供應商顯示名稱。 | `company.displayName` |
@@ -141,10 +145,9 @@
 | `items[].purchaseRequestNo` | String | 關聯請購單 no；未連結時為空字串。 | `purchase_order.purchase_request_no` |
 | `items[].purchaseRequestLinkStatusCode` | String | 請購關聯狀態 code。 | `linked`、`unlinked`、`invalid` |
 | `items[].sourceOrderNo` | String | 請購單來源訂購單 no；無已確認請購關聯時為空字串。 | `purchase_request.product_order_no` |
-| `items[].linkedWorkOrderNo` | String | 已確認的生產工單 no；無正式關聯時為空字串。 | 僅取已確認 workflow／APS 關聯 |
-| `items[].receivingStatusCode` | String | 收貨狀態 code。 | `not_arrived`、`partial`、`received`、`returned`、`unknown` |
-| `items[].qualityStatusCode` | String | 品檢／文件狀態 code；品保中心延期時不得假造結果。 | `deferred`、`unknown` |
-| `items[].warehouseStatusCode` | String | 入庫交接狀態 code。 | `not_received`、`pending_putaway`、`stocked`、`unknown` |
+| `items[].linkedWorkOrderNo` | String | 已確認且可追溯的生產工單 no；無正式關聯時為空字串。顯示於採購單清單的「來源影響」欄、交期風險清單的「影響來源」欄及明細 panel 的來源區塊。 | 僅取已確認 workflow／APS 關聯 |
+| `items[].receivingStatusCode` | String | 以同一採購單全部進貨單的 `checkedCount` 淨值彙總收貨狀態；不是單一進貨單狀態。 | `not_arrived`、`partial`、`received`、`returned`、`unknown` |
+| `items[].warehouseStatusCode` | String | 以 workflow 入庫任務作為流程狀態主要依據，並以 Warehouse inventory 作為實際庫存證據；同一 PO 多筆進貨只要仍有未完成入庫交接即回傳 `pending_putaway`。 | `not_received`、`pending_putaway`、`stocked`、`unknown` |
 | `items[].riskLevel` | String | 風險等級 code。 | `normal`、`notice`、`high_risk`、`unknown` |
 | `items[].riskCode` | String | 主要風險代碼，前端依 code 轉換文字與色彩。 | `late_arrival`、`due_today`、`open_receipt`、`purchase_request_unlinked`、`workflow_blocked`、`unknown` |
 | `total` | Integer | 套用篩選後的採購單總筆數。 |  |
@@ -179,12 +182,11 @@
 | `items[].itemName` | String | 進貨交易品項名稱。 | `goods_receipt_note.item_name` |
 | `items[].checkedQuantity` | Float | 本張進貨單實際數量，取至小數點第 2 位。 | `goods_receipt_note.checkedCount` |
 | `items[].cumulativeReceivedQuantity` | Float | 該採購單截至本筆日期的收貨淨值。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
-| `items[].acceptanceStatusCode` | String | 收貨處理狀態；第一版不假造 Quality 結果。 | `received`、`returned`、`unknown` |
-| `items[].qualityStatusCode` | String | 品檢／文件狀態。 | `deferred`、`unknown` |
+| `items[].acceptanceStatusCode` | String | 收貨處理狀態；第一版不包含品檢狀態。 | `received`、`returned`、`unknown` |
 | `items[].warehouseStatusCode` | String | 倉庫交接狀態。 | `pending_putaway`、`stocked`、`unknown` |
 | `items[].nextOwnerDepartment` | Integer | 已確認 workflow 的下一步負責部門 code。 | `workflow_task_state.ownerDepartment` |
 
-`summary` 包含 `receiptCount`、`pendingQualityCount` 與 `pendingPutawayCount`。其中品檢數量在 Quality schema 未完成時不得宣稱為實際品檢結果，只能表示資料延期或未知。
+`summary` 包含 `receiptCount` 與 `pendingPutawayCount`；V1 不回傳 `pendingQualityCount`，也不處理品檢狀態。
 
 ## 8. GET `/api/v2/purchasing/suppliers/dashboard`
 
@@ -238,17 +240,26 @@
 
 | 項目 | 提案內容 | 需確認事項 | 工程師回覆 |
 |---|---|---|---|
-| 任意歷史區間 | `startDate`／`endDate`，不固定 7d／30d | 現有日期欄位與索引是否足以支援歷史查詢？ | 若採用 startDate／endDate 參數，不固定 7d／30d，前端應回傳 local time 還是 UTC time？|
-| 品項類別 | 由 item no 追溯正式料品主檔 | `purchase_order.item_no -> trans_items -> material/inproduct/product` 的實際 mapping 是否固定？ | 是 |
-| 請購關聯 | `purchase_order.purchase_request_no` 為唯一直接關聯 | 若欄位為空，是否存在其他已確認的正式關聯？ | 目前沒有 |
-| 收貨數量 | checkedCount 依進貨／退回加減 | 進貨退回是否一律扣除 `checkedCount`？ | 是 |
-| 預計到貨 | 使用 `purchase_order.expectedDate` | 是否有分批進貨的未來到貨日期欄位；若沒有，畫面顯示 PO expectedDate？ | 請確認更新後的畫面中是否仍包含 預計到貨 欄位。
-| 品檢狀態 | 第一版 `deferred`／`unknown` | Quality 延後時是否接受不顯示實際品檢結果？ | 在第一版開發中，暫時不納入 品檢狀態 的處理，後續版本再行規劃。 |
-| 入庫狀態 | inventory／workflow evidence | 是否已有正式事件或任務可判斷 `pending_putaway` 與 `stocked`？ | 你建議應以 inventory 還是 workflow 作為入庫狀態判斷依據？|
-| 來源影響 | 只接受正式工單／訂單關聯 | APS／工單關聯來源欄位與優先順序為何？ | 請詳細說明何謂 來源影響。僅憑此無法判斷是否指的是採購單的來源訂單，還是其他來源，|
-| 供應商彙總 | 依 company no 聚合 | 同一供應商是否允許不同 company 顯示名稱，應以哪一筆為準？ | 供應商與company是一對一的關係 |
+| 任意歷史區間 | `startDate`／`endDate`，不固定 7d／30d | 日期由前端送 local time 還是 UTC time？ | 前端送 local `YYYY-MM-DD`，並以 `x-timezone` header 指定 IANA timezone；後端依 header 將邊界轉成 UTC timestamp。 |
+| 品項類別 | 由 item no 追溯正式料品主檔 | `purchase_order.item_no -> trans_items -> material/inproduct/product` 的實際 mapping 是否固定？ | 是；依此 mapping 實作。 |
+| 請購關聯 | `purchase_order.purchase_request_no` 為唯一直接關聯 | 若欄位為空，是否存在其他已確認的正式關聯？ | 目前沒有；欄位為空即回傳 `unlinked`，不得推測。 |
+| 收貨數量 | checkedCount 依進貨／退回加減 | 進貨退回是否一律扣除 `checkedCount`？ | 是；`category=1` 一律扣除。 |
+| 預計到貨 | 使用 `purchase_order.expectedDate` | 是否有分批進貨的未來到貨日期欄位；若沒有，畫面顯示 PO expectedDate？ | 預覽仍包含預計到貨欄位；V1 使用 PO `expectedDate`，不推導分批進貨未來日期。 |
+| 品檢狀態 | 第一版不提供品質欄位 | Quality 延後時是否接受不顯示實際品檢結果？ | V1 完全不納入品檢狀態欄位與 KPI；Quality 後續版本再規劃。 |
+| 入庫狀態 | workflow／inventory evidence | 是否已有正式事件或任務可判斷 `pending_putaway` 與 `stocked`？ | V1 以 workflow 入庫任務的狀態作為流程判斷，Warehouse inventory 作為已實際入庫的證據；若兩者無法對應則回傳 `unknown`。 |
+| 來源影響 | 只接受正式工單／訂單關聯 | APS／工單關聯來源欄位與優先順序為何？ | 「來源影響」指畫面上的來源訂單／工單欄位：先取 `purchase_request.product_order_no` 作為 `sourceOrderNo`；`linkedWorkOrderNo` 僅取已確認 workflow／APS 關聯，不相似推測。 |
+| 供應商彙總 | 依 company no 聚合 | 同一供應商是否允許不同 company 顯示名稱，應以哪一筆為準？ | 供應商與 company 一對一，以 `company.no` 與 `company.displayName` 為準。 |
 
-## 12. 非本次範圍
+## 12. 工程師回覆後確認結論
+
+1. 日期查詢使用前端 local date + `x-timezone`，後端轉 UTC timestamp；不新增 timezone query parameter。
+2. 品項 mapping、請購關聯與進貨退回扣除規則已確認，依文件演算法執行。
+3. 預計到貨欄位保留，V1 來源固定為 `purchase_order.expectedDate`。
+4. V1 移除所有品檢狀態與品檢 KPI，避免回傳未實作的 Quality 資料。
+5. 入庫狀態以 workflow 為流程主來源、inventory 為實際結果證據；多筆進貨以 PO 層級彙總。
+6. 目前沒有資料保存政策限制；本文件所稱資料保存政策，是指未來若因法規、備份、封存或刪除策略導致歷史資料不可查詢時，需另定義標準錯誤。V1 不自行縮短使用者指定的查詢期間。
+
+## 13. 非本次範圍
 
 - 不實作 POST／PUT／DELETE。
 - 不新增資料表或欄位。

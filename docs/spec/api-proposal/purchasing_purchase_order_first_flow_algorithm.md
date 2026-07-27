@@ -18,7 +18,7 @@
 
 1. 驗證 `startDate`、`endDate` 是否為 `YYYY-MM-DD`。
 2. 驗證 `startDate <= endDate`；不合法回傳既有 validation error response。
-3. 依 `timezone` 將起始日轉為 00:00:00、結束日轉為隔日 00:00:00 前一刻，再轉成 UTC timestamp。
+3. 讀取 `x-timezone` header，將 `startDate` 轉為該時區 00:00:00、`endDate` 轉為該時區隔日 00:00:00 前一刻，再轉成 UTC timestamp。
 4. 不以固定日期跨度取代使用者輸入；若查詢跨度很大，仍由 DB 日期條件、索引、排序與分頁控制資源。
 5. `start` 最小為 0，`count` 預設 50、最大 100；不先查出全部資料再由 Python 切片。
 6. 對 keyword、supplier、itemCategory、riskLevel 等條件盡可能在 SQLAlchemy query 層套用。
@@ -89,9 +89,10 @@ openPurchaseOrder = openQuantity > 0
 1. 以 `goods_receipt_note.date` 篩選任意歷史區間。
 2. 以 `purchase_order_no` 批次取得採購單資訊；無 PO 關聯時仍保留進貨單資料，並回傳關聯缺口 code。
 3. 使用同一採購單、同一品項、日期與 no 排序，計算截至當筆進貨單日期的淨收貨量。
-4. `qualityStatusCode` 在 Quality schema 尚未提供前只回傳 `deferred` 或 `unknown`。
-5. `warehouseStatusCode` 只有在 Warehouse inventory 或已確認 workflow event 能證明交接狀態時才回傳 `pending_putaway`／`stocked`；否則回傳 `unknown`。
-6. `nextOwnerDepartment` 只取已存在 workflow task 的 `ownerDepartment`，不由畫面文字推導。
+4. V1 不處理品檢狀態，不回傳 `qualityStatusCode` 或品檢 KPI。
+5. `warehouseStatusCode` 以 workflow 入庫任務作為流程狀態主要依據，並以 Warehouse inventory 作為實際入庫證據；若無法對應則回傳 `unknown`。
+6. 同一 PO 多筆進貨時，先逐筆判斷入庫任務，再彙總至 PO；只要仍有未完成入庫交接即回傳 `pending_putaway`。
+7. `nextOwnerDepartment` 只取已存在 workflow task 的 `ownerDepartment`，不由畫面文字推導。
 
 ## 8. API 4：供應商彙總
 
@@ -123,17 +124,29 @@ openPurchaseOrder = openQuantity > 0
 
 ## 11. 工程師需確認
 
-1. `purchase_order.date`、`expectedDate`、`goods_receipt_note.date` 是否都是 UTC timestamp，日期邊界是否採 `Asia/Taipei`。
-   - 工程師回覆: 都是 UTC timestamp，日期邊界取決於 HTTP header 的 x-timezone。
+1. `purchase_order.date`、`expectedDate`、`goods_receipt_note.date` 都是 UTC timestamp；日期邊界取決於 HTTP header 的 `x-timezone`。
+   - 更新結論: 前端送 local `YYYY-MM-DD`，後端依 `x-timezone` 轉換為 UTC 邊界。
 2. PO item no 經 `trans_items` 追溯 material／inproduct／product 的正式 mapping。
-   - 工程師回覆: 是
+   - 更新結論: 是，依 `trans_items -> material/inproduct/product` mapping 實作。
 3. 進貨退回是否一律以 `category = 1` 扣除 `checkedCount`。
-   - 工程師回覆: 是
+   - 更新結論: 是，`category=1` 一律扣除 `checkedCount`。
 4. 是否有分批進貨的未來預計日期；若沒有，畫面只使用 PO `expectedDate`。
-   - 工程師回覆: 請確認更新後的畫面中是否仍包含 預計到貨 欄位。
+   - 更新結論: 預覽仍包含預計到貨欄位；V1 使用 `purchase_order.expectedDate`，不推導分批進貨未來日期。
 5. Quality 與 Warehouse 交接狀態的正式來源。
-   - 工程師回覆: 在第一版開發中，暫時不納入 品檢狀態 的處理，後續版本再行規劃。
+   - 更新結論: V1 不納入品檢狀態與品檢 KPI，Quality 延至後續版本。
 6. workflow task type 2／3／4 與 PO、進貨、入庫的正式 refCategory／ref_no 關聯。
-   - 工程師回覆: workflow 為你所設計的資料表，理論上應該比工程師更清楚其邏輯與欄位定義。
+   - 更新結論: 採購任務使用 `taskType=2`、`refCategory=2`、`ref_no=purchase_order.no`；進貨與入庫任務均以 `goods_receipt_note.no` 作為來源單號，分別使用 `taskType=3`／`taskType=4` 與 `refCategory=3`。流程狀態以 workflow 為主，inventory 作為實際入庫證據。
 7. 任意歷史區間是否受資料保存政策限制，以及限制時應回傳的標準錯誤 code。
-   - 工程師回覆: 資料保存政策限制 是什麼? 請詳細說明 資料保存政策限制 所指的內容與範圍，以釐清其在系統設計或資料管理上的影響。
+   - 更新結論: 目前沒有資料保存政策限制。此處所稱保存政策，是未來因法規、備份、封存或刪除策略導致歷史資料不可查詢時的系統限制；V1 不自行縮短日期區間。
+
+## 12. 工程師回覆後更新結論
+
+1. 任意歷史區間以 local date + `x-timezone` 查詢，資料庫端使用 UTC timestamp 條件。
+2. 品項 mapping、請購關聯及進貨退回扣除規則已確認。
+3. 預計到貨欄位保留，來源固定為 PO `expectedDate`。
+4. V1 移除品檢狀態與品檢 KPI。
+5. 入庫流程狀態使用 workflow；inventory 僅作實際庫存結果證據。
+
+## 13. 設計補充：資料保存政策
+
+資料保存政策不是本次 API 的業務篩選條件，而是指未來資料管理政策可能造成歷史資料封存、刪除或不可查詢的限制。若未來導入，應由系統管理規格另定保存期限、封存查詢方式與標準錯誤 code；API 不得默默將使用者指定的 `startDate`／`endDate` 縮短。

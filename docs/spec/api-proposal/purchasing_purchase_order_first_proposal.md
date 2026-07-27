@@ -112,8 +112,7 @@
       "purchaseRequestLinkStatusCode": "String",
       "sourceOrderNo": "String",
       "linkedWorkOrderNo": "String",
-      "receivingStatusCode": "String",
-      "warehouseStatusCode": "String",
+       "warehouseStatusCode": "String",
       "riskLevel": "String",
       "riskCode": "String"
     }
@@ -156,7 +155,6 @@
 | `items[].purchaseRequestLinkStatusCode` | String | 請購關聯狀態 code。 | `linked`、`unlinked`、`invalid` |
 | `items[].sourceOrderNo` | String | 請購單來源訂購單 no；無已確認請購關聯時為空字串。 | `purchase_request.product_order_no` |
 | `items[].linkedWorkOrderNo` | String | 已確認且可追溯的生產工單 no；無正式關聯時為空字串。顯示於採購單清單的「來源影響」欄、交期風險清單的「影響來源」欄及明細 panel 的來源區塊。 | 僅取已確認 workflow／APS 關聯 |
-| `items[].receivingStatusCode` | String | 以同一採購單全部進貨單的 `checkedCount` 淨值彙總收貨狀態；不是單一進貨單狀態。 | `not_arrived`、`partial`、`received`、`returned`、`unknown` |
 | `items[].warehouseStatusCode` | String | 以 workflow 入庫任務作為流程狀態主要依據，並以 Warehouse inventory 作為實際庫存證據；同一 PO 多筆進貨只要仍有未完成入庫交接即回傳 `pending_putaway`。 | `not_received`、`pending_putaway`、`stocked`、`unknown` |
 | `items[].riskLevel` | String | 風險等級 code。 | `normal`、`notice`、`high_risk`、`unknown` |
 | `items[].riskCode` | String | 主要風險代碼，前端依 code 轉換文字與色彩。 | `late_arrival`、`due_today`、`open_receipt`、`purchase_request_unlinked`、`workflow_blocked`、`unknown` |
@@ -200,8 +198,7 @@
       "shortageQuantity": "Float",
       "shortageValue": "Integer",
       "expectedArrivalTimestamp": "Integer",
-      "receivingStatusCode": "String",
-      "warehouseStatusCode": "String",
+       "warehouseStatusCode": "String",
       "riskLevel": "String",
       "riskCode": "String",
       "impactSourceType": "String",
@@ -241,7 +238,6 @@
 | `items[].shortageQuantity` | Float | 尚未收貨數量，取至小數點第 2 位。 |
 | `items[].shortageValue` | Integer | 尚未收貨數量乘採購單價後的金額，四捨五入取整數。 |
 | `items[].expectedArrivalTimestamp` | Integer | PO 預計進貨日期，UTC timestamp。 |
-| `items[].receivingStatusCode` | String | 該 PO 全部進貨單彙總後的收貨狀態 code。 |
 | `items[].warehouseStatusCode` | String | 該 PO 全部進貨單彙總後的入庫交接狀態 code。 |
 | `items[].riskLevel` | String | 風險等級 code。 |
 | `items[].riskCode` | String | 主要風險代碼，前端轉換文字與色彩。 |
@@ -255,9 +251,24 @@
 
 回傳 `summary` 包含 `highRiskCount`、`noticeCount`、`lateCount`、`affectedWorkOrderCount` 與 `averageLateDays`；`affectedWorkOrderCount` 只計算正式關聯工單，不依品號或日期相似度推測。`followUpCode` 僅供前端選擇本地化操作提示，不是後端回傳的中文建議。
 
+### 6.2 Impact Source and Follow-up Examples
+
+| `impactSourceType` | `impactSourceNo` | 意義 | `followUpCode` 範例 |
+|---|---|---|---|
+| `work_order` | `WO-20260725-014` | 採購缺口已有正式生產工單關聯，可能影響備料或生產。 | `review_source_impact` |
+| `sales_order` | `SO-20260715-008` | 採購需求可由請購單追溯至正式訂購單。 | `confirm_supplier_date` |
+| `safety_stock` | `MAT-FLOUR-001` | 未連請購但正式安全水位資料顯示需要補貨；來源 no 使用料品 no。 | `review_source_impact` |
+| `unknown` | 空字串 | 沒有足夠正式關聯，不進行推測。 | `unknown` |
+
+`impactSourceType` 表示造成風險或需要追蹤的正式來源類型；`impactSourceNo` 是該來源的識別碼。兩者不是任務單號，也不是後端產生的中文說明。V1 不包含 `check_document`，因品檢與文件狀態已延至後續版本。
+
 ## 7. GET `/api/v2/purchasing/goods-receipts/dashboard`
 
-以 `goods_receipt_note.date` 篩選任意歷史區間，`items[]` 以進貨單為主：
+以 `goods_receipt_note.date` 篩選任意歷史區間，`items[]` 以進貨單為主。此 API 的 `receivingStatusCode` 是進貨單資料列狀態，與 PO dashboard 的 `warehouseStatusCode` 分屬不同層級：
+
+- PO dashboard 不再回傳 `receivingStatusCode`，避免將只在實際入庫後更新的 `checkedCount` 誤當成獨立的到貨狀態。
+- 進貨單 dashboard 保留 `receivingStatusCode`，表示該進貨單資料列的收貨處理結果；`warehouseStatusCode` 表示該進貨單的入庫交接結果。
+- `expectedCount` 用於呈現進貨單排定數量，`checkedCount` 用於呈現實際數量，`receivedQuantity` 用於呈現同一 PO 截至該筆日期的淨收貨量。
 
 ### 7.1 Success Response Data
 
@@ -293,15 +304,16 @@
 | `summary.receiptCount` | Integer | 查詢期間內進貨單與進貨退回單總筆數。 | `goods_receipt_note` |
 | `summary.pendingPutawayCount` | Integer | 已有進貨資料但 workflow 入庫任務尚未完成的進貨資料數。 | workflow task type 4 |
 | `items[]` | Array | 進貨單資料列，依進貨日期、進貨單 no 排序。 |  |
-| `items[].goodsReceiptNoteNo` | String | 進貨單 no。 | `goods_receipt_note.no` |
+| `items[].no` | String | 進貨單 no。 | `goods_receipt_note.no` |
 | `items[].purchaseOrderNo` | String | 關聯採購單 no；無關聯時為空字串。 | `goods_receipt_note.purchase_order_no` |
-| `items[].receiptDateTimestamp` | Integer | 進貨／進貨退回日期。 | `goods_receipt_note.date` |
-| `items[].receiptCategory` | Integer | 進貨單類別 code。 | 進貨單 `0`、進貨退回 `1` |
+| `items[].dateTimestamp` | Integer | 進貨／進貨退回日期，UTC timestamp。 | `goods_receipt_note.date` |
+| `items[].category` | Integer | 進貨單類別 code。 | 進貨單 `0`、進貨退回 `1` |
 | `items[].itemNo` | String | 進貨交易品項 no。 | `goods_receipt_note.item_no` |
 | `items[].itemName` | String | 進貨交易品項名稱。 | `goods_receipt_note.item_name` |
-| `items[].checkedQuantity` | Float | 本張進貨單實際數量，取至小數點第 2 位。 | `goods_receipt_note.checkedCount` |
-| `items[].cumulativeReceivedQuantity` | Float | 該採購單截至本筆日期的收貨淨值。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
-| `items[].acceptanceStatusCode` | String | 收貨處理狀態；第一版不包含品檢狀態。 | `received`、`returned`、`unknown` |
+| `items[].expectedCount` | Float | 本張進貨單排定數量，取至小數點第 2 位。 | `goods_receipt_note.expectedCount` |
+| `items[].checkedCount` | Float | 本張進貨單實際數量，取至小數點第 2 位；依工程師確認，實際入庫後才更新。 | `goods_receipt_note.checkedCount` |
+| `items[].receivedQuantity` | Float | 該採購單截至本筆日期的收貨淨值，取至小數點第 2 位。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
+| `items[].receivingStatusCode` | String | 進貨單資料列的收貨處理狀態；不代表已完成倉庫入庫。 | `received`、`returned`、`unknown` |
 | `items[].warehouseStatusCode` | String | 倉庫交接狀態。 | `pending_putaway`、`stocked`、`unknown` |
 | `items[].nextOwnerDepartment` | Integer | 已確認 workflow 的下一步負責部門 code。 | `workflow_task_state.ownerDepartment` |
 | `total` | Integer | 套用篩選後的進貨單總筆數。 |  |
@@ -390,10 +402,13 @@
   },
   "receipts": [
     {
-      "goodsReceiptNoteNo": "String",
-      "receiptDateTimestamp": "Integer",
-      "receiptCategory": "Integer",
-      "checkedQuantity": "Float",
+      "no": "String",
+      "dateTimestamp": "Integer",
+      "category": "Integer",
+      "expectedCount": "Float",
+      "checkedCount": "Float",
+      "receivedQuantity": "Float",
+      "receivingStatusCode": "String",
       "warehouseStatusCode": "String"
     }
   ],
@@ -451,10 +466,13 @@
 | `supplier.supplierNo` | String | 供應商 company no。 | `company.no` |
 | `supplier.supplierName` | String | 供應商名稱。 | `company.displayName` |
 | `receipts[]` | Array | 該採購單所有正式關聯的進貨單，依日期與 no 排序。 | `goods_receipt_note.purchase_order_no` |
-| `receipts[].goodsReceiptNoteNo` | String | 進貨單 no。 | `goods_receipt_note.no` |
-| `receipts[].receiptDateTimestamp` | Integer | 進貨／進貨退回日期，UTC timestamp。 | `goods_receipt_note.date` |
-| `receipts[].receiptCategory` | Integer | 進貨單類別 code。 | 進貨單 `0`、進貨退回 `1` |
-| `receipts[].checkedQuantity` | Float | 本張進貨單實際數量，取至小數點第 2 位。 | `goods_receipt_note.checkedCount` |
+| `receipts[].no` | String | 進貨單 no。 | `goods_receipt_note.no` |
+| `receipts[].dateTimestamp` | Integer | 進貨／進貨退回日期，UTC timestamp。 | `goods_receipt_note.date` |
+| `receipts[].category` | Integer | 進貨單類別 code。 | 進貨單 `0`、進貨退回 `1` |
+| `receipts[].expectedCount` | Float | 本張進貨單排定數量，取至小數點第 2 位。 | `goods_receipt_note.expectedCount` |
+| `receipts[].checkedCount` | Float | 本張進貨單實際數量，取至小數點第 2 位。 | `goods_receipt_note.checkedCount` |
+| `receipts[].receivedQuantity` | Float | 該採購單截至本筆日期的收貨淨值，取至小數點第 2 位。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
+| `receipts[].receivingStatusCode` | String | 進貨單資料列的收貨處理狀態。 | `received`、`returned`、`unknown` |
 | `receipts[].warehouseStatusCode` | String | 該進貨單的入庫交接狀態；由 workflow 主判斷、inventory 輔助驗證。 | `pending_putaway`、`stocked`、`unknown` |
 | `source` | Object | 已確認的來源訂單與工單關聯；無關聯時欄位為空字串。 | 正式 FK 或 workflow／APS relation |
 | `source.sourceOrderNo` | String | 來源訂購單 no。 | `purchase_request.product_order_no` |
@@ -506,7 +524,14 @@ Detail API 不回傳品檢欄位，也不由品號、日期或名稱相似度補
 5. 入庫狀態以 workflow 為流程主來源、inventory 為實際結果證據；多筆進貨以 PO 層級彙總。
 6. 目前沒有資料保存政策限制；本文件所稱資料保存政策，是指未來若因法規、備份、封存或刪除策略導致歷史資料不可查詢時，需另定義標準錯誤。V1 不自行縮短使用者指定的查詢期間。
 
-## 13. 非本次範圍
+## 13. 工程師提問 V2 回覆與更新結論
+
+1. **預計到貨欄位**：目前 repository 的 `purchasing_purchase_order_first_static_preview.html` 仍包含「到貨規劃」欄、「下一筆到貨」明細區塊及交期風險的到貨日期，因此本提案保留 `expectedArrivalTimestamp`，來源為 `purchase_order.expectedDate`。若工程師使用的畫面版本已移除這些區塊，應先同步更新靜態預覽，再一併移除該欄位；在畫面版本未同步前，不變更 API 欄位。
+2. **PO 層級狀態**：因 `goods_receipt_note.checkedCount` 只在實際入庫後更新，PO dashboard 與 delivery-risk 不再回傳 `receivingStatusCode`，只保留 `warehouseStatusCode` 作為入庫交接流程狀態；進貨單 dashboard 與 detail 的 `receivingStatusCode` 仍保留，供進貨單資料列呈現收貨處理結果。
+3. **風險來源欄位**：已補充 `impactSourceType`、`impactSourceNo`、`followUpCode` 的定義與範例；V1 移除 `check_document`，不處理品檢／文件狀態。
+4. **進貨單欄位命名**：已統一為 `no`、`category`、`dateTimestamp`、`receivingStatusCode`、`receivedQuantity`，並新增 `expectedCount`；實際數量欄位統一為 `checkedCount`。
+
+## 14. 非本次範圍
 
 - 不實作 POST／PUT／DELETE。
 - 不新增資料表或欄位。

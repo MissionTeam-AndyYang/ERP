@@ -51,17 +51,16 @@ openPurchaseOrder = openQuantity > 0
 2. 單價取至小數點第 4 位。
 3. 金額優先使用資料表金額，回傳前四捨五入取整數。
 4. `receivedQuantity` 使用 `checkedCount`，不以 `expectedCount` 或 `feeCount` 代替實際收貨數量。
-5. `receivedQuantity <= 0` 且沒有正向進貨資料：`not_arrived`。
-6. `0 < receivedQuantity < orderedQuantity`：`partial`。
-7. `receivedQuantity >= orderedQuantity`：`received`。
-8. 進貨退回造成淨收貨量下降時，保留 `returned` 風險／狀態資訊，不可把退回資料忽略。
+5. PO dashboard 與 delivery-risk 不由 `checkedCount` 推導 `receivingStatusCode`；只計算 `openQuantity`，並交由入庫流程判斷 `warehouseStatusCode`。
+6. 進貨單 dashboard 的 `receivingStatusCode`：`category=1` 為 `returned`；`category=0` 且 `checkedCount > 0` 為 `received`；進貨單存在但 `checkedCount = 0` 時為 `unknown`，不可宣稱已收貨。
+7. 進貨退回造成淨收貨量下降時，保留退回資料，不可忽略。
 
 ## 5. API 1：採購單主視角 Dashboard
 
 ### Step 4：查詢、排序與分頁
 
 1. 先在 DB 端篩選 `purchase_order.date` 區間。
-2. 套用供應商、品項類別、keyword 等條件。
+2. 套用供應商、keyword 等條件；V1 不提供未被畫面使用的 item category filter。
 3. 以 `expectedDate ASC NULLS LAST`、`purchase_order.no ASC` 穩定排序。
 4. 先取得本頁 PO identifiers，再批次取得請購、進貨、供應商、workflow 與庫存資料，避免 N+1 query。
 5. `summary` 對完整篩選集合計算；`items[]` 才套用分頁。
@@ -86,17 +85,36 @@ openPurchaseOrder = openQuantity > 0
    - `unknown`：必要資料不足，不能標示 normal。
 4. `shortageQuantity = openQuantity`。
 5. `shortageValue` 以採購單價乘缺口數量計算，四捨五入取整數；若單價缺漏則回傳 0 並保留 unknown 狀態。
-6. 影響來源只取正式工單、訂單或安全水位資料；不得以料號或日期相似度推測工單。
+6. 影響來源只取正式工單、訂單或安全水位資料；不得以料號或日期相似度推測工單。`followUpCode` 僅回傳前端 code，V1 不使用 `check_document`。
 
 ## 7. API 3：進貨單、驗收與入庫交接
 
 1. 以 `goods_receipt_note.date` 篩選任意歷史區間。
 2. 以 `purchase_order_no` 批次取得採購單資訊；無 PO 關聯時仍保留進貨單資料，並回傳關聯缺口 code。
-3. 使用同一採購單、同一品項、日期與 no 排序，計算截至當筆進貨單日期的淨收貨量。
+3. 使用同一採購單、同一品項、日期與 no 排序，計算截至當筆進貨單日期的淨收貨量；回傳 `expectedCount`、`checkedCount` 與 `receivedQuantity`。
 4. V1 不處理品檢狀態，不回傳 `qualityStatusCode` 或品檢 KPI。
 5. `warehouseStatusCode` 以 workflow 入庫任務作為流程狀態主要依據，並以 Warehouse inventory 作為實際入庫證據；若無法對應則回傳 `unknown`。
 6. 同一 PO 多筆進貨時，先逐筆判斷入庫任務，再彙總至 PO；只要仍有未完成入庫交接即回傳 `pending_putaway`。
 7. `nextOwnerDepartment` 只取已存在 workflow task 的 `ownerDepartment`，不由畫面文字推導。
+
+### 7.1 `warehouseStatusCode` 判斷流程
+
+`warehouseStatusCode` 是「入庫交接狀態」，不是單純的收貨數量狀態。因 `goods_receipt_note.checkedCount` 只在實際入庫後更新，演算法不以 `checkedCount > 0` 直接判定 `stocked`。
+
+1. 取得採購單所有正式關聯的 `goods_receipt_note`，依 `purchase_order_no`、日期與 no 排序。
+2. 每一張進貨單以 `taskType=4`、`refCategory=3`、`ref_no=goods_receipt_note.no` 查找入庫 workflow task；一張進貨單若有多筆 task，取最後更新的 task state。
+3. 單張進貨單狀態判斷：
+   - 沒有進貨單：不建立入庫狀態，PO 層回傳 `not_received`。
+   - 有進貨單但找不到入庫 task：回傳 `unknown`，不可直接假設 `pending_putaway`。
+   - task 為待處理、部分完成或阻塞：回傳 `pending_putaway`；阻塞原因另由 workflow task status／event 提供。
+   - task 為取消：回傳 `unknown`，不得視為已入庫。
+   - task 為已完成：再查 Warehouse inventory 的正式入庫證據；有對應證據才回傳 `stocked`，否則回傳 `unknown`。
+4. PO 多筆進貨彙總優先順序：
+   - 沒有任何進貨單：`not_received`。
+   - 任一進貨單為 `pending_putaway`：`pending_putaway`。
+   - 沒有 pending，但任一進貨單為 `unknown`：`unknown`。
+   - 所有進貨單皆為 `stocked`：`stocked`。
+5. `receivingStatusCode` 僅存在於進貨單 dashboard／detail，依進貨單 `category` 與 `checkedCount` 判斷；不回填至 PO dashboard 或 delivery-risk。
 
 ## 8. API 4：供應商彙總
 
@@ -154,3 +172,7 @@ openPurchaseOrder = openQuantity > 0
 ## 13. 設計補充：資料保存政策
 
 資料保存政策不是本次 API 的業務篩選條件，而是指未來資料管理政策可能造成歷史資料封存、刪除或不可查詢的限制。若未來導入，應由系統管理規格另定保存期限、封存查詢方式與標準錯誤 code；API 不得默默將使用者指定的 `startDate`／`endDate` 縮短。
+
+## 14. 工程師提問回覆
+
+針對 `warehouseStatusCode`，V1 採 workflow 判斷「流程是否完成」，再以 Warehouse inventory 證據確認「是否實際入庫」。這兩者皆無法取得時回傳 `unknown`，不以 `goods_receipt_note.checkedCount` 單一欄位取代完整入庫判斷。

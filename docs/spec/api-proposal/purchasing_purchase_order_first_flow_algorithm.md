@@ -124,9 +124,16 @@ openPurchaseOrder = openQuantity > 0
 ## 11. 工程師需確認
 
 1. `purchase_order.date`、`expectedDate`、`goods_receipt_note.date` 是否都是 UTC timestamp，日期邊界是否採 `Asia/Taipei`。
+   - 工程師回覆: 都是 UTC timestamp，日期邊界取決於 HTTP header 的 x-timezone。
 2. PO item no 經 `trans_items` 追溯 material／inproduct／product 的正式 mapping。
+   - 工程師回覆: 是
 3. 進貨退回是否一律以 `category = 1` 扣除 `checkedCount`。
+   - 工程師回覆: 是
 4. 是否有分批進貨的未來預計日期；若沒有，畫面只使用 PO `expectedDate`。
+   - 工程師回覆: 請確認更新後的畫面中是否仍包含 預計到貨 欄位。
 5. Quality 與 Warehouse 交接狀態的正式來源。
+   - 工程師回覆: 在第一版開發中，暫時不納入 品檢狀態 的處理，後續版本再行規劃。
 6. workflow task type 2／3／4 與 PO、進貨、入庫的正式 refCategory／ref_no 關聯。
+   - 工程師回覆: workflow 為你所設計的資料表，理論上應該比工程師更清楚其邏輯與欄位定義。
 7. 任意歷史區間是否受資料保存政策限制，以及限制時應回傳的標準錯誤 code。
+   - 工程師回覆: 資料保存政策限制 是什麼? 請詳細說明 資料保存政策限制 所指的內容與範圍，以釐清其在系統設計或資料管理上的影響。

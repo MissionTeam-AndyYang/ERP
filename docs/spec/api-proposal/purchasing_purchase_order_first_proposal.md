@@ -1,3 +1,11 @@
+# 工程師提問
+1. 請檢視所有 API 回傳欄位是否符合目前畫面規劃設計需求，若有不必要的欄位，請先暫時移除。
+2. 請檢視所有 API 的 Success Response Data 與 Field Description 是否完整齊全，若有缺漏請補全。
+3. 針對 /api/v2/purchasing/purchase-orders/dashboard
+   - 請詳細說明 linkedWorkOrderNo 欄位的涵義，並指出其顯示於畫面的具體位置。
+   - 由於一張採購單可能對應多張進貨單，請說明 receivingStatusCode、qualityStatusCode、warehouseStatusCode 欄位在此情境下應如何處理。
+
+
 # 採購中心採購單主視角 API 提案
 
 > Status: Proposal / Pending Engineer Review  
@@ -228,17 +236,17 @@
 
 ## 11. 工程師需確認
 
-| 項目 | 提案內容 | 需確認事項 |
-|---|---|---|
-| 任意歷史區間 | `startDate`／`endDate`，不固定 7d／30d | 現有日期欄位與索引是否足以支援歷史查詢？ |
-| 品項類別 | 由 item no 追溯正式料品主檔 | `purchase_order.item_no -> trans_items -> material/inproduct/product` 的實際 mapping 是否固定？ |
-| 請購關聯 | `purchase_order.purchase_request_no` 為唯一直接關聯 | 若欄位為空，是否存在其他已確認的正式關聯？ |
-| 收貨數量 | checkedCount 依進貨／退回加減 | 進貨退回是否一律扣除 `checkedCount`？ |
-| 預計到貨 | 使用 `purchase_order.expectedDate` | 是否有分批進貨的未來到貨日期欄位；若沒有，畫面顯示 PO expectedDate？ |
-| 品檢狀態 | 第一版 `deferred`／`unknown` | Quality 延後時是否接受不顯示實際品檢結果？ |
-| 入庫狀態 | inventory／workflow evidence | 是否已有正式事件或任務可判斷 `pending_putaway` 與 `stocked`？ |
-| 來源影響 | 只接受正式工單／訂單關聯 | APS／工單關聯來源欄位與優先順序為何？ |
-| 供應商彙總 | 依 company no 聚合 | 同一供應商是否允許不同 company 顯示名稱，應以哪一筆為準？ |
+| 項目 | 提案內容 | 需確認事項 | 工程師回覆 |
+|---|---|---|---|
+| 任意歷史區間 | `startDate`／`endDate`，不固定 7d／30d | 現有日期欄位與索引是否足以支援歷史查詢？ | 若採用 startDate／endDate 參數，不固定 7d／30d，前端應回傳 local time 還是 UTC time？|
+| 品項類別 | 由 item no 追溯正式料品主檔 | `purchase_order.item_no -> trans_items -> material/inproduct/product` 的實際 mapping 是否固定？ | 是 |
+| 請購關聯 | `purchase_order.purchase_request_no` 為唯一直接關聯 | 若欄位為空，是否存在其他已確認的正式關聯？ | 目前沒有 |
+| 收貨數量 | checkedCount 依進貨／退回加減 | 進貨退回是否一律扣除 `checkedCount`？ | 是 |
+| 預計到貨 | 使用 `purchase_order.expectedDate` | 是否有分批進貨的未來到貨日期欄位；若沒有，畫面顯示 PO expectedDate？ | 請確認更新後的畫面中是否仍包含 預計到貨 欄位。
+| 品檢狀態 | 第一版 `deferred`／`unknown` | Quality 延後時是否接受不顯示實際品檢結果？ | 在第一版開發中，暫時不納入 品檢狀態 的處理，後續版本再行規劃。 |
+| 入庫狀態 | inventory／workflow evidence | 是否已有正式事件或任務可判斷 `pending_putaway` 與 `stocked`？ | 你建議應以 inventory 還是 workflow 作為入庫狀態判斷依據？|
+| 來源影響 | 只接受正式工單／訂單關聯 | APS／工單關聯來源欄位與優先順序為何？ | 請詳細說明何謂 來源影響。僅憑此無法判斷是否指的是採購單的來源訂單，還是其他來源，|
+| 供應商彙總 | 依 company no 聚合 | 同一供應商是否允許不同 company 顯示名稱，應以哪一筆為準？ | 供應商與company是一對一的關係 |
 
 ## 12. 非本次範圍
 

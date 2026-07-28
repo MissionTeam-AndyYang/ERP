@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PurchasingWorkspaceScreen API Preview</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #17202a; background: #f4f6f8; }
+    body { margin: 0; } .shell { max-width: 1400px; margin: auto; padding: 24px; }
+    header, section, aside { background: #fff; border: 1px solid #d9e0e7; border-radius: 8px; }
+    header { padding: 20px 24px; } h1 { margin: 0 0 6px; font-size: 24px; }
+    .muted { color: #64748b; font-size: 13px; } .filters { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    input, select, button { min-height: 36px; border:1px solid #cbd5e1; border-radius: 5px; background:#fff; padding: 0 10px; }
+    button { cursor:pointer; font-weight:600; } .primary { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+    .tabs { display:flex; gap:4px; margin:18px 0; } .tab { border:0; border-bottom: 2px solid transparent; border-radius:0; }
+    .tab.active { color:#1d4ed8; border-bottom-color:#1d4ed8; }
+    .kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:18px; }
+    .kpi { padding:16px; } .kpi strong { display:block; font-size:24px; margin-top:8px; }
+    .content { display:grid; grid-template-columns:minmax(0, 1fr) 360px; gap:18px; }
+    section { overflow:hidden; } table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { padding:12px; border-bottom:1px solid #e5e7eb; text-align:left; white-space:nowrap; }
+    th { background:#f8fafc; color:#64748b; } tr:hover { background:#eff6ff; cursor:pointer; }
+    aside { padding:18px; } .badge { display:inline-block; padding:4px 8px; border-radius:12px; background:#fef3c7; color:#92400e; font-size:12px; }
+    dl { display:grid; grid-template-columns:120px 1fr; gap:10px; font-size:13px; } dt { color:#64748b; } dd { margin:0; font-weight:600; }
+    @media (max-width:900px) { .kpis { grid-template-columns:repeat(2, 1fr); } .content { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header>
+    <h1>採購與備料工作區</h1>
+    <div class="muted">PurchasingWorkspaceScreen · Read-only API composition preview</div>
+    <div class="filters">
+      <label>起始日 <input type="date" value="2026-07-01"></label>
+      <label>結束日 <input type="date" value="2026-07-28"></label>
+      <input placeholder="搜尋採購單、料號或品名" style="min-width:230px">
+      <select><option>全部供應商</option><option>SUP-001</option></select>
+      <button class="primary">查詢</button>
+    </div>
+  </header>
+  <nav class="tabs" aria-label="採購工作區頁籤">
+    <button class="tab active">採購單</button><button class="tab">交期風險</button><button class="tab">到貨驗收入庫</button><button class="tab">供應商追蹤</button>
+  </nav>
+  <div class="kpis"><section class="kpi"><span class="muted">未完成採購單</span><strong>18</strong></section><section class="kpi"><span class="muted">逾期／今日到期</span><strong>4</strong></section><section class="kpi"><span class="muted">採購金額</span><strong>$248,600</strong></section><section class="kpi"><span class="muted">未連結請購</span><strong>2</strong></section></div>
+  <div class="content">
+    <section><table><thead><tr><th>採購單</th><th>料品</th><th>供應商</th><th>採購數量</th><th>未收數量</th><th>預計到貨</th><th>風險</th></tr></thead><tbody>
+      <tr><td>PO-202607-018</td><td>MAT-FLOUR-001 麵粉</td><td>SUP-001</td><td>1,000.00</td><td>240.00</td><td>2026-07-29</td><td><span class="badge">注意 · open_receipt</span></td></tr>
+      <tr><td>PO-202607-014</td><td>MAT-SUGAR-002 砂糖</td><td>SUP-002</td><td>500.00</td><td>500.00</td><td>2026-07-20</td><td><span class="badge">高風險 · late_arrival</span></td></tr>
+    </tbody></table></section>
+    <aside><h2>採購單追蹤</h2><span class="badge">warehouseStatusCode: pending_putaway</span><dl><dt>採購單</dt><dd>PO-202607-018</dd><dt>請購單</dt><dd>PR-202607-009</dd><dt>來源訂單</dt><dd>SO-202607-003</dd><dt>供應商</dt><dd>SUP-001 · 麥香供應</dd><dt>進貨單</dt><dd>GRN-202607-022</dd><dt>Workflow</dt><dd>入庫任務 · ownerDepartment=7</dd></dl></aside>
+  </div>
+</main>
+</body>
+</html>

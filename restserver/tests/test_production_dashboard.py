@@ -31,7 +31,7 @@ from package.dbwrapper.table import (
     CTableWorkOrder,
 )
 from package.restserver.api.v2.production import CProductionDashboardService
-from package.util.util import util_build_forward_period_range
+from package.util.util import util_build_forward_period_range, util_build_local_date_range
 
 
 def build_session():
@@ -193,6 +193,26 @@ def test_production_period_is_query_day_and_next_six_calendar_days():
         dict_row["comment"] == EProductionAlertComment.CAPACITY_DOWNTIME
         for dict_row in dict_payload["alerts"]
     )
+
+
+def test_production_dashboard_supports_arbitrary_historical_date_range():
+    obj_session = build_session()
+    n_now = seed_production(obj_session)
+    n_day = n_now - (n_now % 86400)
+    obj_session.add(CTableWorkOrder(
+        no="WO-HISTORY", date=n_day - 20 * 86400, startTime=n_day - 20 * 86400,
+        endTime=n_day - 20 * 86400 + 3600, product_no="PRODUCT-HISTORY",
+        product_name="歷史工單", production_line_no="LINE-01", processTime=120,
+    ))
+    obj_session.commit()
+    dict_range = util_build_local_date_range("2023-10-01", "2023-12-31", "UTC")
+    assert dict_range["period"] == "custom"
+    dict_payload = CProductionDashboardService()._CProductionDashboardService__get_dashboard_with_session(
+        obj_session, n_now, "UTC", "7d", "", 0, 0, "", "", "", "", "", 0, 50,
+        "2023-10-01", "2023-12-31",
+    )
+    assert dict_payload["range"]["period"] == "custom"
+    assert any(dict_row["workOrderNo"] == "WO-HISTORY" for dict_row in dict_payload["todayWorkOrders"])
 
 
 def test_production_dashboard_returns_unknown_material_when_requirement_is_not_issued():

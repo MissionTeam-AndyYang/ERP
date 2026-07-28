@@ -293,6 +293,25 @@ def util_build_forward_period_range(
     }
 
 
+def util_build_local_date_range(str_start_date, str_end_date, str_timezone):
+    """Build an inclusive UTC timestamp range from local ISO dates."""
+    try:
+        obj_tz = ZoneInfo(str_timezone or "UTC")
+        obj_start = datetime.strptime(str_start_date, "%Y-%m-%d").replace(tzinfo=obj_tz)
+        obj_end = datetime.strptime(str_end_date, "%Y-%m-%d").replace(tzinfo=obj_tz) + timedelta(days=1)
+    except Exception:
+        return None
+    if obj_end <= obj_start:
+        return None
+    return {
+        "period": "custom",
+        "startDate": obj_start.strftime("%Y-%m-%d"),
+        "endDate": (obj_end - timedelta(days=1)).strftime("%Y-%m-%d"),
+        "startTimestamp": int(obj_start.astimezone(timezone.utc).timestamp()),
+        "endTimestamp": int(obj_end.astimezone(timezone.utc).timestamp()) - 1,
+    }
+
+
 
 '''
 def util_convert_time(obj_date):

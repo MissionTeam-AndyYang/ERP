@@ -59,8 +59,8 @@ x-timezone
 建議流程：
 
 1. `date` 為查詢基準 UTC timestamp；未提供時使用伺服器目前 UTC timestamp。
-2. `period` 支援 `7d`、`14d`；未提供或不支援時 fallback 至 `7d`。
-3. 依查詢基準日的當地日期建立 forward calendar range：`7d` 為當日 00:00:00 至第 7 個曆日 23:59:59（當日加後續 6 日）；`14d` 為當日加後續 13 日。不可使用 `queryTimestamp - N * 86400` 的 backward range。
+2. 若同時提供 `startDate` 與 `endDate`，驗證格式與先後順序，依 `x-timezone` 將 inclusive local date range 轉為 UTC timestamp，標記為 `custom`。
+3. 未提供完整日期區間時，`period` 支援 `7d`、`14d`；未提供或不支援時 fallback 至 `7d`。相容模式依查詢基準日建立 forward calendar range；不可使用 `queryTimestamp - N * 86400` 的 backward range。
 4. 依 `date` 與上述 `period` 建立查詢區間，第一版以工單 `work_order.date` / `startTime` 是否落在區間內為主。
 5. `start` 小於 0 時以 0 處理。
 6. `count` 未提供時預設 50，最大值 100。

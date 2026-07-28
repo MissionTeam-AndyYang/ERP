@@ -102,10 +102,6 @@ function daysBetween(startDate: string, endDate: string) {
   return Math.floor((end - start) / 86_400_000) + 1;
 }
 
-function dashboardPeriodFromRange(startDate: string, endDate: string): ProductionDashboardQuery["period"] {
-  return daysBetween(startDate, endDate) > 7 ? "14d" : "7d";
-}
-
 function todayDateInput() {
   return new Intl.DateTimeFormat("en-CA", {
     day: "2-digit",
@@ -1021,11 +1017,8 @@ export default function ProductionPage() {
       return "";
     }
     const dayCount = daysBetween(detailStartDate, detailEndDate);
-    if (dayCount > 14) {
-      return "目前 Production dashboard API 僅支援 7 天或 14 天 forward range；本次查詢會以起日起算最多 14 天。";
-    }
-    if (dayCount > 7) {
-      return "目前 API 會以 14 天區間查詢，並由前端列表呈現回傳工單。";
+    if (dayCount > 0) {
+      return "依指定日期區間查詢歷史工單；日期由目前使用者時區解讀。";
     }
     return "";
   }, [detailEndDate, detailStartDate]);
@@ -1055,7 +1048,8 @@ export default function ProductionPage() {
     setDetailError(undefined);
     setDetailQuery({
       date: nDate,
-      period: dashboardPeriodFromRange(detailStartDate, detailEndDate),
+      startDate: detailStartDate || undefined,
+      endDate: detailEndDate || undefined,
       workOrderNo: detailWorkOrderNo.trim() || undefined
     });
   };

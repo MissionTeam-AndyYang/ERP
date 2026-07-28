@@ -18,6 +18,8 @@ import type {
 
 type ApiProductionRange = {
   period?: string;
+  startDate?: string;
+  endDate?: string;
   startTimestamp?: number;
   endTimestamp?: number;
 };
@@ -229,6 +231,8 @@ type ApiWorkOrderDetail = {
 
 export type ProductionDashboardQuery = {
   period?: "7d" | "14d";
+  startDate?: string;
+  endDate?: string;
   start?: number;
   count?: number;
   date?: number;
@@ -836,6 +840,10 @@ function buildDashboardPath(query: ProductionDashboardQuery = {}) {
   params.set("count", String(query.count ?? 50));
   if (query.date !== undefined) {
     params.set("date", String(query.date));
+  }
+  if (query.startDate && query.endDate) {
+    params.set("startDate", query.startDate);
+    params.set("endDate", query.endDate);
   }
   if (query.productionLineNo) {
     params.set("production_line_no", query.productionLineNo);

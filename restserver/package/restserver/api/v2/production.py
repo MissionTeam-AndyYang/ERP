@@ -53,6 +53,7 @@ from package.restserver.api.common import URL_PATH_V2
 from package.util.util import (
     util_build_day_range,
     util_build_forward_period_range,
+    util_build_local_date_range,
     util_round_amount,
     util_round_quantity,
     util_safe_float,
@@ -76,6 +77,8 @@ class CProductionDashboardService(object):
         str_keyword="",
         n_start=0,
         n_count=50,
+        str_start_date="",
+        str_end_date="",
     ):
         with CDBMgr() as obj_dbmgr:
             return self.__get_dashboard_with_session(
@@ -89,12 +92,14 @@ class CProductionDashboardService(object):
         self, obj_session, n_date, str_timezone, str_period,
         str_production_line_no, n_one_process, n_sec_process,
         str_work_order_no, str_product_order_no, str_status,
-        str_risk_type, str_keyword, n_start, n_count,
+        str_risk_type, str_keyword, n_start, n_count, str_start_date="", str_end_date="",
     ):
         n_query_timestamp = util_safe_int(n_date) or util_safe_int(time.time())
-        dict_range = util_build_forward_period_range(
-            n_query_timestamp, str_timezone, str_period, {"7d": 7, "14d": 14}, "7d"
-        )
+        dict_range = util_build_local_date_range(str_start_date, str_end_date, str_timezone)
+        if not dict_range:
+            dict_range = util_build_forward_period_range(
+                n_query_timestamp, str_timezone, str_period, {"7d": 7, "14d": 14}, "7d"
+            )
         n_start = max(util_safe_int(n_start), 0)
         n_count = min(max(util_safe_int(n_count), 1), 100)
         lst_work_orders = self.__query_work_orders(
@@ -163,7 +168,8 @@ class CProductionDashboardService(object):
                 str_timezone,
             ).get("date")
         ]
-        lst_today_page = lst_today[n_start:n_start + n_count]
+        lst_display = lst_rows if dict_range.get("period") == "custom" else lst_today
+        lst_today_page = lst_display[n_start:n_start + n_count]
         set_today_nos = {dict_row["workOrderNo"] for dict_row in lst_today_page}
         lst_today_metrics = [
             dict_metric for dict_metric in lst_metrics
@@ -873,6 +879,8 @@ class CProductionDashboard(object):
             n_date=request.args.get("date", 0, type=int),
             str_timezone=str_timezone,
             str_period=request.args.get("period", "7d", type=str),
+            str_start_date=request.args.get("startDate", "", type=str),
+            str_end_date=request.args.get("endDate", "", type=str),
             str_production_line_no=request.args.get("production_line_no", "", type=str),
             n_one_process=request.args.get("oneProcess", 0, type=int),
             n_sec_process=request.args.get("secProcess", 0, type=int),

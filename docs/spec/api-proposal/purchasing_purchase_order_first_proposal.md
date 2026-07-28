@@ -106,9 +106,9 @@
       "unit": "Integer",
       "supplierNo": "String",
       "supplierName": "String",
-      "orderedQuantity": "Float",
-      "receivedQuantity": "Float",
-      "openQuantity": "Float",
+      "orderedCount": "Float",
+      "receivedCount": "Float",
+      "openCount": "Float",
       "unitPrice": "Float",
       "purchaseAmount": "Integer",
       "expectedArrivalTimestamp": "Integer",
@@ -149,9 +149,9 @@
 | `items[].unit` | Integer | 採購交易單位 code。 | `purchase_order.unit` |
 | `items[].supplierNo` | String | 供應商 company no。 | `purchase_order.item_ref_no` |
 | `items[].supplierName` | String | 供應商顯示名稱。 | `company.displayName` |
-| `items[].orderedQuantity` | Float | 採購數量，取至小數點第 2 位。 | `purchase_order.count` |
-| `items[].receivedQuantity` | Float | 進貨實際數量淨值，取至小數點第 2 位。 | `goods_receipt_note.checkedCount`；進貨 `category=0` 加總、進貨退回 `category=1` 扣除 |
-| `items[].openQuantity` | Float | `orderedQuantity - receivedQuantity`，小於 0 時回傳 0，取至小數點第 2 位。 | 計算欄位 |
+| `items[].orderedCount` | Float | 採購數量，取至小數點第 2 位；此處 `Count` 表示數量，不是資料筆數。 | `purchase_order.count` |
+| `items[].receivedCount` | Float | 進貨實際數量淨值，取至小數點第 2 位。 | `goods_receipt_note.checkedCount`；進貨 `category=0` 加總、進貨退回 `category=1` 扣除 |
+| `items[].openCount` | Float | `orderedCount - receivedCount`，小於 0 時回傳 0，取至小數點第 2 位。 | 計算欄位 |
 | `items[].unitPrice` | Float | 採購單價，取至小數點第 4 位。 | `purchase_order.price` |
 | `items[].purchaseAmount` | Integer | 採購單金額，四捨五入取整數。 | `purchase_order.amount` |
 | `items[].expectedArrivalTimestamp` | Integer | 採購單預計進貨日期，UTC timestamp。 | `purchase_order.expectedDate` |
@@ -197,9 +197,9 @@
       "itemName": "String",
       "supplierNo": "String",
       "supplierName": "String",
-      "orderedQuantity": "Float",
-      "receivedQuantity": "Float",
-      "shortageQuantity": "Float",
+      "orderedCount": "Float",
+      "receivedCount": "Float",
+      "shortageCount": "Float",
       "shortageValue": "Integer",
       "expectedArrivalTimestamp": "Integer",
        "warehouseStatusCode": "String",
@@ -237,9 +237,9 @@
 | `items[].itemName` | String | 採購交易品項名稱。 |
 | `items[].supplierNo` | String | 供應商 company no。 |
 | `items[].supplierName` | String | 供應商名稱。 |
-| `items[].orderedQuantity` | Float | 採購數量，取至小數點第 2 位。 |
-| `items[].receivedQuantity` | Float | 進貨淨數量，取至小數點第 2 位。 |
-| `items[].shortageQuantity` | Float | 尚未收貨數量，取至小數點第 2 位。 |
+| `items[].orderedCount` | Float | 採購數量，取至小數點第 2 位；此處 `Count` 表示數量，不是資料筆數。 |
+| `items[].receivedCount` | Float | 進貨淨數量，取至小數點第 2 位。 |
+| `items[].shortageCount` | Float | 尚未收貨數量，取至小數點第 2 位。 |
 | `items[].shortageValue` | Integer | 尚未收貨數量乘採購單價後的金額，四捨五入取整數。 |
 | `items[].expectedArrivalTimestamp` | Integer | PO 預計進貨日期，UTC timestamp。 |
 | `items[].warehouseStatusCode` | String | 該 PO 全部進貨單彙總後的入庫交接狀態 code。 |
@@ -272,7 +272,7 @@
 
 - PO dashboard 不再回傳 `receivingStatusCode`，避免將只在實際入庫後更新的 `checkedCount` 誤當成獨立的到貨狀態。
 - 進貨單 dashboard 保留 `receivingStatusCode`，表示該進貨單資料列的收貨處理結果；`warehouseStatusCode` 表示該進貨單的入庫交接結果。
-- `expectedCount` 用於呈現進貨單排定數量，`checkedCount` 用於呈現實際數量，`receivedQuantity` 用於呈現同一 PO 截至該筆日期的淨收貨量。
+- `expectedCount` 用於呈現進貨單排定數量，`checkedCount` 用於呈現實際數量，`receivedCount` 用於呈現同一 PO 截至該筆日期的淨收貨量。
 
 ### 7.1 Success Response Data
 
@@ -316,7 +316,7 @@
 | `items[].itemName` | String | 進貨交易品項名稱。 | `goods_receipt_note.item_name` |
 | `items[].expectedCount` | Float | 本張進貨單排定數量，取至小數點第 2 位。 | `goods_receipt_note.expectedCount` |
 | `items[].checkedCount` | Float | 本張進貨單實際數量，取至小數點第 2 位；依工程師確認，實際入庫後才更新。 | `goods_receipt_note.checkedCount` |
-| `items[].receivedQuantity` | Float | 該採購單截至本筆日期的收貨淨值，取至小數點第 2 位。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
+| `items[].receivedCount` | Float | 該採購單截至本筆日期的收貨淨值，取至小數點第 2 位；此處 `Count` 表示數量。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
 | `items[].receivingStatusCode` | String | 進貨單資料列的收貨處理狀態；不代表已完成倉庫入庫。 | `received`、`returned`、`unknown` |
 | `items[].warehouseStatusCode` | String | 倉庫交接狀態。 | `pending_putaway`、`stocked`、`unknown` |
 | `items[].nextOwnerDepartment` | Integer | 已確認 workflow 的下一步負責部門 code。 | `workflow_task_state.ownerDepartment` |
@@ -364,7 +364,7 @@
 | `items[].openPurchaseOrderCount` | Integer | 尚有未收數量的採購單數。 | PO 與進貨單數量計算 |
 | `items[].latePurchaseOrderCount` | Integer | 逾期且尚未收足的採購單數。 | `purchase_order.expectedDate` |
 | `items[].purchaseAmount` | Integer | 採購金額加總，四捨五入取整數。 | `purchase_order.amount` |
-| `items[].pendingReceiptQuantity` | Float | 尚未收貨淨數量，取至小數點第 2 位。 | PO 數量減進貨淨數量 |
+| `items[].pendingReceiptCount` | Float | 尚未收貨淨數量，取至小數點第 2 位；此處 `Count` 表示數量，不是進貨單筆數。 | PO 數量減進貨淨數量 |
 | `items[].riskLevel` | String | 供應商彙總風險 code。 | `normal`、`notice`、`high_risk`、`unknown` |
 | `total` | Integer | 套用篩選後的供應商總筆數。 |  |
 | `start` | Integer | 本次分頁起點。 |  |
@@ -388,7 +388,7 @@
     "unit": "Integer",
     "supplierNo": "String",
     "supplierName": "String",
-    "orderedQuantity": "Float",
+    "orderedCount": "Float",
     "unitPrice": "Float",
     "purchaseAmount": "Integer",
     "expectedArrivalTimestamp": "Integer",
@@ -398,7 +398,7 @@
     "purchaseRequestNo": "String",
     "sourceOrderNo": "String",
     "itemNo": "String",
-    "requestedQuantity": "Float"
+    "requestedCount": "Float"
   },
   "supplier": {
     "supplierNo": "String",
@@ -411,7 +411,7 @@
       "category": "Integer",
       "expectedCount": "Float",
       "checkedCount": "Float",
-      "receivedQuantity": "Float",
+      "receivedCount": "Float",
       "receivingStatusCode": "String",
       "warehouseStatusCode": "String"
     }
@@ -421,9 +421,9 @@
     "linkedWorkOrderNo": "String"
   },
   "inventory": {
-    "currentQuantity": "Float",
-    "reservedQuantity": "Float",
-    "availableQuantity": "Float"
+    "currentCount": "Float",
+    "reservedCount": "Float",
+    "availableCount": "Float"
   },
   "workflow": [
     {
@@ -456,7 +456,7 @@
 | `purchaseOrder.unit` | Integer | 採購交易單位 code。 | `purchase_order.unit` |
 | `purchaseOrder.supplierNo` | String | 供應商 company no。 | `purchase_order.item_ref_no` |
 | `purchaseOrder.supplierName` | String | 供應商名稱。 | `company.displayName` |
-| `purchaseOrder.orderedQuantity` | Float | 採購數量，取至小數點第 2 位。 | `purchase_order.count` |
+| `purchaseOrder.orderedCount` | Float | 採購數量，取至小數點第 2 位。 | `purchase_order.count` |
 | `purchaseOrder.unitPrice` | Float | 採購單價，取至小數點第 4 位。 | `purchase_order.price` |
 | `purchaseOrder.purchaseAmount` | Integer | 採購金額，四捨五入取整數。 | `purchase_order.amount` |
 | `purchaseOrder.expectedArrivalTimestamp` | Integer | 預計進貨日期，UTC timestamp。 | `purchase_order.expectedDate` |
@@ -465,7 +465,7 @@
 | `purchaseRequest.purchaseRequestNo` | String | 請購單 no。 | `purchase_request.no` |
 | `purchaseRequest.sourceOrderNo` | String | 請購來源訂購單 no。 | `purchase_request.product_order_no` |
 | `purchaseRequest.itemNo` | String | 請購料品 no。 | `purchase_request.item_no` |
-| `purchaseRequest.requestedQuantity` | Float | 請購數量，取至小數點第 2 位。 | `purchase_request.count` |
+| `purchaseRequest.requestedCount` | Float | 請購數量，取至小數點第 2 位。 | `purchase_request.count` |
 | `supplier` | Object / Null | 供應商資料；無正式 company 關聯時為 `null`。 | `company` |
 | `supplier.supplierNo` | String | 供應商 company no。 | `company.no` |
 | `supplier.supplierName` | String | 供應商名稱。 | `company.displayName` |
@@ -475,16 +475,16 @@
 | `receipts[].category` | Integer | 進貨單類別 code。 | 進貨單 `0`、進貨退回 `1` |
 | `receipts[].expectedCount` | Float | 本張進貨單排定數量，取至小數點第 2 位。 | `goods_receipt_note.expectedCount` |
 | `receipts[].checkedCount` | Float | 本張進貨單實際數量，取至小數點第 2 位。 | `goods_receipt_note.checkedCount` |
-| `receipts[].receivedQuantity` | Float | 該採購單截至本筆日期的收貨淨值，取至小數點第 2 位。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
+| `receipts[].receivedCount` | Float | 該採購單截至本筆日期的收貨淨值，取至小數點第 2 位。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
 | `receipts[].receivingStatusCode` | String | 進貨單資料列的收貨處理狀態。 | `received`、`returned`、`unknown` |
 | `receipts[].warehouseStatusCode` | String | 該進貨單的入庫交接狀態；由 workflow 主判斷、inventory 輔助驗證。 | `pending_putaway`、`stocked`、`unknown` |
 | `source` | Object | 已確認的來源訂單與工單關聯；無關聯時欄位為空字串。 | 正式 FK 或 workflow／APS relation |
 | `source.sourceOrderNo` | String | 來源訂購單 no。 | `purchase_request.product_order_no` |
 | `source.linkedWorkOrderNo` | String | 已確認的生產工單 no。 | workflow／APS relation |
 | `inventory` | Object | 依採購品項取得的目前庫存摘要。 | Warehouse inventory snapshot calculator |
-| `inventory.currentQuantity` | Float | 目前庫存數量，取至小數點第 2 位。 | Warehouse snapshot |
-| `inventory.reservedQuantity` | Float | 預留數量，取至小數點第 2 位。 | Warehouse snapshot |
-| `inventory.availableQuantity` | Float | 可用數量，取至小數點第 2 位。 | Warehouse snapshot |
+| `inventory.currentCount` | Float | 目前庫存數量，取至小數點第 2 位。 | Warehouse snapshot |
+| `inventory.reservedCount` | Float | 預留數量，取至小數點第 2 位。 | Warehouse snapshot |
+| `inventory.availableCount` | Float | 可用數量，取至小數點第 2 位。 | Warehouse snapshot |
 | `workflow[]` | Array | 該 PO、進貨及入庫的正式 workflow 任務與事件。 | `workflow_task_state`、`workflow_task_event` |
 | `workflow[].taskId` | String | 任務識別碼。 | `workflow_task_state.taskId` |
 | `workflow[].taskType` | Integer | 任務類型 code。 | 採購 `2`、進貨 `3`、入庫 `4` |
@@ -533,9 +533,15 @@ Detail API 不回傳品檢欄位，也不由品號、日期或名稱相似度補
 1. **預計到貨欄位**：目前 repository 的 `purchasing_purchase_order_first_static_preview.html` 仍包含「到貨規劃」欄、「下一筆到貨」明細區塊及交期風險的到貨日期，因此本提案保留 `expectedArrivalTimestamp`，來源為 `purchase_order.expectedDate`。若工程師使用的畫面版本已移除這些區塊，應先同步更新靜態預覽，再一併移除該欄位；在畫面版本未同步前，不變更 API 欄位。
 2. **PO 層級狀態**：因 `goods_receipt_note.checkedCount` 只在實際入庫後更新，PO dashboard 與 delivery-risk 不再回傳 `receivingStatusCode`，只保留 `warehouseStatusCode` 作為入庫交接流程狀態；進貨單 dashboard 與 detail 的 `receivingStatusCode` 仍保留，供進貨單資料列呈現收貨處理結果。
 3. **風險來源欄位**：已補充 `impactSourceType`、`impactSourceNo`、`followUpCode` 的定義與範例；V1 移除 `check_document`，不處理品檢／文件狀態。
-4. **進貨單欄位命名**：已統一為 `no`、`category`、`dateTimestamp`、`receivingStatusCode`、`receivedQuantity`，並新增 `expectedCount`；實際數量欄位統一為 `checkedCount`。
+4. **進貨單欄位命名**：已統一為 `no`、`category`、`dateTimestamp`、`receivingStatusCode`、`receivedCount`，並新增 `expectedCount`；實際數量欄位統一為 `checkedCount`。
 
-## 14. 非本次範圍
+## 14. 工程師提問 V3 回覆與更新結論
+
+1. **預計到貨來源**：`expectedArrivalTimestamp` 應使用 `purchase_order.expectedDate`。它代表採購單層級的預計進貨日，不代表某一張進貨單的下一次實際到貨日；一張 PO 對應多張進貨單時，仍只回傳同一個 PO expected date。若未來要呈現分批進貨的下一筆預計日期，需新增正式資料來源後另行設計欄位。
+2. **數量命名規則**：API 回傳的數量欄位統一使用 `xxxCount`。例如 `orderedCount`、`receivedCount`、`openCount`、`shortageCount`、`pendingReceiptCount`、`requestedCount`、`currentCount`、`reservedCount`、`availableCount`。`purchaseOrderCount`、`receiptCount` 等仍表示資料筆數；`count` 分頁欄位仍表示本頁回傳筆數，並在 Field Description 明確區分。
+3. 本次命名調整已同步套用至 dashboard、delivery-risk、goods-receipts、suppliers 及 purchase-order detail 的 Success Response Data、Field Description 與流程演算法文件。
+
+## 15. 非本次範圍
 
 - 不實作 POST／PUT／DELETE。
 - 不新增資料表或欄位。

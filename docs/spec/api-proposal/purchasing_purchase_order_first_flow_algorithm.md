@@ -39,19 +39,19 @@
 ## 4. 共用 Step 3：數量、金額與收貨狀態
 
 ```text
-orderedQuantity = purchase_order.count or 0
-receivedQuantity = sum(receipt.checkedCount * receipt.sign)
+orderedCount = purchase_order.count or 0
+receivedCount = sum(receipt.checkedCount * receipt.sign)
 receipt.sign(category=0) = +1
 receipt.sign(category=1) = -1
-openQuantity = max(orderedQuantity - receivedQuantity, 0)
-openPurchaseOrder = openQuantity > 0
+openCount = max(orderedCount - receivedCount, 0)
+openPurchaseOrder = openCount > 0
 ```
 
 1. 數量回傳取至小數點第 2 位。
 2. 單價取至小數點第 4 位。
 3. 金額優先使用資料表金額，回傳前四捨五入取整數。
-4. `receivedQuantity` 使用 `checkedCount`，不以 `expectedCount` 或 `feeCount` 代替實際收貨數量。
-5. PO dashboard 與 delivery-risk 不由 `checkedCount` 推導 `receivingStatusCode`；只計算 `openQuantity`，並交由入庫流程判斷 `warehouseStatusCode`。
+4. `receivedCount` 使用 `checkedCount`，不以 `expectedCount` 或 `feeCount` 代替實際收貨數量。
+5. PO dashboard 與 delivery-risk 不由 `checkedCount` 推導 `receivingStatusCode`；只計算 `openCount`，並交由入庫流程判斷 `warehouseStatusCode`。
 6. 進貨單 dashboard 的 `receivingStatusCode`：`category=1` 為 `returned`；`category=0` 且 `checkedCount > 0` 為 `received`；進貨單存在但 `checkedCount = 0` 時為 `unknown`，不可宣稱已收貨。
 7. 進貨退回造成淨收貨量下降時，保留退回資料，不可忽略。
 
@@ -67,8 +67,8 @@ openPurchaseOrder = openQuantity > 0
 
 ### Step 5：Dashboard KPI
 
-1. `openPurchaseOrderCount`：淨收貨量小於採購量的 PO 數。
-2. `lateOrDueTodayCount`：`expectedDate` 小於或等於查詢基準日且尚有缺口的 PO 數。
+1. `openPurchaseOrderCount`：`receivedCount` 小於 `orderedCount` 的 PO 筆數。
+2. `lateOrDueTodayCount`：`expectedDate` 小於或等於查詢基準日且 `openCount > 0` 的 PO 筆數。
 3. `purchaseAmount`：篩選集合的 `purchase_order.amount` 加總。
 4. `unlinkedPurchaseRequestCount`：`purchase_request_no` 為空或找不到正式請購資料的 PO 數。
 
@@ -83,15 +83,15 @@ openPurchaseOrder = openQuantity > 0
    - `workflow_blocked`：已確認 workflow 任務阻塞。
    - `open_receipt`：已部分收貨但仍有缺口。
    - `unknown`：必要資料不足，不能標示 normal。
-4. `shortageQuantity = openQuantity`。
-5. `shortageValue` 以採購單價乘缺口數量計算，四捨五入取整數；若單價缺漏則回傳 0 並保留 unknown 狀態。
+4. `shortageCount = openCount`。
+5. `shortageValue` 以採購單價乘 `shortageCount` 計算，四捨五入取整數；若單價缺漏則回傳 0 並保留 unknown 狀態。
 6. 影響來源只取正式工單、訂單或安全水位資料；不得以料號或日期相似度推測工單。`followUpCode` 僅回傳前端 code，V1 不使用 `check_document`。
 
 ## 7. API 3：進貨單、驗收與入庫交接
 
 1. 以 `goods_receipt_note.date` 篩選任意歷史區間。
 2. 以 `purchase_order_no` 批次取得採購單資訊；無 PO 關聯時仍保留進貨單資料，並回傳關聯缺口 code。
-3. 使用同一採購單、同一品項、日期與 no 排序，計算截至當筆進貨單日期的淨收貨量；回傳 `expectedCount`、`checkedCount` 與 `receivedQuantity`。
+3. 使用同一採購單、同一品項、日期與 no 排序，計算截至當筆進貨單日期的淨收貨量；回傳 `expectedCount`、`checkedCount` 與 `receivedCount`。
 4. V1 不處理品檢狀態，不回傳 `qualityStatusCode` 或品檢 KPI。
 5. `warehouseStatusCode` 以 workflow 入庫任務作為流程狀態主要依據，並以 Warehouse inventory 作為實際入庫證據；若無法對應則回傳 `unknown`。
 6. 同一 PO 多筆進貨時，先逐筆判斷入庫任務，再彙總至 PO；只要仍有未完成入庫交接即回傳 `pending_putaway`。
@@ -120,7 +120,7 @@ openPurchaseOrder = openQuantity > 0
 
 1. 先查詢日期區間內的採購單，再以 `supplierNo` 聚合。
 2. `purchaseOrderCount`、`openPurchaseOrderCount`、`latePurchaseOrderCount` 與採購金額依 PO 計算。
-3. `pendingReceiptQuantity` 為各 PO 缺口加總，取至小數點第 2 位。
+3. `pendingReceiptCount` 為各 PO 缺口加總，取至小數點第 2 位；此處 `Count` 表示數量，不是進貨單筆數。
 4. 供應商風險取該供應商最嚴重的 PO risk level；若所有 PO 的必要資料不足，回傳 unknown。
 5. 不建立供應商評分、替代推薦或交期預測模型。
 
@@ -176,3 +176,9 @@ openPurchaseOrder = openQuantity > 0
 ## 14. 工程師提問回覆
 
 針對 `warehouseStatusCode`，V1 採 workflow 判斷「流程是否完成」，再以 Warehouse inventory 證據確認「是否實際入庫」。這兩者皆無法取得時回傳 `unknown`，不以 `goods_receipt_note.checkedCount` 單一欄位取代完整入庫判斷。
+
+## 15. 工程師提問 V3 回覆與更新結論
+
+1. `expectedArrivalTimestamp` 來源固定為 `purchase_order.expectedDate`，表示 PO 層級預計進貨日；不代表多張進貨單中的下一筆實際到貨日。
+2. 演算法變數與 API 數量欄位統一採 `xxxCount`：`orderedCount`、`receivedCount`、`openCount`、`shortageCount`、`pendingReceiptCount`。資料筆數欄位如 `purchaseOrderCount`、`receiptCount` 與分頁 `count` 維持原命名，並在文件中明確標註其為筆數。
+3. `expectedCount` 與 `checkedCount` 保留資料表既有語意；前者是排定數量，後者是實際數量，兩者不是資料筆數。

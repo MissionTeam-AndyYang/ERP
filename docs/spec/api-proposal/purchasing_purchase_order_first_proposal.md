@@ -1,3 +1,7 @@
+# 工程師提問 V3
+1.  expectedArrivalTimestamp 作為 「到貨規劃」 欄位、「下一筆到貨」 明細區塊及交期風險的到貨日期使用，則其來源是否應考慮來自 purchase_order.expectedDate？因為一張採購單可能會對應多張進貨單。
+2. 目前參數名稱中 xxxCount 與 xxxQuantity 是否皆表示 數量？若確實為相同含義，建議統一命名規則，採用 xxxCount。
+
 # 工程師提問 V2
 1. purchasing_purchase_order_first_static_preview.html 的畫面預覽並未設計 預計到貨 欄位，而你回覆表示 「預計到貨欄位保留，V1 來源固定為 `purchase_order.expectedDate`。」。請問此規劃是依據哪一個畫面預覽進行的？
 

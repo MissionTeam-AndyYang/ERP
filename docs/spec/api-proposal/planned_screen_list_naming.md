@@ -87,12 +87,12 @@ Naming rules:
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `PurchasingWorkspaceScreen` | Screen | 採購與備料工作區 | `/purchasing` | API composition proposal，Pending Engineer Review | `GET /api/v2/purchasing/purchase-orders/dashboard`、`GET /api/v2/purchasing/purchase-orders/delivery-risk`、`GET /api/v2/purchasing/goods-receipts/dashboard`、`GET /api/v2/purchasing/suppliers/dashboard` | 採購中心入口，以採購單為主資料列，呈現採購 KPI、交期風險、到貨驗收與供應商追蹤；組合契約見 `purchasing_workspace_proposal.md`。 |
-| P0.1 | V1 Core | `PurchasingPurchaseOrderView` | View | 採購單視圖 | `PurchasingWorkspaceScreen` 內的「採購單」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/purchase-orders/dashboard` | 支援任意歷史區間查詢，以採購單追蹤供應商、數量、金額、預計到貨與請購關聯。 |
-| P0.2 | V1 Core | `PurchasingDeliveryRiskView` | View | 交期風險視圖 | `PurchasingWorkspaceScreen` 內的「交期風險」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/purchase-orders/delivery-risk` | 聚焦逾期／今日到貨、未收缺口、正式來源影響與 workflow 阻塞。 |
-| P0.3 | V1 Core | `PurchasingReceivingView` | View | 到貨驗收入庫視圖 | `PurchasingWorkspaceScreen` 內的「到貨驗收入庫」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/goods-receipts/dashboard` | 以進貨單為主呈現分批到貨、退回、品檢延期與入庫交接。 |
-| P0.4 | V1 Core | `PurchasingSupplierView` | View | 供應商追蹤視圖 | `PurchasingWorkspaceScreen` 內的「供應商追蹤」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/suppliers/dashboard` | 依供應商彙總採購單、逾期、未收數量與採購金額。 |
-| P1 | V1 Core | `PurchasingPurchaseOrderDetailPanel` | Panel | 採購單追蹤面板 | `PurchasingWorkspaceScreen` 右側 panel；窄版可作 drawer 或 detail route | API proposal，Pending Engineer Review | `GET /api/v2/purchasing/purchase-orders/{purchase_order_no}/detail` | 顯示採購單、請購、進貨、供應商、庫存與 workflow 關聯。 |
+| P0 | V1 Core | `PurchasingWorkspaceScreen` | Screen | 採購與備料工作區 | `/purchasing` | 已有第一版，已串接 PO-first dashboard、delivery-risk、goods-receipts、suppliers 與 selected PO detail API | `GET /api/v2/purchasing/purchase-orders/dashboard`、`GET /api/v2/purchasing/purchase-orders/delivery-risk`、`GET /api/v2/purchasing/goods-receipts/dashboard`、`GET /api/v2/purchasing/suppliers/dashboard`、`GET /api/v2/purchasing/purchase-orders/{purchase_order_no}/detail` | 採購中心入口，以採購單為主資料列，呈現採購 KPI、交期風險、到貨驗收與供應商追蹤；API 錯誤時顯示錯誤，不自動改用 mock。 |
+| P0.1 | V1 Core | `PurchasingPurchaseOrderView` | View | 採購單視圖 | `PurchasingWorkspaceScreen` 內的「採購單」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/purchasing/purchase-orders/dashboard` | 支援任意歷史區間查詢，以採購單追蹤供應商、數量、金額、預計到貨與請購關聯。 |
+| P0.2 | V1 Core | `PurchasingDeliveryRiskView` | View | 交期風險視圖 | `PurchasingWorkspaceScreen` 內的「交期風險」頁籤 | 已有第一版，已串接 delivery-risk API | `GET /api/v2/purchasing/purchase-orders/delivery-risk` | 聚焦逾期／今日到貨、未收缺口、正式來源影響與 workflow 阻塞。 |
+| P0.3 | V1 Core | `PurchasingReceivingView` | View | 到貨驗收入庫視圖 | `PurchasingWorkspaceScreen` 內的「到貨驗收入庫」頁籤 | 已有第一版，已串接 goods-receipts dashboard API | `GET /api/v2/purchasing/goods-receipts/dashboard` | 以進貨單為主呈現分批到貨、退回、實際收貨數量與入庫交接；V1 不顯示品檢欄位。 |
+| P0.4 | V1 Core | `PurchasingSupplierView` | View | 供應商追蹤視圖 | `PurchasingWorkspaceScreen` 內的「供應商追蹤」頁籤 | 已有第一版，已串接 suppliers dashboard API | `GET /api/v2/purchasing/suppliers/dashboard` | 依供應商彙總採購單、逾期、未收數量與採購金額。 |
+| P1 | V1 Core | `PurchasingPurchaseOrderDetailPanel` | Panel | 採購單追蹤面板 | `PurchasingWorkspaceScreen` 右側 panel；窄版可作 drawer 或 detail route | 已有第一版，已串接 selected purchase order detail API | `GET /api/v2/purchasing/purchase-orders/{purchase_order_no}/detail` | 顯示採購單、請購、進貨、供應商、庫存與 workflow 關聯；detail API 失敗時只保留清單摘要並顯示錯誤。 |
 
 ## Production Workspace State Naming
 

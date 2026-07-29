@@ -1,161 +1,288 @@
-import type { PurchaseItem, PurchasingDashboardData, PurchasingSummary } from "@/types/purchasing";
+import type {
+  PurchaseOrderDetail,
+  PurchaseOrderItem,
+  PurchasingDashboardData,
+  PurchasingSummary
+} from "@/types/purchasing";
 
 export const purchasingSummary: PurchasingSummary[] = [
   {
-    label: "待處理採購需求",
-    value: "18",
-    hint: "5 筆影響本週生產",
+    label: "未收採購單",
+    value: "12",
+    hint: "到期或逾期 3 筆",
     tone: "warning"
   },
   {
-    label: "交期高風險",
-    value: "4",
-    hint: "缺料 2、延遲 2",
+    label: "交期風險",
+    value: "2 / 4",
+    hint: "逾期 2 筆，影響工單 2 筆",
     tone: "danger"
   },
   {
-    label: "今日到貨/驗收",
-    value: "7",
-    hint: "3 筆需品檢文件",
+    label: "採購金額",
+    value: "$3,642,000",
+    hint: "查詢期間進貨單 18 筆",
     tone: "info"
   },
   {
-    label: "本月採購金額",
-    value: "$8.4M",
-    hint: "較預算 -3.1%",
+    label: "未連請購",
+    value: "5",
+    hint: "待入庫交接 6 筆",
+    tone: "warning"
+  }
+];
+
+export const purchaseOrders: PurchaseOrderItem[] = [
+  {
+    id: "PO-20260724-031",
+    purchaseOrderNo: "PO-20260724-031",
+    purchaseDate: "2026/7/24",
+    purchaseDateTimestamp: 1784822400,
+    itemNo: "RM-CORN-001",
+    itemName: "冷凍玉米粒",
+    unit: "公斤",
+    unitCode: 2,
+    supplierNo: "SUP-GREEN-01",
+    supplierName: "綠田食品",
+    orderedCount: 1200,
+    receivedCount: 600,
+    openCount: 600,
+    unitPrice: 72,
+    purchaseAmount: 86400,
+    expectedArrivalDate: "2026/7/28",
+    expectedArrivalTimestamp: 1785168000,
+    purchaseRequestNo: "PR-20260723-018",
+    purchaseRequestLinkStatusCode: "linked",
+    purchaseRequestLinkStatus: "已連請購",
+    sourceOrderNo: "SO-20260723-022",
+    linkedWorkOrderNo: "WO-20260728-002",
+    warehouseStatusCode: "pending_putaway",
+    warehouseStatus: "待入庫交接",
+    riskLevelCode: 3,
+    riskLevel: "高風險",
+    riskType: "late_arrival",
+    riskTypeLabel: "逾期未到",
+    tone: "danger"
+  },
+  {
+    id: "PO-20260725-014",
+    purchaseOrderNo: "PO-20260725-014",
+    purchaseDate: "2026/7/25",
+    purchaseDateTimestamp: 1784908800,
+    itemNo: "PK-BAG-010",
+    itemName: "耐熱殺菌袋",
+    unit: "個",
+    unitCode: 101,
+    supplierNo: "SUP-PACK-02",
+    supplierName: "台灣包材",
+    orderedCount: 20000,
+    receivedCount: 0,
+    openCount: 20000,
+    unitPrice: 6.6,
+    purchaseAmount: 132000,
+    expectedArrivalDate: "2026/7/30",
+    expectedArrivalTimestamp: 1785340800,
+    purchaseRequestNo: "",
+    purchaseRequestLinkStatusCode: "unlinked",
+    purchaseRequestLinkStatus: "未連請購",
+    sourceOrderNo: "",
+    linkedWorkOrderNo: "WO-20260731-006",
+    warehouseStatusCode: "not_received",
+    warehouseStatus: "尚未到貨",
+    riskLevelCode: 1,
+    riskLevel: "注意",
+    riskType: "purchase_request_unlinked",
+    riskTypeLabel: "缺少請購關聯",
+    tone: "warning"
+  },
+  {
+    id: "PO-20260726-027",
+    purchaseOrderNo: "PO-20260726-027",
+    purchaseDate: "2026/7/26",
+    purchaseDateTimestamp: 1784995200,
+    itemNo: "RM-CHICKEN-022",
+    itemName: "雞胸肉原料",
+    unit: "公斤",
+    unitCode: 2,
+    supplierNo: "SUP-POULTRY-03",
+    supplierName: "安心禽品",
+    orderedCount: 1600,
+    receivedCount: 1600,
+    openCount: 0,
+    unitPrice: 110,
+    purchaseAmount: 176000,
+    expectedArrivalDate: "2026/7/29",
+    expectedArrivalTimestamp: 1785254400,
+    purchaseRequestNo: "PR-20260725-006",
+    purchaseRequestLinkStatusCode: "linked",
+    purchaseRequestLinkStatus: "已連請購",
+    sourceOrderNo: "SO-20260726-018",
+    linkedWorkOrderNo: "WO-20260729-001",
+    warehouseStatusCode: "stocked",
+    warehouseStatus: "已入庫",
+    riskLevelCode: 0,
+    riskLevel: "正常",
+    riskType: "normal",
+    riskTypeLabel: "正常",
     tone: "success"
   }
 ];
 
-export const purchaseItems: PurchaseItem[] = [
-  {
-    id: "PUR-20260523-001",
-    requestNo: "PR-20260523-018",
-    purchaseOrderNo: "PO-20260523-031",
-    itemNo: "RM-CORN-001",
-    itemName: "冷凍玉米粒",
-    category: "原料",
-    supplier: "綠田食品",
-    quantity: 1200,
-    unit: "kg",
-    amount: 86400,
-    requiredDate: "2026-05-23",
-    expectedArrivalDate: "2026-05-23",
-    stage: "待核准",
-    tone: "danger",
-    riskLevel: "高風險",
-    riskReason: "B2 產線 13:00 開線缺料，若 11:00 前未核准/到貨會影響 SO-20260523-022。",
-    sourceOrder: "SO-20260523-022",
-    linkedWorkOrder: "WO-20260523-002",
-    currentStock: 180,
-    reservedStock: 180,
-    availableStock: 0,
-    safetyStock: 420,
-    leadTimeDays: 2,
-    delayDays: 0,
-    qualityDocumentStatus: "待補",
-    receivingStatus: "待到貨",
-    warehouseStatus: "未入庫",
-    owner: "採購一組",
-    dependencies: [
-      { area: "訂單", status: "高風險", note: "SO-20260523-022 交期 2026-05-24", tone: "danger" },
-      { area: "生產", status: "受阻", note: "WO-20260523-002 待備料", tone: "danger" },
-      { area: "庫存", status: "不足", note: "可用量 0 kg", tone: "danger" },
-      { area: "品檢", status: "待文件", note: "COA 待供應商補件", tone: "warning" }
-    ],
-    workflow: [
-      { label: "請購", ref: "PR-20260523-018", status: "完成", tone: "success" },
-      { label: "採購單", ref: "PO-20260523-031", status: "進行中", tone: "warning" },
-      { label: "到貨", ref: "GRN-待建立", status: "待處理", tone: "danger" },
-      { label: "品檢文件", ref: "COA-待補", status: "阻擋", tone: "warning" },
-      { label: "入庫", ref: "INV-待建立", status: "待處理", tone: "info" }
-    ]
+export const purchasingDashboardMock: PurchasingDashboardData & { details: Record<string, PurchaseOrderDetail> } = {
+  range: {
+    startDate: "2026-07-01",
+    endDate: "2026-07-29",
+    startTimestamp: 1782835200,
+    endTimestamp: 1785340799
   },
-  {
-    id: "PUR-20260523-002",
-    requestNo: "PR-20260522-011",
-    purchaseOrderNo: "PO-20260522-029",
-    itemNo: "PK-BAG-010",
-    itemName: "耐熱殺菌袋",
-    category: "物料",
-    supplier: "台灣包材",
-    quantity: 20000,
-    unit: "只",
-    amount: 132000,
-    requiredDate: "2026-05-24",
-    expectedArrivalDate: "2026-05-25",
-    stage: "已下單",
-    tone: "warning",
-    riskLevel: "注意",
-    riskReason: "安全水位不足且供應商交期可能延後 1 天，需確認替代供應商。",
-    sourceOrder: null,
-    linkedWorkOrder: "WO-20260523-002",
-    currentStock: 3200,
-    reservedStock: 1400,
-    availableStock: 1800,
-    safetyStock: 6000,
-    leadTimeDays: 4,
-    delayDays: 1,
-    qualityDocumentStatus: "完整",
-    receivingStatus: "待到貨",
-    warehouseStatus: "未入庫",
-    owner: "採購二組",
-    dependencies: [
-      { area: "生產", status: "注意", note: "本週多張工單會使用", tone: "warning" },
-      { area: "庫存", status: "低水位", note: "低於安全水位 6,000 只", tone: "warning" },
-      { area: "入庫", status: "未入庫", note: "預計 2026-05-25", tone: "info" }
-    ],
-    workflow: [
-      { label: "請購", ref: "PR-20260522-011", status: "完成", tone: "success" },
-      { label: "採購單", ref: "PO-20260522-029", status: "完成", tone: "success" },
-      { label: "到貨", ref: "GRN-待建立", status: "待處理", tone: "warning" },
-      { label: "入庫", ref: "INV-待建立", status: "待處理", tone: "info" }
-    ]
-  },
-  {
-    id: "PUR-20260523-003",
-    requestNo: "PR-20260521-006",
-    purchaseOrderNo: "PO-20260521-027",
-    itemNo: "RM-CHICKEN-022",
-    itemName: "雞胸肉原料",
-    category: "原料",
-    supplier: "安心禽品",
-    quantity: 1600,
-    unit: "kg",
-    amount: 176000,
-    requiredDate: "2026-05-23",
-    expectedArrivalDate: "2026-05-23",
-    stage: "驗收中",
-    tone: "info",
-    riskLevel: "正常",
-    riskReason: "今日到貨驗收中，文件完整，驗收後可入原料冷凍庫。",
-    sourceOrder: "SO-20260523-018",
-    linkedWorkOrder: "WO-20260523-001",
-    currentStock: 1280,
-    reservedStock: 840,
-    availableStock: 440,
-    safetyStock: 900,
-    leadTimeDays: 2,
-    delayDays: 0,
-    qualityDocumentStatus: "完整",
-    receivingStatus: "驗收中",
-    warehouseStatus: "待入庫",
-    owner: "採購一組",
-    dependencies: [
-      { area: "生產", status: "正常", note: "WO-20260523-001 料品足夠", tone: "success" },
-      { area: "品檢", status: "文件完整", note: "COA/檢驗報告已到", tone: "success" },
-      { area: "入庫", status: "待入庫", note: "驗收完成後入冷凍庫", tone: "info" }
-    ],
-    workflow: [
-      { label: "採購單", ref: "PO-20260521-027", status: "完成", tone: "success" },
-      { label: "到貨", ref: "GRN-20260523-018", status: "進行中", tone: "info" },
-      { label: "品檢文件", ref: "COA-20260523-018", status: "完成", tone: "success" },
-      { label: "入庫", ref: "INV-待建立", status: "待處理", tone: "info" }
-    ]
-  }
-];
-
-export const purchasingDashboardMock: PurchasingDashboardData = {
   summary: purchasingSummary,
-  items: purchaseItems
+  purchaseOrders,
+  deliveryRisks: [
+    {
+      ...purchaseOrders[0],
+      shortageCount: 600,
+      shortageValue: 43200,
+      impactSourceType: "work_order",
+      impactSourceNo: "WO-20260728-002",
+      impactSourceLabel: "生產工單",
+      followUpCode: "confirm_supplier_date",
+      followUpLabel: "確認供應商交期"
+    },
+    {
+      ...purchaseOrders[1],
+      shortageCount: 20000,
+      shortageValue: 132000,
+      impactSourceType: "safety_stock",
+      impactSourceNo: "PK-BAG-010",
+      impactSourceLabel: "安全水位",
+      followUpCode: "review_source_impact",
+      followUpLabel: "檢視來源影響"
+    }
+  ],
+  receipts: [
+    {
+      id: "GRN-20260728-018",
+      no: "GRN-20260728-018",
+      purchaseOrderNo: "PO-20260724-031",
+      date: "2026/7/28",
+      dateTimestamp: 1785168000,
+      category: 0,
+      categoryLabel: "進貨",
+      itemNo: "RM-CORN-001",
+      itemName: "冷凍玉米粒",
+      expectedCount: 600,
+      checkedCount: 600,
+      receivedCount: 600,
+      receivingStatusCode: "received",
+      receivingStatus: "已收貨",
+      warehouseStatusCode: "pending_putaway",
+      warehouseStatus: "待入庫交接",
+      nextOwnerDepartment: 4,
+      nextOwnerDepartmentLabel: "倉庫"
+    },
+    {
+      id: "GRN-20260729-021",
+      no: "GRN-20260729-021",
+      purchaseOrderNo: "PO-20260726-027",
+      date: "2026/7/29",
+      dateTimestamp: 1785254400,
+      category: 0,
+      categoryLabel: "進貨",
+      itemNo: "RM-CHICKEN-022",
+      itemName: "雞胸肉原料",
+      expectedCount: 1600,
+      checkedCount: 1600,
+      receivedCount: 1600,
+      receivingStatusCode: "received",
+      receivingStatus: "已收貨",
+      warehouseStatusCode: "stocked",
+      warehouseStatus: "已入庫",
+      nextOwnerDepartment: 0,
+      nextOwnerDepartmentLabel: "未指定"
+    }
+  ],
+  suppliers: [
+    {
+      id: "SUP-GREEN-01",
+      supplierNo: "SUP-GREEN-01",
+      supplierName: "綠田食品",
+      purchaseOrderCount: 7,
+      openPurchaseOrderCount: 3,
+      latePurchaseOrderCount: 1,
+      purchaseAmount: 942000,
+      pendingReceiptCount: 1800,
+      riskLevelCode: 3,
+      riskLevel: "高風險",
+      tone: "danger"
+    },
+    {
+      id: "SUP-PACK-02",
+      supplierNo: "SUP-PACK-02",
+      supplierName: "台灣包材",
+      purchaseOrderCount: 5,
+      openPurchaseOrderCount: 4,
+      latePurchaseOrderCount: 0,
+      purchaseAmount: 626000,
+      pendingReceiptCount: 28000,
+      riskLevelCode: 1,
+      riskLevel: "注意",
+      tone: "warning"
+    }
+  ],
+  total: {
+    purchaseOrders: 3,
+    deliveryRisks: 2,
+    receipts: 2,
+    suppliers: 2
+  },
+  details: {
+    "PO-20260724-031": {
+      purchaseOrderNo: "PO-20260724-031",
+      purchaseDate: "2026/7/24",
+      itemNo: "RM-CORN-001",
+      itemName: "冷凍玉米粒",
+      unit: "公斤",
+      supplierName: "綠田食品",
+      orderedCount: 1200,
+      unitPrice: 72,
+      purchaseAmount: 86400,
+      expectedArrivalDate: "2026/7/28",
+      comment: "分批到貨，第二批需供應商確認車次。",
+      purchaseRequestNo: "PR-20260723-018",
+      sourceOrderNo: "SO-20260723-022",
+      linkedWorkOrderNo: "WO-20260728-002",
+      inventory: { currentCount: 600, reservedCount: 420, availableCount: 180 },
+      receipts: [
+        {
+          no: "GRN-20260728-018",
+          date: "2026/7/28",
+          categoryLabel: "進貨",
+          expectedCount: 600,
+          checkedCount: 600,
+          receivedCount: 600,
+          receivingStatus: "已收貨",
+          warehouseStatus: "待入庫交接"
+        }
+      ],
+      workflow: [
+        {
+          taskId: "WF-PO-001",
+          taskTypeLabel: "採購",
+          refNo: "PO-20260724-031",
+          taskStatusLabel: "已完成",
+          ownerDepartmentLabel: "採購",
+          tone: "success"
+        },
+        {
+          taskId: "WF-GRN-018",
+          taskTypeLabel: "入庫",
+          refNo: "GRN-20260728-018",
+          taskStatusLabel: "待處理",
+          ownerDepartmentLabel: "倉庫",
+          tone: "warning"
+        }
+      ],
+      relatedDocuments: { quoteNo: "QT-20260718-004", contractNo: "CT-20260701-009" }
+    }
+  }
 };

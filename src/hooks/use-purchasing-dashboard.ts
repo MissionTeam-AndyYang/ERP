@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { DataSourceMode } from "@/components/common/data-source-toggle";
+import {
+  emptyPurchasingDashboardData,
+  getPurchasingDashboard,
+  normalizePurchasingDashboardData,
+  type PurchasingDashboardQuery
+} from "@/services/purchasing-api";
 import { purchasingDashboardMock } from "@/mock/purchasing";
-import { getPurchasingDashboard } from "@/services/purchasing-api";
 import type { PurchasingDashboardData, PurchasingDataSource } from "@/types/purchasing";
 
 export type PurchasingDashboardState = {
@@ -12,17 +18,23 @@ export type PurchasingDashboardState = {
   error?: string;
 };
 
-export function usePurchasingDashboard(): PurchasingDashboardState {
+export function usePurchasingDashboard(
+  dataSourceMode: DataSourceMode = "api",
+  query: PurchasingDashboardQuery
+): PurchasingDashboardState {
   const [state, setState] = useState<PurchasingDashboardState>({
-    data: purchasingDashboardMock,
-    source: "mock",
+    data:
+      dataSourceMode === "mock"
+        ? normalizePurchasingDashboardData(purchasingDashboardMock)
+        : emptyPurchasingDashboardData,
+    source: dataSourceMode === "mock" ? "mock" : "api",
     isLoading: true
   });
 
   useEffect(() => {
     let isMounted = true;
 
-    getPurchasingDashboard().then((result) => {
+    getPurchasingDashboard(query, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -38,7 +50,7 @@ export function usePurchasingDashboard(): PurchasingDashboardState {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dataSourceMode, query]);
 
   return state;
 }

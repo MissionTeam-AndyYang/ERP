@@ -1,10 +1,8 @@
 import type { StatusTone } from "@/types/dashboard";
 
-export type PurchasingWorkspaceTab = "demand" | "delivery-risk" | "receiving" | "suppliers";
+export type PurchasingWorkspaceTab = "purchase-orders" | "delivery-risk" | "receiving" | "suppliers";
 
-export type PurchaseStage = "請購" | "詢價" | "待核准" | "已下單" | "待到貨" | "驗收中" | "已入庫";
-
-export type PurchaseRiskLevel = "正常" | "注意" | "高風險";
+export type PurchasingDataSource = "api" | "mock";
 
 export type PurchasingSummary = {
   label: string;
@@ -13,56 +11,149 @@ export type PurchasingSummary = {
   tone: StatusTone;
 };
 
-export type PurchaseDependency = {
-  area: "訂單" | "生產" | "庫存" | "品檢" | "入庫";
-  status: string;
-  note: string;
+export type PurchasingRange = {
+  startDate: string;
+  endDate: string;
+  startTimestamp?: number;
+  endTimestamp?: number;
+};
+
+export type PurchaseOrderItem = {
+  id: string;
+  purchaseOrderNo: string;
+  purchaseDate: string;
+  purchaseDateTimestamp?: number;
+  itemNo: string;
+  itemName: string;
+  unit: string;
+  unitCode?: number;
+  supplierNo: string;
+  supplierName: string;
+  orderedCount: number;
+  receivedCount: number;
+  openCount: number;
+  unitPrice: number;
+  purchaseAmount: number;
+  expectedArrivalDate: string;
+  expectedArrivalTimestamp?: number;
+  purchaseRequestNo: string;
+  purchaseRequestLinkStatusCode: string;
+  purchaseRequestLinkStatus: string;
+  sourceOrderNo: string;
+  linkedWorkOrderNo: string;
+  warehouseStatusCode: string;
+  warehouseStatus: string;
+  riskLevelCode: number;
+  riskLevel: string;
+  riskType: string;
+  riskTypeLabel: string;
   tone: StatusTone;
+};
+
+export type PurchaseDeliveryRiskItem = PurchaseOrderItem & {
+  shortageCount: number;
+  shortageValue: number;
+  impactSourceType: string;
+  impactSourceNo: string;
+  impactSourceLabel: string;
+  followUpCode: string;
+  followUpLabel: string;
+};
+
+export type PurchaseReceiptItem = {
+  id: string;
+  no: string;
+  purchaseOrderNo: string;
+  date: string;
+  dateTimestamp?: number;
+  category: number;
+  categoryLabel: string;
+  itemNo: string;
+  itemName: string;
+  expectedCount: number;
+  checkedCount: number;
+  receivedCount: number;
+  receivingStatusCode: string;
+  receivingStatus: string;
+  warehouseStatusCode: string;
+  warehouseStatus: string;
+  nextOwnerDepartment?: number;
+  nextOwnerDepartmentLabel: string;
+};
+
+export type PurchaseSupplierItem = {
+  id: string;
+  supplierNo: string;
+  supplierName: string;
+  purchaseOrderCount: number;
+  openPurchaseOrderCount: number;
+  latePurchaseOrderCount: number;
+  purchaseAmount: number;
+  pendingReceiptCount: number;
+  riskLevelCode: number;
+  riskLevel: string;
+  tone: StatusTone;
+};
+
+export type PurchaseReceiptDetail = {
+  no: string;
+  date: string;
+  categoryLabel: string;
+  expectedCount: number;
+  checkedCount: number;
+  receivedCount: number;
+  receivingStatus: string;
+  warehouseStatus: string;
 };
 
 export type PurchaseWorkflowStep = {
-  label: string;
-  ref: string;
-  status: "完成" | "進行中" | "待處理" | "阻擋";
+  taskId: string;
+  taskTypeLabel: string;
+  refNo: string;
+  taskStatusLabel: string;
+  ownerDepartmentLabel: string;
   tone: StatusTone;
 };
 
-export type PurchaseItem = {
-  id: string;
-  requestNo: string;
-  purchaseOrderNo: string | null;
+export type PurchaseOrderDetail = {
+  purchaseOrderNo: string;
+  purchaseDate: string;
   itemNo: string;
   itemName: string;
-  category: "原料" | "物料" | "膠捲" | "包材";
-  supplier: string;
-  quantity: number;
   unit: string;
-  amount: number;
-  requiredDate: string;
-  expectedArrivalDate: string | null;
-  stage: PurchaseStage;
-  tone: StatusTone;
-  riskLevel: PurchaseRiskLevel;
-  riskReason: string;
-  sourceOrder: string | null;
-  linkedWorkOrder: string | null;
-  currentStock: number;
-  reservedStock: number;
-  availableStock: number;
-  safetyStock: number;
-  leadTimeDays: number;
-  delayDays: number;
-  qualityDocumentStatus: "完整" | "待補" | "缺失";
-  receivingStatus: string;
-  warehouseStatus: string;
-  owner: string;
-  dependencies: PurchaseDependency[];
+  supplierName: string;
+  orderedCount: number;
+  unitPrice: number;
+  purchaseAmount: number;
+  expectedArrivalDate: string;
+  comment: string;
+  purchaseRequestNo: string;
+  sourceOrderNo: string;
+  linkedWorkOrderNo: string;
+  inventory: {
+    currentCount: number;
+    reservedCount: number;
+    availableCount: number;
+  };
+  receipts: PurchaseReceiptDetail[];
   workflow: PurchaseWorkflowStep[];
+  relatedDocuments: {
+    quoteNo: string;
+    contractNo: string;
+  };
 };
 
 export type PurchasingDashboardData = {
+  range: PurchasingRange;
   summary: PurchasingSummary[];
-  items: PurchaseItem[];
+  purchaseOrders: PurchaseOrderItem[];
+  deliveryRisks: PurchaseDeliveryRiskItem[];
+  receipts: PurchaseReceiptItem[];
+  suppliers: PurchaseSupplierItem[];
+  total: {
+    purchaseOrders: number;
+    deliveryRisks: number;
+    receipts: number;
+    suppliers: number;
+  };
 };
-
-export type PurchasingDataSource = "api" | "mock";

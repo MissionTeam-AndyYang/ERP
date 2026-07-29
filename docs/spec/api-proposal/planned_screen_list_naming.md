@@ -105,6 +105,19 @@ Naming rules:
 | P0.2.2 | `ProductionPendingInventoryState` | 待入庫工單狀態 | `ProductionWorkspaceScreen` | 從工單狀態 badge 或右側追蹤面板進入 | `status=pending_inventory` 或以前端依 `todayWorkOrders[].status` 篩選。 |
 | P0.3.1 | `ProductionEfficiencyRiskState` | 效率損耗風險狀態 | `ProductionWorkspaceScreen` | 從效率損耗視圖、警示卡或管理 KPI drill-down | 依 `productionMetrics[].riskLevel`、`efficiencyRate`、`materialLossRate` 前端篩選；若後端後續提供 query，再同步補齊。 |
 
+## Product Development Workspace Screen Roadmap
+
+`ProductDevelopmentWorkspaceScreen` 第一版以產品版本、BOM、成本試算與正式報價/合約關聯為 read-only Core。開發需求、打樣、客戶樣品確認與營養標示目前缺少正式資料來源，先列為 engineer review / deferred，不由 API 推測。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `ProductDevelopmentWorkspaceScreen` | Screen | 產品研發工作區 | `/product-development` | API proposal，Pending Engineer Review | `GET /api/v2/product-development/dashboard`、`GET /api/v2/product-development/products/{product_no}/detail`、`GET /api/v2/product-development/products/{product_no}/cost-simulation` | 產品版本、BOM 完整性、成本試算與報價/合約準備度工作區。 |
+| P0.1 | V1 Core | `ProductVersionReadinessView` | View | 產品版本準備度視圖 | `ProductDevelopmentWorkspaceScreen` 內的「產品版本」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/dashboard` | 顯示產品版本、BOM、成本、報價、合約與 readiness code。 |
+| P0.2 | V1 Core | `ProductBOMDetailView` | View | BOM 展開視圖 | `ProductDevelopmentWorkspaceScreen` 內的「BOM 展開」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 展開產品版本的正式 BOM 與料品明細。 |
+| P0.3 | V1 Core | `ProductCostSimulationView` | View | 成本試算視圖 | `ProductDevelopmentWorkspaceScreen` 內的「成本試算」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/cost-simulation` | 顯示料品成本、損耗、人工成本與預估成本；不寫入成本。 |
+| P0.4 | V1 Core | `ProductCommercialReferenceView` | View | 報價與合約關聯視圖 | `ProductDevelopmentWorkspaceScreen` 內的「報價與合約」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 顯示正式 quotation/contract 關聯，不代表已核准或有效。 |
+| P1 | V1 Core | `ProductDevelopmentDetailPanel` | Panel | 產品研發追蹤面板 | `ProductDevelopmentWorkspaceScreen` 右側 panel | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 顯示產品版本、BOM、成本與商務關聯明細。 |
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：

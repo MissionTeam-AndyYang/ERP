@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ProductDevelopmentWorkspaceScreen API Preview</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #17202a; background: #f4f6f8; }
+    body { margin: 0; } .shell { max-width: 1420px; margin: auto; padding: 24px; }
+    header, section, aside { background: #fff; border: 1px solid #d9e0e7; border-radius: 8px; }
+    header { padding: 20px 24px; } h1 { margin: 0 0 6px; font-size: 24px; }
+    .muted { color: #64748b; font-size: 13px; } .filters { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    input, select, button { min-height: 36px; border:1px solid #cbd5e1; border-radius: 5px; background:#fff; padding: 0 10px; }
+    button { cursor:pointer; font-weight:600; } .primary { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+    .tabs { display:flex; gap:4px; margin:18px 0; } .tab { border:0; border-bottom:2px solid transparent; border-radius:0; }
+    .tab.active { color:#1d4ed8; border-bottom-color:#1d4ed8; }
+    .kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:18px; }
+    .kpi { padding:16px; } .kpi strong { display:block; font-size:24px; margin-top:8px; }
+    .content { display:grid; grid-template-columns:minmax(0, 1fr) 370px; gap:18px; }
+    section { overflow:hidden; } table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { padding:12px; border-bottom:1px solid #e5e7eb; text-align:left; white-space:nowrap; }
+    th { background:#f8fafc; color:#64748b; } tr:hover { background:#eff6ff; cursor:pointer; }
+    aside { padding:18px; } .badge { display:inline-block; padding:4px 8px; border-radius:12px; background:#dcfce7; color:#166534; font-size:12px; }
+    .warning { background:#fef3c7; color:#92400e; } dl { display:grid; grid-template-columns:140px 1fr; gap:10px; font-size:13px; }
+    dt { color:#64748b; } dd { margin:0; font-weight:600; } .cost { font-size:28px; color:#1d4ed8; }
+    @media (max-width:920px) { .kpis { grid-template-columns:repeat(2, 1fr); } .content { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header>
+    <h1>產品研發工作區</h1>
+    <div class="muted">ProductDevelopmentWorkspaceScreen · BOM / 成本 / 報價準備度 · Read-only API preview</div>
+    <div class="filters"><input placeholder="產品 no / 品名 / BOM no" style="min-width:250px"><select><option>全部準備度</option><option>ready</option><option>incomplete</option></select><select><option>全部產品類別</option><option>製成品</option></select><button class="primary">查詢</button></div>
+  </header>
+  <nav class="tabs"><button class="tab active">產品版本</button><button class="tab">BOM 展開</button><button class="tab">成本試算</button><button class="tab">報價與合約</button></nav>
+  <div class="kpis"><section class="kpi"><span class="muted">產品數</span><strong>24</strong></section><section class="kpi"><span class="muted">BOM 缺漏</span><strong>3</strong></section><section class="kpi"><span class="muted">成本缺漏</span><strong>5</strong></section><section class="kpi"><span class="muted">報價／合約待補</span><strong>7</strong></section></div>
+  <div class="content"><section><table><thead><tr><th>產品版本</th><th>BOM</th><th>明細數</th><th>成本</th><th>報價</th><th>合約</th><th>準備度</th></tr></thead><tbody><tr><td>PRD-001 · 餅乾禮盒 v3</td><td>BOM-001 / v3</td><td>12</td><td>$86</td><td>2</td><td>1</td><td><span class="badge">ready</span></td></tr><tr><td>PRD-002 · 巧克力棒 v1</td><td>未建立</td><td>0</td><td>-</td><td>0</td><td>0</td><td><span class="badge warning">incomplete · bom_missing</span></td></tr></tbody></table></section><aside><h2>版本明細</h2><span class="badge">readinessStatusCode: ready</span><p class="cost">$86 / unit</p><dl><dt>產品</dt><dd>PRD-001 / v3</dd><dt>BOM</dt><dd>BOM-001 / v3</dd><dt>原料明細</dt><dd>12 筆</dd><dt>採購報價</dt><dd>2 筆</dd><dt>正式合約</dt><dd>1 筆</dd><dt>營養標示</dt><dd>V1 尚未納入</dd></dl></aside></div>
+</main>
+</body>
+</html>

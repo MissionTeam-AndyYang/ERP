@@ -542,3 +542,12 @@ class EProductionDocumentStatus(object):
     SCHEDULED = "scheduled"
     LINKED = "linked"
 
+
+class EPurchasingRiskType(object):
+    NORMAL = "normal"
+    LATE_ARRIVAL = "late_arrival"
+    DUE_TODAY = "due_today"
+    PURCHASE_REQUEST_UNLINKED = "purchase_request_unlinked"
+    OPEN_RECEIPT = "open_receipt"
+    UNKNOWN = "unknown"
+

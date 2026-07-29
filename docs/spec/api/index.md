@@ -25,6 +25,7 @@
 - [productline](./productline.md)
 - [production](./production.md)
 - [purchase](./purchase.md)
+- [purchasing](./purchasing.md)
 - [quotation](./quotation.md)
 - [sale](./sale.md)
 - [shipwarehouse](./shipwarehouse.md)

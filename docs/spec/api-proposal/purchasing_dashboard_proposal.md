@@ -78,7 +78,7 @@
       "expectedArrivalTimestamp": "Integer",
       "stageCode": "String",
       "riskLevel": "String",
-      "riskCode": "String",
+      "riskType": "String",
       "sourceOrderNo": "String",
       "linkedWorkOrderNo": "String",
       "currentQuantity": "Float",
@@ -130,7 +130,7 @@
 | `items[].expectedArrivalTimestamp` | Integer | 採購單預計進貨時間；未下單時為 0。 | `purchase_order.expectedDate` |
 | `items[].stageCode` | String | 採購流程階段 code，由請購、採購、進貨資料與 workflow 狀態推導。 | `request_pending`、`quote_pending`、`ordered`、`arrival_pending`、`receiving`、`stocked`、`unknown` |
 | `items[].riskLevel` | String | 風險等級 code。 | `normal`、`notice`、`high_risk`、`unknown` |
-| `items[].riskCode` | String | 主要風險代碼；前端依 code 轉換多國語系文字。 | `stock_below_safety`、`purchase_request_open`、`purchase_order_missing`、`late_arrival`、`supplier_quote_missing`、`contract_missing`、`receiving_pending`、`workflow_blocked`、`unknown` |
+| `items[].riskType` | String | 主要風險類型；前端依 code 轉換多國語系文字。 | `stock_below_safety`、`purchase_request_open`、`purchase_order_missing`、`late_arrival`、`supplier_quote_missing`、`contract_missing`、`receiving_pending`、`workflow_blocked`、`unknown` |
 | `items[].sourceOrderNo` | String | 需求來源訂單 no。 | `purchase_request.product_order_no` |
 | `items[].linkedWorkOrderNo` | String | 關聯生產工單 no；無正式關聯時為空字串。 | 只取已確認的 workflow／APS 關聯，不自行推測。 |
 | `items[].currentQuantity` | Float | 目前庫存數量，取至小數點第 2 位。 | 共用 Warehouse inventory snapshot calculator |
@@ -187,8 +187,8 @@
 
 ## 5. 前端責任
 
-1. 將 `stageCode`、`riskLevel`、`riskCode`、`receivingStatusCode`、`qualityStatusCode`、`warehouseStatusCode`、`ownerDepartment` 與 item enum code 轉換為繁中、英文及其他語系。
-2. 依 `riskCode` 選擇色彩、圖示與篩選狀態；後端不回傳 UI 專用中文 `riskReason`。
+1. 將 `stageCode`、`riskLevel`、`riskType`、`receivingStatusCode`、`qualityStatusCode`、`warehouseStatusCode`、`ownerDepartment` 與 item enum code 轉換為繁中、英文及其他語系。
+2. 依 `riskType` 選擇色彩、圖示與篩選狀態；後端不回傳 UI 專用中文 `riskReason`。
 3. 依 `purchaseRequestNo` 組合 detail API path；前端不自行推導供應商、採購單或進貨單關聯。
 4. 空資料、部分資料與 API 錯誤須呈現可辨識狀態，不以 mock 資料冒充正式 API 結果。
 

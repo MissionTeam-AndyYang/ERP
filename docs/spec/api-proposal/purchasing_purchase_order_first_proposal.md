@@ -64,7 +64,7 @@
 | `startDate` | String | Yes | 查詢起始日，`YYYY-MM-DD`；含當日。 |
 | `endDate` | String | Yes | 查詢結束日，`YYYY-MM-DD`；含當日，且不得早於 `startDate`。 |
 | `supplierNo` | String | No | 供應商 `company.no`。 |
-| `riskLevel` | String | No | 風險等級 code。 |
+| `riskLevel` | Integer | No | 風險等級篩選 code。`0` normal、`1` notice、`3` high risk。 |
 | `keyword` | String | No | 採購單 no、進貨單 no、請購單 no、供應商 no／名稱、料號或品名。 |
 | `start` | Integer | No | 分頁起點，預設 0。 |
 | `count` | Integer | No | 回傳筆數，預設 50，最大 100。 |
@@ -117,8 +117,8 @@
       "sourceOrderNo": "String",
       "linkedWorkOrderNo": "String",
        "warehouseStatusCode": "String",
-      "riskLevel": "String",
-      "riskCode": "String"
+      "riskLevel": "Integer",
+      "riskType": "String"
     }
   ],
   "total": "Integer",
@@ -160,15 +160,15 @@
 | `items[].sourceOrderNo` | String | 請購單來源訂購單 no；無已確認請購關聯時為空字串。 | `purchase_request.product_order_no` |
 | `items[].linkedWorkOrderNo` | String | 已確認且可追溯的生產工單 no；無正式關聯時為空字串。顯示於採購單清單的「來源影響」欄、交期風險清單的「影響來源」欄及明細 panel 的來源區塊。 | 僅取已確認 workflow／APS 關聯 |
 | `items[].warehouseStatusCode` | String | 以 workflow 入庫任務作為流程狀態主要依據，並以 Warehouse inventory 作為實際庫存證據；同一 PO 多筆進貨只要仍有未完成入庫交接即回傳 `pending_putaway`。 | `not_received`、`pending_putaway`、`stocked`、`unknown` |
-| `items[].riskLevel` | String | 風險等級 code。 | `normal`、`notice`、`high_risk`、`unknown` |
-| `items[].riskCode` | String | 主要風險代碼，前端依 code 轉換文字與色彩。 | `late_arrival`、`due_today`、`open_receipt`、`purchase_request_unlinked`、`workflow_blocked`、`unknown` |
+| `items[].riskLevel` | Integer | 風險等級 code，前端依數值轉換文字與色彩。 | `0` normal、`1` notice、`3` high risk。 |
+| `items[].riskType` | String | 主要風險類型，前端依 code 轉換文字與色彩。 | `normal`、`late_arrival`、`due_today`、`open_receipt`、`purchase_request_unlinked`、`unknown` |
 | `total` | Integer | 套用篩選後的採購單總筆數。 |  |
 | `start` | Integer | 本次分頁起點。 |  |
 | `count` | Integer | 本次回傳採購單筆數。 |  |
 
 ## 6. GET `/api/v2/purchasing/purchase-orders/delivery-risk`
 
-查詢參數與日期規則同第 4 節；只回傳 `riskLevel != normal` 的採購單。`items[]` 使用採購單主資料列，並額外回傳：
+查詢參數與日期規則同第 4 節；只回傳 `riskLevel != 0` 的採購單。`items[]` 使用採購單主資料列，並額外回傳：
 
 ### 6.1 Success Response Data
 
@@ -203,8 +203,8 @@
       "shortageValue": "Integer",
       "expectedArrivalTimestamp": "Integer",
        "warehouseStatusCode": "String",
-      "riskLevel": "String",
-      "riskCode": "String",
+      "riskLevel": "Integer",
+      "riskType": "String",
       "impactSourceType": "String",
       "impactSourceNo": "String",
       "linkedWorkOrderNo": "String",
@@ -225,8 +225,8 @@
 | `range.endDate` | String | 使用者指定的查詢結束日。 |
 | `range.startTimestamp` | Integer | 起始日 local 00:00:00 轉換後的 UTC timestamp。 |
 | `range.endTimestamp` | Integer | 結束日 local 23:59:59 轉換後的 UTC timestamp。 |
-| `summary.highRiskCount` | Integer | `riskLevel=high_risk` 的採購單數。 |
-| `summary.noticeCount` | Integer | `riskLevel=notice` 的採購單數。 |
+| `summary.highRiskCount` | Integer | `riskLevel=3` 的採購單數。 |
+| `summary.noticeCount` | Integer | `riskLevel=1` 的採購單數。 |
 | `summary.lateCount` | Integer | 已逾期且仍有未收缺口的採購單數。 |
 | `summary.affectedWorkOrderCount` | Integer | 具正式工單關聯的風險採購單所涉及的不重複工單數。 |
 | `summary.averageLateDays` | Float | 逾期採購單平均逾期日數，取至小數點第 2 位；無逾期資料時為 0。 |
@@ -243,8 +243,8 @@
 | `items[].shortageValue` | Integer | 尚未收貨數量乘採購單價後的金額，四捨五入取整數。 |
 | `items[].expectedArrivalTimestamp` | Integer | PO 預計進貨日期，UTC timestamp。 |
 | `items[].warehouseStatusCode` | String | 該 PO 全部進貨單彙總後的入庫交接狀態 code。 |
-| `items[].riskLevel` | String | 風險等級 code。 |
-| `items[].riskCode` | String | 主要風險代碼，前端轉換文字與色彩。 |
+| `items[].riskLevel` | Integer | 風險等級 code。 |
+| `items[].riskType` | String | 主要風險類型，前端轉換文字與色彩。 |
 | `items[].impactSourceType` | String | 正式影響來源類型 code；無正式關聯時為 `unknown`。 |
 | `items[].impactSourceNo` | String | 影響來源單號；無正式關聯時為空字串。 |
 | `items[].linkedWorkOrderNo` | String | 已確認的生產工單 no；無正式關聯時為空字串。 |
@@ -365,7 +365,7 @@
 | `items[].latePurchaseOrderCount` | Integer | 逾期且尚未收足的採購單數。 | `purchase_order.expectedDate` |
 | `items[].purchaseAmount` | Integer | 採購金額加總，四捨五入取整數。 | `purchase_order.amount` |
 | `items[].pendingReceiptCount` | Float | 尚未收貨淨數量，取至小數點第 2 位；此處 `Count` 表示數量，不是進貨單筆數。 | PO 數量減進貨淨數量 |
-| `items[].riskLevel` | String | 供應商彙總風險 code。 | `normal`、`notice`、`high_risk`、`unknown` |
+| `items[].riskLevel` | Integer | 供應商彙總最高風險等級。 | `0` normal、`1` notice、`3` high risk。 |
 | `total` | Integer | 套用篩選後的供應商總筆數。 |  |
 | `start` | Integer | 本次分頁起點。 |  |
 | `count` | Integer | 本次回傳供應商筆數。 |  |

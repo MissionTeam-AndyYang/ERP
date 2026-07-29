@@ -1,41 +1,393 @@
 # Purchasing API Group
 
-> Implementation source: `restserver/package/restserver/api/v2/purchasing.py`
+> Implementation source: `restserver/package/restserver/api/v2/purchasing.py`, `restserver/package/restserver/api/v2/purchasing_uri.py`
 > Proposal source: `docs/spec/api-proposal/purchasing_purchase_order_first_proposal.md`
 > Flow source: `docs/spec/api-proposal/purchasing_purchase_order_first_flow_algorithm.md`
 
-## Common Request Rules
+## API Summary
 
-All list endpoints require `startDate` and `endDate` in `YYYY-MM-DD` format and accept the `x-timezone` IANA timezone header. The date range is inclusive in the requested local timezone and is converted to UTC timestamps for database filtering. `start` defaults to `0`; `count` defaults to `50` and is capped at `100`. Enum codes are returned as codes for frontend localization.
+| URL | Method | Description | Status | Review Note |
+|---|---|---|---|---|
+| [/api/v2/purchasing/purchase-orders/dashboard](#get-api-v2-purchasing-purchase-orders-dashboard) | GET | 查詢採購單、收貨進度、請購關聯與交期風險總覽。 | OK | 第一版 read-only。 |
+| [/api/v2/purchasing/purchase-orders/delivery-risk](#get-api-v2-purchasing-purchase-orders-delivery-risk) | GET | 查詢非正常風險的採購單。 | OK | 風險等級由 `riskLevel` 整數表示，風險原因由 `riskType` 表示。 |
+| [/api/v2/purchasing/goods-receipts/dashboard](#get-api-v2-purchasing-goods-receipts-dashboard) | GET | 查詢進貨單與後續入庫交接狀態。 | OK | 第一版 read-only；尚未推導倉庫實際入庫狀態。 |
+| [/api/v2/purchasing/suppliers/dashboard](#get-api-v2-purchasing-suppliers-dashboard) | GET | 依供應商彙總採購單與待收貨資訊。 | OK | 彙總範圍依查詢條件取得的採購單資料。 |
+| [/api/v2/purchasing/purchase-orders/{purchase_order_no}/detail](#get-api-v2-purchasing-purchase-orders-purchase_order_no-detail) | GET | 查詢單一採購單及其請購、進貨與關聯文件明細。 | OK | 第一版 read-only。 |
 
-## Implemented Endpoints
+## Common Rules
+
+所有清單 API 的 `startDate` 與 `endDate` 必須同時提供，格式為 `YYYY-MM-DD`，日期依 `x-timezone` 解讀並包含結束日。清單 API 的 `start` 預設為 `0`，`count` 預設為 `50`，最大為 `100`。Enum 欄位回傳 code 或 integer，顯示文字與多國語言轉換由前端處理。
+
+### Common Request Header
+
+| Header | Type | Required | Description |
+|---|---|---|---|
+| `x-auth-token` | String | YES | 存取金鑰。 |
+| `x-timezone` | String | NO | IANA 時區，例如 `Asia/Taipei`；未提供時使用 `UTC`。 |
+
+### Common Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `startDate` | String | YES | 查詢起始日，格式 `YYYY-MM-DD`。 |
+| `endDate` | String | YES | 查詢結束日，格式 `YYYY-MM-DD`，不得早於 `startDate`。 |
+| `start` | Integer | NO | 分頁起始位置，最小為 `0`，預設 `0`。 |
+| `count` | Integer | NO | 分頁筆數，範圍 `1` 至 `100`，預設 `50`。 |
+| `keyword` | String | NO | 搜尋採購單號、料品編號或料品名稱。 |
+| `supplierNo` | String | NO | 供應商編號，對應 `company.no`。 |
+| `riskLevel` | Integer | NO | 風險等級篩選。`0` normal、`1` notice、`3` high risk。 |
+
+## GET /api/v2/purchasing/purchase-orders/dashboard
+
+<a id="get-api-v2-purchasing-purchase-orders-dashboard"></a>
+
+### Basic Information
 
 | URL | Method | Description |
 |---|---|---|
-| `/api/v2/purchasing/purchase-orders/dashboard` | GET | Purchase order dashboard, receipt quantity, risk code and purchase request linkage. |
-| `/api/v2/purchasing/purchase-orders/delivery-risk` | GET | Non-normal purchase order delivery risks. |
-| `/api/v2/purchasing/goods-receipts/dashboard` | GET | Goods receipt rows and receipt/warehouse handoff codes. |
-| `/api/v2/purchasing/suppliers/dashboard` | GET | Supplier-level purchase order aggregation. |
-| `/api/v2/purchasing/purchase-orders/{purchase_order_no}/detail` | GET | One purchase order with formal request and receipt relations. |
+| `/api/v2/purchasing/purchase-orders/dashboard` | GET | 查詢指定日期區間的採購單總覽。 |
 
-## Response Contract
+### Request Header
 
-Each list response contains `serverTimestamp`, `timezone`, `range`, `summary`, `items`, `total`, `start`, and `count`. `range` contains `startDate`, `endDate`, `startTimestamp`, and `endTimestamp`.
+請參考 [Common Request Header](#common-request-header)。
 
-Purchase-order item fields are `purchaseOrderNo`, `purchaseDateTimestamp`, `itemNo`, `itemName`, `unit`, `supplierNo`, `supplierName`, `orderedCount`, `receivedCount`, `openCount`, `unitPrice`, `purchaseAmount`, `expectedArrivalTimestamp`, `purchaseRequestNo`, `purchaseRequestLinkStatusCode`, `sourceOrderNo`, `linkedWorkOrderNo`, `warehouseStatusCode`, `riskLevel`, and `riskCode`.
+### Query Parameters
 
-Delivery-risk rows additionally contain `shortageCount`, `shortageValue`, `impactSourceType`, `impactSourceNo`, and `followUpCode`.
+使用 Common Query Parameters；`riskLevel` 會套用於採購單計算後的風險等級。
 
-Goods-receipt rows contain `no`, `purchaseOrderNo`, `dateTimestamp`, `category`, `itemNo`, `itemName`, `expectedCount`, `checkedCount`, `receivedCount`, `receivingStatusCode`, `warehouseStatusCode`, and `nextOwnerDepartment`.
+### Request Body
 
-Supplier rows contain `supplierNo`, `supplierName`, `purchaseOrderCount`, `openPurchaseOrderCount`, `latePurchaseOrderCount`, `purchaseAmount`, `pendingReceiptCount`, and `riskLevel`.
+None
 
-Detail response contains `purchaseOrder`, `purchaseRequest`, `supplier`, `receipts`, `source`, `inventory`, `workflow`, and `relatedDocuments`. Missing formal relations are represented by `null`, empty strings, empty arrays, or `unknown`; no relation is inferred from item names or dates.
+### Success Response Data
 
-## Calculation Rules
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "range": {"startDate": "String", "endDate": "String", "startTimestamp": "Integer", "endTimestamp": "Integer"},
+    "summary": {"openPurchaseOrderCount": "Integer", "lateOrDueTodayCount": "Integer", "purchaseAmount": "Integer", "unlinkedPurchaseRequestCount": "Integer"},
+    "items": [{
+      "purchaseOrderNo": "String", "purchaseDateTimestamp": "Integer", "itemNo": "String", "itemName": "String", "unit": "Integer",
+      "supplierNo": "String", "supplierName": "String", "orderedCount": "Float", "receivedCount": "Float", "openCount": "Float",
+      "unitPrice": "Float", "purchaseAmount": "Integer", "expectedArrivalTimestamp": "Integer", "purchaseRequestNo": "String",
+      "purchaseRequestLinkStatusCode": "String", "sourceOrderNo": "String", "linkedWorkOrderNo": "String", "warehouseStatusCode": "String",
+      "riskLevel": "Integer", "riskType": "String"
+    }],
+    "total": "Integer", "start": "Integer", "count": "Integer"
+  }
+}
+```
 
-- `receivedCount` sums `goods_receipt_note.checkedCount`; category `0` adds and category `1` subtracts.
-- `openCount` is `max(orderedCount - receivedCount, 0)`.
-- Quantity uses two decimal places, unit price four decimal places, and amount is rounded to an integer.
-- `riskLevel` and `riskCode`, warehouse status, receipt status, and owner department are codes; the frontend supplies localized labels.
-- V1 does not expose Quality status or perform purchase-order mutations.
+### Field Description
+
+| Field | Type | Description | Enum / Rule |
+|---|---|---|---|
+| `payload.serverTimestamp` | Integer | API 回應產生時的 UTC timestamp。 | Unix timestamp。 |
+| `payload.timezone` | String | 本次日期區間採用的時區。 | IANA timezone。 |
+| `payload.range` | Object | 查詢日期及其 UTC 轉換結果。 | `startDate`、`endDate`、`startTimestamp`、`endTimestamp`。 |
+| `payload.summary` | Object | 本次查詢範圍內的採購單彙總。 | 見下列欄位。 |
+| `payload.summary.openPurchaseOrderCount` | Integer | 尚有未收貨數量的採購單筆數。 | `openCount > 0`。 |
+| `payload.summary.lateOrDueTodayCount` | Integer | 風險類型為逾期或今日到期的採購單筆數。 | `late_arrival` 或 `due_today`。 |
+| `payload.summary.purchaseAmount` | Integer | 查詢範圍內採購金額合計。 | 金額四捨五入取整數。 |
+| `payload.summary.unlinkedPurchaseRequestCount` | Integer | 請購單未成功關聯的採購單筆數。 | link status 非 `linked`。 |
+| `payload.items[]` | Array | 採購單明細；此節點不另列說明。 | 依預計到貨日及採購單號排序。 |
+| `payload.items[].purchaseOrderNo` | String | 採購單編號。 | `purchase_order.no`。 |
+| `payload.items[].purchaseDateTimestamp` | Integer | 採購單建立時間。 | Unix timestamp。 |
+| `payload.items[].itemNo` | String | 採購料品編號。 | `purchase_order.item_no`。 |
+| `payload.items[].itemName` | String | 採購料品名稱。 | `purchase_order.item_name`。 |
+| `payload.items[].unit` | Integer | 料品庫存單位代碼。 | 前端轉換顯示文字。 |
+| `payload.items[].supplierNo` | String | 供應商編號。 | `purchase_order.item_ref_no`。 |
+| `payload.items[].supplierName` | String | 供應商名稱。 | 取 `company.displayName`。 |
+| `payload.items[].orderedCount` | Float | 採購數量。 | 數量取小數點後 2 位。 |
+| `payload.items[].receivedCount` | Float | 進貨單已檢收數量合計。 | 進貨加總、退貨扣除。 |
+| `payload.items[].openCount` | Float | 尚未完成收貨的數量。 | `max(orderedCount - receivedCount, 0)`。 |
+| `payload.items[].unitPrice` | Float | 採購單價。 | 小數點後 4 位。 |
+| `payload.items[].purchaseAmount` | Integer | 採購金額。 | 四捨五入取整數。 |
+| `payload.items[].expectedArrivalTimestamp` | Integer | 預計到貨時間。 | Unix timestamp。 |
+| `payload.items[].purchaseRequestNo` | String | 關聯請購單編號。 | 無關聯時為空字串。 |
+| `payload.items[].purchaseRequestLinkStatusCode` | String | 請購單關聯狀態。 | `linked`、`unlinked`、`invalid`。 |
+| `payload.items[].sourceOrderNo` | String | 請購單所來源的訂單編號。 | 無關聯時為空字串。 |
+| `payload.items[].linkedWorkOrderNo` | String | 關聯工單編號。 | 第一版尚未推導，固定為空字串。 |
+| `payload.items[].warehouseStatusCode` | String | 採購單對應的倉儲處理狀態。 | `not_received` 或 `unknown`。 |
+| `payload.items[].riskLevel` | Integer | 採購交期風險等級。 | `0` normal、`1` notice、`3` high risk。 |
+| `payload.items[].riskType` | String | 採購交期風險原因。 | `normal`、`late_arrival`、`due_today`、`purchase_request_unlinked`、`open_receipt`。 |
+| `payload.total` | Integer | 符合條件的資料總筆數。 | 分頁前。 |
+| `payload.start` | Integer | 實際分頁起始位置。 | 最小為 `0`。 |
+| `payload.count` | Integer | 本次回傳筆數。 | 不超過 `100`。 |
+
+### Failed Response Data
+
+`startDate` 或 `endDate` 缺少、格式無效或資料不存在時，回傳 HTTP `400`、`code=1`。
+
+### Processing Flow
+
+1. 讀取日期區間、時區、關鍵字、供應商與分頁參數。
+2. 將本地日期區間轉換為 UTC timestamp。
+3. 查詢日期範圍內的 `purchase_order`，並依條件排序。
+4. 批次查詢關聯 `goods_receipt_note`，計算已收貨與未收貨數量。
+5. 依預計到貨日、未收貨數量及請購關聯狀態計算 `riskLevel` 與 `riskType`。
+6. 計算 summary，最後套用分頁並回傳。
+
+### Database Tables Used
+
+`purchase_order`、`goods_receipt_note`、`company`、`purchase_request`
+
+## GET /api/v2/purchasing/purchase-orders/delivery-risk
+
+<a id="get-api-v2-purchasing-purchase-orders-delivery-risk"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| `/api/v2/purchasing/purchase-orders/delivery-risk` | GET | 查詢採購單交期風險。 |
+
+### Request Header
+
+請參考 [Common Request Header](#common-request-header)。
+
+### Query Parameters
+
+使用 Common Query Parameters；此 API 只回傳 `riskLevel != 0` 的採購單。
+
+### Request Body
+
+None
+
+### Success Response Data
+
+此 API 的 `payload` 共用採購單總覽的 `range`、分頁欄位與採購單欄位，`summary` 為：
+
+```json
+{"highRiskCount": "Integer", "noticeCount": "Integer", "lateCount": "Integer", "affectedWorkOrderCount": "Integer", "averageLateDays": "Float"}
+```
+
+每筆 `items[]` 另包含 `shortageCount`（Float）、`shortageValue`（Integer）、`impactSourceType`（String）、`impactSourceNo`（String）與 `followUpCode`（String）。`openCount` 會改名為 `shortageCount`。
+
+### Field Description
+
+| Field | Type | Description | Enum / Rule |
+|---|---|---|---|
+| `payload.summary.highRiskCount` | Integer | 高風險採購單筆數。 | `riskLevel=3`。 |
+| `payload.summary.noticeCount` | Integer | 注意風險採購單筆數。 | `riskLevel=1`。 |
+| `payload.summary.lateCount` | Integer | 已逾期採購單筆數。 | `riskType=late_arrival`。 |
+| `payload.summary.affectedWorkOrderCount` | Integer | 受影響工單筆數。 | 第一版固定為 `0`。 |
+| `payload.summary.averageLateDays` | Float | 平均逾期天數。 | 第一版固定為 `0.0`。 |
+| `payload.items[].shortageCount` | Float | 尚未收貨的數量。 | 原採購單 `openCount`。 |
+| `payload.items[].shortageValue` | Integer | 尚未收貨數量的估算金額。 | `shortageCount * unitPrice`，四捨五入取整數。 |
+| `payload.items[].impactSourceType` | String | 風險影響來源類型。 | 第一版為 `unknown`。 |
+| `payload.items[].impactSourceNo` | String | 風險影響來源單號。 | 第一版為空字串。 |
+| `payload.items[].followUpCode` | String | 建議後續處理代碼。 | 第一版為 `confirm_supplier_date`。 |
+
+### Failed Response Data
+
+同採購單總覽 API。
+
+### Processing Flow
+
+先依採購單總覽流程取得資料，再保留 `riskLevel != 0` 的資料，計算風險摘要並將 `openCount` 轉為 `shortageCount`。
+
+### Database Tables Used
+
+同採購單總覽 API。
+
+## GET /api/v2/purchasing/goods-receipts/dashboard
+
+<a id="get-api-v2-purchasing-goods-receipts-dashboard"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| `/api/v2/purchasing/goods-receipts/dashboard` | GET | 查詢日期區間內的進貨單。 |
+
+### Request Header
+
+請參考 [Common Request Header](#common-request-header)。
+
+### Query Parameters
+
+除 Common Query Parameters 外無其他參數。
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{"code": "Integer", "message": "String", "payload": {"serverTimestamp": "Integer", "timezone": "String", "range": "Object", "summary": {"receiptCount": "Integer", "pendingPutawayCount": "Integer"}, "items": [{"no": "String", "purchaseOrderNo": "String", "dateTimestamp": "Integer", "category": "Integer", "itemNo": "String", "itemName": "String", "expectedCount": "Float", "checkedCount": "Float", "receivedCount": "Float", "receivingStatusCode": "String", "warehouseStatusCode": "String", "nextOwnerDepartment": "Integer"}], "total": "Integer", "start": "Integer", "count": "Integer"}}
+```
+
+### Field Description
+
+| Field | Type | Description | Enum / Rule |
+|---|---|---|---|
+| `payload.summary.receiptCount` | Integer | 查詢範圍內進貨單筆數。 | 分頁前。 |
+| `payload.summary.pendingPutawayCount` | Integer | 尚待入庫處理的進貨單筆數。 | 第一版以查詢結果筆數計算。 |
+| `payload.items[].no` | String | 進貨單編號。 | `goods_receipt_note.no`。 |
+| `payload.items[].purchaseOrderNo` | String | 關聯採購單編號。 | `goods_receipt_note.purchase_order_no`。 |
+| `payload.items[].dateTimestamp` | Integer | 進貨單日期。 | Unix timestamp。 |
+| `payload.items[].category` | Integer | 進貨單類別。 | `0` 收貨、`1` 退貨。 |
+| `payload.items[].itemNo` | String | 進貨料品編號。 | 來源資料表欄位。 |
+| `payload.items[].itemName` | String | 進貨料品名稱。 | 來源資料表欄位。 |
+| `payload.items[].expectedCount` | Float | 預計進貨數量。 | 小數點後 2 位。 |
+| `payload.items[].checkedCount` | Float | 已檢收數量。 | 小數點後 2 位。 |
+| `payload.items[].receivedCount` | Float | 已收貨數量。 | 第一版等同 `checkedCount`。 |
+| `payload.items[].receivingStatusCode` | String | 進貨處理狀態。 | `returned`、`received`、`unknown`。 |
+| `payload.items[].warehouseStatusCode` | String | 倉庫入庫狀態。 | 第一版固定為 `unknown`。 |
+| `payload.items[].nextOwnerDepartment` | Integer | 下一步負責部門代碼。 | 第一版固定為 `0`。 |
+
+### Failed Response Data
+
+同採購單總覽 API。
+
+### Processing Flow
+
+1. 解析日期區間與時區。
+2. 查詢 `goods_receipt_note` 並依日期、單號排序。
+3. 依類別及檢收數量建立進貨狀態 code。
+4. 計算摘要、套用分頁並回傳。
+
+### Database Tables Used
+
+`goods_receipt_note`
+
+## GET /api/v2/purchasing/suppliers/dashboard
+
+<a id="get-api-v2-purchasing-suppliers-dashboard"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| `/api/v2/purchasing/suppliers/dashboard` | GET | 依供應商彙總採購單。 |
+
+### Request Header
+
+請參考 [Common Request Header](#common-request-header)。
+
+### Query Parameters
+
+除 Common Query Parameters 外無其他參數。
+
+### Request Body
+
+None
+
+### Success Response Data
+
+`payload` 共用採購單總覽的 `serverTimestamp`、`timezone`、`range` 與分頁欄位；`summary` 為空物件，`items[]` 結構如下：
+
+```json
+{"supplierNo": "String", "supplierName": "String", "purchaseOrderCount": "Integer", "openPurchaseOrderCount": "Integer", "latePurchaseOrderCount": "Integer", "purchaseAmount": "Integer", "pendingReceiptCount": "Float", "riskLevel": "Integer"}
+```
+
+### Field Description
+
+| Field | Type | Description | Enum / Rule |
+|---|---|---|---|
+| `payload.items[].supplierNo` | String | 供應商編號。 | 依採購單供應商編號彙總。 |
+| `payload.items[].supplierName` | String | 供應商名稱。 | 取 `company.displayName`。 |
+| `payload.items[].purchaseOrderCount` | Integer | 供應商採購單筆數。 | 查詢範圍內彙總。 |
+| `payload.items[].openPurchaseOrderCount` | Integer | 尚有未收貨數量的採購單筆數。 | `openCount > 0`。 |
+| `payload.items[].latePurchaseOrderCount` | Integer | 已逾期採購單筆數。 | `riskType=late_arrival`。 |
+| `payload.items[].purchaseAmount` | Integer | 供應商採購金額合計。 | 四捨五入取整數。 |
+| `payload.items[].pendingReceiptCount` | Float | 尚待收貨數量合計。 | 小數點後 2 位。 |
+| `payload.items[].riskLevel` | Integer | 供應商最高風險等級。 | `0` normal、`1` notice、`3` high risk。 |
+
+### Failed Response Data
+
+同採購單總覽 API。
+
+### Processing Flow
+
+1. 依共同日期及篩選條件取得採購單資料。
+2. 依供應商編號分組，累計採購單、待收貨數量、採購金額及逾期筆數。
+3. 取每一供應商的最高 `riskLevel`，再回傳彙總結果。
+
+### Database Tables Used
+
+同採購單總覽 API。
+
+## GET /api/v2/purchasing/purchase-orders/{purchase_order_no}/detail
+
+<a id="get-api-v2-purchasing-purchase-orders-purchase_order_no-detail"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| `/api/v2/purchasing/purchase-orders/{purchase_order_no}/detail` | GET | 查詢指定採購單明細。 |
+
+### Request Header
+
+請參考 [Common Request Header](#common-request-header)。
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `purchase_order_no` | String | YES | 採購單編號，對應 `purchase_order.no`。 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{"code": "Integer", "message": "String", "payload": {"serverTimestamp": "Integer", "timezone": "String", "purchaseOrder": "Object", "purchaseRequest": "Object|null", "supplier": "Object", "receipts": "Array", "source": "Object", "inventory": "Object", "workflow": "Array", "relatedDocuments": "Object"}}
+```
+
+### Field Description
+
+| Field | Type | Description |
+|---|---|---|
+| `payload.purchaseOrder` | Object | 採購單主檔及採購金額、數量與預計到貨資訊。 |
+| `payload.purchaseRequest` | Object/null | 關聯請購單；沒有關聯時為 `null`。 |
+| `payload.supplier` | Object | 供應商編號與名稱。 |
+| `payload.receipts` | Array | 該採購單的進貨單明細。 |
+| `payload.source` | Object | 請購來源訂單與關聯工單資訊。 |
+| `payload.inventory` | Object | 庫存摘要；第一版回傳數量欄位且目前值為 `0.0`。 |
+| `payload.workflow` | Array | 後續任務狀態；第一版回傳空陣列。 |
+| `payload.relatedDocuments` | Object | 報價單與合約關聯編號；未取得時為空字串。 |
+| `payload.purchaseOrder.purchaseOrderNo` | String | 採購單編號。 |
+| `payload.purchaseOrder.purchaseDateTimestamp` | Integer | 採購單建立時間。 |
+| `payload.purchaseOrder.itemNo` | String | 採購料品編號。 |
+| `payload.purchaseOrder.itemName` | String | 採購料品名稱。 |
+| `payload.purchaseOrder.unit` | Integer | 料品單位代碼。 |
+| `payload.purchaseOrder.supplierNo` | String | 供應商編號。 |
+| `payload.purchaseOrder.supplierName` | String | 供應商名稱。 |
+| `payload.purchaseOrder.orderedCount` | Float | 採購數量，小數點後 2 位。 |
+| `payload.purchaseOrder.unitPrice` | Float | 採購單價，小數點後 4 位。 |
+| `payload.purchaseOrder.purchaseAmount` | Integer | 採購金額，四捨五入取整數。 |
+| `payload.purchaseOrder.expectedArrivalTimestamp` | Integer | 預計到貨時間。 |
+| `payload.purchaseOrder.comment` | String | 採購單備註。 |
+| `payload.receipts[].no` | String | 進貨單編號。 |
+| `payload.receipts[].dateTimestamp` | Integer | 進貨單日期。 |
+| `payload.receipts[].category` | Integer | 進貨單類別，`0` 收貨、`1` 退貨。 |
+| `payload.receipts[].expectedCount` | Float | 預計進貨數量。 |
+| `payload.receipts[].checkedCount` | Float | 已檢收數量。 |
+| `payload.receipts[].receivedCount` | Float | 已收貨數量，第一版等同 `checkedCount`。 |
+| `payload.receipts[].receivingStatusCode` | String | `returned`、`received` 或 `unknown`。 |
+| `payload.receipts[].warehouseStatusCode` | String | 倉庫入庫狀態；第一版為 `unknown`。 |
+
+### Failed Response Data
+
+採購單不存在時，回傳 HTTP `400`、`code=1`。
+
+### Processing Flow
+
+1. 以 path parameter 查詢 `purchase_order`。
+2. 取得供應商、請購單及該採購單的進貨單。
+3. 建立採購單、來源、庫存、流程及關聯文件區塊。
+4. 無法取得的關聯以 `null`、空字串或空陣列表示，不以料品名稱推測關聯。
+
+### Database Tables Used
+
+`purchase_order`、`purchase_request`、`goods_receipt_note`、`company`

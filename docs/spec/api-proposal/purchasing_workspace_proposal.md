@@ -41,7 +41,7 @@
 1. `purchase-orders/dashboard` 的 `summary` 是主 KPI 來源，不以各頁籤本頁資料自行重算。
 2. 每個頁籤維持自己的 `items`、`total`、`start`、`count`；不可把不同 API 的資料列混合後再分頁。
 3. 選取資料列時只使用 `purchaseOrderNo` 導向 detail API；前端不由 item no、日期或名稱推導關聯。
-4. `riskLevel`、`riskCode`、`warehouseStatusCode`、`receivingStatusCode`、`nextOwnerDepartment` 與 item category/unit 都是 code，由前端 i18n map 轉換。
+4. `riskLevel`、`riskType`、`warehouseStatusCode`、`receivingStatusCode`、`nextOwnerDepartment` 與 item category/unit 都是 code，由前端 i18n map 轉換。
 5. API 缺少正式關聯時，前端顯示 unknown、空值或空集合；不可用 mock 值補成正常、已入庫或已合格。
 6. Quality V1 不呈現品檢明細與 KPI；若 detail 回傳 `deferred`，只顯示待後續版本處理的狀態 code。
 
@@ -65,4 +65,3 @@
 - 不新增 `/api/v2/purchasing/workspace` 重複聚合 API。
 - 不設計 POST/PUT/DELETE。
 - 不新增採購、品保或 APS schema。
-

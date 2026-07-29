@@ -21,7 +21,7 @@
 ## 3. 交期風險頁籤
 
 1. 呼叫 `purchase-orders/delivery-risk`，不要先呼叫 dashboard 再自行判斷風險。
-2. 依 `riskLevel` 與 `riskCode` 顯示風險列。
+2. 依 `riskLevel` 與 `riskType` 顯示風險列。
 3. `shortageCount` 與 `shortageValue` 直接使用 API 值，不用前端重新計算。
 4. `impactSourceType`、`impactSourceNo` 與 `followUpCode` 僅作 code/來源識別，不產生後端未提供的說明文字。
 
@@ -55,4 +55,3 @@
 ## 8. Engineer Review Gate
 
 工程師確認本文件後，才可進行 PurchasingWorkspaceScreen 的 API 串接。工程師尚未確認前，本文件只作為設計交換與前端 mock 預覽依據。
-

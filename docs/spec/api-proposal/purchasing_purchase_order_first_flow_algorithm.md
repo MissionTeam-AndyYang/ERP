@@ -75,7 +75,7 @@ openPurchaseOrder = openCount > 0
 ## 6. API 2：交期風險
 
 1. 先執行採購單基礎列與數量演算法。
-2. 只保留 `riskLevel` 不是 `normal` 的 PO。
+2. 只保留 `riskLevel` 不是 `0` 的 PO。
 3. 風險判斷優先順序：
    - `late_arrival`：expectedDate 已過且有未收缺口。
    - `due_today`：expectedDate 等於查詢基準日且有未收缺口。

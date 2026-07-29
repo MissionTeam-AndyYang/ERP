@@ -109,13 +109,158 @@
 
 ## 5. GET `/api/v2/product-development/products/{product_no}/detail`
 
-回傳 `product`、`bom`、`bomItems`、`costSummary`、`quotations`、`contracts` 與 `readiness`。BOM 明細使用 `product_spec`、`product_bom_spec` 及正式 BOM tables 展開至 primitive 欄位；不存在的正式關聯回傳空集合，不依名稱相似度補造。
+### 5.1 Success Response Data
+
+```json
+{
+  "product": {
+    "productNo": "String",
+    "productName": "String",
+    "productCategory": "Integer",
+    "productVersion": "Integer",
+    "unitShipping": "Integer",
+    "unitWarehouse": "Integer",
+    "unitProduct": "Integer",
+    "comment": "String"
+  },
+  "bom": {
+    "bomNo": "String",
+    "bomName": "String",
+    "bomVersion": "Integer",
+    "dateTimestamp": "Integer",
+    "unit": "Integer",
+    "weight": "Float",
+    "comment": "String"
+  },
+  "bomItems": [
+    {
+      "level": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
+      "itemType": "Integer",
+      "requiredCount": "Float",
+      "unit": "Integer",
+      "weight": "Float",
+      "expectedLoss": "Float",
+      "actualLoss": "Float",
+      "sourceBomNo": "String",
+      "sourceBomVersion": "Integer"
+    }
+  ],
+  "costSummary": {
+    "materialCost": "Integer",
+    "laborCost": "Integer",
+    "estimatedCost": "Integer",
+    "costStatusCode": "String"
+  },
+  "quotations": [
+    {
+      "quotationNo": "String",
+      "dateTimestamp": "Integer",
+      "category": "Integer",
+      "itemStyle": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
+      "supplierNo": "String",
+      "supplierName": "String",
+      "unit": "Integer",
+      "unitPrice": "Float"
+    }
+  ],
+  "contracts": [
+    {
+      "contractNo": "String",
+      "refNo": "String",
+      "dateTimestamp": "Integer",
+      "category": "Integer",
+      "itemStyle": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
+      "supplierNo": "String",
+      "supplierName": "String",
+      "unit": "Integer",
+      "unitPrice": "Float"
+    }
+  ],
+  "readiness": {
+    "statusCode": "String",
+    "riskCode": "String",
+    "missingFieldCodes": ["String"]
+  }
+}
+```
+
+### 5.2 Field Description
+
+| Field Path | Type | Description | Source / Enum |
+|---|---|---|---|
+| `product` | Object | 指定產品版本的產品主檔資料；查無產品時依既有 not-found response 處理。 | `product` |
+| `product.productNo` | String | 製成品 no。 | `product.no` |
+| `product.productName` | String | 製成品名稱。 | `product.name` |
+| `product.productCategory` | Integer | 製成品類別 code。 | `product.category` |
+| `product.productVersion` | Integer | 本次明細使用的產品版本。 | `product.version` |
+| `product.unitShipping` | Integer | 產品貨運單位 code。 | `product.unitShipping` |
+| `product.unitWarehouse` | Integer | 產品倉儲單位 code。 | `product.unitWarehouse` |
+| `product.unitProduct` | Integer | 產品產製單位 code。 | `product.unitProduct` |
+| `product.comment` | String | 產品主檔備註。 | `product.comment` |
+| `bom` | Object / Null | 該產品版本正式關聯的商品配方主檔；無關聯時為 `null`。 | `bom`、`product_spec` |
+| `bom.bomNo` | String | 商品配方 no。 | `bom.no` |
+| `bom.bomName` | String | 商品配方名稱。 | `bom.displayName` |
+| `bom.bomVersion` | Integer | 商品配方版本。 | `bom.version` |
+| `bom.dateTimestamp` | Integer | 商品配方日期，UTC timestamp。 | `bom.date` |
+| `bom.unit` | Integer | 商品配方計算單位 code。 | `bom.unit` |
+| `bom.weight` | Float | 商品配方基準重量，取至小數點第 2 位。 | `bom.weight` |
+| `bom.comment` | String | 商品配方備註。 | `bom.comment` |
+| `bomItems` | Array | 依產品版本與 BOM 關聯展開的 BOM 明細；此節點不另列說明。 | `product_spec`、`product_bom_spec`、正式 BOM tables |
+| `bomItems[].level` | Integer | BOM 階層。 | `product_spec.level` / `product_bom_spec.level` |
+| `bomItems[].itemNo` | String | BOM 明細料品或子 BOM no。 | `product_spec.item_no`、正式 BOM child no |
+| `bomItems[].itemName` | String | BOM 明細料品或子 BOM 名稱。 | 正式料品主檔或 BOM 明細名稱 |
+| `bomItems[].itemType` | Integer | BOM 明細類型 code。 | `product_spec.item_type` |
+| `bomItems[].requiredCount` | Float | 該明細所需數量，取至小數點第 2 位。 | `product_spec.count`、`product_bom_spec.count` |
+| `bomItems[].unit` | Integer | BOM 明細數量單位 code。 | `product_spec.unit`、`product_bom_spec.unit` |
+| `bomItems[].weight` | Float | BOM 明細重量，取至小數點第 2 位。 | `product_spec.weight`、`product_bom_spec.weight` |
+| `bomItems[].expectedLoss` | Float | 預估損耗率，取至小數點第 2 位。 | `product_spec.expectedLoss` 或正式 BOM loss 欄位 |
+| `bomItems[].actualLoss` | Float | 實際損耗率，取至小數點第 2 位；無資料時為 0 並由狀態欄位表達缺漏。 | `product_spec.actualLoss` 或正式 BOM loss 欄位 |
+| `bomItems[].sourceBomNo` | String | 該明細來源 BOM no；無法追溯時為空字串。 | 正式 BOM relation |
+| `bomItems[].sourceBomVersion` | Integer | 該明細來源 BOM 版本；無法追溯時為 0。 | 正式 BOM relation |
+| `costSummary` | Object | 指定產品版本的成本摘要；不代表已核准成本。 | `item_price`、BOM 計算 |
+| `costSummary.materialCost` | Integer | 原料/物料成本加總，四捨五入取整數。 | 正式成本來源與 BOM 明細 |
+| `costSummary.laborCost` | Integer | 人工成本加總，四捨五入取整數；來源不足時為 0 並回傳缺漏狀態。 | `labor_wage` 或工程師確認來源 |
+| `costSummary.estimatedCost` | Integer | 目前可計算成本項目加總，四捨五入取整數。 | 成本試算結果 |
+| `costSummary.costStatusCode` | String | 成本資料狀態 code。 | `complete`、`missing_source`、`unknown` |
+| `quotations` | Array | 可由正式關聯取得的報價資料；無資料時為空陣列。 | `quotation` |
+| `quotations[].quotationNo` | String | 報價單 no。 | `quotation.no` |
+| `quotations[].dateTimestamp` | Integer | 報價日期，UTC timestamp。 | `quotation.date` |
+| `quotations[].category` | Integer | 報價類別 code。 | `quotation.category` |
+| `quotations[].itemStyle` | Integer | 報價品項樣式 code。 | `quotation.itemStyle` |
+| `quotations[].itemNo` | String | 報價交易品項 no。 | `quotation.item_no` |
+| `quotations[].itemName` | String | 報價交易品項名稱。 | `quotation.item_name` |
+| `quotations[].supplierNo` | String | 報價供應商 no；非採購報價時可為空字串。 | `quotation.item_ref_no` |
+| `quotations[].supplierName` | String | 報價供應商名稱；無正式公司關聯時為空字串。 | `company.displayName` |
+| `quotations[].unit` | Integer | 報價單位 code。 | `quotation.unit` |
+| `quotations[].unitPrice` | Float | 報價單價，取至小數點第 4 位。 | `quotation.price` |
+| `contracts` | Array | 可由正式關聯取得的合約資料；無資料時為空陣列。 | `contract` |
+| `contracts[].contractNo` | String | 合約 no。 | `contract.no` |
+| `contracts[].refNo` | String | 合約來源或關聯 no；無值時為空字串。 | `contract.ref_no` |
+| `contracts[].dateTimestamp` | Integer | 合約日期，UTC timestamp。 | `contract.date` |
+| `contracts[].category` | Integer | 合約類別 code。 | `contract.category` |
+| `contracts[].itemStyle` | Integer | 合約品項樣式 code。 | `contract.itemStyle` |
+| `contracts[].itemNo` | String | 合約交易品項 no。 | `contract.item_no` |
+| `contracts[].itemName` | String | 合約交易品項名稱。 | `contract.item_name` |
+| `contracts[].supplierNo` | String | 合約供應商 no；非採購合約時可為空字串。 | `contract.item_ref_no` |
+| `contracts[].supplierName` | String | 合約供應商名稱；無正式公司關聯時為空字串。 | `company.displayName` |
+| `contracts[].unit` | Integer | 合約單位 code。 | `contract.unit` |
+| `contracts[].unitPrice` | Float | 合約單價，取至小數點第 4 位。 | `contract.price` |
+| `readiness` | Object | 產品版本資料準備度，不代表研發、客戶或量產核准。 | 計算欄位 |
+| `readiness.statusCode` | String | 準備度狀態 code。 | `ready`、`incomplete`、`unknown` |
+| `readiness.riskCode` | String | 主要資料缺口 code；無缺口時為 `normal`。 | `bom_missing`、`cost_missing`、`quotation_missing`、`contract_missing`、`unknown`、`normal` |
+| `readiness.missingFieldCodes` | Array<String> | 尚缺少的資料欄位 code；無缺漏時為空陣列。 | `bom`、`cost`、`quotation`、`contract` |
 
 `readiness` 只呈現資料完整性 code，不代表研發主管核准、生產核准或客戶確認樣品。
 
 ## 6. GET `/api/v2/product-development/products/{product_no}/cost-simulation`
 
-### Success Response Data
+### 6.1 Success Response Data
 
 ```json
 {
@@ -143,6 +288,29 @@
 }
 ```
 
+### 6.2 Field Description
+
+| Field Path | Type | Description | Source / Enum |
+|---|---|---|---|
+| `productNo` | String | 成本試算的製成品 no。 | `product.no` |
+| `productVersion` | Integer | 成本試算使用的產品版本。 | `product.version` |
+| `bomNo` | String | 成本試算使用的商品配方 no；無 BOM 時為空字串。 | `bom.no` |
+| `bomVersion` | Integer | 成本試算使用的商品配方版本；無 BOM 時為 0。 | `bom.version` |
+| `items` | Array | 成本試算明細；此節點不另列說明。 | BOM 明細與成本來源 |
+| `items[].itemNo` | String | 成本明細料品 no。 | BOM 明細 item no |
+| `items[].itemName` | String | 成本明細料品名稱。 | 正式料品主檔或 BOM 明細名稱 |
+| `items[].itemCategory` | Integer | 成本明細料品類別 code。 | 正式料品主檔 |
+| `items[].requiredQuantity` | Float | 成本計算所需數量，取至小數點第 2 位。 | BOM 明細 |
+| `items[].unit` | Integer | 成本明細數量單位 code。 | BOM 明細 |
+| `items[].unitCost` | Float | 成本明細單位成本，取至小數點第 4 位。 | `item_price` 或工程師確認的正式成本來源 |
+| `items[].lossRate` | Float | 成本計算採用的損耗率，取至小數點第 2 位。 | BOM expected/actual loss |
+| `items[].estimatedAmount` | Integer | 成本明細估算金額，四捨五入取整數。 | `requiredQuantity * unitCost` 加損耗計算 |
+| `items[].costStatusCode` | String | 個別成本明細狀態 code。 | `complete`、`missing_source`、`unknown` |
+| `materialCost` | Integer | 原料與物料成本加總，四捨五入取整數。 | 成本明細分類加總 |
+| `laborCost` | Integer | 人工成本加總，四捨五入取整數；未確認人工來源時為 0 並標示缺漏。 | `labor_wage` 或工程師確認來源 |
+| `estimatedCost` | Integer | 產品版本預估總成本，四捨五入取整數。 | `materialCost + laborCost` 及其他已確認成本 |
+| `costStatusCode` | String | 整體成本試算狀態 code。 | `complete`、`missing_source`、`invalid_bom`、`unknown` |
+
 成本計算只使用已存在且可追溯的 BOM、料品成本與人工成本資料；缺少正式成本來源時回傳 `costStatusCode=missing_source`，不可用零值宣稱成本為零。
 
 ## 7. Frontend Responsibility
@@ -166,4 +334,3 @@
 - 不設計產品、BOM、配方、報價、合約的 POST/PUT/DELETE。
 - 不新增未經工程師確認的 DB schema 或 SQL。
 - 不推導不存在的樣品確認、營養標示、客戶核准或量產核准狀態。
-

@@ -13,12 +13,14 @@
 
 ## 2. Database Schema 文件 與 API 文件 原則
 - 資料表欄位、API 回傳欄位需遵循一致的命名規範（例如：order_no 或 orderNo）
+- 具有相同含義的資料表欄位或API 回傳欄位，應統一採用一致的資料型態
 - 必須確保欄位描述完整，不得遺漏任何欄位的說明
 - API 回傳欄位僅設計目前畫面所需，不應預留未來可能使用的欄位
 - 應檢視並統一欄位階層設計，避免出現不一致的結構 
 
 ## 3. Coding 原則
 - **優先順序**：Correctness → Maintainability → Readability → Consistency → Performance  
+- 具有相同含義的變數，應統一採用一致的命名規則與資料型態，以避免混淆並提升程式碼的可讀性與維護性
 - 不得為了縮短程式碼而降低可維護性  
 - 不得為了效能而犧牲程式可讀性  
 
@@ -64,6 +66,10 @@
 - 程式碼實作必須符合 **API 提案文件** 與 **後端流程與演算法文件** 的設計邏輯。  
 - **API 提案文件** 的格式規格請以 warehouse_inventory_detail_proposal.md 為基準；**後端流程與演算法文件** 的格式規格請以 warehouse_inventory_detail_flow_algorithm.md 為基準。
 - 規劃設計中若需新增資料表，請同步產生對應的 SQL 檔案，以方便工程師匯入至資料庫。所有產生的 SQL 檔案請統一放置於 docs\database\ 目錄下。
+
+
+
+
 
 **4：後端API 程式碼規範**  
 - URL 定義

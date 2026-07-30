@@ -100,7 +100,7 @@ None
 | `payload.items[].purchaseRequestLinkStatusCode` | String | 請購單關聯狀態。 | `linked`、`unlinked`、`invalid`。 |
 | `payload.items[].sourceOrderNo` | String | 請購單所來源的訂單編號。 | 無關聯時為空字串。 |
 | `payload.items[].linkedWorkOrderNo` | String | 關聯工單編號。 | 第一版尚未推導，固定為空字串。 |
-| `payload.items[].warehouseStatusCode` | String | 採購單對應的倉儲處理狀態。 | `not_received` 或 `unknown`。 |
+| `payload.items[].warehouseStatusCode` | String | 採購單對應的倉儲入庫交接狀態。 | `not_received`、`pending_putaway`、`stocked`、`unknown`。 |
 | `payload.items[].riskLevel` | Integer | 採購交期風險等級。 | `0` normal、`1` notice、`3` high risk。 |
 | `payload.items[].riskType` | String | 採購交期風險原因。 | `normal`、`late_arrival`、`due_today`、`purchase_request_unlinked`、`open_receipt`。 |
 | `payload.total` | Integer | 符合條件的資料總筆數。 | 分頁前。 |
@@ -214,7 +214,7 @@ None
 | `payload.items[].purchaseRequestLinkStatusCode` | String | 請購單關聯狀態。 | `linked`、`unlinked`、`invalid`。 |
 | `payload.items[].sourceOrderNo` | String | 請購單來源訂單編號。 | 無關聯時為空字串。 |
 | `payload.items[].linkedWorkOrderNo` | String | 關聯工單編號。 | 第一版固定為空字串。 |
-| `payload.items[].warehouseStatusCode` | String | 採購單倉儲處理狀態。 | `not_received`、`unknown`。 |
+| `payload.items[].warehouseStatusCode` | String | 採購單倉儲入庫交接狀態。 | `not_received`、`pending_putaway`、`stocked`、`unknown`。 |
 | `payload.items[].riskLevel` | Integer | 採購交期風險等級。 | `0` normal、`1` notice、`3` high risk。 |
 | `payload.items[].riskType` | String | 採購交期風險原因。 | `late_arrival`、`due_today`、`purchase_request_unlinked`、`open_receipt`。 |
 | `payload.items[].shortageCount` | Float | 尚未收貨的數量。 | 原採購單 `openCount`。 |
@@ -306,8 +306,8 @@ None
 | `payload.items[].checkedCount` | Float | 已檢收數量。 | 小數點後 2 位。 |
 | `payload.items[].receivedCount` | Float | 已收貨數量。 | 第一版等同 `checkedCount`。 |
 | `payload.items[].receivingStatusCode` | String | 進貨處理狀態。 | `returned`、`received`、`unknown`。 |
-| `payload.items[].warehouseStatusCode` | String | 倉庫入庫狀態。 | 第一版固定為 `unknown`。 |
-| `payload.items[].nextOwnerDepartment` | Integer | 下一步負責部門代碼。 | 第一版固定為 `0`。 |
+| `payload.items[].warehouseStatusCode` | String | 倉庫入庫交接狀態；由最新入庫 workflow task 判斷，並以 inventory evidence 確認實際入庫。 | `pending_putaway`、`stocked`、`unknown`。 |
+| `payload.items[].nextOwnerDepartment` | Integer | 最新入庫 workflow task 的下一步負責部門 code；無 task 時為 `0`。 | `workflow_task_state.ownerDepartment`。 |
 
 ### Failed Response Data
 
@@ -479,7 +479,8 @@ None
 | `payload.receipts[].checkedCount` | Float | 已檢收數量。 |
 | `payload.receipts[].receivedCount` | Float | 已收貨數量，第一版等同 `checkedCount`。 |
 | `payload.receipts[].receivingStatusCode` | String | `returned`、`received` 或 `unknown`。 |
-| `payload.receipts[].warehouseStatusCode` | String | 倉庫入庫狀態；第一版為 `unknown`。 |
+| `payload.receipts[].warehouseStatusCode` | String | 倉庫入庫交接狀態；由 workflow 主判斷、inventory evidence 輔助驗證。 | `pending_putaway`、`stocked`、`unknown`。 |
+| `payload.receipts[].nextOwnerDepartment` | Integer | 最新入庫 workflow task 的下一步負責部門 code；無 task 時為 `0`。 | `workflow_task_state.ownerDepartment`。 |
 
 ### Failed Response Data
 

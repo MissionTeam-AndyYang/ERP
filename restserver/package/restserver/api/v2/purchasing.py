@@ -7,15 +7,21 @@ from sqlalchemy import or_
 
 from package.common.common import (
     EGoodsReceiptNoteCategory,
+    EInventoryCategory,
+    EInventoryRefCategory,
     EPurchasingRiskType,
     EProductionRiskLevel,
+    EWorkflowTaskStatus,
+    EWorkflowTaskType,
 )
 from package.dbwrapper.dbmgr import CDBMgr
 from package.dbwrapper.table import (
     CTableCompany,
     CTableGoodsReceiptNote,
+    CTableInventoryRec,
     CTablePurchaseOrder,
     CTablePurchaseRequest,
+    CTableWorkflowTaskState,
 )
 from package.util.util import (
     util_build_local_date_range, util_round_amount, util_round_price, util_round_quantity,
@@ -68,7 +74,63 @@ class CPurchasingPurchaseOrderService(object):
             for obj_row in lst_receipts
         ))
 
-    def __row(self, obj_session, obj_order, dict_receipts, n_now):
+    def __warehouse_states(self, obj_session, lst_receipts):
+        if not lst_receipts:
+            return {}
+
+        lst_receipt_no = [obj_row.no for obj_row in lst_receipts if obj_row.no]
+        dict_tasks = {}
+        for obj_task in obj_session.query(CTableWorkflowTaskState).filter(
+                CTableWorkflowTaskState.taskType == EWorkflowTaskType.INBOUND,
+                CTableWorkflowTaskState.refCategory == EInventoryRefCategory.WORK,
+                CTableWorkflowTaskState.ref_no.in_(lst_receipt_no)).order_by(
+                CTableWorkflowTaskState.updateTime.desc(), CTableWorkflowTaskState.id.desc()).all():
+            if obj_task.ref_no not in dict_tasks:
+                dict_tasks[obj_task.ref_no] = obj_task
+
+        set_stocked_receipt_no = {
+            obj_record.ref_no
+            for obj_record in obj_session.query(CTableInventoryRec).filter(
+                CTableInventoryRec.refCategory == EInventoryRefCategory.PURCHASE,
+                CTableInventoryRec.ref_no.in_(lst_receipt_no),
+                CTableInventoryRec.category == EInventoryCategory.IN,
+                CTableInventoryRec.count > 0,
+            ).all()
+        }
+
+        dict_result = {}
+        for obj_receipt in lst_receipts:
+            obj_task = dict_tasks.get(obj_receipt.no)
+            n_task_status = util_safe_int(getattr(obj_task, "taskStatus", 0))
+            str_status = "unknown"
+            if obj_task:
+                if n_task_status in (
+                        EWorkflowTaskStatus.PENDING,
+                        EWorkflowTaskStatus.PARTIAL,
+                        EWorkflowTaskStatus.BLOCKED):
+                    str_status = "pending_putaway"
+                elif n_task_status == EWorkflowTaskStatus.DONE:
+                    str_status = "stocked" if obj_receipt.no in set_stocked_receipt_no else "unknown"
+            dict_result[obj_receipt.no] = {
+                "warehouseStatusCode": str_status,
+                "nextOwnerDepartment": util_safe_int(getattr(obj_task, "ownerDepartment", 0)),
+            }
+        return dict_result
+
+    def __warehouse_status(self, lst_receipts, dict_warehouse_states):
+        if not lst_receipts:
+            return "not_received"
+        lst_status = [
+            dict_warehouse_states.get(obj_row.no, {}).get("warehouseStatusCode", "unknown")
+            for obj_row in lst_receipts
+        ]
+        if "pending_putaway" in lst_status:
+            return "pending_putaway"
+        if "unknown" in lst_status:
+            return "unknown"
+        return "stocked"
+
+    def __row(self, obj_session, obj_order, dict_receipts, dict_warehouse_states, n_now):
         obj_company = obj_session.query(CTableCompany).filter(
             CTableCompany.no == obj_order.item_ref_no).first()
         obj_request = None
@@ -106,7 +168,8 @@ class CPurchasingPurchaseOrderService(object):
             "expectedArrivalTimestamp": n_expected, "purchaseRequestNo": obj_order.purchase_request_no or "",
             "purchaseRequestLinkStatusCode": "linked" if obj_request else ("unlinked" if not obj_order.purchase_request_no else "invalid"),
             "sourceOrderNo": getattr(obj_request, "product_order_no", "") or "", "linkedWorkOrderNo": "",
-            "warehouseStatusCode": "not_received" if not dict_receipts.get(obj_order.no) else "unknown",
+            "warehouseStatusCode": self.__warehouse_status(
+                dict_receipts.get(obj_order.no, []), dict_warehouse_states),
             "riskLevel": n_risk_level, "riskType": str_risk_type,
         }
 
@@ -122,7 +185,13 @@ class CPurchasingPurchaseOrderService(object):
             obj_session = obj_dbmgr.get_session()
             lst_orders = self.__base_orders(obj_session, dict_range)
             dict_receipts = self.__receipts(obj_session, [obj_row.no for obj_row in lst_orders])
-            lst_rows = [self.__row(obj_session, obj_row, dict_receipts, int(time.time())) for obj_row in lst_orders]
+            dict_warehouse_states = self.__warehouse_states(
+                obj_session,
+                [obj_receipt for lst_receipt in dict_receipts.values() for obj_receipt in lst_receipt],
+            )
+            lst_rows = [self.__row(
+                obj_session, obj_row, dict_receipts, dict_warehouse_states, int(time.time())
+            ) for obj_row in lst_orders]
             n_risk_level = request.args.get("riskLevel", None, type=int)
             if n_risk_level is not None:
                 lst_rows = [dict_row for dict_row in lst_rows if dict_row["riskLevel"] == n_risk_level]
@@ -169,6 +238,7 @@ class CPurchasingPurchaseOrderService(object):
                 CTableGoodsReceiptNote.date >= dict_range["startTimestamp"],
                 CTableGoodsReceiptNote.date <= dict_range["endTimestamp"],
             ).order_by(CTableGoodsReceiptNote.date.asc(), CTableGoodsReceiptNote.no.asc()).all()
+            dict_warehouse_states = self.__warehouse_states(obj_session, lst_rows)
             lst_result = []
             for obj_row in lst_rows:
                 str_receiving = "returned" if obj_row.category == 1 else ("received" if util_safe_float(obj_row.checkedCount) > 0 else "unknown")
@@ -177,7 +247,10 @@ class CPurchasingPurchaseOrderService(object):
                     "itemNo": obj_row.item_no or "", "itemName": obj_row.item_name or "",
                     "expectedCount": util_round_quantity(obj_row.expectedCount), "checkedCount": util_round_quantity(obj_row.checkedCount),
                     "receivedCount": util_round_quantity(obj_row.checkedCount), "receivingStatusCode": str_receiving,
-                    "warehouseStatusCode": "unknown", "nextOwnerDepartment": 0})
+                    "warehouseStatusCode": dict_warehouse_states.get(obj_row.no, {}).get(
+                        "warehouseStatusCode", "unknown"),
+                    "nextOwnerDepartment": dict_warehouse_states.get(obj_row.no, {}).get(
+                        "nextOwnerDepartment", 0)})
             n_start = max(request.args.get("start", 0, type=int), 0)
             n_count = min(max(request.args.get("count", 50, type=int), 1), 100)
             return self.__response(dict_range, {"summary": {"receiptCount": len(lst_result), "pendingPutawayCount": len(lst_result)},
@@ -222,11 +295,12 @@ class CPurchasingPurchaseOrderService(object):
             obj_company = obj_session.query(CTableCompany).filter(CTableCompany.no == obj_order.item_ref_no).first()
             obj_request = obj_session.query(CTablePurchaseRequest).filter(CTablePurchaseRequest.no == obj_order.purchase_request_no).first() if obj_order.purchase_request_no else None
             lst_receipts = obj_session.query(CTableGoodsReceiptNote).filter(CTableGoodsReceiptNote.purchase_order_no == str_order_no).order_by(CTableGoodsReceiptNote.date.asc(), CTableGoodsReceiptNote.no.asc()).all()
+            dict_warehouse_states = self.__warehouse_states(obj_session, lst_receipts)
             return {"serverTimestamp": util_safe_int(time.time()), "timezone": self.str_timezone,
                 "purchaseOrder": {"purchaseOrderNo": obj_order.no or "", "purchaseDateTimestamp": util_safe_int(obj_order.date), "itemNo": obj_order.item_no or "", "itemName": obj_order.item_name or "", "unit": util_safe_int(obj_order.unit), "supplierNo": obj_order.item_ref_no or "", "supplierName": getattr(obj_company, "displayName", "") or "", "orderedCount": util_round_quantity(obj_order.count), "unitPrice": util_round_price(obj_order.price), "purchaseAmount": util_round_amount(obj_order.amount), "expectedArrivalTimestamp": util_safe_int(obj_order.expectedDate), "comment": obj_order.comment or ""},
                 "purchaseRequest": {"purchaseRequestNo": obj_request.no, "sourceOrderNo": obj_request.product_order_no or "", "itemNo": obj_request.item_no or "", "requestedCount": util_round_quantity(obj_request.count)} if obj_request else None,
                 "supplier": {"supplierNo": obj_order.item_ref_no or "", "supplierName": getattr(obj_company, "displayName", "") or ""},
-                "receipts": [{"no": obj_row.no or "", "dateTimestamp": util_safe_int(obj_row.date), "category": util_safe_int(obj_row.category), "expectedCount": util_round_quantity(obj_row.expectedCount), "checkedCount": util_round_quantity(obj_row.checkedCount), "receivedCount": util_round_quantity(obj_row.checkedCount), "receivingStatusCode": "returned" if obj_row.category == 1 else ("received" if util_safe_float(obj_row.checkedCount) > 0 else "unknown"), "warehouseStatusCode": "unknown"} for obj_row in lst_receipts],
+                "receipts": [{"no": obj_row.no or "", "dateTimestamp": util_safe_int(obj_row.date), "category": util_safe_int(obj_row.category), "expectedCount": util_round_quantity(obj_row.expectedCount), "checkedCount": util_round_quantity(obj_row.checkedCount), "receivedCount": util_round_quantity(obj_row.checkedCount), "receivingStatusCode": "returned" if obj_row.category == 1 else ("received" if util_safe_float(obj_row.checkedCount) > 0 else "unknown"), "warehouseStatusCode": dict_warehouse_states.get(obj_row.no, {}).get("warehouseStatusCode", "unknown"), "nextOwnerDepartment": dict_warehouse_states.get(obj_row.no, {}).get("nextOwnerDepartment", 0)} for obj_row in lst_receipts],
                 "source": {"sourceOrderNo": getattr(obj_request, "product_order_no", "") or "", "linkedWorkOrderNo": ""},
                 "inventory": {"currentCount": 0.0, "reservedCount": 0.0, "availableCount": 0.0}, "workflow": [],
                 "relatedDocuments": {"quoteNo": "", "contractNo": ""}}

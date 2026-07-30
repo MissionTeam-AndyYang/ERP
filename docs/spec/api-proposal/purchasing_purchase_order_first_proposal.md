@@ -413,7 +413,8 @@
       "checkedCount": "Float",
       "receivedCount": "Float",
       "receivingStatusCode": "String",
-      "warehouseStatusCode": "String"
+      "warehouseStatusCode": "String",
+      "nextOwnerDepartment": "Integer"
     }
   ],
   "source": {
@@ -478,6 +479,7 @@
 | `receipts[].receivedCount` | Float | 該採購單截至本筆日期的收貨淨值，取至小數點第 2 位。 | 同採購單按日期累計 `checkedCount`，退回扣除 |
 | `receipts[].receivingStatusCode` | String | 進貨單資料列的收貨處理狀態。 | `received`、`returned`、`unknown` |
 | `receipts[].warehouseStatusCode` | String | 該進貨單的入庫交接狀態；由 workflow 主判斷、inventory 輔助驗證。 | `pending_putaway`、`stocked`、`unknown` |
+| `receipts[].nextOwnerDepartment` | Integer | 最新入庫 workflow task 的下一步負責部門 code；無 task 時為 `0`。 | `workflow_task_state.ownerDepartment` |
 | `source` | Object | 已確認的來源訂單與工單關聯；無關聯時欄位為空字串。 | 正式 FK 或 workflow／APS relation |
 | `source.sourceOrderNo` | String | 來源訂購單 no。 | `purchase_request.product_order_no` |
 | `source.linkedWorkOrderNo` | String | 已確認的生產工單 no。 | workflow／APS relation |

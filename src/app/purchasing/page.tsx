@@ -3,6 +3,8 @@
 import {
   AlertTriangle,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   PackageCheck,
   Search,
@@ -35,6 +37,15 @@ const tabs: { id: PurchasingWorkspaceTab; label: string; icon: typeof ShoppingCa
   { id: "suppliers", label: "供應商追蹤", icon: Users }
 ];
 
+const initialPageByTab: Record<PurchasingWorkspaceTab, number> = {
+  "purchase-orders": 0,
+  "delivery-risk": 0,
+  receiving: 0,
+  suppliers: 0
+};
+
+const pageSizeOptions = [25, 50, 100] as const;
+
 const tabDescriptions: Record<PurchasingWorkspaceTab, string> = {
   "purchase-orders": "以採購單為主資料列，查詢採購日期、供應商、交易單位、單價、到貨規劃與請購關聯。",
   "delivery-risk": "聚焦逾期、今日到期、未收缺口與正式來源影響，讓採購追蹤有明確優先順序。",
@@ -64,6 +75,32 @@ function formatInteger(value: number | undefined, language: string) {
 
 function formatMoney(value: number | undefined, language: string) {
   return `$${formatInteger(value, language)}`;
+}
+
+function totalByTab(data: PurchasingDashboardData, activeTab: PurchasingWorkspaceTab) {
+  if (activeTab === "delivery-risk") {
+    return data.total.deliveryRisks;
+  }
+  if (activeTab === "receiving") {
+    return data.total.receipts;
+  }
+  if (activeTab === "suppliers") {
+    return data.total.suppliers;
+  }
+  return data.total.purchaseOrders;
+}
+
+function rowCountByTab(data: PurchasingDashboardData, activeTab: PurchasingWorkspaceTab) {
+  if (activeTab === "delivery-risk") {
+    return data.deliveryRisks.length;
+  }
+  if (activeTab === "receiving") {
+    return data.receipts.length;
+  }
+  if (activeTab === "suppliers") {
+    return data.suppliers.length;
+  }
+  return data.purchaseOrders.length;
 }
 
 function normalizeSearch(value: string) {
@@ -470,6 +507,84 @@ function MainContent({
   );
 }
 
+function PaginationControls({
+  activeTabLabel,
+  currentPage,
+  pageSize,
+  total,
+  rowCount,
+  language,
+  isLoading,
+  onPageChange,
+  onPageSizeChange
+}: {
+  activeTabLabel: string;
+  currentPage: number;
+  pageSize: number;
+  total: number;
+  rowCount: number;
+  language: string;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+}) {
+  const pageStart = total > 0 ? currentPage * pageSize + 1 : 0;
+  const pageEnd = total > 0 ? Math.min(currentPage * pageSize + rowCount, total) : 0;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const canGoPrevious = currentPage > 0 && !isLoading;
+  const canGoNext = currentPage + 1 < pageCount && !isLoading;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-white p-3 shadow-card md:flex-row md:items-center md:justify-between">
+      <div className="text-sm text-textSecondary">
+        <span className="font-medium text-textPrimary">{activeTabLabel}</span>
+        <span className="ml-2">
+          {formatInteger(pageStart, language)}-{formatInteger(pageEnd, language)} /{" "}
+          {formatInteger(total, language)} 筆
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex h-9 items-center gap-2 rounded-input border border-border bg-slate-50 px-3 text-sm text-textSecondary">
+          每頁
+          <select
+            className="bg-transparent font-medium text-textPrimary outline-none"
+            aria-label="採購中心每頁筆數"
+            value={pageSize}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+          >
+            {pageSizeOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="inline-flex h-9 items-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!canGoPrevious}
+          onClick={() => onPageChange(Math.max(currentPage - 1, 0))}
+          type="button"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          上一頁
+        </button>
+        <span className="min-w-[92px] text-center text-sm text-textSecondary">
+          {formatInteger(currentPage + 1, language)} / {formatInteger(pageCount, language)}
+        </span>
+        <button
+          className="inline-flex h-9 items-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!canGoNext}
+          onClick={() => onPageChange(currentPage + 1)}
+          type="button"
+        >
+          下一頁
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DetailPanel({
   item,
   detail,
@@ -633,6 +748,8 @@ export default function PurchasingPage() {
   const [searchValue, setSearchValue] = useState("");
   const [startDate, setStartDate] = useState(firstDayOfMonthIsoDate());
   const [endDate, setEndDate] = useState(todayIsoDate());
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [pageByTab, setPageByTab] = useState<Record<PurchasingWorkspaceTab, number>>(initialPageByTab);
   const [detailState, setDetailState] = useState<{
     detail?: PurchaseOrderDetail;
     purchaseOrderNo?: string;
@@ -640,15 +757,29 @@ export default function PurchasingPage() {
   }>({});
 
   const searchQuery = normalizeSearch(searchValue);
+  const activePage = pageByTab[activeTab] ?? 0;
   const query = useMemo<PurchasingDashboardQuery>(
-    () => ({ startDate, endDate, keyword: searchValue.trim() || undefined, count: 50 }),
-    [startDate, endDate, searchValue]
+    () => ({
+      startDate,
+      endDate,
+      keyword: searchValue.trim() || undefined,
+      start: activePage * pageSize,
+      count: pageSize
+    }),
+    [activePage, endDate, pageSize, searchValue, startDate]
   );
   const { data: purchasingData, error, isLoading, source } = usePurchasingDashboard(dataSourceMode, query);
 
-  const selectedPurchaseOrder =
+  const selectedPurchaseOrderCandidate =
     purchasingData.purchaseOrders.find((item) => item.purchaseOrderNo === selectedPurchaseOrderNo) ??
-    purchasingData.purchaseOrders[0];
+    purchasingData.deliveryRisks.find((item) => item.purchaseOrderNo === selectedPurchaseOrderNo);
+  const selectedPurchaseOrder = selectedPurchaseOrderCandidate ?? purchasingData.purchaseOrders[0];
+  const activeTotal = totalByTab(purchasingData, activeTab);
+  const activeRowCount = rowCountByTab(purchasingData, activeTab);
+
+  function resetPagination() {
+    setPageByTab(initialPageByTab);
+  }
 
   useEffect(() => {
     if (!selectedPurchaseOrder?.purchaseOrderNo) {
@@ -703,7 +834,10 @@ export default function PurchasingPage() {
                   aria-label="採購查詢起始日期"
                   type="date"
                   value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
+                  onChange={(event) => {
+                    setStartDate(event.target.value);
+                    resetPagination();
+                  }}
                 />
               </label>
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
@@ -713,7 +847,10 @@ export default function PurchasingPage() {
                   aria-label="採購查詢結束日期"
                   type="date"
                   value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
+                  onChange={(event) => {
+                    setEndDate(event.target.value);
+                    resetPagination();
+                  }}
                 />
               </label>
               <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
@@ -722,11 +859,20 @@ export default function PurchasingPage() {
                   className="w-full min-w-[210px] bg-transparent text-sm outline-none placeholder:text-textSecondary"
                   aria-label="搜尋採購單、進貨單、請購單、供應商或料品"
                   value={searchValue}
-                  onChange={(event) => setSearchValue(event.target.value)}
+                  onChange={(event) => {
+                    setSearchValue(event.target.value);
+                    resetPagination();
+                  }}
                   placeholder="採購單 / 進貨單 / 供應商 / 料品"
                 />
               </label>
-              <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
+              <DataSourceToggle
+                value={dataSourceMode}
+                onChange={(mode) => {
+                  setDataSourceMode(mode);
+                  resetPagination();
+                }}
+              />
             </div>
           </div>
         </section>
@@ -784,6 +930,26 @@ export default function PurchasingPage() {
                 查詢區間 {purchasingData.range.startDate || startDate} 至 {purchasingData.range.endDate || endDate}
               </span>
             </div>
+
+            <PaginationControls
+              activeTabLabel={activeTabLabel}
+              currentPage={activePage}
+              pageSize={pageSize}
+              total={activeTotal}
+              rowCount={activeRowCount}
+              language={language}
+              isLoading={isLoading}
+              onPageChange={(page) =>
+                setPageByTab((current) => ({
+                  ...current,
+                  [activeTab]: page
+                }))
+              }
+              onPageSizeChange={(nextPageSize) => {
+                setPageSize(nextPageSize);
+                resetPagination();
+              }}
+            />
 
             <MainContent
               activeTab={activeTab}

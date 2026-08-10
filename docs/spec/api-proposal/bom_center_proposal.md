@@ -1,8 +1,8 @@
 # 工程師提問
 1. 針對 `/api/v2/bom/center/dashboard`
-  - 若同一 bom 編號存在多個版本，items[] 會僅包含 1 筆最新版本的資訊，還是會同時列出多筆不同版本的資料？
+    - 若同一 bom 編號存在多個版本，items[] 會僅包含 1 筆最新版本的資訊，還是會同時列出多筆不同版本的資料？
 2. 針對 `/api/v2/bom/center/{bom_no}/detail`
-  - 同一 bom 編號若存在多個版本，是否僅取回最新版本的原料明細?
+    - 同一 bom 編號若存在多個版本，是否僅取回最新版本的原料明細?
 
 
 # BOMCenterScreen API 提案
@@ -191,15 +191,15 @@
 請工程師確認以下事項後，才可建立正式 API 文件與進行後端實作：
 
 1. `/api/v2/bom/center/dashboard` 與 `/api/v2/bom/center/{bom_no}/detail` 的 URL 命名。
-  - 工程師回覆: URL path 由 /api/v2/bom/center/xxx 更名為 /api/v2/bom/xxx，並檢視此更名是否會造成 URL path 重複或衝突
+    - 工程師回覆: URL path 由 /api/v2/bom/center/xxx 更名為 /api/v2/bom/xxx，並檢視此更名是否會造成 URL path 重複或衝突
 2. `versionStateCode` 是否可依 `bom.date` 與同一 `bom.no` 的最高版本計算；若實際業務有正式核准欄位，請指定資料表與欄位。
-  - 工程師回覆: 可以
+    - 工程師回覆: 可以
 3. `bom_item` 是否只代表原物料明細，以及是否需要把 `bom1`、`bom2` 或 `product_bom_spec` 一併納入 BOM Center 的樹狀展開。
-  - 工程師回覆: `bom` 為原料配方不涵蓋物料, 因此`bom_item` 只代表原料明細。
+    - 工程師回覆: `bom` 為原料配方不涵蓋物料, 因此`bom_item` 只代表原料明細。
   `bom` 為原料配方，不涵蓋物料，因此 `bom_item` 僅代表原料明細。以下資料表（bom、bom_item、bom1_number、bom1、bom2_number、bom2、inproduct_bom_spec、product_bom_spec、product_bom）涉及原料配方，以及在製品或製成品的原物料組裝。請就你的理解，說明這些資料表所代表的意涵及其相互關聯。
 4. `linkedProducts` 是否以 `product_spec` 的 BOM no/version 關聯為準。
-  - 工程師回覆: 以 product_spec 的 bom_no 關聯為準，bom_version 暫不列入考量。
+    - 工程師回覆: 以 product_spec 的 bom_no 關聯為準，bom_version 暫不列入考量。
 5. `date` 的資料庫格式與 timezone 轉換規則。
-  - 工程師回覆: date 欄位為 UTC timestamp，建議應如何轉換？目前程式中是否已實作相關的轉換函式？
+    - 工程師回覆: date 欄位為 UTC timestamp，建議應如何轉換？目前程式中是否已實作相關的轉換函式？
 6. `count`、`weight`、`unit` 的空值回傳規則與數值精度。
-  - 工程師回覆: 請依照既有已實作的 API 處理方式進行。
+    - 工程師回覆: 請依照既有已實作的 API 處理方式進行。

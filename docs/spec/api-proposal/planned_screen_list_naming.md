@@ -118,6 +118,22 @@ Naming rules:
 | P0.4 | V1 Core | `ProductCommercialReferenceView` | View | 報價與合約關聯視圖 | `ProductDevelopmentWorkspaceScreen` 內的「報價與合約」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 顯示正式 quotation/contract 關聯，不代表已核准或有效。 |
 | P1 | V1 Core | `ProductDevelopmentDetailPanel` | Panel | 產品研發追蹤面板 | `ProductDevelopmentWorkspaceScreen` 右側 panel | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 顯示產品版本、BOM、成本與商務關聯明細。 |
 
+## BOM Center Screen Roadmap
+
+`BOMCenterScreen` 與 `ProductDevelopmentWorkspaceScreen` 分開管理。BOM Center 對應目前 `/bom` 執行畫面，只處理 BOM 版本、有效日期、直接配方明細與產品版本關聯；研發成本、成本試算、報價與合約維持在 `/rd` 與產品研發相關規劃中。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `BOMCenterScreen` | Screen | BOM 中心 | `/bom` | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/center/dashboard`、`GET /api/v2/bom/center/{bom_no}/detail` | 檢視 BOM 版本、版本狀態、有效日期、配方明細及產品版本關聯；不包含成本、報價、合約與寫入操作。 |
+| P0.1 | V1 Core | `BOMVersionSummaryView` | View | BOM 版本總覽 | `BOMCenterScreen` 內的總覽區與 KPI | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/center/dashboard` | 顯示 BOM 數量、版本數量、目前有效、未來生效與歷史版本統計。 |
+| P0.2 | V1 Core | `BOMVersionListView` | View | BOM 版本清單 | `BOMCenterScreen` 內的版本清單 | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/center/dashboard` | 支援關鍵字、版本狀態、分頁與 BOM 版本摘要檢視。 |
+| P0.3 | V1 Core | `BOMLifecycleView` | View | BOM 版本狀態視圖 | `BOMCenterScreen` 內的版本流程區 | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/center/dashboard` | 以 `versionStateCode` 呈現目前有效、未來生效、歷史及無法判定狀態；不代表正式核准流程。 |
+| P0.4 | V1 Core | `BOMDetailPanel` | Panel | BOM 明細面板 | `BOMCenterScreen` 右側 panel；窄版可作 drawer | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/center/{bom_no}/detail` | 顯示選定版本的配方明細與關聯產品版本。 |
+
+### BOM Center Scope Boundary
+
+`ProductDevelopmentWorkspaceScreen` 的整合型提案保留作為歷史規劃參考，但不再代表 `/bom` 的畫面 API。成本試算、報價與合約應由 `/rd`「研發成本」及後續獨立 API 規劃；BOM Center 提案不得重新加入這些欄位。
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：

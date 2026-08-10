@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BOM 中心 API 靜態預覽</title>
+  <style>
+    :root { --ink:#1f2937; --muted:#667085; --line:#e5e7eb; --panel:#fff; --bg:#f4f6f8; --teal:#0f766e; --blue:#2563eb; --amber:#b45309; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); background:var(--bg); font:14px/1.5 "Segoe UI", "Microsoft JhengHei", sans-serif; }
+    .shell { max-width:1320px; margin:0 auto; padding:26px 28px 42px; }
+    .top { display:flex; justify-content:space-between; gap:24px; align-items:flex-end; margin-bottom:24px; }
+    h1,h2,h3,p { margin:0; } h1 { font-size:28px; letter-spacing:0; } h2 { font-size:17px; } h3 { font-size:14px; }
+    .eyebrow { color:var(--teal); font-weight:700; margin-bottom:5px; } .muted { color:var(--muted); }
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; } input,select,button { height:38px; border:1px solid #d0d5dd; background:#fff; border-radius:6px; padding:0 12px; color:var(--ink); } button { cursor:pointer; font-weight:700; } button.primary { background:var(--teal); color:#fff; border-color:var(--teal); }
+    .kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:18px; } .kpi,.panel,.bom-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+    .kpi { padding:16px; } .kpi strong { display:block; font-size:25px; margin-top:6px; } .kpi small { color:var(--muted); }
+    .layout { display:grid; grid-template-columns:1.35fr .9fr; gap:16px; } .panel { padding:18px; } .panel-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:14px; }
+    .board { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; } .stage { background:#f8fafc; border:1px solid var(--line); border-radius:7px; padding:10px; min-height:145px; } .stage h3 { margin-bottom:9px; } .stage p { padding:9px; background:#fff; border-left:3px solid var(--blue); margin-bottom:8px; border-radius:4px; }
+    .list { display:grid; gap:10px; } .bom-card { padding:13px; cursor:pointer; } .bom-card:hover { border-color:#98a2b3; } .row { display:flex; justify-content:space-between; gap:12px; align-items:center; } .tag { display:inline-block; padding:2px 7px; border-radius:999px; font-size:12px; background:#ecfdf3; color:#047857; } .tag.future { background:#eff6ff; color:#1d4ed8; } .tag.history { background:#f2f4f7; color:#475467; }
+    table { width:100%; border-collapse:collapse; } th,td { text-align:left; border-bottom:1px solid var(--line); padding:10px 8px; vertical-align:top; } th { color:var(--muted); font-size:12px; font-weight:700; } .detail { margin-top:16px; } .empty { color:var(--muted); padding:18px 0; }
+    @media (max-width:980px) { .kpis { grid-template-columns:repeat(3,1fr); } .layout { grid-template-columns:1fr; } } @media (max-width:620px) { .shell { padding:18px 14px 30px; } .top { display:block; } .kpis { grid-template-columns:repeat(2,1fr); } .board { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div><div class="eyebrow">BOM CENTER / READ ONLY</div><h1>BOM 中心</h1><p class="muted">集中檢視商品配方版本、有效日期、配方明細與產品關聯</p></div>
+      <div class="muted">資料時間：2026/08/10 09:30</div>
+    </header>
+    <div class="toolbar"><input id="keyword" placeholder="搜尋 BOM、名稱或料品" aria-label="搜尋 BOM"><select aria-label="版本狀態"><option>全部版本狀態</option><option>目前有效</option><option>未來生效</option><option>歷史版本</option></select><button class="primary" onclick="filterCards()">搜尋</button><button onclick="resetCards()">清除</button></div>
+    <section class="kpis"><div class="kpi"><small>BOM 數量</small><strong>146</strong></div><div class="kpi"><small>版本總數</small><strong>176</strong></div><div class="kpi"><small>目前有效</small><strong>118</strong></div><div class="kpi"><small>未來生效</small><strong>8</strong></div><div class="kpi"><small>歷史版本</small><strong>50</strong></div></section>
+    <section class="layout">
+      <div>
+        <section class="panel"><div class="panel-head"><div><h2>配方版本流程</h2><p class="muted">狀態由 versionStateCode 轉換顯示，未代表核准流程</p></div><span class="muted">共 176 筆</span></div><div class="board"><div class="stage"><h3>目前有效</h3><p><b>BOM-260801</b><br><span class="muted">香草餅乾 / V3</span></p><p><b>BOM-260734</b><br><span class="muted">可可粉體 / V2</span></p></div><div class="stage"><h3>未來生效</h3><p><b>BOM-260920</b><br><span class="muted">燕麥脆片 / V4</span></p></div><div class="stage"><h3>歷史版本</h3><p><b>BOM-260501</b><br><span class="muted">乳粉基礎 / V1</span></p></div><div class="stage"><h3>待確認資料</h3><p><b>BOM-260612</b><br><span class="muted">日期或來源不完整</span></p></div></div></section>
+        <section class="panel detail"><div class="panel-head"><h2>BOM 版本清單</h2><span class="muted">點選右側檢視</span></div><div id="cards" class="list"><div class="bom-card" data-search="BOM-260801 香草餅乾 原料"><div class="row"><b>BOM-260801．香草餅乾</b><span class="tag">目前有效</span></div><p class="muted">V3 · 生效 2026/08/01 · 明細 18 筆 · 關聯產品 3 項</p></div><div class="bom-card" data-search="BOM-260734 可可粉體 物料"><div class="row"><b>BOM-260734．可可粉體</b><span class="tag future">未來生效</span></div><p class="muted">V2 · 生效 2026/09/01 · 明細 11 筆 · 關聯產品 1 項</p></div><div class="bom-card" data-search="BOM-260501 乳粉基礎 原料"><div class="row"><b>BOM-260501．乳粉基礎</b><span class="tag history">歷史版本</span></div><p class="muted">V1 · 生效 2026/05/01 · 明細 9 筆 · 關聯產品 0 項</p></div></div><p id="empty" class="empty" hidden>沒有符合條件的 BOM 版本。</p></section>
+      </div>
+      <aside class="panel"><div class="panel-head"><div><h2>BOM 明細</h2><p class="muted">BOM-260801 · V3</p></div><span class="tag">目前有效</span></div><table><thead><tr><th>料品 no</th><th>名稱</th><th>單位</th><th>用量</th></tr></thead><tbody><tr><td>RM-0018</td><td>小麥粉</td><td>公斤</td><td>120.00</td></tr><tr><td>RM-0042</td><td>砂糖</td><td>公斤</td><td>22.50</td></tr><tr><td>RM-0087</td><td>奶油粉</td><td>公斤</td><td>8.00</td></tr></tbody></table><div class="detail"><h3>關聯產品版本</h3><p class="muted">P-00018 / V5 · 箱規 · 12 份</p><p class="muted">P-00021 / V2 · 組規 · 6 份</p></div><div class="detail"><h3>資料範圍</h3><p class="muted">本頁不呈現成本試算、報價、合約與變更任務。請由「研發成本」或後續正式 API 處理。</p></div></aside>
+    </section>
+  </main>
+  <script>
+    function filterCards() { const q = document.getElementById('keyword').value.trim().toLowerCase(); let visible = 0; document.querySelectorAll('.bom-card').forEach((card) => { const show = !q || card.dataset.search.toLowerCase().includes(q); card.hidden = !show; if (show) visible += 1; }); document.getElementById('empty').hidden = visible !== 0; }
+    function resetCards() { document.getElementById('keyword').value = ''; filterCards(); }
+  </script>
+</body>
+</html>

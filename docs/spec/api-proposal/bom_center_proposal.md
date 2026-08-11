@@ -206,18 +206,18 @@
 
 以下是依目前資料庫文件整理的範圍，並非新增資料表或新增欄位：
 
-| 資料表 | 意涵 | 主要關聯 |
-|---|---|---|
-| `bom` | 原料商品配方的主檔與版本資料，保存 BOM no、版本、生效時間、單位與基準重量。 | `bom.no` 是 `bom_item` 的父級 BOM no；`bom1_number.bom_no` 可關聯至 `bom.no`。 |
-| `bom_item` | 原料商品配方的直接原料明細，保存原料 no、名稱、單位與用量／重量。 | `bom_item.bom_no -> bom.no`；`bom_item.item_no -> material.no`。 |
-| `bom1_number` | 原料 BOM 的編碼入口，描述以原料或在製品為子項的組裝 BOM。 | `bom1_number.bom_no -> bom.no`；`bom1.parent_no`／`child_id` 使用其編碼形成父子關聯。 |
+| 資料表 | 意涵 | 主要關聯 | 工程師回覆V2 |
+|---|---|---|---|
+| `bom` | 原料商品配方的主檔與版本資料，保存 BOM no、版本、生效時間、單位與基準重量。 | `bom.no` 是 `bom_item` 的父級 BOM no；`bom1_number.bom_no` 可關聯至 `bom.no`。 | bom1_number.bom_no為保留欄位，暫不建立關聯。|
+| `bom_item` | 原料商品配方的直接原料明細，保存原料 no、名稱、單位與用量／重量。 | `bom_item.bom_no -> bom.no`；`bom_item.item_no -> material.no`。 ||
+| `bom1_number` | 原料 BOM 的編碼入口，描述以原料或在製品為子項的組裝 BOM。 | `bom1_number.bom_no -> bom.no`；`bom1.parent_no`／`child_id` 使用其編碼形成父子關聯。 | bom1_number.bom_no為保留欄位，暫不建立關聯。|
 | `bom1` | 原料／在製品組裝 BOM 的父子明細，`child_category` 區分原料與在製品。 | `bom1.parent_no` 關聯 `bom1_number.no`；子項可指向 `material.no` 或 `bom1_number.no`。 |
 | `bom2_number` | 物料 BOM 的編碼入口，供製成品或相關物料的物料組裝規格使用。 | `product_bom_spec.bom2_no -> bom2_number.no`；`bom2` 以 `bom2_number.no` 作為父子組裝關聯。 |
 | `bom2` | 物料／膠捲組裝 BOM 的父子明細，保存子項類別、重量、長度或數量。 | `bom2.parent_no` 關聯 `bom2_number.no`；子項可指向物料或膠捲品項。 |
-| `inproduct_bom_spec` | 在製品使用的 BOM 規格，`category=1` 指原料 BOM，`category=2` 指物料製成品；以 `bom12_no` 指向 `bom1_number` 或 `bom2_number`。 | `inproduct_no -> inproduct.no`；`item_no`／`item_version` 表示對應原料 BOM 或物料製成品版本。 |
+| `inproduct_bom_spec` | 在製品使用的 BOM 規格，`category=1` 指原料 BOM，`category=2` 指物料製成品；以 `bom12_no` 指向 `bom1_number` 或 `bom2_number`。 | `inproduct_no -> inproduct.no`；`item_no`／`item_version` 表示對應原料 BOM 或物料製成品版本。 | `category=1`時`item_no`／`item_version`，暫不建立關聯。 `category=2`時`item_no`／`item_version`，表示對應製成品品項或版本(`product`)。
 | `product_bom_spec` | 製成品使用的物料 BOM 規格，保存包裝階層、份數、單位與重量。 | `product_no`／`product_version -> product`；`bom2_no -> bom2_number.no`。 |
-| `product_spec` | 製成品與原料商品配方的關聯規格，保存製成品版本所使用的 `bom_no`，以及在製品／製成品組裝項目。 | `product_spec.product_no -> product.no`；BOM Center V1 的 `linkedProducts` 以 `product_spec.bom_no` 關聯 `bom.no`。 |
-| `product_bom` | 目前 `docs/spec/database/index.md` 未列出此資料表，無法在本版確認其欄位或關聯。 | 不納入 BOM Center V1；若工程師確認它是實際資料表，需先補 DB schema 文件再另行設計 API。 |
+| `product_spec` | 製成品與原料商品配方的關聯規格，保存製成品版本所使用的 `bom_no`，以及在製品／製成品組裝項目。 | `product_spec.product_no -> product.no`；BOM Center V1 的 `linkedProducts` 以 `product_spec.bom_no` 關聯 `bom.no`。 |由於製成品組裝階層區分為 (1) 箱規內含組規包裝、(2) 單純箱規，`product_spec.product_no` 在屬於箱規內含組規包裝的情境下，資料表會額外建立一筆編碼，形式為 no + "_1" 。
+| `product_bom` | 目前 `docs/spec/database/index.md` 未列出此資料表，無法在本版確認其欄位或關聯。 | 不納入 BOM Center V1；若工程師確認它是實際資料表，需先補 DB schema 文件再另行設計 API。 |工程師筆誤，實際上並不存在此資料表。|
 
 因此，BOM Center V1 先呈現「原料商品配方」主檔 (`bom`)、直接原料明細 (`bom_item`) 及產品關聯 (`product_spec`)；在製品／製成品的物料組裝需另定義樹狀展開規則後，才納入後續版本。
 
@@ -226,5 +226,8 @@
 工程師回覆已納入本版提案。正式 API 文件與後端實作前，仍請確認：
 
 1. `/api/v2/bom/dashboard` 與 `/api/v2/bom/{bom_no}/detail` 的路徑命名。
+  - 工程師回覆V2: 對的
 2. 既有 BOM API 的數值精度與空值行為是否與本提案一致。
+  - 工程師回覆V2: 請參照已實作 API 中 unit、weight、count 欄位的回傳與處理方式
 3. `bom1`、`bom2` 及 `inproduct_bom_spec`／`product_bom_spec` 後續版本的樹狀展開入口與遞迴規則。
+  - 工程師回覆V2: 請先分析 CCBOMTree，並依據你的理解描述其樹狀展開入口與遞迴規則。此分析結果將作為後續樹狀展開入口與遞迴規則的基準。

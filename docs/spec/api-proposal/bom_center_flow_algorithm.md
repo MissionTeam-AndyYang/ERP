@@ -1,6 +1,6 @@
 # BOMCenterScreen API 後端流程與演算法
 
-> Status: Proposal / Pending Engineer Review  
+> Status: Engineer Confirmed / Backend Implemented / Pending Runtime Review
 > Screen: `BOMCenterScreen`  
 > Proposal: `bom_center_proposal.md`
 

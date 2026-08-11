@@ -1,6 +1,6 @@
 # BOMCenterScreen API 提案
 
-> Status: Proposal / Pending Engineer Review  
+> Status: Engineer Confirmed / Backend Implemented / Pending Runtime Review
 > Screen: `BOMCenterScreen`  
 > Route: `/bom`  
 > Scope: V1 read-only Core  

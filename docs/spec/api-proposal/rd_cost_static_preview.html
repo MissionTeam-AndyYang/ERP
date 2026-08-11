@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>研發成本 API 靜態預覽</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --border: #d7dde8;
+      --text: #172033;
+      --muted: #667085;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --primary: #2563eb;
+      --success: #0f766e;
+      --warning: #b45309;
+      --danger: #b42318;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft JhengHei", "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+    main { max-width: 1440px; margin: 0 auto; padding: 24px; }
+    header, section, aside {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(16, 24, 40, .08);
+    }
+    header { padding: 18px; margin-bottom: 16px; }
+    h1 { margin: 8px 0 6px; font-size: 24px; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    p { margin: 0; color: var(--muted); line-height: 1.6; }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      border-radius: 999px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #3730a3;
+    }
+    .badge.success { background: #ccfbf1; color: var(--success); }
+    .badge.warning { background: #fef3c7; color: var(--warning); }
+    .badge.danger { background: #fee4e2; color: var(--danger); }
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) repeat(4, auto);
+      gap: 8px;
+      margin-top: 16px;
+    }
+    input, button {
+      height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      padding: 0 12px;
+      color: var(--text);
+      font: inherit;
+    }
+    button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+    .kpi { padding: 14px; }
+    .kpi b { display: block; margin-top: 8px; font-size: 24px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 16px; }
+    section, aside { padding: 16px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1180px; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .right { text-align: right; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
+    .metric { background: #f8fafc; border-radius: 6px; padding: 10px; }
+    .metric span { display: block; color: var(--muted); font-size: 12px; }
+    .metric b { display: block; margin-top: 4px; }
+    .line { border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 8px; }
+    .line strong { display: flex; justify-content: space-between; gap: 10px; }
+    code { color: #475467; }
+    @media (max-width: 1100px) {
+      .kpis, .layout { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="badges">
+      <span class="badge">RDCostWorkspaceScreen</span>
+      <span class="badge success">Read-only V1</span>
+      <span class="badge warning">Pending Engineer Review</span>
+    </div>
+    <h1>研發成本、BOM 與報價基礎</h1>
+    <p>此預覽對應 `/api/v2/rd/cost/dashboard`、`/api/v2/rd/cost/products/{product_no}/detail` 與 `/api/v2/rd/cost/products/{product_no}/simulation`。畫面只顯示成本與準備度，不新增或修改資料。</p>
+    <div class="toolbar">
+      <input value="餅乾 / BOM-001 / PRD-001" aria-label="keyword">
+      <button class="active">開發案</button>
+      <button>BOM 版本</button>
+      <button>成本試算</button>
+      <button>報價基礎</button>
+    </div>
+  </header>
+
+  <div class="kpis">
+    <section class="kpi"><p>產品數</p><b>24</b><p><code>summary.productCount</code></p></section>
+    <section class="kpi"><p>BOM 完整</p><b>18</b><p><code>summary.bomReadyCount</code></p></section>
+    <section class="kpi"><p>成本可算</p><b>15</b><p><code>summary.costReadyCount</code></p></section>
+    <section class="kpi"><p>報價/合約</p><b>11</b><p><code>summary.quotationReadyCount</code></p></section>
+    <section class="kpi"><p>毛利注意</p><b>6</b><p><code>summary.marginAttentionCount</code></p></section>
+  </div>
+
+  <div class="layout">
+    <section>
+      <h2>產品成本與報價準備度清單</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>產品 / 版本</th>
+              <th>BOM</th>
+              <th class="right">單品成本</th>
+              <th>成本組成</th>
+              <th>報價</th>
+              <th>毛利</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>PRD-001</strong><br>黑糖燕麥餅 v3</td>
+              <td>BOM-001 / v2<br><span class="badge success">complete</span></td>
+              <td class="right">$42</td>
+              <td>原料 $21 / 包材 $8 / 人工 $7 / 製費 $4 / 物流 $2</td>
+              <td>最低 $56.0<br>建議 $62.0</td>
+              <td>目標 28.0%<br>預估 32.3%</td>
+              <td><span class="badge success">ready</span></td>
+            </tr>
+            <tr>
+              <td><strong>PRD-014</strong><br>起司脆條 v1</td>
+              <td>BOM-014 / v1<br><span class="badge warning">partial</span></td>
+              <td class="right">$0</td>
+              <td>成本來源缺漏：包材、人工</td>
+              <td>最低 $0.0<br>建議 $0.0</td>
+              <td>目標 30.0%<br>預估 0.0%</td>
+              <td><span class="badge danger">cost_missing</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside>
+      <h2>選取產品明細</h2>
+      <p><strong>PRD-001 · 黑糖燕麥餅</strong></p>
+      <p>BOM-001 / v2 · readinessStatusCode: ready</p>
+      <div class="cards">
+        <div class="metric"><span>單品成本</span><b>$42</b></div>
+        <div class="metric"><span>建議報價</span><b>$62.0</b></div>
+        <div class="metric"><span>最低報價</span><b>$56.0</b></div>
+        <div class="metric"><span>預估毛利</span><b>32.3%</b></div>
+      </div>
+      <h2>成本明細</h2>
+      <div class="line"><strong>原料 · 麵粉 <span>$12</span></strong><p>source: sample_price · requiredQuantity 0.65 · unitCost 18.5000</p></div>
+      <div class="line"><strong>原料 · 砂糖 <span>$4</span></strong><p>source: item_price · requiredQuantity 0.18 · unitCost 22.0000</p></div>
+      <div class="line"><strong>包材 · 包裝組 <span>$8</span></strong><p>source: item_price · product_bom_spec pending engineer rule</p></div>
+      <div class="line"><strong>人工 · 烘焙線 <span>$7</span></strong><p>source: labor_wage pending engineer rule</p></div>
+    </aside>
+  </div>
+</main>
+</body>
+</html>

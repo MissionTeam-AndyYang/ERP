@@ -105,18 +105,18 @@ Naming rules:
 | P0.2.2 | `ProductionPendingInventoryState` | 待入庫工單狀態 | `ProductionWorkspaceScreen` | 從工單狀態 badge 或右側追蹤面板進入 | `status=pending_inventory` 或以前端依 `todayWorkOrders[].status` 篩選。 |
 | P0.3.1 | `ProductionEfficiencyRiskState` | 效率損耗風險狀態 | `ProductionWorkspaceScreen` | 從效率損耗視圖、警示卡或管理 KPI drill-down | 依 `productionMetrics[].riskLevel`、`efficiencyRate`、`materialLossRate` 前端篩選；若後端後續提供 query，再同步補齊。 |
 
-## Product Development Workspace Screen Roadmap
+## RD Cost Workspace Screen Roadmap
 
-`ProductDevelopmentWorkspaceScreen` 第一版以產品版本、BOM、成本試算與正式報價/合約關聯為 read-only Core。開發需求、打樣、客戶樣品確認與營養標示目前缺少正式資料來源，先列為 engineer review / deferred，不由 API 推測。
+`RDCostWorkspaceScreen` 對應目前 `/rd` 執行畫面，第一版以產品、BOM、成本試算與報價基礎為 read-only Core。開發需求、打樣、客戶樣品確認與營養標示目前缺少正式資料來源，先列為 deferred，不由 API 推測。舊的 `ProductDevelopmentWorkspaceScreen` 整合型提案保留為歷史參考，不再作為 `/rd` 目前 API 命名基準。
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `ProductDevelopmentWorkspaceScreen` | Screen | 產品研發工作區 | `/product-development` | API proposal，Pending Engineer Review | `GET /api/v2/product-development/dashboard`、`GET /api/v2/product-development/products/{product_no}/detail`、`GET /api/v2/product-development/products/{product_no}/cost-simulation` | 產品版本、BOM 完整性、成本試算與報價/合約準備度工作區。 |
-| P0.1 | V1 Core | `ProductVersionReadinessView` | View | 產品版本準備度視圖 | `ProductDevelopmentWorkspaceScreen` 內的「產品版本」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/dashboard` | 顯示產品版本、BOM、成本、報價、合約與 readiness code。 |
-| P0.2 | V1 Core | `ProductBOMDetailView` | View | BOM 展開視圖 | `ProductDevelopmentWorkspaceScreen` 內的「BOM 展開」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 展開產品版本的正式 BOM 與料品明細。 |
-| P0.3 | V1 Core | `ProductCostSimulationView` | View | 成本試算視圖 | `ProductDevelopmentWorkspaceScreen` 內的「成本試算」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/cost-simulation` | 顯示料品成本、損耗、人工成本與預估成本；不寫入成本。 |
-| P0.4 | V1 Core | `ProductCommercialReferenceView` | View | 報價與合約關聯視圖 | `ProductDevelopmentWorkspaceScreen` 內的「報價與合約」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 顯示正式 quotation/contract 關聯，不代表已核准或有效。 |
-| P1 | V1 Core | `ProductDevelopmentDetailPanel` | Panel | 產品研發追蹤面板 | `ProductDevelopmentWorkspaceScreen` 右側 panel | API proposal，Pending Engineer Review | `GET /api/v2/product-development/products/{product_no}/detail` | 顯示產品版本、BOM、成本與商務關聯明細。 |
+| P0 | V1 Core | `RDCostWorkspaceScreen` | Screen | 研發成本工作區 | `/rd` | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/dashboard`、`GET /api/v2/rd/cost/products/{product_no}/detail`、`GET /api/v2/rd/cost/products/{product_no}/simulation` | 產品版本、BOM、成本試算、報價基礎與 readiness 工作區。 |
+| P0.1 | V1 Core | `RDProjectPipelineView` | View | 開發案視圖 | `RDCostWorkspaceScreen` 內的「開發案」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/dashboard` | 第一版以產品版本作為 row identity；正式開發案、打樣與客戶確認流程待 DB schema 確認後再擴充。 |
+| P0.2 | V1 Core | `RDBomVersionReferenceView` | View | BOM 版本視圖 | `RDCostWorkspaceScreen` 內的「BOM 版本」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/dashboard`、`GET /api/v2/rd/cost/products/{product_no}/detail` | 顯示產品版本關聯的 BOM、BOM 狀態與成本計算來源；不取代 BOM Center。 |
+| P0.3 | V1 Core | `RDCostSimulationView` | View | 成本試算視圖 | `RDCostWorkspaceScreen` 內的「成本試算」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/products/{product_no}/simulation` | 顯示料品成本、損耗、人工、製造費用、物流與單品預估成本；不寫入成本。 |
+| P0.4 | V1 Core | `RDQuotationBasisView` | View | 報價基礎視圖 | `RDCostWorkspaceScreen` 內的「報價基礎」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/dashboard`、`GET /api/v2/rd/cost/products/{product_no}/detail` | 顯示目標價、最低報價、建議報價、毛利與 quotation/contract 關聯；不代表已核准或有效。 |
+| P1 | V1 Core | `RDCostDetailPanel` | Panel | 研發成本追蹤面板 | `RDCostWorkspaceScreen` 右側 panel | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/products/{product_no}/detail` | 顯示選取產品版本的 BOM、成本明細、商務關聯與資料缺口。 |
 
 ## BOM Center Screen Roadmap
 
@@ -124,11 +124,11 @@ Naming rules:
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `BOMCenterScreen` | Screen | BOM 中心 | `/bom` | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/dashboard`、`GET /api/v2/bom/{bom_no}/detail` | 檢視 BOM 版本、版本狀態、有效日期、配方明細及產品版本關聯；不包含成本、報價、合約與寫入操作。 |
-| P0.1 | V1 Core | `BOMVersionSummaryView` | View | BOM 版本總覽 | `BOMCenterScreen` 內的總覽區與 KPI | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/dashboard` | 顯示 BOM 數量、版本數量、目前有效、未來生效與歷史版本統計。 |
-| P0.2 | V1 Core | `BOMVersionListView` | View | BOM 版本清單 | `BOMCenterScreen` 內的版本清單 | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/dashboard` | 支援關鍵字、版本狀態、分頁與 BOM 版本摘要檢視。 |
-| P0.3 | V1 Core | `BOMLifecycleView` | View | BOM 版本狀態視圖 | `BOMCenterScreen` 內的版本流程區 | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/dashboard` | 以 `versionStateCode` 呈現目前有效、未來生效、歷史及無法判定狀態；不代表正式核准流程。 |
-| P0.4 | V1 Core | `BOMDetailPanel` | Panel | BOM 明細面板 | `BOMCenterScreen` 右側 panel；窄版可作 drawer | 前端已有第一版；API proposal，Pending Engineer Review | `GET /api/v2/bom/{bom_no}/detail` | 顯示選定版本的配方明細與關聯產品版本。 |
+| P0 | V1 Core | `BOMCenterScreen` | Screen | BOM 中心 | `/bom` | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard`、`GET /api/v2/bom/{bom_no}/detail` | 檢視 BOM 版本、版本狀態、有效日期、配方明細及產品版本關聯；不包含成本、報價、合約與寫入操作。 |
+| P0.1 | V1 Core | `BOMVersionSummaryView` | View | BOM 版本總覽 | `BOMCenterScreen` 內的總覽區與 KPI | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard` | 顯示 BOM 數量、版本數量、目前有效、未來生效與歷史版本統計。 |
+| P0.2 | V1 Core | `BOMVersionListView` | View | BOM 版本清單 | `BOMCenterScreen` 內的版本清單 | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard` | 支援關鍵字、版本狀態、分頁與 BOM 版本摘要檢視。 |
+| P0.3 | V1 Core | `BOMLifecycleView` | View | BOM 版本狀態視圖 | `BOMCenterScreen` 內的版本流程區 | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard` | 以 `versionStateCode` 呈現目前有效、未來生效、歷史及無法判定狀態；不代表正式核准流程。 |
+| P0.4 | V1 Core | `BOMDetailPanel` | Panel | BOM 明細面板 | `BOMCenterScreen` 右側 panel；窄版可作 drawer | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/{bom_no}/detail` | 顯示選定版本的配方明細與關聯產品版本。 |
 
 ### BOM Center Scope Boundary
 

@@ -551,3 +551,14 @@ class EPurchasingRiskType(object):
     OPEN_RECEIPT = "open_receipt"
     UNKNOWN = "unknown"
 
+
+# ------------------------------------------------------------
+# BOM Center API enums
+# ------------------------------------------------------------
+
+class EBomVersionState(object):
+    EFFECTIVE = "effective"
+    FUTURE = "future"
+    HISTORICAL = "historical"
+    UNKNOWN = "unknown"
+

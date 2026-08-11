@@ -10,6 +10,8 @@
 | [/api/v1/bom/aps](#get-api-v1-bom-aps) | GET | 查詢BOM / APS 資料 | OK | OK |
 | [/api/v1/bom/process](#get-api-v1-bom-process) | GET | 查詢BOM / 製程 | OK | OK |
 | [/api/v1/bom/tree](#get-api-v1-bom-tree) | GET | 查詢BOM / 樹狀資料 | OK | OK |
+| [/api/v2/bom/dashboard](#get-api-v2-bom-dashboard) | GET | 查詢 BOM Center 版本摘要、狀態統計、篩選及分頁清單 | OK | 依 `bom_center_proposal.md` 實作 |
+| [/api/v2/bom/{bom_no}/detail](#get-api-v2-bom-bom_no-detail) | GET | 查詢指定 BOM 的版本清單與選定版本明細 | OK | 依 `bom_center_proposal.md` 實作 |
 
 ## GET /api/v1/bom
 
@@ -434,3 +436,248 @@ None
 | Table | Purpose |
 |----------|------|
 | product | 提供BOM主檔、配方或價格資料 |
+
+## GET /api/v2/bom/dashboard
+
+<a id="get-api-v2-bom-dashboard"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/bom/dashboard | GET | 查詢 BOM Center 版本摘要、狀態統計、篩選及分頁清單 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示偏好的 IANA timezone；後端仍直接回傳資料庫保存的 UTC timestamp |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準 UTC timestamp；未提供時使用系統時間 |
+| keyword | String | NO | BOM no、BOM 簡稱、明細料品 no 或明細料品名稱關鍵字 |
+| bomNo | String | NO | 指定商品配方編號 |
+| versionStateCode | String | NO | 版本狀態 code：effective、future、historical、unknown |
+| start | Integer | NO | 分頁起點，預設 0 |
+| count | Integer | NO | 回傳筆數，預設 50，最大 100 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "summary": {
+      "bomCount": "Integer",
+      "versionCount": "Integer",
+      "effectiveVersionCount": "Integer",
+      "futureVersionCount": "Integer",
+      "historicalVersionCount": "Integer"
+    },
+    "items": [
+      {
+        "bomNo": "String",
+        "bomName": "String",
+        "version": "Integer",
+        "dateTimestamp": "Integer",
+        "unit": "Integer",
+        "weight": "Float",
+        "versionStateCode": "String",
+        "itemCount": "Integer",
+        "linkedProductCount": "Integer"
+      }
+    ],
+    "total": "Integer",
+    "start": "Integer",
+    "count": "Integer"
+  }
+}
+```
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 回傳代碼 |  |
+| message | String | API 回傳訊息 |  |
+| payload.serverTimestamp | Integer | API 回應建立時間，UTC timestamp |  |
+| payload.summary.bomCount | Integer | 套用篩選條件後的不重複 BOM 數量 |  |
+| payload.summary.versionCount | Integer | 套用篩選條件後的 BOM 版本總數 |  |
+| payload.summary.effectiveVersionCount | Integer | 依版本狀態判斷為目前有效的 BOM 版本數 |  |
+| payload.summary.futureVersionCount | Integer | 生效日期晚於查詢日的 BOM 版本數 |  |
+| payload.summary.historicalVersionCount | Integer | 已被較新版本取代或屬歷史版本的 BOM 版本數 |  |
+| payload.items[].bomNo | String | 商品配方編號 |  |
+| payload.items[].bomName | String | 商品配方簡稱；無值時回傳空字串 |  |
+| payload.items[].version | Integer | 商品配方版本 |  |
+| payload.items[].dateTimestamp | Integer | 商品配方生效日期的 UTC timestamp；空值時回傳 0 |  |
+| payload.items[].unit | Integer | 商品配方單位 code；前端負責多國語系顯示 | Unit enum |
+| payload.items[].weight | Float | 商品配方基準重量；依既有 BOM API 的 weight 欄位處理方式 |  |
+| payload.items[].versionStateCode | String | 版本狀態 code；前端負責轉換顯示文字 | effective / future / historical / unknown |
+| payload.items[].itemCount | Integer | 該 BOM 的直接 bom_item 明細筆數 |  |
+| payload.items[].linkedProductCount | Integer | 透過 product_spec.bom_no 關聯的產品版本數 |  |
+| payload.total | Integer | 套用篩選後的 BOM 版本總筆數 |  |
+| payload.start | Integer | 本次分頁起點 |  |
+| payload.count | Integer | 本次實際回傳筆數 |  |
+
+### Failed Response Data
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 錯誤代碼 |  |
+| message | String | API 錯誤訊息 |  |
+| payload | Object | 錯誤 payload，通常為空物件 |  |
+
+### Processing Flow
+
+1. 讀取 date、keyword、bomNo、versionStateCode、start、count 與 x-timezone。
+2. 查詢 bom，並以 bom.no、bom.displayName、bom_item.item_no、bom_item.item_name 套用關鍵字。
+3. 依 bom.date 與同一 bom.no 的有效版本判斷 versionStateCode。
+4. 依 versionStateCode 篩選、排序與分頁。
+5. 批次查詢 bom_item 與 product_spec，計算 itemCount 與 linkedProductCount。
+6. 組成 summary、items、total、start、count 回傳；不回傳成本、報價、合約或繁中文字串 fallback。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| bom | 提供商品配方主檔、版本、生效日期、單位、重量與備註 |
+| bom_item | 提供商品配方直接原料明細與關鍵字查詢來源 |
+| product_spec | 提供使用該 BOM 的產品版本關聯 |
+
+## GET /api/v2/bom/{bom_no}/detail
+
+<a id="get-api-v2-bom-bom_no-detail"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/bom/{bom_no}/detail | GET | 查詢指定 BOM 的版本清單與選定版本明細 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示偏好的 IANA timezone；後端仍直接回傳資料庫保存的 UTC timestamp |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準 UTC timestamp；未提供時使用系統時間 |
+| version | Integer | NO | 指定要檢視的 bom.version；未提供時取目前有效版本 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "bom": {
+      "bomNo": "String",
+      "bomName": "String",
+      "version": "Integer",
+      "dateTimestamp": "Integer",
+      "unit": "Integer",
+      "weight": "Float",
+      "comment": "String",
+      "versionStateCode": "String"
+    },
+    "versions": [
+      {
+        "version": "Integer",
+        "dateTimestamp": "Integer",
+        "versionStateCode": "String"
+      }
+    ],
+    "items": [
+      {
+        "itemNo": "String",
+        "itemName": "String",
+        "unit": "Integer",
+        "weight": "Float"
+      }
+    ],
+    "linkedProducts": [
+      {
+        "productNo": "String",
+        "productVersion": "Integer",
+        "level": "Integer",
+        "itemType": "Integer",
+        "itemNo": "String",
+        "count": "Integer",
+        "unit": "Integer",
+        "weight": "Float"
+      }
+    ]
+  }
+}
+```
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 回傳代碼 |  |
+| message | String | API 回傳訊息 |  |
+| payload.bom.bomNo | String | 商品配方編號 |  |
+| payload.bom.bomName | String | 商品配方簡稱；無值時回傳空字串 |  |
+| payload.bom.version | Integer | 本次選定的商品配方版本 |  |
+| payload.bom.dateTimestamp | Integer | 本次版本生效日期的 UTC timestamp；空值時回傳 0 |  |
+| payload.bom.unit | Integer | 本次版本的配方單位 code | Unit enum |
+| payload.bom.weight | Float | 本次版本的基準重量；依既有 BOM API 的 weight 欄位處理方式 |  |
+| payload.bom.comment | String | 本次版本備註；無值時回傳空字串 |  |
+| payload.bom.versionStateCode | String | 本次版本狀態 code；前端負責顯示文字 | effective / future / historical / unknown |
+| payload.versions[].version | Integer | 同一 BOM 的版本號 |  |
+| payload.versions[].dateTimestamp | Integer | 該版本生效日期的 UTC timestamp；空值時回傳 0 |  |
+| payload.versions[].versionStateCode | String | 該版本狀態 code | effective / future / historical / unknown |
+| payload.items[].itemNo | String | 原物料 no |  |
+| payload.items[].itemName | String | 原物料名稱；無值時回傳空字串 |  |
+| payload.items[].unit | Integer | 原物料使用單位 code | Unit enum |
+| payload.items[].weight | Float | 原物料用量或重量；依既有 BOM API 的 weight 欄位處理方式 |  |
+| payload.linkedProducts[].productNo | String | 關聯製成品 no |  |
+| payload.linkedProducts[].productVersion | Integer | 關聯製成品版本 |  |
+| payload.linkedProducts[].level | Integer | 產品包裝階層 code |  |
+| payload.linkedProducts[].itemType | Integer | 關聯品項類型 code |  |
+| payload.linkedProducts[].itemNo | String | 關聯在製品或製成品 no |  |
+| payload.linkedProducts[].count | Integer | 產品規格使用的份數；依既有 BOM API 的 count 欄位處理方式 |  |
+| payload.linkedProducts[].unit | Integer | 產品規格重量單位 code | Unit enum |
+| payload.linkedProducts[].weight | Float | 產品規格內含物重量；依既有 BOM API 的 weight 欄位處理方式 |  |
+
+### Failed Response Data
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 錯誤代碼 |  |
+| message | String | API 錯誤訊息 |  |
+| payload | Object | 錯誤 payload，通常為空物件 |  |
+
+### Processing Flow
+
+1. 讀取 path parameter bom_no 與 query parameter date、version。
+2. 查詢同一 bom.no 的所有 bom 版本；若不存在則回傳 record not found。
+3. 依 bom.date 與同一 bom.no 的有效版本判斷每個版本的 versionStateCode。
+4. 若提供 version，取指定 bom.version；未提供時取目前有效版本，若無有效版本則取可判定日期中的最高版本。
+5. 查詢 bom_item 取得直接原料明細；BOM Center V1 不遞迴展開 bom1 / bom2。
+6. 查詢 product_spec.bom_no 取得產品版本關聯；不使用 product_spec.bom_version 作為篩選條件。
+7. 組成 bom、versions、items、linkedProducts 回傳。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| bom | 提供指定商品配方的版本、生效日期、單位、重量與備註 |
+| bom_item | 提供商品配方直接原料明細 |
+| product_spec | 提供使用該 BOM 的產品版本關聯 |

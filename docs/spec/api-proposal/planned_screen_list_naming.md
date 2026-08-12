@@ -124,11 +124,11 @@ Naming rules:
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `BOMCenterScreen` | Screen | BOM 中心 | `/bom` | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard`、`GET /api/v2/bom/{bom_no}/detail` | 檢視 BOM 版本、版本狀態、有效日期、配方明細及產品版本關聯；不包含成本、報價、合約與寫入操作。 |
-| P0.1 | V1 Core | `BOMVersionSummaryView` | View | BOM 版本總覽 | `BOMCenterScreen` 內的總覽區與 KPI | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard` | 顯示 BOM 數量、版本數量、目前有效、未來生效與歷史版本統計。 |
-| P0.2 | V1 Core | `BOMVersionListView` | View | BOM 版本清單 | `BOMCenterScreen` 內的版本清單 | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard` | 支援關鍵字、版本狀態、分頁與 BOM 版本摘要檢視。 |
-| P0.3 | V1 Core | `BOMLifecycleView` | View | BOM 版本狀態視圖 | `BOMCenterScreen` 內的版本流程區 | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/dashboard` | 以 `versionStateCode` 呈現目前有效、未來生效、歷史及無法判定狀態；不代表正式核准流程。 |
-| P0.4 | V1 Core | `BOMDetailPanel` | Panel | BOM 明細面板 | `BOMCenterScreen` 右側 panel；窄版可作 drawer | 後端 API 已實作並通過 pytest；Pending Engineer Runtime Review | `GET /api/v2/bom/{bom_no}/detail` | 顯示選定版本的配方明細與關聯產品版本。 |
+| P0 | V1 Core | `BOMCenterScreen` | Screen | BOM 中心 | `/bom` | 已有第一版，已串接 BOM dashboard 與 selected BOM detail API | `GET /api/v2/bom/dashboard`、`GET /api/v2/bom/{bom_no}/detail` | 檢視 BOM 版本、版本狀態、有效日期、配方明細及產品版本關聯；不包含成本、報價、合約與寫入操作。 |
+| P0.1 | V1 Core | `BOMVersionSummaryView` | View | BOM 版本總覽 | `BOMCenterScreen` 內的總覽區與 KPI | 已有第一版，已串接 dashboard API | `GET /api/v2/bom/dashboard` | 顯示 BOM 數量、版本數量、目前有效、未來生效與歷史版本統計。 |
+| P0.2 | V1 Core | `BOMVersionListView` | View | BOM 版本清單 | `BOMCenterScreen` 內的版本清單 | 已有第一版，已串接 dashboard API | `GET /api/v2/bom/dashboard` | 支援關鍵字、版本狀態、分頁與 BOM 版本摘要檢視。 |
+| P0.3 | V1 Core | `BOMLifecycleView` | View | BOM 版本狀態視圖 | `BOMCenterScreen` 內的版本流程區 | 已有第一版，已串接 dashboard API | `GET /api/v2/bom/dashboard` | 以 `versionStateCode` 呈現目前有效、未來生效、歷史及無法判定狀態；不代表正式核准流程。 |
+| P0.4 | V1 Core | `BOMDetailPanel` | Panel | BOM 明細面板 | `BOMCenterScreen` 右側 panel；窄版可作 drawer | 已有第一版，已串接 selected BOM detail API | `GET /api/v2/bom/{bom_no}/detail` | 顯示選定版本的配方明細與關聯產品版本；detail API 失敗時保留清單摘要並顯示錯誤。 |
 
 ### BOM Center Scope Boundary
 

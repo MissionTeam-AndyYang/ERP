@@ -18,11 +18,19 @@
 - 以 `product_spec.bom_no` 取得關聯產品版本。  
 - 若 `product_spec.product_no` 出現 `product_no + "_1"` 形式，後端需改寫為 `product_no` 回傳。  
 - 若 `product_spec.product_no` 為 `product_no` 形式，需檢查是否存在 `product_no + "_1"` 形式，因 `product_no + "_1"` 為階層母節點，若該資料存在，則以此資料作為回傳依據。
+
+### 理解與提案更新結論
+
+1. `linkedProducts` 不再以單一 `product_spec` row 作為一筆回傳資料，而是改為「產品版本群組」作為一筆回傳資料。
+2. 移除 `linkedProducts[].level`，因前端目前只需知道此 BOM 被哪些產品版本使用，不需顯示產品包裝階層。
+3. 新增 `linkedProducts[].productName` 與 `linkedProducts[].productCategory`，資料來源為 `product.no` 對應的 `product.name` 與 `product.category`。
+4. 多內容物以 `linkedProducts[].contents[]` 表示；每筆內容物包含 `itemType`、`itemNo`、`itemName`、`count`、`unit`、`weight`。其中 `itemName` 依 `itemType` 分別查詢 `inproduct.name` 或 `product.name`。
+5. 若存在 `product_no + "_1"` 母節點資料，該母節點資料作為此產品版本的回傳依據，但 `linkedProducts[].productNo` 仍回傳移除 `_1` 後的正式產品 no，避免前端顯示或後續 drill-down 使用內部母節點編碼。
     
 
 # BOMCenterScreen API 提案
 
-> Status: Engineer Confirmed / Backend Implemented / Pending Runtime Review
+> Status: Revision Proposal / Pending Engineer Review
 > Screen: `BOMCenterScreen`  
 > Route: `/bom`  
 > Scope: V1 read-only Core  
@@ -106,7 +114,7 @@
 | `items[].weight` | Float | 商品配方基準重量；資料型態、精度與空值行為參照既有 BOM API 的 `weight` 欄位處理方式。 | `bom.weight` |
 | `items[].versionStateCode` | String | 版本狀態 code；前端負責轉換顯示文字。 | `effective`、`future`、`historical`、`unknown` |
 | `items[].itemCount` | Integer | 該 BOM 的直接 `bom_item` 明細筆數。 | `bom_item.bom_no` |
-| `items[].linkedProductCount` | Integer | 透過 `product_spec.bom_no` 關聯的產品版本數；不使用 `product_spec.bom_version` 篩選。 | `product_spec.bom_no` |
+| `items[].linkedProductCount` | Integer | 透過 `product_spec.bom_no` 關聯的不重複產品版本群組數；若同一產品版本同時存在 `product_no` 與 `product_no + "_1"`，以母節點 `product_no + "_1"` 作為計數依據但以正式產品 no 去重。 | `product_spec.bom_no`、`product_spec.product_no` |
 | `total` | Integer | 套用篩選後的 BOM 版本總筆數。 | 查詢結果 |
 | `start` | Integer | 本次分頁起點。 | Query parameter |
 | `count` | Integer | 本次回傳筆數。 | Query parameter / 實際筆數 |
@@ -147,13 +155,19 @@
   "linkedProducts": [
     {
       "productNo": "String",
+      "productName": "String",
       "productVersion": "Integer",
-      "level": "Integer",
-      "itemType": "Integer",
-      "itemNo": "String",
-      "count": "Integer",
-      "unit": "Integer",
-      "weight": "Float"
+      "productCategory": "Integer",
+      "contents": [
+        {
+          "itemType": "Integer",
+          "itemNo": "String",
+          "itemName": "String",
+          "count": "Integer",
+          "unit": "Integer",
+          "weight": "Float"
+        }
+      ]
     }
   ]
 }
@@ -180,15 +194,18 @@
 | `items[].itemName` | String | 原物料名稱；無值時回傳空字串。 | `bom_item.item_name` |
 | `items[].unit` | Integer | 原物料使用單位 code。 | `bom_item.unit` |
 | `items[].weight` | Float | 原物料用量或重量；資料型態、精度與空值行為參照既有 BOM API 的 `weight` 欄位處理方式。 | `bom_item.weight` |
-| `linkedProducts[]` | Array | 使用此 BOM 的產品版本關聯；此節點不另列說明。 | `product_spec.bom_no` |
-| `linkedProducts[].productNo` | String | 關聯製成品 no。 | `product_spec.product_no` |
+| `linkedProducts[]` | Array | 使用此 BOM 的產品版本群組；此節點不另列說明。 | `product_spec.bom_no` |
+| `linkedProducts[].productNo` | String | 關聯製成品 no；若來源為 `product_no + "_1"`，回傳移除 `_1` 後的正式產品 no。 | `product_spec.product_no` |
+| `linkedProducts[].productName` | String | 關聯製成品名稱；無值時回傳空字串。 | `product.name` |
 | `linkedProducts[].productVersion` | Integer | 關聯製成品版本。 | `product_spec.product_version` |
-| `linkedProducts[].level` | Integer | 產品包裝階層 code。 | `product_spec.level` |
-| `linkedProducts[].itemType` | Integer | 關聯品項類型 code。 | `product_spec.item_type` |
-| `linkedProducts[].itemNo` | String | 關聯在製品或製成品 no。 | `product_spec.item_no` |
-| `linkedProducts[].count` | Integer | 產品規格使用的份數；資料型態與空值行為參照既有 BOM API 的 `count` 欄位處理方式。 | `product_spec.count` |
-| `linkedProducts[].unit` | Integer | 產品規格重量單位 code。 | `product_spec.unit` |
-| `linkedProducts[].weight` | Float | 產品規格內含物重量；資料型態、精度與空值行為參照既有 BOM API 的 `weight` 欄位處理方式。 | `product_spec.weight` |
+| `linkedProducts[].productCategory` | Integer | 關聯製成品主類型 code：散裝品(1)、組裝品(2)、其他(0)；前端負責多國語系顯示。 | `product.category` |
+| `linkedProducts[].contents[]` | Array | 此產品版本中使用此 BOM 的內容物清單；多內容物時以多筆內容物回傳，不拆成多筆 `linkedProducts[]`。 | `product_spec` |
+| `linkedProducts[].contents[].itemType` | Integer | 內容物品項類型 code：在製品(1)、製成品(2)、其他(0)。 | `product_spec.item_type` |
+| `linkedProducts[].contents[].itemNo` | String | 內容物在製品或製成品 no。 | `product_spec.item_no` |
+| `linkedProducts[].contents[].itemName` | String | 內容物品項名稱；`itemType=1` 時取 `inproduct.name`，`itemType=2` 時取 `product.name`，無值時回傳空字串。 | `inproduct.name`、`product.name` |
+| `linkedProducts[].contents[].count` | Integer | 內容物規格使用的份數；資料型態與空值行為參照既有 BOM API 的 `count` 欄位處理方式。 | `product_spec.count` |
+| `linkedProducts[].contents[].unit` | Integer | 內容物重量單位 code。 | `product_spec.unit` |
+| `linkedProducts[].contents[].weight` | Float | 內容物重量；資料型態、精度與空值行為參照既有 BOM API 的 `weight` 欄位處理方式。 | `product_spec.weight` |
 
 ## 6. V1 不包含的功能
 
@@ -220,7 +237,8 @@
 | URL | `/api/v2/bom/center/xxx` 改為 `/api/v2/bom/xxx`，需檢查衝突。 | 已改用 `/api/v2/bom/dashboard` 與 `/api/v2/bom/{bom_no}/detail`。現有正式 BOM API 為 `/api/v1/bom`、`/api/v1/bom/tree`、`/api/v1/bom/process`、`/api/v1/bom/aps`，版本不同，不構成衝突。 |
 | 版本狀態 | 可以依 `bom.date` 與版本判斷。 | 保留 `effective`、`future`、`historical`、`unknown`；不把狀態命名為已核准，因 schema 沒有核准欄位。 |
 | BOM 原料範圍 | `bom` 為原料配方，不涵蓋物料；`bom_item` 只代表原料明細。 | BOM Center V1 的直接明細只查 `bom_item`；`bom1`、`bom2` 與產品／在製品組裝關聯不在本版樹狀展開。 |
-| 產品關聯 | 依 `product_spec.bom_no`，暫不考量 `bom_version`。 | `linkedProducts` 只以 `product_spec.bom_no` 關聯；`product_spec.bom_version` 不作為 V1 過濾條件。 |
+| 產品關聯 | 依 `product_spec.bom_no`，暫不考量 `bom_version`。 | `linkedProducts` 以 `product_spec.bom_no` 關聯；`product_spec.bom_version` 不作為 V1 過濾條件。回傳結構改為產品版本群組，並以 `contents[]` 承載一個或多個內容物。 |
+| 產品欄位調整 | 工程師建議 `linkedProducts` 移除 `level`，新增 `productName`、`productCategory`、`itemName`，並處理 `product_no + "_1"` 母節點。 | 已移除 `linkedProducts[].level`；新增 `productName`、`productCategory` 與 `contents[].itemName`。若存在 `product_no + "_1"` 母節點，使用母節點資料作為回傳依據，但 `productNo` 回傳正式產品 no。 |
 | 日期 | `bom.date` 為 UTC timestamp，詢問轉換方式。 | 後端直接回傳 UTC timestamp；前端依使用者 timezone 轉換顯示。`x-timezone` 僅作為前端顯示偏好，不改變 API 日期值。 |
 | 數值與空值 | 請參照已實作 API 中 `unit`、`weight`、`count` 欄位的回傳與處理方式。 | `unit` 與 `count` 依既有 BOM API 的資料型態與空值行為回傳；`weight` 依既有 API 的數值處理方式回傳，正式實作時不得另行建立不同規則。 |
 
@@ -238,12 +256,22 @@
 | `bom2` | 物料／膠捲組裝 BOM 的父子明細，保存子項類別、數量、重量、長度與損耗。 | `bom2.parent_no` 關聯 `bom2_number.no` 或上一層 `bom2.child_id`；子項可指向物料或膠捲品項。 | `child_category=1` 對應物料；`child_category=2` 對應膠捲。 |
 | `inproduct_bom_spec` | 在製品使用的 BOM 規格，`category=1` 指原料 BOM，`category=2` 指物料 BOM；以 `bom12_no` 指向 `bom1_number.no` 或 `bom2_number.no`。 | `inproduct_no -> inproduct.no`；`category=1` 時 `item_no`／`item_version` 對應商品配方 no／version；`category=2` 時 `item_no`／`item_version` 對應製成品 no／version。 | `category=1` 時 `item_no`／`item_version` 暫不建立直接外鍵；`category=2` 時 `item_no`／`item_version` 表示對應製成品品項或版本 (`product`)。 |
 | `product_bom_spec` | 製成品使用的物料 BOM 規格，保存包裝階層、份數、單位與重量。 | `product_no`／`product_version -> product`；`bom2_no -> bom2_number.no`。 | `CCBOMTree` 會分別查詢 `product_no` 與 `product_no + "_1"` 的物料 BOM。 |
-| `product_spec` | 製成品與原料商品配方的關聯規格，保存製成品版本所使用的 `bom_no`，以及在製品／製成品組裝項目。 | `product_spec.product_no -> product.no`；BOM Center V1 的 `linkedProducts` 以 `product_spec.bom_no` 關聯 `bom.no`。 | 製成品組裝階層區分為「箱規內含組規包裝」與「單純箱規」；屬於箱規內含組規包裝時，資料表會額外建立 `product_no + "_1"` 形式的編碼。 |
+| `product_spec` | 製成品與原料商品配方的關聯規格，保存製成品版本所使用的 `bom_no`，以及在製品／製成品組裝項目。 | `product_spec.product_no -> product.no`；BOM Center V1 的 `linkedProducts` 以 `product_spec.bom_no` 關聯 `bom.no`，並以正規化後的 `productNo + productVersion` 群組回傳。 | 製成品組裝階層區分為「箱規內含組規包裝」與「單純箱規」；屬於箱規內含組規包裝時，資料表會額外建立 `product_no + "_1"` 形式的編碼。若同時存在正式產品 no 與 `product_no + "_1"`，以 `product_no + "_1"` 母節點資料作為回傳依據，但 API 對外回傳正式產品 no。 |
 | `product_bom` | 工程師確認為筆誤，實際不存在此資料表。 | 不納入 BOM Center V1，也不納入後續樹狀展開基準。 | 不存在。 |
 
 因此，BOM Center V1 先呈現「原料商品配方」主檔 (`bom`)、直接原料明細 (`bom_item`) 及產品關聯 (`product_spec`)；在製品／製成品的物料組裝需另定義樹狀展開規則後，才納入後續版本。
 
-### 8.2 `CCBOMTree` 樹狀展開入口與遞迴規則分析
+### 8.2 `linkedProducts` 多內容物與母節點回傳規則
+
+1. `linkedProducts[]` 以產品版本群組回傳，而不是以 `product_spec` row 回傳。群組 key 為正規化後的 `productNo + productVersion`。
+2. 正規化 `productNo` 時，若 `product_spec.product_no` 以 `_1` 結尾，API 對外回傳移除 `_1` 後的正式產品 no。
+3. 若查到 `product_spec.product_no = product_no`，需再檢查是否存在同版本的 `product_spec.product_no = product_no + "_1"`。若存在，表示 `product_no + "_1"` 為階層母節點，該產品版本的 `contents[]` 以母節點資料作為回傳依據。
+4. 若只有 `product_no` 而不存在 `product_no + "_1"`，則以 `product_no` 資料作為回傳依據。
+5. 同一產品版本若存在多個內容物，全部放入同一筆 `linkedProducts[].contents[]`，避免前端將同一產品版本誤判為多個產品。
+6. `productName` 與 `productCategory` 以正規化後的正式產品 no 查詢 `product` 資料表取得；若查無資料，回傳空字串與 0。
+7. `contents[].itemName` 依 `contents[].itemType` 查詢：在製品(1) 查 `inproduct.name`；製成品(2) 查 `product.name`；其他或查無資料回傳空字串。
+
+### 8.3 `CCBOMTree` 樹狀展開入口與遞迴規則分析
 
 工程師回覆V2要求先分析既有 `CCBOMTree`，以下整理作為後續樹狀展開 API 的共同基準；BOM Center V1 仍不回傳完整樹狀 BOM。
 
@@ -269,4 +297,7 @@
 2. 既有 BOM API 的數值精度與空值行為是否與本提案一致。
   - 工程師回覆V2: 請參照已實作 API 中 `unit`、`weight`、`count` 欄位的回傳與處理方式；本提案已移除自行定義的額外空值規則。
 3. `bom1`、`bom2` 及 `inproduct_bom_spec`／`product_bom_spec` 後續版本的樹狀展開入口與遞迴規則。
-  - 工程師回覆V2: 請先分析 `CCBOMTree`，並依據理解描述其樹狀展開入口與遞迴規則；本提案已新增 `8.2 CCBOMTree 樹狀展開入口與遞迴規則分析`，作為後續樹狀展開 API 的基準。
+  - 工程師回覆V2: 請先分析 `CCBOMTree`，並依據理解描述其樹狀展開入口與遞迴規則；本提案已新增 `8.3 CCBOMTree 樹狀展開入口與遞迴規則分析`，作為後續樹狀展開 API 的基準。
+4. `linkedProducts` 的母節點與多內容物回傳方式。
+  - 工程師提問與建議: 移除 `level`，新增 `productName`、`productCategory`、`itemName`；若存在 `product_no + "_1"`，以母節點作為回傳依據。
+  - 本提案結論: 已改為產品版本群組 + `contents[]` 結構；`productNo` 對外回傳正式產品 no，內容物可支援多筆。

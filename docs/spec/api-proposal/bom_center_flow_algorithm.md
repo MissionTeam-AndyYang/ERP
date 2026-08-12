@@ -1,6 +1,6 @@
 # BOMCenterScreen API 後端流程與演算法
 
-> Status: Engineer Confirmed / Backend Implemented / Pending Runtime Review
+> Status: Revision Proposal / Pending Engineer Review
 > Screen: `BOMCenterScreen`  
 > Proposal: `bom_center_proposal.md`
 
@@ -34,9 +34,16 @@
 2. 若未指定 `version`，使用目前查詢日的 `effective` 版本；若指定 `version`，只取該 BOM 的指定版本。若未指定版本且沒有可判定的有效版本，使用版本號最高且日期非空的版本，並標記 `unknown`。
 3. 以 `bom.no + bom.version` 取得 BOM header。
 4. 以 `bom_item.bom_no` 取得直接明細，依資料庫主鍵或穩定 item no 排序；此 API 不遞迴展開 `bom1`、`bom2`，除非工程師確認其為 BOM Center V1 的正式來源。
-5. 以 `product_spec.bom_no` 取得關聯產品版本，依 product no、product version 排序；V1 不以 `product_spec.bom_version` 篩選。若 `product_spec.product_no` 出現 `product_no + "_1"` 形式，後端仍依資料庫原值回傳，不在本 API 合併或改寫。
-6. `versions` 取得同一 `bom.no` 的全部版本，依版本號由新到舊排列。
-7. 所有 enum 以數字或 code 回傳；前端再將 unit、itemType、level 轉換為多國語系文字。
+5. 以 `product_spec.bom_no` 取得關聯產品版本，依 product no、product version 排序；V1 不以 `product_spec.bom_version` 篩選。
+6. `linkedProducts` 需以產品版本群組回傳，不以單一 `product_spec` row 回傳：
+   - 群組 key 為正規化後的 `productNo + productVersion`。
+   - 若 `product_spec.product_no` 為 `product_no + "_1"`，對外 `productNo` 回傳移除 `_1` 後的正式產品 no。
+   - 若 `product_spec.product_no` 為正式產品 no，需檢查同版本是否存在 `product_no + "_1"`；若存在，以 `product_no + "_1"` 母節點資料作為 `contents[]` 回傳依據。
+   - 同一產品版本有多筆內容物時，合併至同一筆 `linkedProducts[].contents[]`。
+   - `productName` 與 `productCategory` 以正規化後的正式產品 no 查詢 `product.name` 與 `product.category`。
+   - `contents[].itemName` 依 `product_spec.item_type` 查詢 `inproduct.name` 或 `product.name`。
+7. `versions` 取得同一 `bom.no` 的全部版本，依版本號由新到舊排列。
+8. 所有 enum 以數字或 code 回傳；前端再將 unit、itemType、productCategory 轉換為多國語系文字。
 
 ## 4. 空值與例外
 

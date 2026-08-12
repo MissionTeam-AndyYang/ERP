@@ -1,3 +1,25 @@
+# 工程師提問與建議
+
+### 針對`/api/v2/bom/{bom_no}/detail` 中的 `linkedProducts`
+
+#### 1. 回傳欄位調整
+- **移除**：`level`
+- **新增**：
+  - **產品品項名稱 (`productName`)**：取得自 `product` 資料表  
+  - **產品品項類型 (`productCategory`)**：取得自 `product`資料表 的 `category` 
+    - 散裝品 (1)  
+    - 組裝品 (2)  
+  - **內容物品項名稱 (`itemName`)**：取得自 `product` 或 `inproduct` 資料表 
+
+#### 2. 多品項處理
+- 若內容物存在多個品項，回傳欄位結構是否需要進行調整？若需要修改，請說明具體的修正方式。
+
+#### 3. 產品版本關聯
+- 以 `product_spec.bom_no` 取得關聯產品版本。  
+- 若 `product_spec.product_no` 出現 `product_no + "_1"` 形式，後端需改寫為 `product_no` 回傳。  
+- 若 `product_spec.product_no` 為 `product_no` 形式，需檢查是否存在 `product_no + "_1"` 形式，因 `product_no + "_1"` 為階層母節點，若該資料存在，則以此資料作為回傳依據。
+    
+
 # BOMCenterScreen API 提案
 
 > Status: Engineer Confirmed / Backend Implemented / Pending Runtime Review

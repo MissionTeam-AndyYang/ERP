@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>批號中心 Batch Center Static Preview</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --line: #d8dde6;
+        --text: #1e293b;
+        --muted: #64748b;
+        --brand: #2563eb;
+        --ok: #15803d;
+        --warn: #b45309;
+        --danger: #b91c1c;
+        --info: #0369a1;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: 100vh;
+      }
+      aside {
+        background: #172033;
+        color: #e5edf8;
+        padding: 24px 18px;
+      }
+      .brand {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 28px;
+      }
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+      .nav span {
+        display: block;
+        padding: 10px 12px;
+        border-radius: 6px;
+        color: #b8c4d8;
+        font-size: 14px;
+      }
+      .nav .active {
+        background: #24314a;
+        color: #fff;
+      }
+      main {
+        padding: 22px;
+      }
+      .topbar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: 0;
+      }
+      .subtitle {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .tools {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .control {
+        height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+        padding: 0 10px;
+        min-width: 120px;
+      }
+      .search {
+        min-width: 220px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+      .kpi-label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .kpi-value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 8px;
+      }
+      .kpi-hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr);
+        gap: 14px;
+        align-items: start;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th, td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        background: #fafbfc;
+      }
+      tr.selected {
+        background: #eef5ff;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 12px;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+      .badge.ok { color: var(--ok); background: #ecfdf3; border-color: #bbf7d0; }
+      .badge.warn { color: var(--warn); background: #fffbeb; border-color: #fde68a; }
+      .badge.danger { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
+      .badge.info { color: var(--info); background: #eff6ff; border-color: #bfdbfe; }
+      .panel-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .panel-title h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .batch-list {
+        display: grid;
+        gap: 10px;
+      }
+      .batch-row {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+      }
+      .batch-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .batch-no {
+        font-weight: 700;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin: 10px 0;
+      }
+      .metric {
+        background: #f8fafc;
+        border: 1px solid #edf1f7;
+        border-radius: 6px;
+        padding: 8px;
+      }
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .metric strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 14px;
+      }
+      .docs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+        margin-top: 12px;
+      }
+      @media (max-width: 1000px) {
+        .shell { grid-template-columns: 1fr; }
+        aside { display: none; }
+        .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .layout { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 620px) {
+        main { padding: 14px; }
+        .topbar { align-items: stretch; flex-direction: column; }
+        .tools { display: grid; grid-template-columns: 1fr; }
+        .control, .search { width: 100%; }
+        .kpis { grid-template-columns: 1fr; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand">恆旺 ERP</div>
+        <div class="nav">
+          <span>管理 Dashboard</span>
+          <span>倉庫中心</span>
+          <span class="active">批號中心</span>
+          <span>追溯中心</span>
+          <span>生產中心</span>
+          <span>採購中心</span>
+        </div>
+      </aside>
+      <main>
+        <div class="topbar">
+          <div>
+            <h1>批號中心</h1>
+            <div class="subtitle">以料品為主視角，檢視批號分布、可用量、品檢保留、隔離與效期風險。</div>
+          </div>
+          <div class="tools">
+            <input class="control search" value="咖哩 / RM / 批號" aria-label="keyword" />
+            <select class="control"><option>全部類別</option><option>原料</option><option>物料</option><option>膠捲</option><option>在製品</option><option>製成品</option></select>
+            <select class="control"><option>全部倉庫</option><option>WH-FG-A</option><option>WH-FZ-A</option></select>
+            <select class="control"><option>全部風險</option><option>高風險</option><option>注意</option><option>正常</option></select>
+          </div>
+        </div>
+
+        <section class="kpis">
+          <div class="card"><div class="kpi-label">批號管理品項</div><div class="kpi-value">86</div><div class="kpi-hint">目前庫存量大於 0</div></div>
+          <div class="card"><div class="kpi-label">高風險品項</div><div class="kpi-value">3</div><div class="kpi-hint">效期、品檢或隔離</div></div>
+          <div class="card"><div class="kpi-label">分倉批號</div><div class="kpi-value">42</div><div class="kpi-hint">跨 5 個倉庫</div></div>
+          <div class="card"><div class="kpi-label">品檢/隔離量</div><div class="kpi-value">1,420</div><div class="kpi-hint">API 回傳數值，前端轉換單位顯示</div></div>
+        </section>
+
+        <section class="layout">
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>料品</th>
+                  <th>類別</th>
+                  <th>批號 / 倉庫</th>
+                  <th>數量</th>
+                  <th>效期</th>
+                  <th>狀態</th>
+                  <th>下一步</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="selected">
+                  <td><strong>FG-CURRY-101</strong><br />咖哩雞肉調理包</td>
+                  <td>製成品</td>
+                  <td>4 批 / 3 倉</td>
+                  <td>目前 18,240<br />可用 9,600<br />預留 5,760</td>
+                  <td>2026-11-08</td>
+                  <td><span class="badge danger">出貨受阻</span></td>
+                  <td>品保</td>
+                </tr>
+                <tr>
+                  <td><strong>RM-CORN-001</strong><br />冷凍玉米粒</td>
+                  <td>原料</td>
+                  <td>3 批 / 2 倉</td>
+                  <td>目前 1,260<br />可用 720<br />隔離 180</td>
+                  <td>2026-05-31</td>
+                  <td><span class="badge danger">即期/隔離</span></td>
+                  <td>倉庫</td>
+                </tr>
+                <tr>
+                  <td><strong>PK-BAG-010</strong><br />耐熱殺菌袋 180g</td>
+                  <td>物料</td>
+                  <td>5 批 / 2 倉</td>
+                  <td>目前 42,000<br />可用 33,000<br />預留 9,000</td>
+                  <td>2027-02-12</td>
+                  <td><span class="badge warn">需追蹤</span></td>
+                  <td>生管</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="panel-title">
+              <h2>FG-CURRY-101 批號分布</h2>
+              <span class="badge danger">high_risk</span>
+            </div>
+            <div class="batch-list">
+              <div class="batch-row">
+                <div class="batch-head"><span class="batch-no">B240512-A101</span><span class="badge ok">released</span></div>
+                <div>WH-FG-A / A1-02-03 / 來源 MO-240512-001</div>
+                <div class="metrics">
+                  <div class="metric"><span>目前</span><strong>9,600</strong></div>
+                  <div class="metric"><span>可用</span><strong>9,600</strong></div>
+                  <div class="metric"><span>預留</span><strong>0</strong></div>
+                  <div class="metric"><span>品檢</span><strong>0</strong></div>
+                </div>
+                <div class="docs"><span class="badge info">work_order</span><span class="badge info">quality_task</span></div>
+              </div>
+              <div class="batch-row">
+                <div class="batch-head"><span class="batch-no">B240513-A102</span><span class="badge danger">quality_hold</span></div>
+                <div>WH-QA-HOLD / HOLD-01 / 來源 MO-240513-003</div>
+                <div class="metrics">
+                  <div class="metric"><span>目前</span><strong>2,880</strong></div>
+                  <div class="metric"><span>可用</span><strong>0</strong></div>
+                  <div class="metric"><span>預留</span><strong>2,880</strong></div>
+                  <div class="metric"><span>品檢</span><strong>2,880</strong></div>
+                </div>
+                <div class="docs"><span class="badge info">work_order</span><span class="badge info">shipping_order</span><span class="badge danger">quality_blocking</span></div>
+              </div>
+              <div class="batch-row">
+                <div class="batch-head"><span class="batch-no">B240516-A106</span><span class="badge info">reserved</span></div>
+                <div>WH-FG-B / B2-01-01 / 來源 MO-240516-006</div>
+                <div class="metrics">
+                  <div class="metric"><span>目前</span><strong>3,840</strong></div>
+                  <div class="metric"><span>可用</span><strong>960</strong></div>
+                  <div class="metric"><span>預留</span><strong>2,880</strong></div>
+                  <div class="metric"><span>品檢</span><strong>0</strong></div>
+                </div>
+                <div class="docs"><span class="badge info">shipping_order</span><span class="badge warn">shipment_reservation</span></div>
+              </div>
+            </div>
+            <div class="note">靜態預覽只呈現前端操作語意；正式 API 回傳 enum code 與數值，繁中顯示由前端多國語系轉換。</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

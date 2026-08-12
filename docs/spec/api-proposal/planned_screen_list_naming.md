@@ -134,6 +134,21 @@ Naming rules:
 
 `ProductDevelopmentWorkspaceScreen` 的整合型提案保留作為歷史規劃參考，但不再代表 `/bom` 的畫面 API。成本試算、報價與合約應由 `/rd`「研發成本」及後續獨立 API 規劃；BOM Center 提案不得重新加入這些欄位。
 
+## Batch Center Screen Roadmap
+
+`BatchCenterScreen` 對應目前 `/batches` 執行畫面，第一版以料品與批號為主視角，提供批號分布、可用性、品檢保留、隔離、效期風險與關聯任務的 read-only 檢視。它不取代 `WarehouseInventoryLotListScreen` 的倉庫作業視角，也不取代 `TraceabilityWorkspaceScreen` 的完整追溯與召回視角。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `BatchCenterScreen` | Screen | 批號中心 | `/batches` | API proposal，Pending Engineer Review | `GET /api/v2/batches/dashboard`、`GET /api/v2/batches/items/{item_no}/distribution`、`GET /api/v2/batches/{batch_no}/detail` | 以料品為主視角檢視批號目前庫存、分倉、可用量、預留量、品檢保留量、隔離量、效期風險、來源單據與未完成任務；不包含寫入操作。 |
+| P0.1 | V1 Core | `BatchItemSummaryView` | View | 批號料品摘要視圖 | `BatchCenterScreen` 左側料品清單與 KPI | API proposal，Pending Engineer Review | `GET /api/v2/batches/dashboard` | 顯示目前仍有庫存的批號管理料品、風險品項、分倉批號、品檢／隔離量與需求影響訊號。 |
+| P0.2 | V1 Core | `BatchDistributionView` | View | 批號分布視圖 | `BatchCenterScreen` 右側批號分布區 | API proposal，Pending Engineer Review | `GET /api/v2/batches/items/{item_no}/distribution` | 顯示選取料品下各批號在不同倉庫的目前數量、可用量、預留量、品檢保留量、隔離量、效期、風險與來源單據。 |
+| P0.3 | V1 Core | `BatchDetailPanel` | Panel | 批號追蹤面板 | `BatchCenterScreen` 右側 panel；窄版可作 drawer | API proposal，Pending Engineer Review | `GET /api/v2/batches/{batch_no}/detail` | 顯示單一批號跨倉庫庫存、出入庫紀錄、預留、品檢保留、板位異動與未完成 workflow task；不展開完整追溯鏈。 |
+
+### Batch Center Scope Boundary
+
+批號中心只處理「目前仍有庫存的批號管理與可用性判讀」。若需要完整來源、製程投入、客戶流向、召回、文件包或批號異動流水帳，應使用或另行規劃 `TraceabilityWorkspaceScreen`、`WarehouseInventoryMovementLedgerScreen` 或其他下一版畫面。
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：
@@ -164,6 +179,7 @@ Naming rules:
 | `OrderFulfillmentDetailPanel` | 已有第一版，已串接 selected order fulfillment API。 | 依 runtime payload 檢查 workflow 節點、dependencies、來源單號、comment、負責部門與狀態 tone 呈現。 |
 | `ProductionWorkspaceScreen` | 已有第一版，已串接 `GET /api/v2/production/dashboard` 與 `GET /api/v2/production/work-orders/{work_order_no}/detail`；Production enum 顯示由前端多國語系轉換。 | 依工程師實機資料檢查 dashboard payload、selected work order detail payload、產線產能、readiness、metrics、alerts、空狀態與 fallback 邊界。 |
 | `ProductionWorkOrderDetailPanel` | 已有第一版，已串接 selected work order detail API，API 失敗時保留 dashboard 清單資料並顯示 controlled fallback。 | 依 runtime payload 檢查 materials、MES events、outputs、reuse/waste、labor、machines、related documents 與 status tone 呈現。 |
+| `BatchCenterScreen` | API proposal，Pending Engineer Review；本次已補齊 API 提案、後端流程演算法與靜態預覽頁。 | 等工程師確認 `batch_center_proposal.md` 與 `batch_center_flow_algorithm.md` 後，整合至正式 API 文件，再進行後端 API 實作。 |
 
 ## Roadmap Coverage Confirmation
 

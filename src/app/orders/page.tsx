@@ -11,6 +11,7 @@ import {
   Truck
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useOrdersDashboard } from "@/hooks/use-orders-dashboard";
@@ -605,7 +606,7 @@ export default function OrdersPage() {
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
   const { data: ordersData, error, isLoading, source } = useOrdersDashboard(dataSourceMode);
   const [activeTab, setActiveTab] = useState<OrderWorkspaceTab>("overview");
-  const [selectedOrderId, setSelectedOrderId] = useState<string>(ordersData.orders[0].id);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(ordersData.orders[0]?.id ?? "");
   const [searchValue, setSearchValue] = useState("");
   const [selectedFulfillment, setSelectedFulfillment] = useState<OrdersFulfillmentData>();
   const [isFulfillmentLoading, setIsFulfillmentLoading] = useState(true);
@@ -643,12 +644,9 @@ export default function OrdersPage() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone="info">訂單履約</StatusBadge>
                 <StatusBadge tone="neutral">接單承諾 / 交期 / 生產可行性 / 毛利 / 收款</StatusBadge>
-                <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? "API data" : "Mock fallback"}
-                </StatusBadge>
-                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={Boolean(error)} />
                 <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">訂單承諾與履約風險總覽</h2>
@@ -692,13 +690,13 @@ export default function OrdersPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Orders API 尚未可用，已使用 mock fallback。{error}
+            Orders API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
 
         {fulfillmentError ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Orders fulfillment API 尚未可用，右側履約明細已使用 fallback。{fulfillmentError}
+            Orders fulfillment API 呼叫失敗，右側保留清單摘要。{fulfillmentError}
           </p>
         ) : null}
 

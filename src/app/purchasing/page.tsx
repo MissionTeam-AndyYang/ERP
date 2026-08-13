@@ -13,6 +13,7 @@ import {
   Users
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { usePurchasingDashboard } from "@/hooks/use-purchasing-dashboard";
@@ -813,11 +814,7 @@ export default function PurchasingPage() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge tone="info">PO-first V1</StatusBadge>
-                <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? "API data" : "Mock data"}
-                </StatusBadge>
-                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={Boolean(error)} />
                 <StatusBadge tone="neutral">採購單 / 交期 / 到貨 / 供應商</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">採購單主視角工作區</h2>

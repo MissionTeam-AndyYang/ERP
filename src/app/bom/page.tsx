@@ -9,6 +9,7 @@ import {
   Search
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { SupportEmptyState } from "@/components/common/support-empty-state";
@@ -390,16 +391,18 @@ function BomDetailPanel({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-medium text-textPrimary">
-                    {product.productNo} / V{formatInteger(product.productVersion, language)}
+                    {product.productNo || "未提供產品 no"} / V{formatInteger(product.productVersion, language)}
                   </p>
-                  <p className="mt-1 text-xs text-textSecondary">{product.productName || "未命名製成品"}</p>
+                  <p className="mt-1 text-xs text-textSecondary">
+                    產品品項名稱：{product.productName || "未提供"}
+                  </p>
                 </div>
                 <StatusBadge tone="info">{product.productCategoryLabel}</StatusBadge>
               </div>
               <div className="mt-2 space-y-1">
                 {product.contents.map((content) => (
                   <p className="text-xs text-textSecondary" key={`${product.productNo}-${product.productVersion}-${content.itemNo}`}>
-                    {content.itemTypeLabel} · {content.itemNo || "無品項 no"} · {content.itemName || "未命名內容物"} ·{" "}
+                    {content.itemTypeLabel} · {content.itemNo || "無品項 no"} · 內容物品項名稱：{content.itemName || "未提供"} ·{" "}
                     {formatInteger(content.count, language)} 份 · {formatNumber(content.weight, language)} {content.unit}
                   </p>
                 ))}
@@ -490,12 +493,9 @@ export default function BomPage() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge tone="info">BOM Center V1</StatusBadge>
-                <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? "API data" : "Mock data"}
-                </StatusBadge>
-                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
-                <StatusBadge tone="neutral">read-only / direct bom_item</StatusBadge>
+                <StatusBadge tone="info">BOM 版本管理</StatusBadge>
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={Boolean(error)} />
+                <StatusBadge tone="neutral">配方明細 / 產品關聯</StatusBadge>
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">BOM 中心</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">

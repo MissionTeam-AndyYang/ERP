@@ -13,6 +13,7 @@ import {
   UsersRound
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useProductionDashboard } from "@/hooks/use-production-dashboard";
@@ -1091,12 +1092,9 @@ export default function ProductionPage() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge tone="info">EWDB 20260522</StatusBadge>
+                <StatusBadge tone="info">生產總覽</StatusBadge>
                 <StatusBadge tone="neutral">排程 / MES / 效率 / 品質</StatusBadge>
-                <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? (error ? "API error" : "API data") : "Mock data"}
-                </StatusBadge>
-                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={Boolean(error)} />
                 <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">生產計畫與現場品質總覽</h2>

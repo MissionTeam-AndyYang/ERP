@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { LanguageCode } from "@/i18n/dictionary";
@@ -548,12 +549,9 @@ export default function WarehouseAnalyticsPage() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge tone="info">WarehouseAnalyticsScreen</StatusBadge>
-                <StatusBadge tone="neutral">Read-only analytics</StatusBadge>
-                <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? "API data" : "Mock fallback"}
-                </StatusBadge>
-                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <StatusBadge tone="info">倉庫分析</StatusBadge>
+                <StatusBadge tone="neutral">唯讀分析</StatusBadge>
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={errors.length > 0} />
                 <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h1 className="mt-3 text-2xl font-semibold text-textPrimary">倉庫分析工作區</h1>
@@ -676,7 +674,7 @@ export default function WarehouseAnalyticsPage() {
 
         {errors.length ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Analytics API 部分資料暫時使用 mock fallback。{errors[0]}
+            Analytics API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{errors[0]}
           </p>
         ) : null}
 

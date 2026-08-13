@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { warehouseDashboardMock } from "@/mock/warehouse";
-import { getWarehouseDashboard, getWarehouseInventory, getWarehouseTasks } from "@/services/warehouse-api";
+import {
+  emptyWarehouseDashboardData,
+  getWarehouseDashboard,
+  getWarehouseInventory,
+  getWarehouseTasks
+} from "@/services/warehouse-api";
 import type { WarehouseDashboardData, WarehouseDataSource } from "@/types/warehouse";
 
 export type WarehouseDashboardState = {
@@ -20,8 +25,8 @@ type WarehouseDashboardInternalState = Omit<WarehouseDashboardState, "loadInvent
 
 export function useWarehouseDashboard(dataSourceMode: DataSourceMode = "api"): WarehouseDashboardState {
   const [state, setState] = useState<WarehouseDashboardInternalState>({
-    data: warehouseDashboardMock,
-    source: "mock",
+    data: dataSourceMode === "mock" ? warehouseDashboardMock : emptyWarehouseDashboardData,
+    source: dataSourceMode === "mock" ? "mock" : "api",
     isLoading: true,
     isInventoryLoading: false
   });

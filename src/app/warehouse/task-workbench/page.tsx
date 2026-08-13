@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useLanguage } from "@/i18n/language-provider";
@@ -303,7 +304,7 @@ function DetailPanel({ detail, isLoading }: { detail?: WarehouseTaskDetail; isLo
     <aside className="space-y-4 rounded-lg border border-border bg-white p-4 shadow-card xl:sticky xl:top-24">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">WarehouseTaskDetailPanel</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">任務追蹤面板</p>
           <h2 className="mt-1 truncate text-lg font-semibold text-textPrimary">{detail.task.taskId}</h2>
           <p className="mt-1 text-sm text-textSecondary">{detail.quantity.itemName || detail.quantity.itemNo}</p>
         </div>
@@ -427,7 +428,7 @@ export default function WarehouseTaskWorkbenchPage() {
   const { language } = useLanguage();
   const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
   const [data, setData] = useState<WarehouseTaskWorkbenchData>(emptyWorkbench);
-  const [source, setSource] = useState<WarehouseDataSource>("mock");
+  const [source, setSource] = useState<WarehouseDataSource>(dataSourceMode === "mock" ? "mock" : "api");
   const [error, setError] = useState<string | undefined>();
   const [detail, setDetail] = useState<WarehouseTaskDetail | undefined>();
   const [detailError, setDetailError] = useState<string | undefined>();
@@ -526,11 +527,8 @@ export default function WarehouseTaskWorkbenchPage() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge tone="info">WarehouseTaskWorkbenchScreen</StatusBadge>
-                <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? "API data" : "Mock fallback"}
-                </StatusBadge>
-                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <StatusBadge tone="info">任務工作台</StatusBadge>
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={Boolean(error)} />
                 <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">倉庫任務工作台</h2>
@@ -550,12 +548,12 @@ export default function WarehouseTaskWorkbenchPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Task workbench API 尚未可用，已使用 mock fallback。{error}
+            Task workbench API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
         {detailError ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Task detail API 尚未可用，已使用 mock fallback。{detailError}
+            Task detail API 呼叫失敗，右側追蹤面板保留空狀態。{detailError}
           </p>
         ) : null}
 

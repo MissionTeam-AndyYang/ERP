@@ -76,6 +76,10 @@ type ApiBomDetailPayload = {
   }[];
 };
 
+type ApiBomLinkedProductContent = NonNullable<
+  NonNullable<ApiBomDetailPayload["linkedProducts"]>[number]["contents"]
+>[number];
+
 export type BomDashboardQuery = {
   keyword?: string;
   bomNo?: string;
@@ -206,7 +210,7 @@ function mapLinkedProduct(item: NonNullable<ApiBomDetailPayload["linkedProducts"
     productVersion: asNumber(item.productVersion),
     productCategory: asNumber(item.productCategory),
     productCategoryLabel: bomProductCategoryLabel(item.productCategory, locale),
-    contents: withFallbackArray(item.contents, []).map((content) => ({
+    contents: withFallbackArray<ApiBomLinkedProductContent>(item.contents, []).map((content) => ({
       itemType: asNumber(content.itemType),
       itemTypeLabel: bomItemTypeLabel(content.itemType, locale),
       itemNo: content.itemNo ?? "",

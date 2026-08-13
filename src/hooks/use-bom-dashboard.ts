@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DataSourceMode } from "@/components/common/data-source-toggle";
+import { bomDashboardMock } from "@/mock/bom";
 import { emptyBomDashboardData, getBomDashboard, type BomDashboardQuery } from "@/services/bom-api";
 import type { BomDashboardData, BomDataSource } from "@/types/bom";
 
@@ -17,7 +18,7 @@ export function useBomDashboard(
   query: BomDashboardQuery = {}
 ): BomDashboardState {
   const [state, setState] = useState<BomDashboardState>({
-    data: emptyBomDashboardData,
+    data: dataSourceMode === "mock" ? bomDashboardMock : emptyBomDashboardData,
     source: dataSourceMode === "mock" ? "mock" : "api",
     isLoading: true
   });

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AppLayout } from "@/layouts/app-layout";
@@ -319,7 +320,7 @@ export default function WarehouseInventoryLotsPage() {
   const [data, setData] = useState<WarehouseInventoryLotListData>(emptyLotList);
   const [detail, setDetail] = useState<WarehouseInventoryLotDetail | undefined>();
   const [selectedLot, setSelectedLot] = useState<WarehouseInventoryLot | undefined>();
-  const [source, setSource] = useState<WarehouseDataSource>("mock");
+  const [source, setSource] = useState<WarehouseDataSource>(dataSourceMode === "mock" ? "mock" : "api");
   const [error, setError] = useState<string | undefined>();
   const [detailError, setDetailError] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
@@ -396,11 +397,8 @@ export default function WarehouseInventoryLotsPage() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge tone="info">WarehouseInventoryLotListScreen</StatusBadge>
-                <StatusBadge tone={source === "api" ? "success" : "warning"}>
-                  {source === "api" ? "API data" : "Mock fallback"}
-                </StatusBadge>
-                {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
+                <StatusBadge tone="info">庫存批號追蹤</StatusBadge>
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={Boolean(error)} />
                 <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">庫存批號明細清單</h2>
@@ -420,12 +418,12 @@ export default function WarehouseInventoryLotsPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Inventory lots API 尚未可用，已使用 mock fallback。{error}
+            Inventory lots API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
         {detailError ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Inventory lot detail API 尚未可用，已使用 mock fallback。{detailError}
+            Inventory lot detail API 呼叫失敗，右側明細保留空狀態。{detailError}
           </p>
         ) : null}
 

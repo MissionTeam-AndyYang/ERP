@@ -1129,6 +1129,30 @@ function mapLotListPayload(payload: ApiWarehouseInventoryLotListPayload): Wareho
   };
 }
 
+export const emptyWarehouseDashboardData: WarehouseDashboardData = {
+  kpis: [
+    { label: "庫存總價值", value: "$0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "倉位使用", value: "0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "風險警示", value: "0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "待處理任務", value: "0", hint: "API 尚未提供資料", tone: "info" }
+  ],
+  categorySummaries: [],
+  capacities: [],
+  records: [],
+  risks: [],
+  tasks: []
+};
+
+const emptyWarehouseTaskWorkbenchData: WarehouseTaskWorkbenchData = mapTaskWorkbenchPayload({});
+const emptyWarehouseInventoryLotListData: WarehouseInventoryLotListData = mapLotListPayload({});
+const emptyWarehouseAnalyticsOverviewData: WarehouseAnalyticsOverviewData = mapAnalyticsOverviewPayload({});
+const emptyWarehouseAnalyticsValueTrendData: WarehouseAnalyticsValueTrendData = mapAnalyticsValueTrendPayload({});
+const emptyWarehouseAnalyticsSpaceUtilizationData: WarehouseAnalyticsSpaceUtilizationData =
+  mapAnalyticsSpaceUtilizationPayload({});
+const emptyWarehouseAnalyticsRiskBreakdownData: WarehouseAnalyticsRiskBreakdownData =
+  mapAnalyticsRiskBreakdownPayload({});
+const emptyWarehouseAnalyticsTaskSlaData: WarehouseAnalyticsTaskSlaData = mapAnalyticsTaskSlaPayload({});
+
 function mapInventoryRecordLine(item: ApiWarehouseInventoryRecordLine, index: number): WarehouseInventoryRecordLine {
   const categoryLabel = inventoryRecordCategoryLabel(item.category);
   return {
@@ -2181,8 +2205,8 @@ export async function getWarehouseDashboard(dataSourceMode: DataSourceMode = "ap
     };
   } catch (error) {
     return {
-      data: warehouseDashboardMock,
-      source: "mock",
+      data: emptyWarehouseDashboardData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse API unavailable"
     };
   }
@@ -2210,8 +2234,8 @@ export async function getWarehouseInventory(dataSourceMode: DataSourceMode = "ap
     };
   } catch (error) {
     return {
-      records: warehouseDashboardMock.records,
-      source: "mock",
+      records: [],
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse inventory API unavailable"
     };
   }
@@ -2237,8 +2261,8 @@ export async function getWarehouseTasks(dataSourceMode: DataSourceMode = "api"):
     };
   } catch (error) {
     return {
-      tasks: warehouseDashboardMock.tasks,
-      source: "mock",
+      tasks: [],
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse tasks API unavailable"
     };
   }
@@ -2298,8 +2322,8 @@ export async function getWarehouseTaskWorkbench(
     };
   } catch (error) {
     return {
-      data: mockTaskWorkbench(),
-      source: "mock",
+      data: emptyWarehouseTaskWorkbenchData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse task workbench API unavailable"
     };
   }
@@ -2326,8 +2350,8 @@ export async function getWarehouseTaskDetail(
     };
   } catch (error) {
     return {
-      detail: mockTaskDetail(taskId),
-      source: "mock",
+      detail: undefined,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse task detail API unavailable"
     };
   }
@@ -2379,8 +2403,8 @@ export async function getWarehouseAnalyticsOverview(
     };
   } catch (error) {
     return {
-      data: mockAnalyticsOverview(query),
-      source: "mock",
+      data: emptyWarehouseAnalyticsOverviewData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse analytics overview API unavailable"
     };
   }
@@ -2407,8 +2431,8 @@ export async function getWarehouseAnalyticsValueTrend(
     };
   } catch (error) {
     return {
-      data: mockAnalyticsValueTrend(query),
-      source: "mock",
+      data: emptyWarehouseAnalyticsValueTrendData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse analytics value trend API unavailable"
     };
   }
@@ -2435,8 +2459,8 @@ export async function getWarehouseAnalyticsSpaceUtilization(
     };
   } catch (error) {
     return {
-      data: mockAnalyticsSpaceUtilization(query),
-      source: "mock",
+      data: emptyWarehouseAnalyticsSpaceUtilizationData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse analytics space utilization API unavailable"
     };
   }
@@ -2463,8 +2487,8 @@ export async function getWarehouseAnalyticsRiskBreakdown(
     };
   } catch (error) {
     return {
-      data: mockAnalyticsRiskBreakdown(query),
-      source: "mock",
+      data: emptyWarehouseAnalyticsRiskBreakdownData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse analytics risk breakdown API unavailable"
     };
   }
@@ -2491,8 +2515,8 @@ export async function getWarehouseAnalyticsTaskSla(
     };
   } catch (error) {
     return {
-      data: mockAnalyticsTaskSla(query),
-      source: "mock",
+      data: emptyWarehouseAnalyticsTaskSlaData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse analytics task SLA API unavailable"
     };
   }
@@ -2555,8 +2579,8 @@ export async function getWarehouseInventoryLots(
     };
   } catch (error) {
     return {
-      data: mockLotList(),
-      source: "mock",
+      data: emptyWarehouseInventoryLotListData,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse inventory lots API unavailable"
     };
   }
@@ -2587,12 +2611,9 @@ export async function getWarehouseInventoryLotDetail(
       source: "api"
     };
   } catch (error) {
-    const fallbackLot = mockLotList().lots.find(
-      (item) => item.warehouseNo === lot.warehouseNo && item.itemNo === lot.itemNo && item.batchNo === lot.batchNo
-    );
     return {
-      detail: mockLotDetail(fallbackLot),
-      source: "mock",
+      detail: undefined,
+      source: "api",
       error: error instanceof Error ? error.message : "Warehouse inventory lot detail API unavailable"
     };
   }

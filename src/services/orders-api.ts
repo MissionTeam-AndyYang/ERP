@@ -178,6 +178,25 @@ const UNIT_LABELS: Record<number, string> = {
   204: "次"
 };
 
+export const emptyOrdersDashboardData: OrdersDashboardData = {
+  summary: [
+    { label: "未完成出貨訂單", value: "0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "交期高風險", value: "0", hint: "API 尚未提供資料", tone: "info" },
+    { label: "承諾檢查", value: "0%", hint: "API 尚未提供資料", tone: "info" },
+    { label: "毛利 / 收款風險", value: "0 / 0", hint: "API 尚未提供資料", tone: "info" }
+  ],
+  orders: [],
+  total: 0,
+  count: 0,
+  start: 0,
+  serverDate: "",
+  range: {
+    period: "30d",
+    startDate: "",
+    endDate: ""
+  }
+};
+
 const DEPARTMENT_LABELS: Record<number, string> = {
   1: "業務",
   2: "研發",
@@ -603,8 +622,8 @@ export async function getOrdersDashboard(
     };
   } catch (error) {
     return {
-      data: ordersDashboardMock,
-      source: "mock",
+      data: emptyOrdersDashboardData,
+      source: "api",
       error: error instanceof Error ? error.message : "Orders API unavailable"
     };
   }
@@ -637,16 +656,9 @@ export async function getOrdersFulfillment(
       source: "api"
     };
   } catch (error) {
-    const fallback = ordersDashboardMock.orders.find((order) => order.id === orderNo);
     return {
-      data: fallback
-        ? {
-            orderNo,
-            workflow: fallback.workflow,
-            dependencies: fallback.dependencies
-          }
-        : undefined,
-      source: "mock",
+      data: undefined,
+      source: "api",
       error: error instanceof Error ? error.message : "Orders fulfillment API unavailable"
     };
   }

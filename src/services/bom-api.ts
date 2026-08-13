@@ -2,7 +2,7 @@ import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { defaultLanguage } from "@/i18n/dictionary";
 import {
   bomItemTypeLabel,
-  bomLevelLabel,
+  bomProductCategoryLabel,
   bomUnitLabel,
   bomVersionStateLabel,
   bomVersionStateTone,
@@ -62,13 +62,17 @@ type ApiBomDetailPayload = {
   }[];
   linkedProducts?: {
     productNo?: string;
+    productName?: string;
     productVersion?: number;
-    level?: number;
-    itemType?: number;
-    itemNo?: string;
-    count?: number;
-    unit?: number;
-    weight?: number;
+    productCategory?: number;
+    contents?: {
+      itemType?: number;
+      itemNo?: string;
+      itemName?: string;
+      count?: number;
+      unit?: number;
+      weight?: number;
+    }[];
   }[];
 };
 
@@ -198,16 +202,20 @@ function mapMaterialItem(item: NonNullable<ApiBomDetailPayload["items"]>[number]
 function mapLinkedProduct(item: NonNullable<ApiBomDetailPayload["linkedProducts"]>[number]): BomLinkedProduct {
   return {
     productNo: item.productNo ?? "",
+    productName: item.productName ?? "",
     productVersion: asNumber(item.productVersion),
-    level: asNumber(item.level),
-    levelLabel: bomLevelLabel(item.level, locale),
-    itemType: asNumber(item.itemType),
-    itemTypeLabel: bomItemTypeLabel(item.itemType, locale),
-    itemNo: item.itemNo ?? "",
-    count: asNumber(item.count),
-    unit: bomUnitLabel(item.unit, locale),
-    unitCode: asNumber(item.unit),
-    weight: asNumber(item.weight)
+    productCategory: asNumber(item.productCategory),
+    productCategoryLabel: bomProductCategoryLabel(item.productCategory, locale),
+    contents: withFallbackArray(item.contents, []).map((content) => ({
+      itemType: asNumber(content.itemType),
+      itemTypeLabel: bomItemTypeLabel(content.itemType, locale),
+      itemNo: content.itemNo ?? "",
+      itemName: content.itemName ?? "",
+      count: asNumber(content.count),
+      unit: bomUnitLabel(content.unit, locale),
+      unitCode: asNumber(content.unit),
+      weight: asNumber(content.weight)
+    }))
   };
 }
 

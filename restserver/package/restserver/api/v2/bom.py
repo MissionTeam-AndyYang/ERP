@@ -7,9 +7,9 @@ from sqlalchemy import func, or_
 
 from package.common.common import EBomVersionState, EErrorCode
 from package.dbwrapper.dbmgr import CDBMgr
-from package.dbwrapper.table import CTableBOM, CTableBOMItem, CTableProductSpec
+from package.dbwrapper.table import CTableBOM, CTableBOMItem, CTableInproduct, CTableProduct, CTableProductSpec
 from package.log.log import CLogger
-from package.util.util import util_round_quantity, util_safe_float, util_safe_int
+from package.util.util import util_round_quantity, util_safe_int
 
 
 class CBomCenterService(object):
@@ -137,10 +137,7 @@ class CBomCenterService(object):
                 for obj_bom in sorted(lst_boms, key=lambda obj_row: -util_safe_int(obj_row.version))
             ],
             "items": [self.__build_item_row(obj_item) for obj_item in lst_items],
-            "linkedProducts": [
-                self.__build_linked_product_row(obj_product_spec)
-                for obj_product_spec in lst_linked_products
-            ],
+            "linkedProducts": self.__build_linked_products(obj_session, lst_linked_products),
         }
 
     def __query_boms(self, obj_session, str_keyword, str_bom_no):
@@ -211,15 +208,24 @@ class CBomCenterService(object):
     def __load_linked_product_counts(self, obj_session, lst_bom_nos):
         if not lst_bom_nos:
             return {}
-        return {
-            obj_row.bom_no: util_safe_int(obj_row.count)
-            for obj_row in obj_session.query(
-                CTableProductSpec.bom_no,
-                func.count(CTableProductSpec.id).label("count"),
-            )
+        dict_result = defaultdict(set)
+        lst_rows = (
+            obj_session.query(CTableProductSpec)
             .filter(CTableProductSpec.bom_no.in_(lst_bom_nos))
-            .group_by(CTableProductSpec.bom_no)
             .all()
+        )
+        for obj_row in lst_rows:
+            if not obj_row.bom_no:
+                continue
+            dict_result[obj_row.bom_no].add(
+                (
+                    self.__normalize_product_no(obj_row.product_no),
+                    util_safe_int(obj_row.product_version),
+                )
+            )
+        return {
+            str_bom_no: len(set_product_keys)
+            for str_bom_no, set_product_keys in dict_result.items()
         }
 
     def __build_summary(self, lst_boms, dict_state):
@@ -274,17 +280,112 @@ class CBomCenterService(object):
             "weight": util_round_quantity(obj_item.weight),
         }
 
-    def __build_linked_product_row(self, obj_product_spec):
+    def __build_linked_products(self, obj_session, lst_product_specs):
+        if not lst_product_specs:
+            return []
+        dict_product_names = self.__load_product_map(
+            obj_session,
+            {self.__normalize_product_no(obj_row.product_no) for obj_row in lst_product_specs},
+        )
+        dict_inproduct_names = self.__load_inproduct_name_map(
+            obj_session,
+            {obj_row.item_no for obj_row in lst_product_specs if util_safe_int(obj_row.item_type) == 1},
+        )
+        dict_content_product_names = self.__load_product_map(
+            obj_session,
+            {obj_row.item_no for obj_row in lst_product_specs if util_safe_int(obj_row.item_type) == 2},
+        )
+
+        dict_grouped_rows = defaultdict(list)
+        for obj_row in lst_product_specs:
+            str_product_no = self.__normalize_product_no(obj_row.product_no)
+            n_product_version = util_safe_int(obj_row.product_version)
+            dict_grouped_rows[(str_product_no, n_product_version)].append(obj_row)
+
+        lst_results = []
+        for tuple_key in sorted(dict_grouped_rows.keys()):
+            str_product_no, n_product_version = tuple_key
+            lst_group_rows = dict_grouped_rows[tuple_key]
+            lst_parent_rows = [
+                obj_row for obj_row in lst_group_rows
+                if self.__is_parent_product_no(obj_row.product_no, str_product_no)
+            ]
+            lst_content_rows = lst_parent_rows if lst_parent_rows else lst_group_rows
+            dict_product = dict_product_names.get(str_product_no, {})
+            lst_results.append({
+                "productNo": str_product_no,
+                "productName": dict_product.get("name", ""),
+                "productVersion": n_product_version,
+                "productCategory": util_safe_int(dict_product.get("category", 0)),
+                "contents": [
+                    self.__build_linked_product_content_row(
+                        obj_row,
+                        dict_inproduct_names,
+                        dict_content_product_names,
+                    )
+                    for obj_row in sorted(
+                        lst_content_rows,
+                        key=lambda obj_content: (
+                            util_safe_int(obj_content.item_type),
+                            obj_content.item_no or "",
+                            util_safe_int(obj_content.id),
+                        ),
+                    )
+                ],
+            })
+        return lst_results
+
+    def __build_linked_product_content_row(self, obj_product_spec, dict_inproduct_names, dict_product_names):
+        n_item_type = util_safe_int(obj_product_spec.item_type)
+        str_item_no = obj_product_spec.item_no or ""
+        if n_item_type == 1:
+            str_item_name = dict_inproduct_names.get(str_item_no, "")
+        elif n_item_type == 2:
+            str_item_name = dict_product_names.get(str_item_no, {}).get("name", "")
+        else:
+            str_item_name = ""
         return {
-            "productNo": obj_product_spec.product_no or "",
-            "productVersion": util_safe_int(obj_product_spec.product_version),
-            "level": util_safe_int(obj_product_spec.level),
-            "itemType": util_safe_int(obj_product_spec.item_type),
-            "itemNo": obj_product_spec.item_no or "",
+            "itemType": n_item_type,
+            "itemNo": str_item_no,
+            "itemName": str_item_name,
             "count": util_safe_int(obj_product_spec.count),
             "unit": util_safe_int(obj_product_spec.unit),
             "weight": util_round_quantity(obj_product_spec.weight),
         }
+
+    def __load_product_map(self, obj_session, set_product_nos):
+        lst_product_nos = [str_no for str_no in set_product_nos if str_no]
+        if not lst_product_nos:
+            return {}
+        return {
+            obj_row.no: {
+                "name": obj_row.name or "",
+                "category": util_safe_int(obj_row.category),
+            }
+            for obj_row in obj_session.query(CTableProduct)
+            .filter(CTableProduct.no.in_(lst_product_nos))
+            .all()
+        }
+
+    def __load_inproduct_name_map(self, obj_session, set_inproduct_nos):
+        lst_inproduct_nos = [str_no for str_no in set_inproduct_nos if str_no]
+        if not lst_inproduct_nos:
+            return {}
+        return {
+            obj_row.no: obj_row.name or ""
+            for obj_row in obj_session.query(CTableInproduct)
+            .filter(CTableInproduct.no.in_(lst_inproduct_nos))
+            .all()
+        }
+
+    def __normalize_product_no(self, str_product_no):
+        str_value = (str_product_no or "").strip()
+        if str_value.endswith("_1"):
+            return str_value[:-2]
+        return str_value
+
+    def __is_parent_product_no(self, str_product_no, str_normalized_product_no):
+        return (str_product_no or "").strip() == "%s_1" % (str_normalized_product_no or "")
 
     def __select_detail_bom(self, lst_boms, dict_state, n_version):
         if n_version > 0:

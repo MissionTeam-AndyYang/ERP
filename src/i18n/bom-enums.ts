@@ -49,9 +49,14 @@ const levelLabels: Record<number, Partial<Record<LanguageCode, string>>> = {
 
 const itemTypeLabels: Record<number, Partial<Record<LanguageCode, string>>> = {
   0: { "zh-TW": "未指定", en: "Unspecified", ja: "未指定", vi: "Chưa chỉ định" },
-  1: { "zh-TW": "原料", en: "Material", ja: "原料", vi: "Nguyên liệu" },
-  2: { "zh-TW": "在製品", en: "In-process", ja: "仕掛品", vi: "Bán thành phẩm" },
-  3: { "zh-TW": "製成品", en: "Finished good", ja: "製品", vi: "Thành phẩm" }
+  1: { "zh-TW": "在製品", en: "In-process", ja: "仕掛品", vi: "Bán thành phẩm" },
+  2: { "zh-TW": "製成品", en: "Finished good", ja: "製品", vi: "Thành phẩm" }
+};
+
+const productCategoryLabels: Record<number, Partial<Record<LanguageCode, string>>> = {
+  0: { "zh-TW": "其他", en: "Other", ja: "その他", vi: "Khác" },
+  1: { "zh-TW": "散裝品", en: "Bulk product", ja: "バルク品", vi: "Thành phẩm rời" },
+  2: { "zh-TW": "組裝品", en: "Assembled product", ja: "組立品", vi: "Thành phẩm lắp ráp" }
 };
 
 function pickLabel(labels: Partial<Record<LanguageCode, string>> | undefined, language: string, fallback: string) {
@@ -97,6 +102,13 @@ export function bomItemTypeLabel(value?: number, language: string = fallbackLang
     return pickLabel(itemTypeLabels[0], language, "0");
   }
   return pickLabel(itemTypeLabels[value], language, String(value));
+}
+
+export function bomProductCategoryLabel(value?: number, language: string = fallbackLanguage) {
+  if (value === undefined || value === null) {
+    return pickLabel(productCategoryLabels[0], language, "0");
+  }
+  return pickLabel(productCategoryLabels[value], language, String(value));
 }
 
 export function normalizeBomVersionStateCode(value?: string): BomVersionStateCode {

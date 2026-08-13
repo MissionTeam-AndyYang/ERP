@@ -522,7 +522,7 @@ None
 | payload.items[].weight | Float | 商品配方基準重量；依既有 BOM API 的 weight 欄位處理方式 |  |
 | payload.items[].versionStateCode | String | 版本狀態 code；前端負責轉換顯示文字 | effective / future / historical / unknown |
 | payload.items[].itemCount | Integer | 該 BOM 的直接 bom_item 明細筆數 |  |
-| payload.items[].linkedProductCount | Integer | 透過 product_spec.bom_no 關聯的產品版本數 |  |
+| payload.items[].linkedProductCount | Integer | 透過 product_spec.bom_no 關聯的不重複產品版本群組數；若同一產品版本同時存在 product_no 與 product_no + "_1"，以母節點 product_no + "_1" 作為計數依據但以正式產品 no 去重 |  |
 | payload.total | Integer | 套用篩選後的 BOM 版本總筆數 |  |
 | payload.start | Integer | 本次分頁起點 |  |
 | payload.count | Integer | 本次實際回傳筆數 |  |
@@ -541,7 +541,7 @@ None
 2. 查詢 bom，並以 bom.no、bom.displayName、bom_item.item_no、bom_item.item_name 套用關鍵字。
 3. 依 bom.date 與同一 bom.no 的有效版本判斷 versionStateCode。
 4. 依 versionStateCode 篩選、排序與分頁。
-5. 批次查詢 bom_item 與 product_spec，計算 itemCount 與 linkedProductCount。
+5. 批次查詢 bom_item 與 product_spec，計算 itemCount 與 linkedProductCount；linkedProductCount 依正規化後的 productNo + productVersion 去重。
 6. 組成 summary、items、total、start、count 回傳；不回傳成本、報價、合約或繁中文字串 fallback。
 
 ### Database Tables Used
@@ -615,13 +615,19 @@ None
     "linkedProducts": [
       {
         "productNo": "String",
+        "productName": "String",
         "productVersion": "Integer",
-        "level": "Integer",
-        "itemType": "Integer",
-        "itemNo": "String",
-        "count": "Integer",
-        "unit": "Integer",
-        "weight": "Float"
+        "productCategory": "Integer",
+        "contents": [
+          {
+            "itemType": "Integer",
+            "itemNo": "String",
+            "itemName": "String",
+            "count": "Integer",
+            "unit": "Integer",
+            "weight": "Float"
+          }
+        ]
       }
     ]
   }
@@ -647,14 +653,16 @@ None
 | payload.items[].itemName | String | 原物料名稱；無值時回傳空字串 |  |
 | payload.items[].unit | Integer | 原物料使用單位 code | Unit enum |
 | payload.items[].weight | Float | 原物料用量或重量；依既有 BOM API 的 weight 欄位處理方式 |  |
-| payload.linkedProducts[].productNo | String | 關聯製成品 no |  |
+| payload.linkedProducts[].productNo | String | 關聯製成品 no；若來源為 product_no + "_1"，回傳移除 "_1" 後的正式產品 no |  |
+| payload.linkedProducts[].productName | String | 關聯製成品名稱；無值時回傳空字串 |  |
 | payload.linkedProducts[].productVersion | Integer | 關聯製成品版本 |  |
-| payload.linkedProducts[].level | Integer | 產品包裝階層 code |  |
-| payload.linkedProducts[].itemType | Integer | 關聯品項類型 code |  |
-| payload.linkedProducts[].itemNo | String | 關聯在製品或製成品 no |  |
-| payload.linkedProducts[].count | Integer | 產品規格使用的份數；依既有 BOM API 的 count 欄位處理方式 |  |
-| payload.linkedProducts[].unit | Integer | 產品規格重量單位 code | Unit enum |
-| payload.linkedProducts[].weight | Float | 產品規格內含物重量；依既有 BOM API 的 weight 欄位處理方式 |  |
+| payload.linkedProducts[].productCategory | Integer | 關聯製成品主類型 code | 散裝品(1) / 組裝品(2) / 其他(0) |
+| payload.linkedProducts[].contents[].itemType | Integer | 內容物品項類型 code | 在製品(1) / 製成品(2) / 其他(0) |
+| payload.linkedProducts[].contents[].itemNo | String | 內容物在製品或製成品 no |  |
+| payload.linkedProducts[].contents[].itemName | String | 內容物品項名稱；itemType=1 時取 inproduct.name，itemType=2 時取 product.name，無值時回傳空字串 |  |
+| payload.linkedProducts[].contents[].count | Integer | 內容物規格使用的份數；依既有 BOM API 的 count 欄位處理方式 |  |
+| payload.linkedProducts[].contents[].unit | Integer | 內容物重量單位 code | Unit enum |
+| payload.linkedProducts[].contents[].weight | Float | 內容物重量；依既有 BOM API 的 weight 欄位處理方式 |  |
 
 ### Failed Response Data
 
@@ -672,7 +680,9 @@ None
 4. 若提供 version，取指定 bom.version；未提供時取目前有效版本，若無有效版本則取可判定日期中的最高版本。
 5. 查詢 bom_item 取得直接原料明細；BOM Center V1 不遞迴展開 bom1 / bom2。
 6. 查詢 product_spec.bom_no 取得產品版本關聯；不使用 product_spec.bom_version 作為篩選條件。
-7. 組成 bom、versions、items、linkedProducts 回傳。
+7. 將 linkedProducts 依正規化後的 productNo + productVersion 分組；若同版本存在 product_no + "_1" 母節點，以母節點資料作為 contents 來源，但 productNo 對外回傳正式產品 no。
+8. 以 product 取得 productName、productCategory；以 product_spec.item_type 分別從 inproduct 或 product 取得 contents[].itemName。
+9. 組成 bom、versions、items、linkedProducts 回傳。
 
 ### Database Tables Used
 
@@ -681,3 +691,5 @@ None
 | bom | 提供指定商品配方的版本、生效日期、單位、重量與備註 |
 | bom_item | 提供商品配方直接原料明細 |
 | product_spec | 提供使用該 BOM 的產品版本關聯 |
+| product | 提供關聯製成品名稱、製成品類型與內容物製成品名稱 |
+| inproduct | 提供內容物在製品名稱 |

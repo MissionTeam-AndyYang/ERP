@@ -386,17 +386,24 @@ function BomDetailPanel({
         <p className="text-sm font-semibold text-textPrimary">關聯產品版本</p>
         {detail?.linkedProducts.length ? (
           detail.linkedProducts.map((product) => (
-            <div className="rounded-md border border-border px-3 py-2 text-sm" key={`${product.productNo}-${product.productVersion}-${product.itemNo}`}>
+            <div className="rounded-md border border-border px-3 py-2 text-sm" key={`${product.productNo}-${product.productVersion}`}>
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-textPrimary">
-                  {product.productNo} / V{formatInteger(product.productVersion, language)}
-                </p>
-                <StatusBadge tone="info">{product.levelLabel}</StatusBadge>
+                <div>
+                  <p className="font-medium text-textPrimary">
+                    {product.productNo} / V{formatInteger(product.productVersion, language)}
+                  </p>
+                  <p className="mt-1 text-xs text-textSecondary">{product.productName || "未命名製成品"}</p>
+                </div>
+                <StatusBadge tone="info">{product.productCategoryLabel}</StatusBadge>
               </div>
-              <p className="mt-1 text-xs text-textSecondary">
-                {product.itemTypeLabel} · {product.itemNo || "無品項 no"} · {formatInteger(product.count, language)} 份 ·{" "}
-                {formatNumber(product.weight, language)} {product.unit}
-              </p>
+              <div className="mt-2 space-y-1">
+                {product.contents.map((content) => (
+                  <p className="text-xs text-textSecondary" key={`${product.productNo}-${product.productVersion}-${content.itemNo}`}>
+                    {content.itemTypeLabel} · {content.itemNo || "無品項 no"} · {content.itemName || "未命名內容物"} ·{" "}
+                    {formatInteger(content.count, language)} 份 · {formatNumber(content.weight, language)} {content.unit}
+                  </p>
+                ))}
+              </div>
             </div>
           ))
         ) : (

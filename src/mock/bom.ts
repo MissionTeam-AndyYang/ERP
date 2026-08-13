@@ -102,29 +102,41 @@ export const bomDetailMock: Record<string, BomDetail> = {
     linkedProducts: [
       {
         productNo: "P-00018",
+        productName: "奶油餅乾禮盒",
         productVersion: 5,
-        level: 2,
-        levelLabel: "箱規",
-        itemType: 3,
-        itemTypeLabel: "製成品",
-        itemNo: "FG-COOKIE-018",
-        count: 12,
-        unit: "公斤",
-        unitCode: 2,
-        weight: 150
+        productCategory: 2,
+        productCategoryLabel: "組裝品",
+        contents: [
+          {
+            itemType: 2,
+            itemTypeLabel: "製成品",
+            itemNo: "FG-COOKIE-018",
+            itemName: "奶油餅乾內盒",
+            count: 12,
+            unit: "公斤",
+            unitCode: 2,
+            weight: 150
+          }
+        ]
       },
       {
         productNo: "P-00021",
+        productName: "小麥餅乾散裝包",
         productVersion: 2,
-        level: 1,
-        levelLabel: "組規",
-        itemType: 2,
-        itemTypeLabel: "在製品",
-        itemNo: "WIP-COOKIE-021",
-        count: 6,
-        unit: "公斤",
-        unitCode: 2,
-        weight: 75
+        productCategory: 1,
+        productCategoryLabel: "散裝品",
+        contents: [
+          {
+            itemType: 1,
+            itemTypeLabel: "在製品",
+            itemNo: "WIP-COOKIE-021",
+            itemName: "小麥餅乾胚",
+            count: 6,
+            unit: "公斤",
+            unitCode: 2,
+            weight: 75
+          }
+        ]
       }
     ]
   }

@@ -62,18 +62,24 @@ export type BomMaterialItem = {
   weight: number;
 };
 
-export type BomLinkedProduct = {
-  productNo: string;
-  productVersion: number;
-  level: number;
-  levelLabel: string;
+export type BomLinkedProductContent = {
   itemType: number;
   itemTypeLabel: string;
   itemNo: string;
+  itemName: string;
   count: number;
   unit: string;
   unitCode: number;
   weight: number;
+};
+
+export type BomLinkedProduct = {
+  productNo: string;
+  productName: string;
+  productVersion: number;
+  productCategory: number;
+  productCategoryLabel: string;
+  contents: BomLinkedProductContent[];
 };
 
 export type BomDetail = {

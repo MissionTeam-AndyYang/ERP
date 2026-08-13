@@ -43,7 +43,7 @@ const tabDescriptions: Record<ProductionWorkspaceTab, string> = {
   schedule: "以日期與產線視角檢視一週預排工單、製程產能、備料與人員是否可行。",
   mes: "掌握今日工單的製程階段、完成率、機台、人員、物料與品檢狀態。",
   analytics: "比較產時效率、原物料損耗率、單品人工費率與品質結果。",
-  details: "查看工單、批號、BOM、備料、品檢與入庫 workflow 明細。"
+  details: "查看工單、批號、BOM、備料、品檢與入庫流程明細。"
 };
 
 function safeNumber(value: number | undefined) {
@@ -737,7 +737,7 @@ function ProductionDetailSearchPanel({
           <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">歷史工單查詢</p>
           <h3 className="mt-1 text-lg font-semibold text-textPrimary">日期範圍 / 工單號</h3>
           <p className="mt-1 text-sm text-textSecondary">
-            目前沿用 Production dashboard 查詢條件；日期範圍依 API 支援轉為 7 天或 14 天 forward range。
+            可依日期與工單號查詢生產紀錄；系統會依可查詢範圍帶出符合條件的工單。
           </p>
         </div>
         <div className="grid gap-2 md:grid-cols-[150px_150px_minmax(180px,1fr)_auto_auto]">
@@ -815,7 +815,7 @@ function DetailPanel({
 
       {error ? (
         <p className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-xs leading-5 text-warning">
-          Detail API 尚未可用，已保留清單資料。{error}
+          工單明細暫時無法取得，已保留清單資料。{error}
         </p>
       ) : null}
 
@@ -1116,7 +1116,7 @@ export default function ProductionPage() {
               </label>
               <button
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
-                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                title="保留為進階篩選入口，待查詢條件確認後啟用。"
                 type="button"
               >
                 <Filter className="h-4 w-4" aria-hidden="true" />
@@ -1137,7 +1137,7 @@ export default function ProductionPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Production API 呼叫失敗，已停止顯示 mock 資料。請確認後端服務與 API 回應。{error}
+            生產資料取得失敗，已停止顯示預覽資料。請確認後端服務與資料回應。{error}
           </p>
         ) : null}
 

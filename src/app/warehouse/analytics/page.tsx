@@ -674,7 +674,7 @@ export default function WarehouseAnalyticsPage() {
 
         {errors.length ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Analytics API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{errors[0]}
+            庫存分析資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{errors[0]}
           </p>
         ) : null}
 
@@ -745,10 +745,10 @@ export default function WarehouseAnalyticsPage() {
           <div className="rounded-lg border border-border bg-white p-4 shadow-card">
             <div className="flex items-center gap-2 text-textSecondary">
               <Boxes className="h-4 w-4" aria-hidden="true" />
-              <p className="text-sm font-medium">庫存分析 API</p>
+              <p className="text-sm font-medium">庫存分析資料</p>
             </div>
             <p className="mt-2 text-xs leading-5 text-textSecondary">
-              overview 負責首屏 KPI；value-trend、space-utilization、risk-breakdown、task-sla 負責細節分析。
+              經營總覽、庫存價值、倉位使用、風險分布與任務時效分別呈現，方便逐層檢視。
             </p>
           </div>
           <div className="rounded-lg border border-border bg-white p-4 shadow-card">
@@ -757,16 +757,16 @@ export default function WarehouseAnalyticsPage() {
               <p className="text-sm font-medium">前端保留篩選狀態</p>
             </div>
             <p className="mt-2 text-xs leading-5 text-textSecondary">
-              Drill-down URL 由前端依 riskType、taskType、warehouse_no 與 itemCategory 組合，不依賴後端回傳路由字串。
+              可由主畫面帶入倉庫、分類與期間條件，協助查看更細的分析內容。
             </p>
           </div>
           <div className="rounded-lg border border-border bg-white p-4 shadow-card">
             <div className="flex items-center gap-2 text-textSecondary">
               <ClipboardList className="h-4 w-4" aria-hidden="true" />
-              <p className="text-sm font-medium">Read-only V1</p>
+              <p className="text-sm font-medium">唯讀分析</p>
             </div>
             <p className="mt-2 text-xs leading-5 text-textSecondary">
-              本畫面不送出 POST、PUT、DELETE；異動計畫與任務執行保留給後續版本。
+              此工作區以查看分析為主；若要調整任務，回到任務工作台或作業流程。
             </p>
           </div>
         </section>

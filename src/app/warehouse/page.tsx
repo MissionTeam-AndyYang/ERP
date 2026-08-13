@@ -41,7 +41,7 @@ const tabDescriptions: Record<WarehouseWorkspaceTab, string> = {
   "value-space": "依庫存類別掌握資金水位、佔用板數與各倉可用空間。",
   risk: "集中查看迴轉超過一個月、少於 1/3 效期與低於安全水位的庫存。",
   tasks: "追蹤今天尚未完成的入庫、出庫、移倉與確認事項。",
-  details: "以批號、品項、倉位、來源與 workflow 檢視庫存明細。"
+  details: "以批號、品項、倉位、來源與流程檢視庫存明細。"
 };
 
 function formatNumber(value: number) {
@@ -656,7 +656,7 @@ export default function WarehousePage() {
               </label>
               <button
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
-                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                title="保留為進階篩選入口，待查詢條件確認後啟用。"
                 type="button"
               >
                 <Filter className="h-4 w-4" aria-hidden="true" />
@@ -701,7 +701,7 @@ export default function WarehousePage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Warehouse API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            倉庫資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
 
@@ -753,7 +753,7 @@ export default function WarehousePage() {
               message={
                 isLoading || isInventoryLoading
                   ? "正在載入庫存明細。"
-                  : "目前沒有可顯示的庫存批號，請確認 inventory API 是否仍有 currentQuantity 大於 0 的資料。"
+                  : "目前沒有可顯示的庫存批號，請確認是否仍有現有數量大於 0 的庫存資料。"
               }
             />
           )}

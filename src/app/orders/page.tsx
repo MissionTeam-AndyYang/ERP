@@ -40,7 +40,7 @@ const tabDescriptions: Record<OrderWorkspaceTab, string> = {
   overview: "以履約風險管理視角查看進行中訂單、交期、生產可行性與目前階段。",
   commitment: "以 ATP/CTP 檢核接單後是否可承諾交期，包含庫存、物料、產能、人員與品質/出貨限制。",
   "delivery-risk": "優先檢視交期與生產是否做得出來，包含缺料、產能、品檢與出貨阻擋。",
-  fulfillment: "查看每張訂單從備料、生產、品檢、出貨到收款的履約 workflow。",
+  fulfillment: "查看每張訂單從備料、生產、品檢、出貨到收款的履約流程。",
   "margin-payment": "第二順位追蹤預估/實際毛利，第三順位查看收款狀態。"
 };
 
@@ -438,7 +438,7 @@ function DetailPanel({
         </div>
         <StatusBadge tone={ordersRiskTone(order.deliveryRiskCode)}>{deliveryRiskLabel(order, language)}</StatusBadge>
       </div>
-      {isLoading ? <StatusBadge tone="info">Loading fulfillment API</StatusBadge> : null}
+      {isLoading ? <StatusBadge tone="info">載入履約明細中</StatusBadge> : null}
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-md bg-slate-50 p-3">
@@ -669,7 +669,7 @@ export default function OrdersPage() {
               </label>
               <button
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary"
-                title="V1 先保留為進階篩選入口，待 API 條件欄位確認後啟用。"
+                title="保留為進階篩選入口，待查詢條件確認後啟用。"
                 type="button"
               >
                 <Filter className="h-4 w-4" aria-hidden="true" />
@@ -678,7 +678,7 @@ export default function OrdersPage() {
               <button
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
                 onClick={() => setActiveTab("fulfillment")}
-                title="切換到履約進度，檢視目前選取訂單的履約 workflow。"
+                title="切換到履約進度，檢視目前選取訂單的履約流程。"
                 type="button"
               >
                 <Truck className="h-4 w-4" aria-hidden="true" />
@@ -690,13 +690,13 @@ export default function OrdersPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Orders API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            訂單資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
 
         {fulfillmentError ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Orders fulfillment API 呼叫失敗，右側保留清單摘要。{fulfillmentError}
+            訂單履約明細取得失敗，右側保留清單摘要。{fulfillmentError}
           </p>
         ) : null}
 

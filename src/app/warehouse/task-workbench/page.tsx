@@ -417,7 +417,7 @@ function DetailPanel({ detail, isLoading }: { detail?: WarehouseTaskDetail; isLo
             </div>
           ))
         ) : (
-          <EmptyState message="尚無任務歷史事件，API 可先回傳空陣列。" />
+          <EmptyState message="尚無任務歷史事件。" />
         )}
       </section>
     </aside>
@@ -548,18 +548,18 @@ export default function WarehouseTaskWorkbenchPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Task workbench API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            倉庫任務資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
         {detailError ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Task detail API 呼叫失敗，右側追蹤面板保留空狀態。{detailError}
+            任務追蹤明細取得失敗，右側追蹤面板保留空狀態。{detailError}
           </p>
         ) : null}
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
-            hint={`${formatNumber(data.total, language)} tasks returned · ${data.range.mode}`}
+            hint={`目前符合條件 ${formatNumber(data.total, language)} 件 · ${data.range.mode}`}
             icon={ClipboardList}
             label="未完成任務"
             tone="info"
@@ -715,7 +715,7 @@ export default function WarehouseTaskWorkbenchPage() {
             <div>
               <p className="text-sm font-semibold text-textPrimary">後續執行工作區</p>
               <p className="mt-1 text-xs leading-5 text-textSecondary">
-                第一版工作台為 read-only；完成、放行、解除阻塞與數量異動延至下一版 Task Execution API。
+                此工作台目前以查看與追蹤為主；完成、放行、解除阻塞與數量異動會由後續任務執行流程處理。
               </p>
             </div>
             <Link

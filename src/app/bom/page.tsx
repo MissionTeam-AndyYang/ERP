@@ -3,9 +3,6 @@
 import {
   ChevronLeft,
   ChevronRight,
-  GitBranch,
-  Layers3,
-  PackageCheck,
   Search
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -102,7 +99,7 @@ function VersionStateBoard({ data, language }: { data: BomDashboardData; languag
     <section className="rounded-lg border border-border bg-white p-4 shadow-card">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">Version State</p>
+          <p className="text-xs font-medium text-textSecondary">版本狀態</p>
           <h3 className="mt-1 text-lg font-semibold text-textPrimary">BOM 版本狀態</h3>
         </div>
         <StatusBadge tone="neutral">共 {formatInteger(data.summary.versionCount, language)} 個版本</StatusBadge>
@@ -114,9 +111,7 @@ function VersionStateBoard({ data, language }: { data: BomDashboardData; languag
               <p className="font-medium text-textPrimary">{column.label}</p>
               <StatusBadge tone={column.tone}>{formatInteger(column.count, language)}</StatusBadge>
             </div>
-            <p className="mt-2 text-xs leading-5 text-textSecondary">
-              由後端 `versionStateCode` 回傳 code，前端轉換顯示文字；不代表核准簽核流程。
-            </p>
+            <p className="mt-2 text-xs leading-5 text-textSecondary">依目前版本生效時間彙整，協助快速掌握配方可用狀態。</p>
           </div>
         ))}
       </div>
@@ -140,7 +135,7 @@ function BomVersionTable({
   const visibleItems = useMemo(() => items.filter((item) => itemMatchesSearch(item, searchQuery)), [items, searchQuery]);
 
   if (!visibleItems.length) {
-    return <EmptyList title="沒有符合條件的 BOM 版本" description="請調整搜尋、版本狀態或確認 API 是否有回傳資料。" />;
+    return <EmptyList title="沒有符合條件的 BOM 版本" description="請調整搜尋或版本狀態條件。" />;
   }
 
   return (
@@ -295,7 +290,7 @@ function BomDetailPanel({
     <aside className="space-y-4 rounded-lg border border-border bg-white p-4 shadow-card xl:sticky xl:top-24">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-textSecondary">BOM Detail</p>
+          <p className="text-xs font-medium text-textSecondary">配方明細</p>
           <h2 className="mt-1 text-lg font-semibold text-textPrimary">{bom.bomNo}</h2>
           <p className="mt-1 text-sm text-textSecondary">
             {bom.bomName || "未命名商品配方"} · V{formatInteger(bom.version, language)}
@@ -307,7 +302,7 @@ function BomDetailPanel({
       {isLoading ? <p className="rounded-md bg-info/10 px-3 py-2 text-sm text-info">載入 BOM 明細中...</p> : null}
       {error ? (
         <p className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
-          BOM detail API 暫時無法取得，右側保留清單摘要。{error}
+          配方明細暫時無法取得，右側保留清單摘要。{error}
         </p>
       ) : null}
 
@@ -379,7 +374,7 @@ function BomDetailPanel({
             </table>
           </div>
         ) : (
-          <EmptyList title="沒有配方明細" description="API 目前沒有回傳此 BOM 版本的直接 bom_item 明細。" />
+          <EmptyList title="沒有配方明細" description="目前沒有此 BOM 版本的直接配方明細。" />
         )}
       </div>
 
@@ -544,7 +539,7 @@ export default function BomPage() {
 
         {error ? (
           <p className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-            BOM Center API 發生錯誤，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            BOM 中心資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
 
@@ -601,32 +596,6 @@ export default function BomPage() {
               setSelectedVersion(version);
             }}
           />
-        </section>
-
-        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="flex gap-3">
-              <GitBranch className="mt-1 h-5 w-5 text-textSecondary" aria-hidden="true" />
-              <div>
-                <p className="font-semibold text-textPrimary">版本視角</p>
-                <p className="mt-1 text-sm text-textSecondary">同一 BOM no 的不同版本會各自列為一筆。</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Layers3 className="mt-1 h-5 w-5 text-textSecondary" aria-hidden="true" />
-              <div>
-                <p className="font-semibold text-textPrimary">直接明細</p>
-                <p className="mt-1 text-sm text-textSecondary">V1 僅呈現 `bom_item`，不遞迴展開 bom1 / bom2。</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <PackageCheck className="mt-1 h-5 w-5 text-textSecondary" aria-hidden="true" />
-              <div>
-                <p className="font-semibold text-textPrimary">產品關聯</p>
-                <p className="mt-1 text-sm text-textSecondary">依 `product_spec.bom_no` 顯示關聯產品版本。</p>
-              </div>
-            </div>
-          </div>
         </section>
       </div>
     </AppLayout>

@@ -623,7 +623,7 @@ function DetailPanel({
       {isLoading ? <p className="rounded-md bg-info/10 px-3 py-2 text-sm text-info">載入採購單明細中...</p> : null}
       {detailError ? (
         <p className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
-          採購單明細 API 暫時無法取得，右側保留清單摘要。{detailError}
+          採購單明細暫時無法取得，右側保留清單摘要。{detailError}
         </p>
       ) : null}
 
@@ -702,7 +702,7 @@ function DetailPanel({
       </div>
 
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-textPrimary">Workflow</p>
+        <p className="text-sm font-semibold text-textPrimary">流程追蹤</p>
         {visibleDetail?.workflow.length ? (
           visibleDetail.workflow.map((step, index) => (
             <div className="flex gap-3" key={`${step.taskId}-${step.refNo}`}>
@@ -734,7 +734,7 @@ function DetailPanel({
             </div>
           ))
         ) : (
-          <EmptyState message="目前沒有 workflow 任務紀錄。" />
+          <EmptyState message="目前沒有流程任務紀錄。" />
         )}
       </div>
     </aside>
@@ -820,7 +820,7 @@ export default function PurchasingPage() {
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">採購單主視角工作區</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
                 以採購單為主資料列，查詢任意歷史區間內的採購金額、交易單位、預計到貨、分批進貨、
-                入庫交接、請購關聯與來源影響。API 錯誤會明確顯示，不自動改用 mock 資料。
+                入庫交接、請購關聯與來源影響。資料取得錯誤會明確顯示，不自動改用預覽資料。
               </p>
             </div>
             <div className="grid gap-2 md:grid-cols-[auto_auto_auto] xl:grid-cols-[auto_auto_auto_auto]">
@@ -876,7 +876,7 @@ export default function PurchasingPage() {
 
         {error ? (
           <p className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-            Purchasing API 發生錯誤，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            採購資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
 

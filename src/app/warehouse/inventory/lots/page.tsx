@@ -418,12 +418,12 @@ export default function WarehouseInventoryLotsPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Inventory lots API 呼叫失敗，畫面未改用 mock 資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            庫存批號資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
         {detailError ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Inventory lot detail API 呼叫失敗，右側明細保留空狀態。{detailError}
+            庫存批號追蹤明細取得失敗，右側明細保留空狀態。{detailError}
           </p>
         ) : null}
 
@@ -515,12 +515,12 @@ export default function WarehouseInventoryLotsPage() {
               <div className="rounded-lg border border-border bg-white p-4 shadow-card">
                 <PackageSearch className="h-5 w-5 text-textSecondary" aria-hidden="true" />
                 <p className="mt-2 text-sm font-semibold text-textPrimary">清單篩選</p>
-                <p className="mt-1 text-xs leading-5 text-textSecondary">依 API query 取得批號明細，不使用 dashboard 明細列。</p>
+                <p className="mt-1 text-xs leading-5 text-textSecondary">依目前篩選條件取得批號明細，不混用總覽摘要資料。</p>
               </div>
               <div className="rounded-lg border border-border bg-white p-4 shadow-card">
                 <Layers3 className="h-5 w-5 text-textSecondary" aria-hidden="true" />
                 <p className="mt-2 text-sm font-semibold text-textPrimary">批號層級</p>
-                <p className="mt-1 text-xs leading-5 text-textSecondary">以 warehouseNo、itemNo、batchNo 作為 detail API path。</p>
+                <p className="mt-1 text-xs leading-5 text-textSecondary">以倉庫、品項與批號定位單一批號追蹤資料。</p>
               </div>
               <div className="rounded-lg border border-border bg-white p-4 shadow-card">
                 <ClipboardList className="h-5 w-5 text-textSecondary" aria-hidden="true" />

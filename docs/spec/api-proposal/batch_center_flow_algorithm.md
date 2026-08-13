@@ -10,7 +10,7 @@
 2. 建立單一 DB session；若 service 對外方法不需要外部共用 session，應在函式內自行建立 session。
 3. 驗證 `date`、`keyword`、`itemCategory`、`itemSubCategory`、`itemType`、`warehouseNo`、`batchNo`、`riskLevelCode`、`qaStatusCode`、`batchStageCode`、`availabilityCode`、`start`、`count`。
 4. 所有目前庫存數量與庫存價值相關計算，應重用已建立的 `CWarehouseInventorySnapshotCalculator` 或既有 Warehouse 庫存快照共用邏輯，不建立第二套月結與 delta 補算演算法。
-5. 批號來源單據固定優先以 `batch_number.refCategory`、`batch_number.ref_no` 回傳；不得使用 `sourceType` 命名，也不得以 inventory record 覆蓋批號來源。
+5. 批號來源單據固定優先以 `batch_number.refCategory`、`batch_number.ref_no` 回傳，API 欄位統一命名為 `refCategory`、`refNo`；不得使用 `sourceType` 命名，也不得以 inventory record 覆蓋批號來源。
 6. 庫存批號列若目前庫存數量 `currentQuantity <= 0`，不回傳至 dashboard、distribution 或 detail 的 `stockByWarehouse[]`。
 7. 後端只回傳 enum code、數值與資料庫欄位，不回傳前端顯示用繁中文字串；前端負責多國語系。
 8. 數值精度遵循既有規範：單價小數第 4 位、數量／重量小數第 2 位、金額四捨五入取整數。
@@ -27,7 +27,7 @@
 ### 2.2 批號主檔
 
 1. 批次查詢 `batch_number`，以快照中的 `batchNo` 集合作為查詢條件。
-2. 回填 `validDate`、`validDays`、`sourceRefCategory`、`sourceNo`、`creatorNo`、`creationTime`。
+2. 回填 `validDate`、`validDays`、`refCategory`、`refNo`、`creatorNo`、`creationTime`。
 3. 若同一批號有多筆資料，依 `date desc`、`creationTime desc`、`id desc` 取第一筆作為批號主檔資料。
 
 ### 2.3 預留與品檢保留
@@ -37,24 +37,20 @@
 3. 以 `itemNo + batchNo + warehouseNo` 作為 stock key 彙總：
    - `reservedQuantity`
    - `qualityHoldQuantity`
-   - `quarantineQuantity`
-4. `quarantineQuantity` 需等待工程師確認映射規則；未確認前不得自行以任意狀態推測。
+4. 第一版尚未建立隔離資料模型，不彙總也不回傳 `quarantineQuantity`；若未來需要隔離流程，需另以正式資料表或 `warehouse_quality_hold.reasonCode` 規劃。
 
 ### 2.4 板位與倉庫資訊
 
 1. 優先使用 `warehouse_pallet_movement` 彙總目前使用中板數。
 2. 若 `warehouse_pallet_movement` 沒有資料，可於工程師確認後以 `batchno_serialno_group` 作為位置 fallback。
-3. `locationCode` 回傳主要板位或倉位代碼；多個板位時可取最近異動或數量最大者，但需在正式實作前確認排序規則。
+3. `locationCode` 回傳主要板位或倉位代碼；多個板位時取目前板數或庫存量最大的板位，若相同則取最近異動時間，仍相同時依 location / pallet no 字串排序取第一筆；無資料時回傳空字串。
 4. `warehouseName` 優先取 `ship_wh_alias.displayName`；若無資料再使用 `inventory_record.warehouse_displayName` fallback。
 
-### 2.5 Workflow 與需求訊號
+### 2.5 Workflow 與任務責任
 
 1. 查詢 `workflow_task_state` 中與 stock key、itemNo 或 batchNo 有關，且狀態為 pending、partial、blocked 的未完成任務。
 2. `ownerDepartment` 取風險最高或 due date 最近任務的 `nextOwnerDepartment`。
-3. `demandSignals[]` 只取有正式來源可佐證的訊號：
-   - reservation 對應出貨或生產需求。
-   - workflow task 對應下一步待處理部門。
-   - quality hold 對應品檢阻塞。
+3. Dashboard 第一版不回傳 `demandSignals[]`，僅回傳料品層級 `ownerDepartment`；需求或任務影響由 detail API 的 `tasks[]` 或後續任務工作台承接。
 4. V1 不呼叫 APS，不自行推測未來工單短缺。
 
 ## 3. 風險與狀態判斷
@@ -72,12 +68,11 @@
 
 ### 3.2 可用性
 
-1. `availableQuantity = max(currentQuantity - reservedQuantity - qualityHoldQuantity - quarantineQuantity, 0)`。
+1. `availableQuantity = max(currentQuantity - reservedQuantity - qualityHoldQuantity, 0)`。
 2. 若 `availableQuantity > 0`，可用性包含 `available`。
 3. 若 `reservedQuantity > 0`，可用性包含 `reserved`。
 4. 若 `qualityHoldQuantity > 0`，可用性包含 `quality_hold`。
-5. 若 `quarantineQuantity > 0`，可用性包含 `quarantine`。
-6. `availabilityCode` 篩選在彙總完成後套用，避免尚未扣除預留／品檢前誤判。
+5. `availabilityCode` 篩選在彙總完成後套用，避免尚未扣除預留／品檢前誤判。
 
 ### 3.3 品檢狀態
 
@@ -89,23 +84,29 @@
 
 ### 3.4 批號階段
 
-判斷優先順序如下，先命中者為 `batchStageCode`：
+判斷規則如下：
 
-1. `quarantineQuantity > 0`：`quarantine`
-2. `qualityHoldQuantity > 0`：`quality_hold`
-3. `reservedQuantity > 0` 且 `availableQuantity <= 0`：`reserved`
-4. `availableQuantity > 0`：`available`
-5. `currentQuantity > 0`：`stocked`
-6. 僅存在進貨或入庫未完成任務且尚無庫存：`inbound_pending`
-7. 其他：`unknown`
+1. `batchStageCode` 以分布列為判斷單位，不代表整個批號唯一狀態。
+2. 若同一批號部分數量位於倉庫、部分數量處於產製中，`/distribution` 回傳多筆分布列；倉庫列依倉庫庫存狀態判斷，產製列依工單或製程情境判斷。
+3. 倉庫列判斷優先順序如下，先命中者為 `batchStageCode`：
+   - `qualityHoldQuantity > 0`：`quality_hold`
+   - `reservedQuantity > 0` 且 `availableQuantity <= 0`：`reserved`
+   - `availableQuantity > 0`：`available`
+   - `currentQuantity > 0`：`stocked`
+   - 僅存在進貨或入庫未完成任務且尚無庫存：`inbound_pending`
+   - 其他：`unknown`
+4. 產製情境若有正式來源資料可佐證，可回傳：
+   - 已投入產線、尚未成為製成批號：`production_input`
+   - 產製完成、尚未完成入庫或仍在產出等待區：`production_output`
+5. 產製情境若沒有倉庫或板位資料，`warehouseNo`、`warehouseName`、`locationCode` 回傳空字串，來源與關聯單據仍依 `refCategory` / `refNo` 回傳。
 
 ### 3.5 風險等級
 
-1. 命中 `expired`、`quarantine`、`quality_hold` 且影響已預留或待出貨數量時，`riskLevelCode=high_risk`。
+1. 命中 `expired`、`quality_hold` 且影響已預留或待出貨數量時，`riskLevelCode=high_risk`。
 2. 命中 `near_expiry`、`reserved`、`workflow_blocked` 或 `stock_shortage` 時，`riskLevelCode=attention`。
 3. 無風險時 `riskLevelCode=normal`。
-4. 料品層級 `highestRiskLevelCode` 取所有批號分布列最高風險等級。
-5. `primaryRiskCode` 依優先順序選擇：`expired` > `quarantine` > `quality_hold` > `stock_shortage` > `workflow_blocked` > `near_expiry` > `reserved` > `normal`。
+4. 料品層級 `riskLevelCode` 取所有批號分布列最高風險等級。
+5. `riskCode` 依優先順序選擇：`expired` > `quality_hold` > `stock_shortage` > `workflow_blocked` > `near_expiry` > `reserved` > `normal`。
 
 ## 4. GET `/api/v2/batches/dashboard`
 
@@ -114,12 +115,12 @@
 3. 計算：
    - `totalBatchCount`：目前庫存量大於 0 的不重複批號數。
    - `warehouseCount`：目前庫存量大於 0 的不重複倉庫數。
-   - `currentQuantity`、`reservedQuantity`、`qualityHoldQuantity`、`quarantineQuantity`、`availableQuantity`。
+   - `currentQuantity`、`reservedQuantity`、`qualityHoldQuantity`、`availableQuantity`。
    - `earliestValidDate`：該料品有效期限最早的批號。
-   - `qaHoldBatchCount`、`quarantineBatchCount`、`nearExpiryBatchCount`。
-   - `highestRiskLevelCode`、`primaryRiskCode`、`ownerDepartment`、`demandSignals[]`。
+   - `qaHoldBatchCount`、`nearExpiryBatchCount`。
+   - `riskLevelCode`、`riskCode`、`ownerDepartment`。
 4. 套用風險與狀態篩選。
-5. 以 `highestRiskLevelCode`、`earliestValidDate`、`itemNo` 穩定排序；正式實作可依工程師確認補充 `sortBy`。
+5. 第一版採固定排序：料品品項類別依原料(1) → 物料(2) → 膠捲(3) → 在製品(4) → 製成品(5) → 貨品(6) → 其他(0)，同類別再依 `riskLevelCode` 高到低、`earliestValidDate` 早到晚、`itemNo` 穩定排序。
 6. 以 SQL 或可控的中間結果完成分頁。若必須先彙總才能分頁，需確保原始快照已先被篩選至合理範圍，避免全表取回。
 7. 回傳 summary、items、total、start、count。
 
@@ -127,7 +128,7 @@
 
 1. 驗證 `item_no`。
 2. 建立共用資料集合，強制套用 `itemNo=item_no`。
-3. 以 `batchNo + warehouseNo` 建立分布列。
+3. 以 `batchNo + warehouseNo + batchStageCode` 建立分布列；若同批號同時存在倉庫與產製情境，需分列回傳。
 4. 回填批號主檔、倉庫名稱、板位、預留、品檢、風險、來源單據與關聯文件。
 5. 排序優先順序：
    - `riskLevelCode` 高到低。
@@ -156,7 +157,7 @@
 4. 所有 util 函式若可共用，需放在 `restserver/package/util/util.py` 且以 `util_` 開頭。
 5. 正式實作需建立 pytest，涵蓋欄位存在、數值計算、空集合、0 庫存過濾、近效期、預留、品檢保留、分頁與錯誤參數。
 
-## 8. 待工程師確認後才能實作的項目
+## 8. 工程師提問與回覆保留
 
 | 項目 | 需要確認原因 | 工程師回覆 |
 |---|---|---|
@@ -165,3 +166,13 @@
 | `qaStatusCode` 映射 | 需確認 `warehouse_quality_hold.status` 與品檢 workflow task 的狀態值。 |目前尚未設計關於狀態或階段的呈現方式，可先參照你的建議進行規劃。|
 | API path 命名 | 需確認 `/api/v2/batches/...` 是否符合工程師對既有 `batchnumber` API 的延伸命名。 | 採用 `/api/v2/batches/...`|
 | 分頁排序 | 需確認前端是否需要額外 `sortBy` / `sortDirection`；若第一版不需要，固定排序即可。 |目前先採用固定排序方式，後端依序按照 原料 → 物料 → 膠捲 → 在製品 → 製成品 進行排列。|
+
+## 9. 工程師回覆理解與流程更新結論
+
+| 項目 | 本次流程採用結論 |
+|---|---|
+| 隔離量 | 第一版不計算、不彙總、不回傳 `quarantineQuantity`；品檢相關限制統一由 `qualityHoldQuantity`、`qaStatusCode` 與 `qualityHolds[]` 表示。 |
+| `locationCode` | 採用確定性單一位置規則：目前板數或庫存量最大者優先，其次最近異動時間，再其次 location / pallet no 字串排序。若未來畫面需要完整多板位，另設計 `locations[]`。 |
+| `qaStatusCode` | 第一版依 active quality hold 與未完成品檢 workflow task 推導；後端僅回傳 code，顯示文字由前端處理。 |
+| API path | 採用 `/api/v2/batches/...`。 |
+| 分頁排序 | Dashboard 第一版採固定排序：原料 → 物料 → 膠捲 → 在製品 → 製成品 → 貨品 → 其他，同類別再依風險、效期與料號排序。 |

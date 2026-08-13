@@ -1,3 +1,18 @@
+# 工程師提問
+1. 品檢保留量與隔離量在定義上有何差異？是否可簡化設計，僅保留其中一種方式？
+2. 針對 /api/v2/batches/dashboard
+   - summary.managedItemCount 更名為 stockItemCount；
+summary.distributedBatchCount 更名為 stockBatchCount。
+變數名稱請採用易懂且語意相近的命名方式，以提升可讀性與一致性。
+   - items[].highestRiskLevelCode 更名為 items[].riskLevelCode ； items[].primaryRiskCode 更名為 items[].riskCode
+   - items[].demandSignals[] 目前規劃設計的畫面是否會使用到？若未使用，請先移除該欄位。
+3. 針對 /api/v2/batches/items/{item_no}/distribution
+   - 若同一批號的部分數量位於倉庫，另一部分處於產製中，batches[].batchStageCode 應如何顯示？
+   - 請舉例說明 batches[].sourceRefCategory / batches[].sourceNo 與 batches[].relatedDocuments[].documentTypeCode / batches[].relatedDocuments[].documentNo 在批號來源單據與關聯單據上的差異。
+4. 針對 /api/v2/batches/{batch_no}/detail
+   - inventoryRecords[].movementCategory 更名為  inventoryRecords[].category ; inventoryRecords[].movementSource 更名為  inventoryRecords[].source
+5. 若欄位描述涉及來源單據或關聯訂單類，參數名稱建議統一命名為 refCategory / refNo，例如：sourceRefCategory / sourceNo。
+
 # BatchCenterScreen API 提案
 
 > Status: API Proposal / Pending Engineer Review  
@@ -424,11 +439,11 @@
 
 ## 9. 工程師提問與待確認
 
-| 項目 | 提問 | 暫定提案 |
-|---|---|---|
-| API path | V2 path 是否採 `/api/v2/batches/...`，或為了與既有 `batchnumber.md` 命名一致改為 `/api/v2/batchnumber/...`？ | 建議前端畫面使用 `/batches`，API 使用 `/api/v2/batches/...`；既有 `/api/v1/batchnumber` 保留為舊版批號清單 API。 |
-| 隔離量 | `quarantineQuantity` 是否有獨立資料表／欄位，或需由 `warehouse_quality_hold.status` / `reasonCode` 映射？ | 文件先保留欄位，但標記需工程師確認映射規則；未確認前不得在程式自行推測。 |
-| 品檢狀態 | `qaStatusCode` 是否可由 `warehouse_quality_hold` 與品檢 workflow 任務狀態共同判斷？ | 建議優先以 `warehouse_quality_hold` active hold 判斷 `quality_hold` / `blocked`，無 hold 且無未完成品檢任務時為 `released`。 |
-| 批號階段 | `batchStageCode` 是否以庫存、預留、品檢、來源單據與任務共同推導？ | 建議以明確資料優先順序推導：quality hold / quarantine > reserved > available > stocked > inbound pending > unknown。 |
-| 需求影響 | `demandSignals[]` 是否只使用 workflow task 與 reservation，暫不接 APS 或訂單短缺演算法？ | 建議 V1 不接 APS；只回傳已有 workflow/reservation 可佐證的需求訊號。 |
-| 來源單據 | `sourceRefCategory`、`sourceNo` 是否一律以 `batch_number.refCategory`、`batch_number.ref_no` 為準？ | 建議採用；若 inventory record 來源不同，只在 detail 的 `inventoryRecords[]` 中呈現，不覆蓋 batch source。 |
+| 項目 | 提問 | 暫定提案 | 工程師回覆 |   
+|---|---|---|---|
+| API path | V2 path 是否採 `/api/v2/batches/...`，或為了與既有 `batchnumber.md` 命名一致改為 `/api/v2/batchnumber/...`？ | 建議前端畫面使用 `/batches`，API 使用 `/api/v2/batches/...`；既有 `/api/v1/batchnumber` 保留為舊版批號清單 API。 | 採用 `/api/v2/batches/...`|
+| 隔離量 | `quarantineQuantity` 是否有獨立資料表／欄位，或需由 `warehouse_quality_hold.status` / `reasonCode` 映射？ | 文件先保留欄位，但標記需工程師確認映射規則；未確認前不得在程式自行推測。 | 目前尚未設計關於隔離的呈現方式，可先參照你的建議進行規劃。 | 
+| 品檢狀態 | `qaStatusCode` 是否可由 `warehouse_quality_hold` 與品檢 workflow 任務狀態共同判斷？ | 建議優先以 `warehouse_quality_hold` active hold 判斷 `quality_hold` / `blocked`，無 hold 且無未完成品檢任務時為 `released`。 | 目前尚未設計關於狀態或階段的呈現方式，可先參照你的建議進行規劃。 |
+| 批號階段 | `batchStageCode` 是否以庫存、預留、品檢、來源單據與任務共同推導？ | 建議以明確資料優先順序推導：quality hold / quarantine > reserved > available > stocked > inbound pending > unknown。 | 目前尚未設計關於狀態或階段的呈現方式，可先參照你的建議進行規劃。 |
+| 需求影響 | `demandSignals[]` 是否只使用 workflow task 與 reservation，暫不接 APS 或訂單短缺演算法？ | 建議 V1 不接 APS；只回傳已有 workflow/reservation 可佐證的需求訊號。 |目前尚未設計關於需求影響的呈現方式，可先參照你的建議進行規劃。
+| 來源單據 | `sourceRefCategory`、`sourceNo` 是否一律以 `batch_number.refCategory`、`batch_number.ref_no` 為準？ | 建議採用；若 inventory record 來源不同，只在 detail 的 `inventoryRecords[]` 中呈現，不覆蓋 batch source。 | 若 `sourceRefCategory`、`sourceNo` 用於表示批號資訊，則應以 `batch_number.refCategory`、`batch_number.ref_no` 為準。 |

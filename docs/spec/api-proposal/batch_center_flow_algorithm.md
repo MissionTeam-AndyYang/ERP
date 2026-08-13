@@ -158,10 +158,10 @@
 
 ## 8. 待工程師確認後才能實作的項目
 
-| 項目 | 需要確認原因 |
-|---|---|
-| `quarantineQuantity` 映射 | 目前文件未確認隔離量是否有獨立狀態或 reason code。 |
-| `locationCode` 選擇規則 | 同一批號同一倉庫可能有多個板位，需確認取最近異動、最大數量或回傳多值。 |
-| `qaStatusCode` 映射 | 需確認 `warehouse_quality_hold.status` 與品檢 workflow task 的狀態值。 |
-| API path 命名 | 需確認 `/api/v2/batches/...` 是否符合工程師對既有 `batchnumber` API 的延伸命名。 |
-| 分頁排序 | 需確認前端是否需要額外 `sortBy` / `sortDirection`；若第一版不需要，固定排序即可。 |
+| 項目 | 需要確認原因 | 工程師回覆 |
+|---|---|---|
+| `quarantineQuantity` 映射 | 目前文件未確認隔離量是否有獨立狀態或 reason code。 |目前尚未設計關於隔離的呈現方式，可先參照你的建議進行規劃。|
+| `locationCode` 選擇規則 | 同一批號同一倉庫可能有多個板位，需確認取最近異動、最大數量或回傳多值。 |目前尚未設計，對此你有何建議?|
+| `qaStatusCode` 映射 | 需確認 `warehouse_quality_hold.status` 與品檢 workflow task 的狀態值。 |目前尚未設計關於狀態或階段的呈現方式，可先參照你的建議進行規劃。|
+| API path 命名 | 需確認 `/api/v2/batches/...` 是否符合工程師對既有 `batchnumber` API 的延伸命名。 | 採用 `/api/v2/batches/...`|
+| 分頁排序 | 需確認前端是否需要額外 `sortBy` / `sortDirection`；若第一版不需要，固定排序即可。 |目前先採用固定排序方式，後端依序按照 原料 → 物料 → 膠捲 → 在製品 → 製成品 進行排列。|

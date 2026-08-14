@@ -3,6 +3,13 @@
    - 因同一批號若同時存在倉庫庫存與產製中數量，系統將回傳多筆分布列，各列依所屬情境給予不同的 batchStageCode。其 batches[].batchStageCode 的資料型態是否仍維持 String 格式？
    - 請具體說明 batches[].relatedDocuments[] 欄位會關聯至哪些資料表。
 
+# 工程師回覆V2
+
+| 項目 | 回覆理解 | 本次提案採用結論 |
+|---|---|---|
+| `batches[].batchStageCode` 型態 | `batchStageCode` 是後端回傳給前端進行 enum 轉換與多國語系顯示的階段代碼，不是資料庫整數欄位，也不承載前端顯示文字。 | 維持 `String`。即使同一批號回傳多筆分布列，每一列的 `batchStageCode` 仍回傳 String enum code，例如 `available`、`quality_hold`、`production_input`、`production_output`。 |
+| `batches[].relatedDocuments[]` 關聯來源 | `relatedDocuments[]` 只表示此批號分布列目前或近期作業相關的文件，不取代批號原始來源 `batches[].refCategory` / `refNo`。 | 第一版僅由可明確追溯到批號、料號、倉庫或任務來源的資料表彙整：`workflow_task_state`、`warehouse_inventory_reservation`、`warehouse_quality_hold`、`inventory_record`；若為產製中情境，可再由 `production_data_input`、`production_data_output` 補充 `work_order` / `process_order` 關聯。 |
+
 # 工程師提問
 1. 品檢保留量與隔離量在定義上有何差異？是否可簡化設計，僅保留其中一種方式？
 2. 針對 /api/v2/batches/dashboard
@@ -227,13 +234,13 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 | `batches[].validDate` | Integer | 批號有效期限 UTC timestamp；無值時回傳 0。 | `batch_number.validDate` |
 | `batches[].validDays` | Integer | 批號有效天數；無值時回傳 0。 | `batch_number.validDays` |
 | `batches[].qaStatusCode` | String | 品檢狀態 code；前端負責顯示文字。 | `released`、`inspection`、`quality_hold`、`blocked`、`unknown` |
-| `batches[].batchStageCode` | String | 此分布列的批號作業階段 code；同一批號若同時位於倉庫與產製中，需回傳多筆分布列，各列依實際情境給不同階段。 | `inbound_pending`、`stocked`、`available`、`reserved`、`quality_hold`、`production_input`、`production_output`、`shipped`、`unknown` |
+| `batches[].batchStageCode` | String | 此分布列的批號作業階段 code；資料型態維持 String enum code。同一批號若同時位於倉庫與產製中，需回傳多筆分布列，各列依實際情境給不同階段。 | `inbound_pending`、`stocked`、`available`、`reserved`、`quality_hold`、`production_input`、`production_output`、`shipped`、`unknown` |
 | `batches[].riskLevelCode` | String | 此批號風險等級 code。 | `normal`、`attention`、`high_risk` |
 | `batches[].riskCodes[]` | String | 此批號命中的風險 code 清單。 | `expired`、`near_expiry`、`quality_hold`、`reserved`、`stock_shortage`、`workflow_blocked` |
 | `batches[].refCategory` | Integer | 批號建立時的來源單據類別，固定以 `batch_number.refCategory` 為準；例如採購進貨批號來自進貨單，產製批號來自工單或製程單。 | `batch_number.refCategory` |
 | `batches[].refNo` | String | 批號建立時的來源單號，固定以 `batch_number.ref_no` 為準；不以後續出入庫紀錄覆蓋。 | `batch_number.ref_no` |
-| `batches[].relatedDocuments[].refCategory` | Integer | 與此批號目前狀態或作業相關的單據類別；例如品檢任務、預留出貨、移倉或生產任務，不代表批號原始建立來源。 | workflow、reservation、quality hold 或 inventory record 相關來源 |
-| `batches[].relatedDocuments[].refNo` | String | 關聯單據 no；無值時回傳空字串。 | workflow、reservation、quality hold 或 inventory record 相關來源 |
+| `batches[].relatedDocuments[].refCategory` | Integer | 與此批號目前狀態或作業相關的單據類別；例如品檢任務、預留出貨、移倉或生產任務，不代表批號原始建立來源。 | `workflow_task_state.refCategory`、`warehouse_inventory_reservation.refCategory`、`warehouse_quality_hold.refCategory`、`inventory_record.refCategory`；產製中情境可由 `production_data_input` / `production_data_output` 對應 `work_order`、`process_order` |
+| `batches[].relatedDocuments[].refNo` | String | 關聯單據 no；無值時回傳空字串。 | `workflow_task_state.ref_no`、`warehouse_inventory_reservation.ref_no`、`warehouse_quality_hold.ref_no`、`inventory_record.ref_no`；產製中情境可由 `production_data_input.work_order_no` / `production_data_output.work_order_no`、`process_order_no` 補充 |
 | `total` | Integer | 套用篩選後的批號倉庫分布列總數。 | 查詢結果 |
 | `start` | Integer | 本次分頁起點。 | Query parameter |
 | `count` | Integer | 本次回傳筆數。 | Query parameter / 實際筆數 |
@@ -247,6 +254,19 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 | 採購進貨產生批號 | 回傳建立批號時的進貨單類別與進貨單號，例如 `goods_receipt_note` 對應的 code 與 `GRN-20260801-001`。 | 若此批號正在品檢、預留出貨或移倉，回傳品檢任務、出庫任務或移倉任務的類別與單號。 |
 | 生產產出產生批號 | 回傳建立批號時的工單／製程單類別與單號，例如 `MO-20260801-003`。 | 若此批號後續入庫、品檢或被出貨預留，回傳對應入庫、品檢或出貨相關單據。 |
 | 同批號同時位於倉庫與產製中 | 每一分布列皆保留相同的批號建立來源 `refCategory` / `refNo`。 | 倉庫列可關聯預留、品檢或移倉文件；產製列可關聯工單、製程或待入庫任務。 |
+
+### 5.4 `relatedDocuments[]` 資料表來源
+
+`relatedDocuments[]` 第一版不是完整追溯鏈，也不回傳前端顯示文字；僅用於讓前端在分布列旁呈現可追溯的相關文件入口。後端需先依 `refCategory + refNo` 去重，避免同一文件由多個來源重複出現。
+
+| 資料表 | 納入條件 | `relatedDocuments[].refCategory` | `relatedDocuments[].refNo` |
+|---|---|---|---|
+| `workflow_task_state` | 任務與 `item_no`、`batchNumber`、`warehouse_no` 或來源單據相關，且任務狀態為未完成、部分完成或阻塞。 | `workflow_task_state.refCategory` | `workflow_task_state.ref_no` |
+| `warehouse_inventory_reservation` | 預留紀錄仍有效或尚未完成，且符合目前分布列的料號、批號與倉庫。 | `warehouse_inventory_reservation.refCategory` | `warehouse_inventory_reservation.ref_no` |
+| `warehouse_quality_hold` | 品檢保留紀錄仍有效或尚未解除，且符合目前分布列的批號與倉庫。 | `warehouse_quality_hold.refCategory` | `warehouse_quality_hold.ref_no` |
+| `inventory_record` | 最近出入庫紀錄與目前分布列的批號、倉庫或來源單據相關；僅用於補充近期異動文件，不覆蓋批號來源。 | `inventory_record.refCategory` | `inventory_record.ref_no` |
+| `production_data_input` | 分布列為 `production_input`，且投入資料的 `batch_number` 符合目前批號。 | 依 `work_order` 或 `process_order` 對應的 refCategory code | `production_data_input.work_order_no` 或 `production_data_input.process_order_no` |
+| `production_data_output` | 分布列為 `production_output`，且產出資料的 `batch_number` 符合目前批號。 | 依 `work_order` 或 `process_order` 對應的 refCategory code | `production_data_output.work_order_no` 或 `production_data_output.process_order_no` |
 
 ## 6. GET `/api/v2/batches/{batch_no}/detail`
 

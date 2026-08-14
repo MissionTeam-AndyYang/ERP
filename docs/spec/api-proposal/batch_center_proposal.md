@@ -1,3 +1,8 @@
+# 工程師提問V2
+1. 針對 /api/v2/batches/items/{item_no}/distribution
+   - 因同一批號若同時存在倉庫庫存與產製中數量，系統將回傳多筆分布列，各列依所屬情境給予不同的 batchStageCode。其 batches[].batchStageCode 的資料型態是否仍維持 String 格式？
+   - 請具體說明 batches[].relatedDocuments[] 欄位會關聯至哪些資料表。
+
 # 工程師提問
 1. 品檢保留量與隔離量在定義上有何差異？是否可簡化設計，僅保留其中一種方式？
 2. 針對 /api/v2/batches/dashboard

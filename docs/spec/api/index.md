@@ -7,6 +7,7 @@
 - [aps](./aps.md)
 - [bankaccount](./bankaccount.md)
 - [batchnumber](./batchnumber.md)
+- [batches](./batches.md)
 - [batchtrace](./batchtrace.md)
 - [bom](./bom.md)
 - [company](./company.md)

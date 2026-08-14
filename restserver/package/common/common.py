@@ -562,3 +562,44 @@ class EBomVersionState(object):
     HISTORICAL = "historical"
     UNKNOWN = "unknown"
 
+
+# ------------------------------------------------------------
+# Batch Center API enums
+# ------------------------------------------------------------
+
+class EBatchRiskLevelCode(object):
+    NORMAL = "normal"
+    ATTENTION = "attention"
+    HIGH_RISK = "high_risk"
+
+
+class EBatchRiskCode(object):
+    NORMAL = "normal"
+    EXPIRED = "expired"
+    NEAR_EXPIRY = "near_expiry"
+    QUALITY_HOLD = "quality_hold"
+    RESERVED = "reserved"
+    STOCK_SHORTAGE = "stock_shortage"
+    WORKFLOW_BLOCKED = "workflow_blocked"
+    UNKNOWN = "unknown"
+
+
+class EBatchQaStatusCode(object):
+    RELEASED = "released"
+    INSPECTION = "inspection"
+    QUALITY_HOLD = "quality_hold"
+    BLOCKED = "blocked"
+    UNKNOWN = "unknown"
+
+
+class EBatchStageCode(object):
+    INBOUND_PENDING = "inbound_pending"
+    STOCKED = "stocked"
+    AVAILABLE = "available"
+    RESERVED = "reserved"
+    QUALITY_HOLD = "quality_hold"
+    PRODUCTION_INPUT = "production_input"
+    PRODUCTION_OUTPUT = "production_output"
+    SHIPPED = "shipped"
+    UNKNOWN = "unknown"
+

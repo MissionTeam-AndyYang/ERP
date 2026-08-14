@@ -318,12 +318,78 @@ None
       "creatorNo": "String",
       "creationTime": "Integer"
     },
-    "stockByWarehouse": [],
-    "inventoryRecords": [],
-    "reservations": [],
-    "qualityHolds": [],
-    "palletMovements": [],
-    "tasks": []
+    "stockByWarehouse": [
+      {
+        "warehouseNo": "String",
+        "warehouseName": "String",
+        "locationCode": "String",
+        "palletCount": "Float",
+        "currentQuantity": "Float",
+        "availableQuantity": "Float",
+        "reservedQuantity": "Float",
+        "qualityHoldQuantity": "Float",
+        "unit": "Integer",
+        "riskLevelCode": "String",
+        "riskCodes": [
+          "String"
+        ]
+      }
+    ],
+    "inventoryRecords": [
+      {
+        "recordTime": "Integer",
+        "refCategory": "Integer",
+        "refNo": "String",
+        "warehouseNo": "String",
+        "category": "Integer",
+        "source": "Integer",
+        "quantity": "Float",
+        "unit": "Integer",
+        "amount": "Integer"
+      }
+    ],
+    "reservations": [
+      {
+        "reservationNo": "String",
+        "refCategory": "Integer",
+        "refNo": "String",
+        "warehouseNo": "String",
+        "reservedQuantity": "Float",
+        "status": "Integer",
+        "expiryTimestamp": "Integer"
+      }
+    ],
+    "qualityHolds": [
+      {
+        "holdNo": "String",
+        "warehouseNo": "String",
+        "holdQuantity": "Float",
+        "status": "Integer",
+        "reasonCode": "String",
+        "createdTimestamp": "Integer"
+      }
+    ],
+    "palletMovements": [
+      {
+        "movementNo": "String",
+        "warehouseNo": "String",
+        "palletNo": "String",
+        "palletCount": "Float",
+        "palletStatus": "Integer",
+        "movementTimestamp": "Integer"
+      }
+    ],
+    "tasks": [
+      {
+        "taskId": "String",
+        "taskType": "Integer",
+        "taskStatus": "Integer",
+        "nextOwnerDepartment": "Integer",
+        "dueTimestamp": "Integer",
+        "refCategory": "Integer",
+        "refNo": "String"
+      }
+    ]
   }
 }
 ```
@@ -349,6 +415,55 @@ None
 | payload.qualityHolds[] | Array | 此批號品檢保留紀錄 |  |
 | payload.palletMovements[] | Array | 此批號最近板位異動，最多 100 筆 |  |
 | payload.tasks[] | Array | 此批號未完成 workflow task |  |
+
+| payload.stockByWarehouse[].warehouseNo | String | 此批號目前所在倉儲別名 no；只回傳目前庫存數量大於 0 的倉庫列 |  |
+| payload.stockByWarehouse[].warehouseName | String | 此批號目前所在倉儲別名名稱；無值時回傳空字串 |  |
+| payload.stockByWarehouse[].locationCode | String | 此批號於此倉庫的主要板位或倉位代碼；目前程式保留為空字串 |  |
+| payload.stockByWarehouse[].palletCount | Float | 此批號於此倉庫目前佔用板數，取至小數點第 2 位 |  |
+| payload.stockByWarehouse[].currentQuantity | Float | 此批號於此倉庫目前庫存數量，取至小數點第 2 位；0 或小於 0 的庫存列不回傳 |  |
+| payload.stockByWarehouse[].availableQuantity | Float | 此批號於此倉庫目前可用數量，等於目前庫存扣除預留與品檢保留後不小於 0 的數量，取至小數點第 2 位 |  |
+| payload.stockByWarehouse[].reservedQuantity | Float | 此批號於此倉庫已預留但尚未出庫或領用的數量，取至小數點第 2 位 |  |
+| payload.stockByWarehouse[].qualityHoldQuantity | Float | 此批號於此倉庫品檢保留數量，取至小數點第 2 位 |  |
+| payload.stockByWarehouse[].unit | Integer | 此庫存列的單位 code；前端負責顯示文字 |  |
+| payload.stockByWarehouse[].riskLevelCode | String | 此倉庫批號列的風險等級 code；前端負責顯示文字與 tone | normal、attention、high_risk |
+| payload.stockByWarehouse[].riskCodes[] | String | 此倉庫批號列命中的風險 code 清單；若無風險則包含 normal | normal、expired、near_expiry、quality_hold、reserved、stock_shortage、workflow_blocked、unknown |
+| payload.inventoryRecords[].recordTime | Integer | 出入庫紀錄時間，UTC timestamp |  |
+| payload.inventoryRecords[].refCategory | Integer | 出入庫紀錄來源或關聯單據類別 code |  |
+| payload.inventoryRecords[].refNo | String | 出入庫紀錄來源或關聯單據 no |  |
+| payload.inventoryRecords[].warehouseNo | String | 出入庫紀錄所屬倉儲別名 no |  |
+| payload.inventoryRecords[].category | Integer | 庫存異動類別 code；依 `inventory_record.category` 回傳 |  |
+| payload.inventoryRecords[].source | Integer | 出入庫來源 code；依 `inventory_record.source` 回傳 |  |
+| payload.inventoryRecords[].quantity | Float | 出入庫數量，取至小數點第 2 位 |  |
+| payload.inventoryRecords[].unit | Integer | 出入庫單位 code；前端負責顯示文字 |  |
+| payload.inventoryRecords[].amount | Integer | 出入庫金額，四捨五入取整數 |  |
+| payload.reservations[].reservationNo | String | 預留紀錄 no；若資料表 no 無值，程式以 id 轉字串回傳 |  |
+| payload.reservations[].refCategory | Integer | 預留來源或關聯單據類別 code |  |
+| payload.reservations[].refNo | String | 預留來源或關聯單據 no |  |
+| payload.reservations[].warehouseNo | String | 預留所屬倉儲別名 no |  |
+| payload.reservations[].reservedQuantity | Float | 預留數量，取至小數點第 2 位 |  |
+| payload.reservations[].status | Integer | 預留狀態 code；前端負責顯示文字 |  |
+| payload.reservations[].expiryTimestamp | Integer | 預留釋放或失效時間，UTC timestamp；無值時回傳 0 |  |
+| payload.qualityHolds[].holdNo | String | 品檢保留紀錄 no；若資料表 no 無值，程式以 id 轉字串回傳 |  |
+| payload.qualityHolds[].warehouseNo | String | 品檢保留所屬倉儲別名 no |  |
+| payload.qualityHolds[].holdQuantity | Float | 品檢保留數量，取至小數點第 2 位 |  |
+| payload.qualityHolds[].status | Integer | 品檢保留狀態 code；前端負責顯示文字 |  |
+| payload.qualityHolds[].reasonCode | String | 品檢保留原因 code；前端負責顯示文字與多國語言 |  |
+| payload.qualityHolds[].createdTimestamp | Integer | 品檢保留建立時間，UTC timestamp；無值時回傳 0 |  |
+| payload.palletMovements[].movementNo | String | 板位異動紀錄 no；若資料表 no 無值，程式以 id 轉字串回傳 |  |
+| payload.palletMovements[].warehouseNo | String | 板位異動所屬倉儲別名 no |  |
+| payload.palletMovements[].palletNo | String | 棧板群組或棧板編號；無值時回傳空字串 |  |
+| payload.palletMovements[].palletCount | Float | 板數，取至小數點第 2 位 |  |
+| payload.palletMovements[].palletStatus | Integer | 棧板狀態 code；前端負責顯示文字 |  |
+| payload.palletMovements[].movementTimestamp | Integer | 板位異動時間，UTC timestamp；無值時回傳 0 |  |
+| payload.tasks[].taskId | String | workflow 任務識別值；優先回傳 `workflow_task_state.taskId`，無值時以 id 轉字串回傳 |  |
+| payload.tasks[].taskType | Integer | 任務類型：請購(1)、採購(2)、進貨(3)、入庫(4)、出庫(5)、移倉(6)、生產(7)、品檢(8)、出貨(9) |  |
+| payload.tasks[].taskStatus | Integer | 任務狀態 code；只回傳 pending、partial、blocked 等未完成任務 |  |
+| payload.tasks[].nextOwnerDepartment | Integer | 下一步負責部門 code；依目前程式取 `workflow_task_state.ownerDepartment` 回傳 |  |
+| payload.tasks[].dueTimestamp | Integer | 任務到期時間，UTC timestamp；無值時回傳 0 |  |
+| payload.tasks[].refCategory | Integer | 任務來源或關聯單據類別 code |  |
+| payload.tasks[].refNo | String | 任務來源或關聯單據 no |  |
+
+各 array 節點本身不另列說明。Detail API 只回傳此批號的資料，不回傳完整上下游追溯鏈。
 
 ### Processing Flow
 

@@ -1,3 +1,16 @@
+# 工程師提問
+1. 請將 URL Path 由 /api/v2/traceability/xxx 更名為 /api/v2/trace/xxx。
+2. 請將 primaryRiskCode 更名為 riskCode
+3. 請詳細說明『文件完整性』要顯示的內容有哪些。
+3. 目前暫時不需提供『文件完整性』與『召回評估』功能，請簡化回傳欄位。
+4. 目前以批號為進入點進行追溯：原料批號向下追溯，製成品批號向上追溯；並同步修改查詢條件。
+5. 查詢條件暫不開放 documentStatusCode、 traceDirectionCode、traceStatusCode、riskLevelCode; 亦不開放 period，僅保留 startDate 與 endDate。
+6. 此追溯功能是否支援單一原料批號可產出多個在製品（如拌料、灌餡等半成品），並由在製品再投入產出多個製成品？
+7. 針對 /api/v2/traceability/dashboard
+    - records[].queryTypeCode, records[].queryValue 應由前端自行記錄，不應由後端再回傳。
+    - 請確認  records[].supplierNo/ supplierName 與 records[].customerNo/customerName 是否會同時存在數值。若會，請具體舉例；若不會，請將欄位簡化為單一組。
+   
+
 # TraceabilityWorkspaceScreen API 提案
 
 > Status: API Proposal / Pending Engineer Review  
@@ -334,8 +347,8 @@
 
 | 項目 | 需要確認原因 | 工程師回覆 |
 |---|---|---|
-| 出貨/客戶流向資料來源 | 召回範圍需要判斷已出貨數量與受影響客戶；目前需確認正式 DB schema 中對應的出貨、銷貨或訂單明細資料表與欄位。 | Pending |
-| 文件完整性資料來源 | COA、溫度紀錄、品檢文件、出貨文件是否已有正式文件表或附件表可查詢，會影響 `documents[]` 的實作方式。 | Pending |
-| `refCategory` code 對照 | `production_data_input/output` 的工單、製程單與出貨單若沒有既有 refCategory code，需要工程師確認正式 code。 | Pending |
-| 追溯鏈斷點判斷 | 若缺少必要來源文件或投入/產出關聯時，是否一律判定 `broken`，或分為 `document_pending` 與 `broken` 兩層。 | Pending |
+| 出貨/客戶流向資料來源 | 召回範圍需要判斷已出貨數量與受影響客戶；目前需確認正式 DB schema 中對應的出貨、銷貨或訂單明細資料表與欄位。 | 目前暫不規劃設計"召回"的功能 |
+| 文件完整性資料來源 | COA、溫度紀錄、品檢文件、出貨文件是否已有正式文件表或附件表可查詢，會影響 `documents[]` 的實作方式。 | 目前暫不規劃設計"文件完整性"的顯示 |
+| `refCategory` code 對照 | `production_data_input/output` 的工單、製程單與出貨單若沒有既有 refCategory code，需要工程師確認正式 code。 | 請具體說明 refCategory 欄位是由哪個 API 的回傳欄位所對應，並說明 refCategory 的用途。 |
+| 追溯鏈斷點判斷 | 若缺少必要來源文件或投入/產出關聯時，是否一律判定 `broken`，或分為 `document_pending` 與 `broken` 兩層。 | 追溯流程持續進行至不可再追溯為止，並於此狀態下判定為 broken。 |  
 

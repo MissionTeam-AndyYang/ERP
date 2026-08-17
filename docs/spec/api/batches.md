@@ -415,7 +415,6 @@ None
 | payload.qualityHolds[] | Array | 此批號品檢保留紀錄 |  |
 | payload.palletMovements[] | Array | 此批號最近板位異動，最多 100 筆 |  |
 | payload.tasks[] | Array | 此批號未完成 workflow task |  |
-
 | payload.stockByWarehouse[].warehouseNo | String | 此批號目前所在倉儲別名 no；只回傳目前庫存數量大於 0 的倉庫列 |  |
 | payload.stockByWarehouse[].warehouseName | String | 此批號目前所在倉儲別名名稱；無值時回傳空字串 |  |
 | payload.stockByWarehouse[].locationCode | String | 此批號於此倉庫的主要板位或倉位代碼；目前程式保留為空字串 |  |
@@ -425,7 +424,7 @@ None
 | payload.stockByWarehouse[].reservedQuantity | Float | 此批號於此倉庫已預留但尚未出庫或領用的數量，取至小數點第 2 位 |  |
 | payload.stockByWarehouse[].qualityHoldQuantity | Float | 此批號於此倉庫品檢保留數量，取至小數點第 2 位 |  |
 | payload.stockByWarehouse[].unit | Integer | 此庫存列的單位 code；前端負責顯示文字 |  |
-| payload.stockByWarehouse[].riskLevelCode | String | 此倉庫批號列的風險等級 code；前端負責顯示文字與 tone | normal、attention、high_risk |
+| payload.stockByWarehouse[].riskLevelCode | String | 此倉庫批號列的風險等級 code；前端負責顯示文字與 tone | normal、attention、high_risk ||
 | payload.stockByWarehouse[].riskCodes[] | String | 此倉庫批號列命中的風險 code 清單；若無風險則包含 normal | normal、expired、near_expiry、quality_hold、reserved、stock_shortage、workflow_blocked、unknown |
 | payload.inventoryRecords[].recordTime | Integer | 出入庫紀錄時間，UTC timestamp |  |
 | payload.inventoryRecords[].refCategory | Integer | 出入庫紀錄來源或關聯單據類別 code |  |

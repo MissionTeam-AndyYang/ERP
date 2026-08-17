@@ -1,359 +1,104 @@
 "use client";
 
-import { Barcode, CalendarClock, Network } from "lucide-react";
-import { useMemo, useState } from "react";
-import { ModuleHero } from "@/components/common/module-hero";
+import { Barcode, CalendarClock, ChevronLeft, ChevronRight, Database, Network, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
+import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { SupportEmptyState } from "@/components/common/support-empty-state";
-import { SupportSearchPanel } from "@/components/common/support-search-panel";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { useSupportDashboard } from "@/hooks/use-support-dashboard";
+import { useBatchDashboard } from "@/hooks/use-batch-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
-import type { StatusTone } from "@/types/dashboard";
+import { getBatchDetail, getBatchDistribution, type BatchDashboardQuery } from "@/services/batches-api";
+import type { BatchDetail, BatchDistributionData, BatchDistributionRow, BatchItemSummary } from "@/types/batches";
 import { matchesSupportSearch, normalizeSupportSearch } from "@/utils/support-search";
 
-type BatchDistributionRow = {
-  batchNo: string;
-  batchType: string;
-  warehouse: string;
-  location: string;
-  quantity: string;
-  availableQuantity: string;
-  reservedQuantity: string;
-  quarantineQuantity: string;
-  expiryDate: string;
-  qaStatus: string;
-  batchStage: string;
-  relatedWork: string[];
-  riskTags: string[];
-  tone: StatusTone;
-};
+const pageSize = 50;
 
-type BatchItemSummary = {
-  itemId: string;
-  itemName: string;
-  itemType: string;
-  totalBatchCount: number;
-  warehouseCount: number;
-  totalQuantity: string;
-  availableQuantity: string;
-  reservedQuantity: string;
-  heldQuantity: string;
-  earliestExpiryDate: string;
-  qaHoldBatchCount: number;
-  quarantineBatchCount: number;
-  nearExpiryBatchCount: number;
-  demandImpact: string;
-  highestRisk: "normal" | "attention" | "highRisk";
-  riskLabel: string;
-  tone: StatusTone;
-  ownerArea: string;
-  batches: BatchDistributionRow[];
-};
-
-type BatchesDashboardData = {
-  kpis: Array<{
-    label: string;
-    value: string;
-    hint: string;
-    tone: StatusTone;
-  }>;
-  itemSummaries: BatchItemSummary[];
-};
-
-const kpis = [
-  { label: "批號管理品項", value: "86", hint: "啟用批號", tone: "info" as const },
-  { label: "高風險品項", value: "3", hint: "QA/即期/隔離", tone: "danger" as const },
-  { label: "分倉批號", value: "42", hint: "跨 5 倉", tone: "warning" as const },
-  { label: "待確認量", value: "1,420 kg", hint: "Hold/隔離", tone: "neutral" as const }
+const itemCategoryOptions = [
+  { value: "", label: "全部類別" },
+  { value: "1", label: "原料" },
+  { value: "2", label: "物料" },
+  { value: "3", label: "膠捲" },
+  { value: "4", label: "在製品" },
+  { value: "5", label: "製成品" },
+  { value: "6", label: "貨品" },
+  { value: "0", label: "其他" }
 ];
 
-const itemSummaries: BatchItemSummary[] = [
-  {
-    itemId: "FG-CURRY-101",
-    itemName: "咖哩雞肉調理包",
-    itemType: "成品",
-    totalBatchCount: 4,
-    warehouseCount: 3,
-    totalQuantity: "18,240 盒",
-    availableQuantity: "9,600 盒",
-    reservedQuantity: "5,760 盒",
-    heldQuantity: "2,880 盒",
-    earliestExpiryDate: "2026-11-08",
-    qaHoldBatchCount: 1,
-    quarantineBatchCount: 0,
-    nearExpiryBatchCount: 0,
-    demandImpact: "今日出貨 SO-240526-018 受 QA 放行影響",
-    highestRisk: "highRisk",
-    riskLabel: "出貨受阻",
-    tone: "danger",
-    ownerArea: "品保",
-    batches: [
-      {
-        batchNo: "B240512-A101",
-        batchType: "finishedGoods",
-        warehouse: "WH-FG-A",
-        location: "A1-02-03",
-        quantity: "9,600 盒",
-        availableQuantity: "9,600 盒",
-        reservedQuantity: "0 盒",
-        quarantineQuantity: "0 盒",
-        expiryDate: "2026-11-08",
-        qaStatus: "已放行",
-        batchStage: "可出貨",
-        relatedWork: ["MO-240512-001", "QC-240512-018"],
-        riskTags: ["正常可用"],
-        tone: "success"
-      },
-      {
-        batchNo: "B240513-A102",
-        batchType: "finishedGoods",
-        warehouse: "WH-QA-HOLD",
-        location: "HOLD-01",
-        quantity: "2,880 盒",
-        availableQuantity: "0 盒",
-        reservedQuantity: "2,880 盒",
-        quarantineQuantity: "0 盒",
-        expiryDate: "2026-11-09",
-        qaStatus: "QA Hold",
-        batchStage: "成品待放行",
-        relatedWork: ["MO-240513-003", "QC-240513-027", "SO-240526-018"],
-        riskTags: ["QA Hold", "已分配未放行"],
-        tone: "danger"
-      },
-      {
-        batchNo: "B240516-A106",
-        batchType: "finishedGoods",
-        warehouse: "WH-FG-B",
-        location: "B2-01-01",
-        quantity: "3,840 盒",
-        availableQuantity: "0 盒",
-        reservedQuantity: "2,880 盒",
-        quarantineQuantity: "0 盒",
-        expiryDate: "2026-11-12",
-        qaStatus: "已放行",
-        batchStage: "已分配",
-        relatedWork: ["SO-240526-012"],
-        riskTags: ["已預留"],
-        tone: "info"
-      },
-      {
-        batchNo: "B240518-A109",
-        batchType: "finishedGoods",
-        warehouse: "WH-FG-C",
-        location: "C1-04-02",
-        quantity: "1,920 盒",
-        availableQuantity: "0 盒",
-        reservedQuantity: "0 盒",
-        quarantineQuantity: "0 盒",
-        expiryDate: "2026-11-14",
-        qaStatus: "檢驗中",
-        batchStage: "成品待放行",
-        relatedWork: ["QC-240518-011"],
-        riskTags: ["檢驗中"],
-        tone: "warning"
-      }
-    ]
-  },
-  {
-    itemId: "RM-CORN-001",
-    itemName: "冷凍玉米粒",
-    itemType: "原料",
-    totalBatchCount: 3,
-    warehouseCount: 2,
-    totalQuantity: "1,260 kg",
-    availableQuantity: "720 kg",
-    reservedQuantity: "360 kg",
-    heldQuantity: "180 kg",
-    earliestExpiryDate: "2026-05-31",
-    qaHoldBatchCount: 0,
-    quarantineBatchCount: 1,
-    nearExpiryBatchCount: 1,
-    demandImpact: "B2 冷凍蔬菜工單今日領料需優先確認",
-    highestRisk: "highRisk",
-    riskLabel: "即期/隔離",
-    tone: "danger",
-    ownerArea: "倉庫",
-    batches: [
-      {
-        batchNo: "RM240506-CORN",
-        batchType: "rawMaterial",
-        warehouse: "WH-FZ-A",
-        location: "FZ-A03-02",
-        quantity: "180 kg",
-        availableQuantity: "0 kg",
-        reservedQuantity: "0 kg",
-        quarantineQuantity: "180 kg",
-        expiryDate: "2026-05-31",
-        qaStatus: "阻擋",
-        batchStage: "已入庫",
-        relatedWork: ["QC-240506-006"],
-        riskTags: ["即期", "隔離"],
-        tone: "danger"
-      },
-      {
-        batchNo: "RM240509-CORN",
-        batchType: "rawMaterial",
-        warehouse: "WH-FZ-A",
-        location: "FZ-A04-01",
-        quantity: "720 kg",
-        availableQuantity: "720 kg",
-        reservedQuantity: "0 kg",
-        quarantineQuantity: "0 kg",
-        expiryDate: "2026-06-08",
-        qaStatus: "已放行",
-        batchStage: "可領料",
-        relatedWork: ["MO-240526-004"],
-        riskTags: ["建議優先使用"],
-        tone: "warning"
-      },
-      {
-        batchNo: "RM240514-CORN",
-        batchType: "rawMaterial",
-        warehouse: "WH-FZ-B",
-        location: "FZ-B01-04",
-        quantity: "360 kg",
-        availableQuantity: "0 kg",
-        reservedQuantity: "360 kg",
-        quarantineQuantity: "0 kg",
-        expiryDate: "2026-06-21",
-        qaStatus: "已放行",
-        batchStage: "已預留",
-        relatedWork: ["MO-240526-009"],
-        riskTags: ["已預留"],
-        tone: "info"
-      }
-    ]
-  },
-  {
-    itemId: "PK-BAG-010",
-    itemName: "耐熱殺菌袋 180g",
-    itemType: "包材",
-    totalBatchCount: 5,
-    warehouseCount: 2,
-    totalQuantity: "42,000 pcs",
-    availableQuantity: "33,000 pcs",
-    reservedQuantity: "9,000 pcs",
-    heldQuantity: "0 pcs",
-    earliestExpiryDate: "2027-02-12",
-    qaHoldBatchCount: 0,
-    quarantineBatchCount: 0,
-    nearExpiryBatchCount: 0,
-    demandImpact: "明日兩張調理包工單共需 12,000 pcs",
-    highestRisk: "attention",
-    riskLabel: "庫存需追蹤",
-    tone: "warning",
-    ownerArea: "生管",
-    batches: [
-      {
-        batchNo: "PK240501-BAG",
-        batchType: "packaging",
-        warehouse: "WH-PK-A",
-        location: "PK-A01-01",
-        quantity: "18,000 pcs",
-        availableQuantity: "18,000 pcs",
-        reservedQuantity: "0 pcs",
-        quarantineQuantity: "0 pcs",
-        expiryDate: "2027-02-12",
-        qaStatus: "已放行",
-        batchStage: "可領料",
-        relatedWork: ["PO-240430-011"],
-        riskTags: ["正常可用"],
-        tone: "success"
-      },
-      {
-        batchNo: "PK240506-BAG",
-        batchType: "packaging",
-        warehouse: "WH-PK-A",
-        location: "PK-A02-03",
-        quantity: "15,000 pcs",
-        availableQuantity: "15,000 pcs",
-        reservedQuantity: "0 pcs",
-        quarantineQuantity: "0 pcs",
-        expiryDate: "2027-02-20",
-        qaStatus: "已放行",
-        batchStage: "可領料",
-        relatedWork: ["PO-240505-004"],
-        riskTags: ["正常可用"],
-        tone: "success"
-      },
-      {
-        batchNo: "PK240516-BAG",
-        batchType: "packaging",
-        warehouse: "WH-PK-B",
-        location: "PK-B01-02",
-        quantity: "9,000 pcs",
-        availableQuantity: "0 pcs",
-        reservedQuantity: "9,000 pcs",
-        quarantineQuantity: "0 pcs",
-        expiryDate: "2027-03-01",
-        qaStatus: "待判定",
-        batchStage: "待入庫確認",
-        relatedWork: ["QC-240516-008", "MO-240527-002"],
-        riskTags: ["待判定", "已預留"],
-        tone: "warning"
-      }
-    ]
-  }
+const riskLevelOptions = [
+  { value: "", label: "全部風險" },
+  { value: "high_risk", label: "高風險" },
+  { value: "attention", label: "注意" },
+  { value: "normal", label: "正常" }
 ];
 
-const batchesDashboardMock: BatchesDashboardData = {
-  kpis,
-  itemSummaries
-};
+function formatNumber(value: number, fractionDigits = 0) {
+  return new Intl.NumberFormat("zh-TW", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+function formatMoney(value: number) {
+  return `$${formatNumber(value)}`;
+}
 
 function itemMatchesSearch(item: BatchItemSummary, query: string) {
+  if (!query) {
+    return true;
+  }
+
   return matchesSupportSearch(
     [
-      item.itemId,
+      item.itemNo,
       item.itemName,
-      item.itemType,
-      item.totalQuantity,
-      item.availableQuantity,
-      item.reservedQuantity,
-      item.heldQuantity,
-      item.earliestExpiryDate,
-      item.demandImpact,
+      item.itemCategoryLabel,
+      item.itemTypeLabel,
+      item.riskLevelLabel,
       item.riskLabel,
-      item.ownerArea,
-      ...item.batches.flatMap((batch) => [
-        batch.batchNo,
-        batch.batchType,
-        batch.warehouse,
-        batch.location,
-        batch.quantity,
-        batch.availableQuantity,
-        batch.reservedQuantity,
-        batch.quarantineQuantity,
-        batch.expiryDate,
-        batch.qaStatus,
-        batch.batchStage,
-        ...batch.relatedWork,
-        ...batch.riskTags
-      ])
+      item.ownerDepartmentLabel,
+      item.earliestValidDate
     ],
     query
   );
 }
 
 function batchMatchesSearch(batch: BatchDistributionRow, query: string) {
+  if (!query) {
+    return true;
+  }
+
   return matchesSupportSearch(
     [
       batch.batchNo,
-      batch.batchType,
-      batch.warehouse,
-      batch.location,
-      batch.quantity,
-      batch.availableQuantity,
-      batch.reservedQuantity,
-      batch.quarantineQuantity,
-      batch.expiryDate,
-      batch.qaStatus,
-      batch.batchStage,
-      ...batch.relatedWork,
-      ...batch.riskTags
+      batch.warehouseNo,
+      batch.warehouseName,
+      batch.locationCode,
+      batch.qaStatusLabel,
+      batch.batchStageLabel,
+      batch.refCategoryLabel,
+      batch.refNo,
+      ...batch.riskLabels,
+      ...batch.relatedDocuments.map((document) => `${document.refCategoryLabel} ${document.refNo}`)
     ],
     query
+  );
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return <SupportEmptyState title={title} description={description} />;
+}
+
+function HeaderMetric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Barcode }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-slate-50 px-3 py-2">
+      <Icon className="h-4 w-4 text-textSecondary" aria-hidden="true" />
+      <div>
+        <p className="text-xs text-textSecondary">{label}</p>
+        <p className="text-sm font-semibold text-textPrimary">{value}</p>
+      </div>
+    </div>
   );
 }
 
@@ -368,35 +113,36 @@ function ItemSummaryRow({
 }) {
   return (
     <button
-      type="button"
-      onClick={onSelect}
       className={`w-full rounded-lg border px-4 py-4 text-left transition hover:border-primary/40 hover:bg-primary/5 ${
         isSelected ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-white"
       }`}
+      onClick={onSelect}
+      type="button"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-textSecondary">{item.itemId}</p>
-          <h3 className="mt-1 text-lg font-semibold text-textPrimary">{item.itemName}</h3>
+          <p className="text-sm font-medium text-textSecondary">{item.itemNo}</p>
+          <h3 className="mt-1 text-lg font-semibold text-textPrimary">{item.itemName || "未命名品項"}</h3>
           <p className="mt-1 text-sm text-textSecondary">
-            {item.itemType} / {item.totalBatchCount} 批 / {item.warehouseCount} 倉
+            {item.itemCategoryLabel} / {item.totalBatchCount} 批 / {item.warehouseCount} 倉
           </p>
         </div>
         <StatusBadge tone={item.tone}>{item.riskLabel}</StatusBadge>
       </div>
+
       <div className="mt-4 grid gap-3 sm:grid-cols-4">
-        <SummaryMetric label="總量" value={item.totalQuantity} />
-        <SummaryMetric label="可用" value={item.availableQuantity} />
-        <SummaryMetric label="預留" value={item.reservedQuantity} />
-        <SummaryMetric label="Hold/隔離" value={item.heldQuantity} />
+        <SummaryMetric label="總量" value={`${formatNumber(item.currentQuantity, 2)} ${item.unitLabel}`} />
+        <SummaryMetric label="可用" value={`${formatNumber(item.availableQuantity, 2)} ${item.unitLabel}`} />
+        <SummaryMetric label="預留" value={`${formatNumber(item.reservedQuantity, 2)} ${item.unitLabel}`} />
+        <SummaryMetric label="品檢保留" value={`${formatNumber(item.qualityHoldQuantity, 2)} ${item.unitLabel}`} />
       </div>
+
       <div className="mt-4 flex flex-wrap gap-2 text-xs text-textSecondary">
-        <span>最早效期 {item.earliestExpiryDate}</span>
-        <span>QA Hold {item.qaHoldBatchCount}</span>
-        <span>隔離 {item.quarantineBatchCount}</span>
-        <span>即期 {item.nearExpiryBatchCount}</span>
+        <span>最早效期 {item.earliestValidDate || "未提供"}</span>
+        <span>品檢保留批 {formatNumber(item.qaHoldBatchCount)}</span>
+        <span>即期 {formatNumber(item.nearExpiryBatchCount)}</span>
+        <span>下一步 {item.ownerDepartmentLabel}</span>
       </div>
-      <p className="mt-3 text-sm text-textPrimary">{item.demandImpact}</p>
     </button>
   );
 }
@@ -412,103 +158,57 @@ function SummaryMetric({ label, value }: { label: string; value: string }) {
 
 function BatchDistributionRows({
   batches,
-  selectedBatchNo,
+  selectedRowKey,
   onSelect
 }: {
   batches: BatchDistributionRow[];
-  selectedBatchNo?: string;
-  onSelect: (batchNo: string) => void;
+  selectedRowKey?: string;
+  onSelect: (batch: BatchDistributionRow) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <div className="grid grid-cols-[1.05fr_1fr_0.8fr] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold text-textSecondary md:grid-cols-[1fr_0.9fr_0.9fr_0.8fr_0.8fr]">
         <span>批號</span>
-        <span>倉庫/庫位</span>
+        <span>倉庫 / 庫位</span>
         <span className="hidden md:block">數量</span>
-        <span>QA/階段</span>
+        <span>品檢 / 階段</span>
         <span className="hidden md:block">效期</span>
       </div>
       <div className="divide-y divide-border">
         {batches.map((batch) => (
           <button
-            type="button"
-            key={batch.batchNo}
-            onClick={() => onSelect(batch.batchNo)}
             className={`grid w-full grid-cols-[1.05fr_1fr_0.8fr] gap-3 px-4 py-3 text-left text-sm transition hover:bg-primary/5 md:grid-cols-[1fr_0.9fr_0.9fr_0.8fr_0.8fr] ${
-              selectedBatchNo === batch.batchNo ? "bg-primary/5" : "bg-white"
+              selectedRowKey === batch.rowKey ? "bg-primary/5" : "bg-white"
             }`}
+            key={batch.rowKey}
+            onClick={() => onSelect(batch)}
+            type="button"
           >
             <span>
-              <span className="block font-semibold text-textPrimary">{batch.batchNo}</span>
-              <span className="mt-1 block text-xs text-textSecondary">{batch.batchType}</span>
+              <span className="block font-semibold text-textPrimary">{batch.batchNo || "未提供批號"}</span>
+              <span className="mt-1 block text-xs text-textSecondary">{batch.refNo || "無來源單號"}</span>
             </span>
             <span>
-              <span className="block font-medium text-textPrimary">{batch.warehouse}</span>
-              <span className="mt-1 block text-xs text-textSecondary">{batch.location}</span>
+              <span className="block font-medium text-textPrimary">{batch.warehouseName || batch.warehouseNo || "未提供倉庫"}</span>
+              <span className="mt-1 block text-xs text-textSecondary">{batch.locationCode || "未提供庫位"}</span>
             </span>
             <span className="hidden md:block">
-              <span className="block font-medium text-textPrimary">{batch.quantity}</span>
-              <span className="mt-1 block text-xs text-textSecondary">可用 {batch.availableQuantity}</span>
+              <span className="block font-medium text-textPrimary">
+                {formatNumber(batch.currentQuantity, 2)} {batch.unitLabel}
+              </span>
+              <span className="mt-1 block text-xs text-textSecondary">
+                可用 {formatNumber(batch.availableQuantity, 2)} / 預留 {formatNumber(batch.reservedQuantity, 2)}
+              </span>
             </span>
             <span>
-              <StatusBadge tone={batch.tone}>{batch.qaStatus}</StatusBadge>
-              <span className="mt-2 block text-xs text-textSecondary">{batch.batchStage}</span>
+              <StatusBadge tone={batch.tone}>{batch.qaStatusLabel}</StatusBadge>
+              <span className="mt-2 block text-xs text-textSecondary">{batch.batchStageLabel}</span>
             </span>
-            <span className="hidden text-textPrimary md:block">{batch.expiryDate}</span>
+            <span className="hidden text-textPrimary md:block">{batch.validDate || "未提供"}</span>
           </button>
         ))}
       </div>
     </div>
-  );
-}
-
-function SelectedBatchDetail({ item, batch }: { item: BatchItemSummary; batch?: BatchDistributionRow }) {
-  if (!batch) {
-    return <SupportEmptyState title="尚未選擇批號" description="請先選擇品項與批號，檢視目前營運狀態。" />;
-  }
-
-  return (
-    <article className="rounded-card border border-border bg-white p-5 shadow-card">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-textSecondary">{item.itemId}</p>
-          <h3 className="mt-1 text-xl font-semibold text-textPrimary">{batch.batchNo}</h3>
-          <p className="mt-1 text-sm text-textSecondary">{item.itemName}</p>
-        </div>
-        <StatusBadge tone={batch.tone}>{batch.qaStatus}</StatusBadge>
-      </div>
-      <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-        <DetailMetric label="倉庫/庫位" value={`${batch.warehouse} / ${batch.location}`} />
-        <DetailMetric label="批號階段" value={batch.batchStage} />
-        <DetailMetric label="總量" value={batch.quantity} />
-        <DetailMetric label="可用量" value={batch.availableQuantity} />
-        <DetailMetric label="預留量" value={batch.reservedQuantity} />
-        <DetailMetric label="隔離量" value={batch.quarantineQuantity} />
-        <DetailMetric label="有效日期" value={batch.expiryDate} />
-        <DetailMetric label="下一檢視單位" value={item.ownerArea} />
-      </dl>
-      <div className="mt-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-textSecondary">風險標籤</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {batch.riskTags.map((tag) => (
-            <StatusBadge key={tag} tone={batch.tone}>
-              {tag}
-            </StatusBadge>
-          ))}
-        </div>
-      </div>
-      <div className="mt-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-textSecondary">關聯工作</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {batch.relatedWork.map((work) => (
-            <span key={work} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-              {work}
-            </span>
-          ))}
-        </div>
-      </div>
-      <p className="mt-5 rounded-lg bg-slate-50 px-3 py-3 text-sm text-textPrimary">{item.demandImpact}</p>
-    </article>
   );
 }
 
@@ -521,133 +221,446 @@ function DetailMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function BatchesPage() {
-  const { data, error, isLoading, source } = useSupportDashboard(
-    "/api/v1/batches/dashboard",
-    batchesDashboardMock,
-    "Batches API unavailable"
-  );
-  const [searchValue, setSearchValue] = useState("");
-  const [selectedItemId, setSelectedItemId] = useState(itemSummaries[0]?.itemId ?? "");
-  const [selectedBatchNo, setSelectedBatchNo] = useState(itemSummaries[0]?.batches[0]?.batchNo ?? "");
-  const searchQuery = normalizeSupportSearch(searchValue);
-  const filteredItems = useMemo(
-    () => data.itemSummaries.filter((item) => itemMatchesSearch(item, searchQuery)),
-    [data.itemSummaries, searchQuery]
-  );
-  const selectedItem = useMemo(
-    () => filteredItems.find((item) => item.itemId === selectedItemId) ?? filteredItems[0],
-    [filteredItems, selectedItemId]
-  );
-  const filteredBatches = useMemo(() => {
-    if (!selectedItem) {
-      return [];
-    }
+function BatchDetailPanel({
+  detail,
+  selectedBatch,
+  isLoading
+}: {
+  detail?: BatchDetail;
+  selectedBatch?: BatchDistributionRow;
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return <EmptyState title="正在載入批號明細" description="系統正在取得批號庫存、來源、預留與任務資料。" />;
+  }
 
-    return selectedItem.batches.filter((batch) => batchMatchesSearch(batch, searchQuery));
-  }, [searchQuery, selectedItem]);
-  const selectedBatch = useMemo(
-    () => filteredBatches.find((batch) => batch.batchNo === selectedBatchNo) ?? filteredBatches[0],
-    [filteredBatches, selectedBatchNo]
-  );
+  if (!selectedBatch && !detail) {
+    return <EmptyState title="尚未選擇批號" description="請先選擇品項與批號，檢視目前營運狀態。" />;
+  }
+
+  const batch = detail?.batch;
+  const title = batch?.batchNo ?? selectedBatch?.batchNo ?? "批號明細";
+  const itemName = batch?.itemName ?? "";
+  const stockRows = detail?.stockByWarehouse ?? [];
+  const inventoryRows = detail?.inventoryRecords ?? [];
+  const reservationRows = detail?.reservations ?? [];
+  const qualityRows = detail?.qualityHolds ?? [];
+  const taskRows = detail?.tasks ?? [];
 
   return (
-    <AppLayout activePath="/batches" title="批號中心 Batch Module">
-      <div className="mx-auto max-w-[1440px] space-y-6">
-        <ModuleHero
-          badge="Batches V1.1 Operations"
-          title="品項批號分布與營運狀態"
-          description="以品項為第一層彙總多批號、多倉庫與多庫位狀態，快速判斷可用量、預留量、QA Hold、隔離與即期風險。"
-          metrics={[
-            { label: "品項", value: "86", icon: Barcode },
-            { label: "即期", value: "3", icon: CalendarClock },
-            { label: "分布", value: "5 倉", icon: Network }
-          ]}
-        />
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge tone={source === "api" ? "success" : "warning"}>
-            {source === "api" ? "API data" : "Mock fallback"}
-          </StatusBadge>
-          {isLoading ? <StatusBadge tone="info">Loading API</StatusBadge> : null}
-          <StatusBadge tone="neutral">Read-only</StatusBadge>
+    <article className="rounded-lg border border-border bg-white p-5 shadow-card">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-textSecondary">{batch?.itemNo ?? selectedBatch?.refNo ?? "批號追蹤"}</p>
+          <h3 className="mt-1 text-xl font-semibold text-textPrimary">{title}</h3>
+          <p className="mt-1 text-sm text-textSecondary">{itemName || selectedBatch?.warehouseName || "目前批號狀態"}</p>
         </div>
+        <StatusBadge tone={selectedBatch?.tone ?? "neutral"}>{selectedBatch?.qaStatusLabel ?? "明細"}</StatusBadge>
+      </div>
+
+      <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+        <DetailMetric label="來源單據" value={`${batch?.refCategoryLabel ?? selectedBatch?.refCategoryLabel ?? "來源"} ${batch?.refNo ?? selectedBatch?.refNo ?? ""}`.trim()} />
+        <DetailMetric label="有效日期" value={batch?.validDate || selectedBatch?.validDate || "未提供"} />
+        <DetailMetric label="目前數量" value={`${formatNumber(selectedBatch?.currentQuantity ?? 0, 2)} ${selectedBatch?.unitLabel ?? batch?.unitLabel ?? ""}`} />
+        <DetailMetric label="可用 / 預留 / 品檢保留" value={`${formatNumber(selectedBatch?.availableQuantity ?? 0, 2)} / ${formatNumber(selectedBatch?.reservedQuantity ?? 0, 2)} / ${formatNumber(selectedBatch?.qualityHoldQuantity ?? 0, 2)}`} />
+      </dl>
+
+      <section className="mt-5 space-y-2">
+        <p className="text-sm font-semibold text-textPrimary">分倉庫存</p>
+        {stockRows.length ? (
+          stockRows.map((row) => (
+            <div className="rounded-md border border-border px-3 py-2" key={`${row.warehouseNo}-${row.locationCode}`}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-textPrimary">{row.warehouseName || row.warehouseNo}</p>
+                <StatusBadge tone={row.tone}>{row.riskLevelLabel}</StatusBadge>
+              </div>
+              <p className="mt-1 text-xs text-textSecondary">
+                {row.locationCode || "未提供庫位"} · 現有 {formatNumber(row.currentQuantity, 2)} {row.unitLabel} · 可用 {formatNumber(row.availableQuantity, 2)}
+              </p>
+            </div>
+          ))
+        ) : (
+          <EmptyState title="沒有分倉庫存" description="目前此批號沒有可顯示的分倉庫存資料。" />
+        )}
+      </section>
+
+      <section className="mt-5 space-y-2">
+        <p className="text-sm font-semibold text-textPrimary">出入庫紀錄</p>
+        {inventoryRows.length ? (
+          inventoryRows.slice(0, 5).map((row) => (
+            <div className="rounded-md border border-border px-3 py-2" key={`${row.recordTime}-${row.refNo}-${row.quantity}`}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-textPrimary">{row.categoryLabel}</p>
+                <span className="text-xs text-textSecondary">{row.recordTime || "未提供日期"}</span>
+              </div>
+              <p className="mt-1 text-xs text-textSecondary">
+                {row.refCategoryLabel} {row.refNo || "無單號"} · {formatNumber(row.quantity, 2)} {row.unitLabel} · {formatMoney(row.amount)}
+              </p>
+            </div>
+          ))
+        ) : (
+          <EmptyState title="沒有出入庫紀錄" description="目前沒有此批號的出入庫紀錄。" />
+        )}
+      </section>
+
+      <section className="mt-5 grid gap-3 md:grid-cols-3">
+        <DetailList
+          title="預留"
+          emptyText="目前沒有預留紀錄。"
+          rows={reservationRows.map((row) => ({
+            key: row.reservationNo || `${row.refNo}-${row.reservedQuantity}`,
+            title: row.reservationNo || row.refNo || "預留紀錄",
+            value: `${formatNumber(row.reservedQuantity, 2)} ${batch?.unitLabel ?? selectedBatch?.unitLabel ?? ""}`,
+            meta: `${row.statusLabel} · ${row.expiryTimestamp || "未提供期限"}`
+          }))}
+        />
+        <DetailList
+          title="品檢保留"
+          emptyText="目前沒有品檢保留。"
+          rows={qualityRows.map((row) => ({
+            key: row.holdNo || `${row.warehouseNo}-${row.holdQuantity}`,
+            title: row.holdNo || row.reasonLabel,
+            value: `${formatNumber(row.holdQuantity, 2)} ${batch?.unitLabel ?? selectedBatch?.unitLabel ?? ""}`,
+            meta: `${row.statusLabel} · ${row.reasonLabel}`
+          }))}
+        />
+        <DetailList
+          title="未完成任務"
+          emptyText="目前沒有未完成任務。"
+          rows={taskRows.map((row) => ({
+            key: String(row.taskId),
+            title: row.taskTypeLabel,
+            value: row.taskStatusLabel,
+            meta: `${row.nextOwnerDepartmentLabel} · ${row.dueTimestamp || "未提供期限"}`
+          }))}
+        />
+      </section>
+    </article>
+  );
+}
+
+function DetailList({
+  title,
+  emptyText,
+  rows
+}: {
+  title: string;
+  emptyText: string;
+  rows: { key: string; title: string; value: string; meta: string }[];
+}) {
+  return (
+    <div className="rounded-md border border-border p-3">
+      <p className="text-sm font-semibold text-textPrimary">{title}</p>
+      <div className="mt-2 space-y-2">
+        {rows.length ? (
+          rows.map((row) => (
+            <div className="rounded-md bg-slate-50 px-3 py-2" key={row.key}>
+              <p className="text-sm font-medium text-textPrimary">{row.title}</p>
+              <p className="mt-1 text-xs text-textSecondary">{row.value}</p>
+              <p className="mt-1 text-xs text-textSecondary">{row.meta}</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-xs text-textSecondary">{emptyText}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function BatchesPage() {
+  const [dataSourceMode, setDataSourceMode] = useState<DataSourceMode>("api");
+  const [searchValue, setSearchValue] = useState("");
+  const [itemCategory, setItemCategory] = useState("");
+  const [riskLevelCode, setRiskLevelCode] = useState("");
+  const [page, setPage] = useState(0);
+  const [selectedItemNo, setSelectedItemNo] = useState("");
+  const [selectedRowKey, setSelectedRowKey] = useState("");
+  const [distribution, setDistribution] = useState<BatchDistributionData>();
+  const [distributionError, setDistributionError] = useState<string>();
+  const [isDistributionLoading, setIsDistributionLoading] = useState(true);
+  const [detail, setDetail] = useState<BatchDetail>();
+  const [detailError, setDetailError] = useState<string>();
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const searchQuery = normalizeSupportSearch(searchValue);
+
+  const dashboardQuery = useMemo<BatchDashboardQuery>(
+    () => ({
+      keyword: searchValue.trim() || undefined,
+      itemCategory: itemCategory === "" ? undefined : Number(itemCategory),
+      riskLevelCode: riskLevelCode || undefined,
+      start: page * pageSize,
+      count: pageSize
+    }),
+    [itemCategory, page, riskLevelCode, searchValue]
+  );
+
+  const { data, error, isLoading, source } = useBatchDashboard(dataSourceMode, dashboardQuery);
+  const visibleItems = useMemo(
+    () => data.items.filter((item) => itemMatchesSearch(item, searchQuery)),
+    [data.items, searchQuery]
+  );
+  const selectedItem =
+    visibleItems.find((item) => item.itemNo === selectedItemNo) ?? visibleItems[0];
+  const activeDistribution = distribution?.item.itemNo === selectedItem?.itemNo ? distribution : undefined;
+  const visibleBatches = useMemo(
+    () => (activeDistribution?.batches ?? []).filter((batch) => batchMatchesSearch(batch, searchQuery)),
+    [activeDistribution?.batches, searchQuery]
+  );
+  const selectedBatch =
+    visibleBatches.find((batch) => batch.rowKey === selectedRowKey) ?? visibleBatches[0];
+  const activeDetail = selectedBatch?.batchNo && detail?.batch.batchNo === selectedBatch.batchNo ? detail : undefined;
+  const canGoPrevious = page > 0;
+  const canGoNext = data.start + data.count < data.total;
+  const showDistributionLoading = Boolean(selectedItem?.itemNo) && isDistributionLoading;
+
+  useEffect(() => {
+    if (!selectedItem?.itemNo) {
+      return;
+    }
+
+    let isMounted = true;
+
+    getBatchDistribution(selectedItem.itemNo, dashboardQuery, dataSourceMode).then((result) => {
+      if (!isMounted) {
+        return;
+      }
+      setDistribution(result.data);
+      setDistributionError(result.error);
+      setSelectedRowKey(result.data.batches[0]?.rowKey ?? "");
+      setIsDetailLoading(Boolean(result.data.batches[0]?.batchNo));
+      setIsDistributionLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dashboardQuery, dataSourceMode, selectedItem?.itemNo]);
+
+  useEffect(() => {
+    if (!selectedBatch?.batchNo) {
+      return;
+    }
+
+    let isMounted = true;
+
+    getBatchDetail(selectedBatch.batchNo, dataSourceMode).then((result) => {
+      if (!isMounted) {
+        return;
+      }
+      setDetail(result.detail);
+      setDetailError(result.error);
+      setIsDetailLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dataSourceMode, selectedBatch?.batchNo]);
+
+  return (
+    <AppLayout activePath="/batches" title="批號中心">
+      <div className="mx-auto max-w-[1480px] space-y-5">
+        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge tone="info">批號中心</StatusBadge>
+                <StatusBadge tone="neutral">料品 / 批號 / 倉庫分布 / 品檢保留</StatusBadge>
+                <DataSourceStatusBadge source={source} isLoading={isLoading} hasError={Boolean(error)} />
+                <DataSourceToggle
+                  value={dataSourceMode}
+                  onChange={(value) => {
+                    setDataSourceMode(value);
+                    setIsDistributionLoading(true);
+                    setIsDetailLoading(true);
+                  }}
+                />
+              </div>
+              <h2 className="mt-3 text-2xl font-semibold text-textPrimary">品項批號分布與營運狀態</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
+                以料品為第一層彙總批號、倉庫分布、可用量、預留量、品檢保留與效期風險，協助快速確認批號目前可用性與下一步負責單位。
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <HeaderMetric icon={Barcode} label="品項" value={formatNumber(data.summary.stockItemCount)} />
+              <HeaderMetric icon={CalendarClock} label="即期" value={formatNumber(data.summary.nearExpiryBatchCount)} />
+              <HeaderMetric icon={Network} label="分布" value={formatNumber(data.summary.stockBatchCount)} />
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-border bg-white p-3 shadow-card">
+          <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto_auto_auto]">
+            <label className="flex h-10 items-center gap-2 rounded-input border border-border bg-slate-50 px-3">
+              <Search className="h-4 w-4 text-textSecondary" aria-hidden="true" />
+              <input
+                aria-label="搜尋品項、批號、倉庫、庫位、來源單號或品檢狀態"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
+                onChange={(event) => {
+                  setPage(0);
+                  setIsDistributionLoading(true);
+                  setSearchValue(event.target.value);
+                }}
+                placeholder="品項 / 批號 / 倉庫 / 來源單號 / 品檢"
+                value={searchValue}
+              />
+            </label>
+            <select
+              className="h-10 rounded-input border border-border bg-slate-50 px-3 text-sm text-textPrimary outline-none"
+              onChange={(event) => {
+                setPage(0);
+                setIsDistributionLoading(true);
+                setItemCategory(event.target.value);
+              }}
+              value={itemCategory}
+            >
+              {itemCategoryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-input border border-border bg-slate-50 px-3 text-sm text-textPrimary outline-none"
+              onChange={(event) => {
+                setPage(0);
+                setIsDistributionLoading(true);
+                setRiskLevelCode(event.target.value);
+              }}
+              value={riskLevelCode}
+            >
+              {riskLevelOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary disabled:opacity-50"
+              disabled={!canGoPrevious}
+              onClick={() => {
+                setIsDistributionLoading(true);
+                setPage((current) => Math.max(0, current - 1));
+              }}
+              type="button"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              上一頁
+            </button>
+            <button
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary disabled:opacity-50"
+              disabled={!canGoNext}
+              onClick={() => {
+                setIsDistributionLoading(true);
+                setPage((current) => current + 1);
+              }}
+              type="button"
+            >
+              下一頁
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+
         {error ? (
-          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Batches API 尚未可用，已使用 mock fallback。{error}
+          <p className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
+            批號中心資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
           </p>
         ) : null}
-        <SupportSearchPanel
-          ariaLabel="搜尋品項、批號、倉庫、庫位、QA 狀態或關聯工作"
-          placeholder="品項 / 批號 / 倉庫 / 庫位 / QA / 工單"
-          value={searchValue}
-          onChange={setSearchValue}
-        />
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {distributionError ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            批號分布資料取得失敗，右側分布區保留空狀態。{distributionError}
+          </p>
+        ) : null}
+        {detailError ? (
+          <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+            批號追蹤明細取得失敗，明細面板保留空狀態。{detailError}
+          </p>
+        ) : null}
+
+        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {data.kpis.map((item) => (
             <ModuleKpiCard {...item} key={item.label} />
           ))}
         </section>
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_560px]">
-          <article className="rounded-card border border-border bg-white p-5 shadow-card">
+
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(520px,0.9fr)]">
+          <article className="rounded-lg border border-border bg-white p-5 shadow-card">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-textSecondary">Item Batch Summary</p>
-                <h2 className="mt-1 text-xl font-semibold text-textPrimary">品項批號總覽</h2>
+                <p className="text-sm font-medium text-textSecondary">品項摘要</p>
+                <h2 className="mt-1 text-xl font-semibold text-textPrimary">批號管理品項</h2>
               </div>
-              <StatusBadge tone="info">{filteredItems.length} 項</StatusBadge>
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge tone="info">{formatNumber(visibleItems.length)} 項</StatusBadge>
+                <StatusBadge tone="neutral">
+                  {formatNumber(data.start + 1)} - {formatNumber(data.start + data.count)} / {formatNumber(data.total)}
+                </StatusBadge>
+              </div>
             </div>
             <div className="mt-5 grid gap-3">
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item) => (
+              {isLoading ? (
+                <EmptyState title="正在載入批號品項" description="系統正在取得批號中心摘要資料。" />
+              ) : visibleItems.length ? (
+                visibleItems.map((item) => (
                   <ItemSummaryRow
-                    key={item.itemId}
+                    isSelected={selectedItem?.itemNo === item.itemNo}
                     item={item}
-                    isSelected={selectedItem?.itemId === item.itemId}
+                    key={item.itemNo}
                     onSelect={() => {
-                      setSelectedItemId(item.itemId);
-                      setSelectedBatchNo(item.batches[0]?.batchNo ?? "");
+                      setSelectedItemNo(item.itemNo);
+                      setSelectedRowKey("");
+                      setIsDistributionLoading(true);
+                      setIsDetailLoading(true);
                     }}
                   />
                 ))
               ) : (
-                <SupportEmptyState
-                  title="沒有符合條件的品項批號"
-                  description="請調整搜尋關鍵字，或確認該品項是否已啟用批號管理。"
-                />
+                <EmptyState title="沒有符合條件的品項批號" description="請調整搜尋或篩選條件。" />
               )}
             </div>
           </article>
-          <div className="space-y-6">
-            <article className="rounded-card border border-border bg-white p-5 shadow-card">
+
+          <div className="space-y-5">
+            <article className="rounded-lg border border-border bg-white p-5 shadow-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-textSecondary">Batch Distribution</p>
+                  <p className="text-sm font-medium text-textSecondary">批號分布</p>
                   <h2 className="mt-1 text-xl font-semibold text-textPrimary">
-                    {selectedItem ? selectedItem.itemName : "批號分布"}
+                    {selectedItem ? selectedItem.itemName || selectedItem.itemNo : "批號分布"}
                   </h2>
                 </div>
-                {selectedItem ? <StatusBadge tone={selectedItem.tone}>{selectedItem.ownerArea}</StatusBadge> : null}
+                {selectedItem ? <StatusBadge tone={selectedItem.tone}>{selectedItem.ownerDepartmentLabel}</StatusBadge> : null}
               </div>
               <div className="mt-5">
-                {selectedItem && filteredBatches.length > 0 ? (
+                {showDistributionLoading ? (
+                  <EmptyState title="正在載入批號分布" description="系統正在取得此品項的批號與倉庫分布。" />
+                ) : visibleBatches.length ? (
                   <BatchDistributionRows
-                    batches={filteredBatches}
-                    selectedBatchNo={selectedBatch?.batchNo}
-                    onSelect={setSelectedBatchNo}
+                    batches={visibleBatches}
+                    selectedRowKey={selectedBatch?.rowKey}
+                    onSelect={(batch) => {
+                      setSelectedRowKey(batch.rowKey);
+                      setIsDetailLoading(true);
+                    }}
                   />
                 ) : (
-                  <SupportEmptyState
-                    title="沒有符合條件的批號分布"
-                    description="請調整搜尋條件，或確認此品項是否已有倉庫與庫位資料。"
-                  />
+                  <EmptyState title="沒有符合條件的批號分布" description="目前此品項沒有可顯示的批號分布資料。" />
                 )}
               </div>
             </article>
-            {selectedItem ? (
-              <SelectedBatchDetail item={selectedItem} batch={selectedBatch} />
-            ) : (
-              <SupportEmptyState title="尚未選擇品項" description="請先從左側選擇品項，檢視批號分布與營運明細。" />
-            )}
+
+            <BatchDetailPanel detail={activeDetail} selectedBatch={selectedBatch} isLoading={isDetailLoading} />
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
+          <div className="flex items-start gap-3 text-textSecondary">
+            <Database className="mt-0.5 h-5 w-5" aria-hidden="true" />
+            <p className="text-sm leading-6">
+              此畫面目前以查看批號庫存、品檢保留、來源單據與未完成任務為主；新增、調整、放行與出入庫執行會由相對應作業流程處理。
+            </p>
           </div>
         </section>
       </div>

@@ -136,14 +136,14 @@ Naming rules:
 
 ## Batch Center Screen Roadmap
 
-`BatchCenterScreen` 對應目前 `/batches` 執行畫面，第一版以料品與批號為主視角，提供批號分布、可用性、品檢保留、隔離、效期風險與關聯任務的 read-only 檢視。它不取代 `WarehouseInventoryLotListScreen` 的倉庫作業視角，也不取代 `TraceabilityWorkspaceScreen` 的完整追溯與召回視角。
+`BatchCenterScreen` 對應目前 `/batches` 執行畫面，第一版以料品與批號為主視角，提供批號分布、可用性、品檢保留、效期風險與關聯任務的唯讀檢視。它不取代 `WarehouseInventoryLotListScreen` 的倉庫作業視角，也不取代 `TraceabilityWorkspaceScreen` 的完整追溯與召回視角。
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `BatchCenterScreen` | Screen | 批號中心 | `/batches` | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/batches/dashboard`、`GET /api/v2/batches/items/{item_no}/distribution`、`GET /api/v2/batches/{batch_no}/detail` | 以料品為主視角檢視批號目前庫存、分倉、可用量、預留量、品檢保留量、效期風險、來源單據與未完成任務；不包含寫入操作。 |
-| P0.1 | V1 Core | `BatchItemSummaryView` | View | 批號料品摘要視圖 | `BatchCenterScreen` 左側料品清單與 KPI | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/batches/dashboard` | 顯示目前仍有庫存的批號管理料品、風險品項、分倉批號、品檢保留量與下一步負責部門訊號。 |
-| P0.2 | V1 Core | `BatchDistributionView` | View | 批號分布視圖 | `BatchCenterScreen` 右側批號分布區 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/batches/items/{item_no}/distribution` | 顯示選取料品下各批號在不同倉庫或產製情境的目前數量、可用量、預留量、品檢保留量、效期、風險與來源單據。 |
-| P0.3 | V1 Core | `BatchDetailPanel` | Panel | 批號追蹤面板 | `BatchCenterScreen` 右側 panel；窄版可作 drawer | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/batches/{batch_no}/detail` | 顯示單一批號跨倉庫庫存、出入庫紀錄、預留、品檢保留、板位異動與未完成 workflow task；不展開完整追溯鏈。 |
+| P0 | V1 Core | `BatchCenterScreen` | Screen | 批號中心 | `/batches` | 前端已完成 API 串接，待工程師整合測試 | `GET /api/v2/batches/dashboard`、`GET /api/v2/batches/items/{item_no}/distribution`、`GET /api/v2/batches/{batch_no}/detail` | 以料品為主視角檢視批號目前庫存、分倉、可用量、預留量、品檢保留量、效期風險、來源單據與未完成任務；不包含寫入操作。 |
+| P0.1 | V1 Core | `BatchItemSummaryView` | View | 批號料品摘要視圖 | `BatchCenterScreen` 左側料品清單與 KPI | 前端已完成 API 串接，待工程師整合測試 | `GET /api/v2/batches/dashboard` | 顯示目前仍有庫存的批號管理料品、風險品項、分倉批號、品檢保留量與下一步負責部門訊號。 |
+| P0.2 | V1 Core | `BatchDistributionView` | View | 批號分布視圖 | `BatchCenterScreen` 右側批號分布區 | 前端已完成 API 串接，待工程師整合測試 | `GET /api/v2/batches/items/{item_no}/distribution` | 顯示選取料品下各批號在不同倉庫或產製情境的目前數量、可用量、預留量、品檢保留量、效期、風險與來源單據。 |
+| P0.3 | V1 Core | `BatchDetailPanel` | Panel | 批號追蹤面板 | `BatchCenterScreen` 右側 panel；窄版可作 drawer | 前端已完成 API 串接，待工程師整合測試 | `GET /api/v2/batches/{batch_no}/detail` | 顯示單一批號跨倉庫庫存、出入庫紀錄、預留、品檢保留、板位異動與未完成流程任務；不展開完整追溯鏈。 |
 
 ### Batch Center Scope Boundary
 

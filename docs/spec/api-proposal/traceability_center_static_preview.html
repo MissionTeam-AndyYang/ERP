@@ -376,28 +376,27 @@
           <div>
             <h1>溯源中心</h1>
             <p class="subtitle">
-              以批號為核心串接來源、進貨、庫存、生產、品檢、出貨與文件狀態，協助快速判讀食品安全追溯鏈與召回影響範圍。
+              以批號為核心串接來源、進貨、庫存、生產投入、產出、品檢與流程節點，協助快速判讀食品安全追溯鏈與斷點風險。
             </p>
           </div>
           <div class="search">
-            <input value="FG260523-CURRY" aria-label="搜尋批號、料號、訂單或工單" />
+            <input value="FG260523-CURRY" aria-label="搜尋批號、料號、來源單號或工單" />
             <button type="button">查詢</button>
           </div>
         </section>
 
         <section class="filters">
-          <select><option>全部查詢類型</option><option>批號</option><option>料品</option><option>訂單</option><option>工單</option></select>
-          <select><option>雙向追溯</option><option>往來源追溯</option><option>往去向追溯</option></select>
-          <select><option>全部狀態</option><option>完整</option><option>待補文件</option><option>斷鏈</option></select>
-          <select><option>近 90 天</option><option>近 30 天</option><option>近 7 天</option><option>自訂區間</option></select>
-          <select><option>全部風險</option><option>正常</option><option>注意</option><option>高風險</option></select>
+          <select><option>全部料品類別</option><option>原料</option><option>物料</option><option>膠捲</option><option>在製品</option><option>製成品</option></select>
+          <select><option>批號入口</option><option>原料向下追溯</option><option>製成品向上追溯</option><option>在製品雙向檢視</option></select>
+          <select><option>起始日期</option><option>2026-05-01</option><option>2026-06-01</option></select>
+          <select><option>結束日期</option><option>2026-06-30</option><option>2026-07-31</option></select>
         </section>
 
         <section class="kpis">
           <div class="card"><div class="kpi-label">可追溯批號</div><div class="kpi-value">1,284</div><div class="kpi-note">近 90 天</div></div>
           <div class="card"><div class="kpi-label">鏈路完整率</div><div class="kpi-value">99.2%</div><div class="kpi-note">依 batch trace status 計算</div></div>
-          <div class="card"><div class="kpi-label">待補文件</div><div class="kpi-value">7</div><div class="kpi-note">COA / 溫度 / 品檢</div></div>
-          <div class="card"><div class="kpi-label">高風險追溯</div><div class="kpi-value">3</div><div class="kpi-note">斷鏈或必要文件缺失</div></div>
+          <div class="card"><div class="kpi-label">斷鏈追溯</div><div class="kpi-value">7</div><div class="kpi-note">追到不可再追溯</div></div>
+          <div class="card"><div class="kpi-label">高風險追溯</div><div class="kpi-value">3</div><div class="kpi-note">斷鏈、過期或品檢保留</div></div>
         </section>
 
         <section class="content">
@@ -405,8 +404,7 @@
             <div class="tabs">
               <span class="tab active">溯源查詢</span>
               <span class="tab">批號鏈路</span>
-              <span class="tab">召回範圍</span>
-              <span class="tab">文件完整性</span>
+              <span class="tab">時間軸</span>
             </div>
 
             <div class="card table-wrap">
@@ -417,41 +415,41 @@
                     <th>料品</th>
                     <th>方向</th>
                     <th>來源單據</th>
-                    <th>工單 / 訂單</th>
+                    <th>工單</th>
                     <th>目前數量</th>
-                    <th>影響範圍</th>
+                    <th>主要對象</th>
                     <th>狀態</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><b>FG260523-CURRY</b><div class="muted">queryTypeCode=batch</div></td>
+                    <td><b>FG260523-CURRY</b><div class="muted">batchNo</div></td>
                     <td>咖哩雞肉調理包<div class="muted">itemNo=FG-CURRY-001</div></td>
                     <td>both</td>
-                    <td>WO-20260523-001<div class="muted">sourceRefCategory=7</div></td>
-                    <td>WO-20260523-001<div class="muted">SO-20260523-018</div></td>
+                    <td>WO-20260523-001<div class="muted">refCategory=7</div></td>
+                    <td>WO-20260523-001</td>
                     <td>12,000</td>
-                    <td>2,400 / 1 客戶</td>
+                    <td>internal</td>
                     <td><span class="badge ok">complete</span></td>
                   </tr>
                   <tr>
-                    <td><b>RM260506-CORN</b><div class="muted">queryTypeCode=batch</div></td>
+                    <td><b>RM260506-CORN</b><div class="muted">batchNo</div></td>
                     <td>冷凍玉米粒<div class="muted">itemNo=RM-CORN-001</div></td>
                     <td>downstream</td>
-                    <td>GRN-20260506-018<div class="muted">sourceRefCategory=3</div></td>
-                    <td>WO-20260523-002<div class="muted">SO-20260523-022</div></td>
+                    <td>GRN-20260506-018<div class="muted">refCategory=3</div></td>
+                    <td>WO-20260523-002</td>
                     <td>180</td>
-                    <td>7,200 / 1 客戶</td>
-                    <td><span class="badge warn">document_pending</span></td>
+                    <td>supplier</td>
+                    <td><span class="badge warn">attention</span></td>
                   </tr>
                   <tr>
-                    <td><b>RM260502-SPICE</b><div class="muted">queryTypeCode=batch</div></td>
+                    <td><b>RM260502-SPICE</b><div class="muted">batchNo</div></td>
                     <td>香辛料混合粉<div class="muted">itemNo=RM-SPICE-012</div></td>
                     <td>both</td>
-                    <td>GRN-20260502-011<div class="muted">sourceRefCategory=3</div></td>
+                    <td>GRN-20260502-011<div class="muted">refCategory=3</div></td>
                     <td>-<div class="muted">尚未連接工單</div></td>
                     <td>36</td>
-                    <td>36 / 0 客戶</td>
+                    <td>supplier</td>
                     <td><span class="badge bad">broken</span></td>
                   </tr>
                 </tbody>
@@ -465,8 +463,8 @@
                 <div class="node"><span class="badge ok">complete</span><strong>進貨</strong><span class="muted">GRN-20260506-018</span></div>
                 <div class="node"><span class="badge warn">attention</span><strong>原料批號</strong><span class="muted">RM260506-CORN</span></div>
                 <div class="node"><span class="badge ok">complete</span><strong>生產投入</strong><span class="muted">WO-20260523-002</span></div>
+                <div class="node"><span class="badge ok">complete</span><strong>在製品批號</strong><span class="muted">WIP260523-MIX-A</span></div>
                 <div class="node"><span class="badge ok">complete</span><strong>成品批號</strong><span class="muted">FG260523-MIX</span></div>
-                <div class="node"><span class="badge warn">pending</span><strong>出貨 / 客戶</strong><span class="muted">待 schema 確認</span></div>
               </div>
             </div>
           </div>
@@ -477,21 +475,14 @@
                 <div class="muted">目前選取批號</div>
                 <h2>RM260506-CORN</h2>
               </div>
-              <span class="badge warn">document_pending</span>
+              <span class="badge warn">attention</span>
             </div>
 
             <div class="metric-grid">
               <div class="metric"><span class="muted">目前庫存</span><b>180</b></div>
-              <div class="metric"><span class="muted">製程影響</span><b>7,020</b></div>
-              <div class="metric"><span class="muted">已出貨</span><b>0</b></div>
-              <div class="metric"><span class="muted">待補文件</span><b>2</b></div>
-            </div>
-
-            <h3>文件完整性</h3>
-            <div class="docs">
-              <div class="doc"><b>COA</b><div class="muted">COA-RM260506-CORN</div><span class="badge warn">pending</span></div>
-              <div class="doc"><b>運輸溫度</b><div class="muted">TEMP-GRN-20260506-018</div><span class="badge warn">pending</span></div>
-              <div class="doc"><b>收貨單</b><div class="muted">GRN-20260506-018</div><span class="badge ok">complete</span></div>
+              <div class="metric"><span class="muted">追溯方向</span><b>downstream</b></div>
+              <div class="metric"><span class="muted">節點數</span><b>6</b></div>
+              <div class="metric"><span class="muted">風險碼</span><b>normal</b></div>
             </div>
 
             <h3>時間軸</h3>

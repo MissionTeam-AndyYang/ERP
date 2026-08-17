@@ -136,7 +136,7 @@ Naming rules:
 
 ## Batch Center Screen Roadmap
 
-`BatchCenterScreen` 對應目前 `/batches` 執行畫面，第一版以料品與批號為主視角，提供批號分布、可用性、品檢保留、效期風險與關聯任務的唯讀檢視。它不取代 `WarehouseInventoryLotListScreen` 的倉庫作業視角，也不取代 `TraceabilityWorkspaceScreen` 的完整追溯與召回視角。
+`BatchCenterScreen` 對應目前 `/batches` 執行畫面，第一版以料品與批號為主視角，提供批號分布、可用性、品檢保留、效期風險與關聯任務的唯讀檢視。它不取代 `WarehouseInventoryLotListScreen` 的倉庫作業視角，也不取代 `TraceabilityWorkspaceScreen` 的批號追溯視角。
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -147,24 +147,24 @@ Naming rules:
 
 ### Batch Center Scope Boundary
 
-批號中心只處理「目前仍有庫存的批號管理與可用性判讀」。若需要完整來源、製程投入、客戶流向、召回、文件包或批號異動流水帳，應使用或另行規劃 `TraceabilityWorkspaceScreen`、`WarehouseInventoryMovementLedgerScreen` 或其他下一版畫面。
+批號中心只處理「目前仍有庫存的批號管理與可用性判讀」。若需要完整來源、製程投入、追溯鏈或批號異動流水帳，應使用或另行規劃 `TraceabilityWorkspaceScreen`、`WarehouseInventoryMovementLedgerScreen` 或其他下一版畫面；召回與文件完整性留待下一版規劃。
 
 ## Traceability Workspace Screen Roadmap
 
-`TraceabilityWorkspaceScreen` 對應目前 `/traceability` 執行畫面，第一版以批號、料品、工單與訂單為查詢入口，提供追溯鏈、召回影響範圍與文件完整性 read-only 檢視。它承接 `BatchCenterScreen` 的批號資訊，但不處理批號庫存管理、品檢保留管理或出入庫任務執行。
+`TraceabilityWorkspaceScreen` 對應目前 `/traceability` 執行畫面，第一版以批號為主要查詢入口，提供來源、入庫、庫存、生產投入、產出、品檢與 workflow 節點的 read-only 追溯檢視。它承接 `BatchCenterScreen` 的批號資訊，但不處理批號庫存管理、品檢保留管理、出入庫任務執行、召回評估或文件完整性。
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `TraceabilityWorkspaceScreen` | Screen | 溯源中心 | `/traceability` | API proposal，Pending Engineer Review | `GET /api/v2/traceability/dashboard`、`GET /api/v2/traceability/batches/{batch_no}/overview` | 以批號為核心檢視來源、進貨、庫存、生產、品檢、出貨與文件完整性，支援召回影響範圍判讀；不包含寫入操作。 |
-| P0.1 | V1 Core | `TraceabilitySearchView` | View | 溯源查詢視圖 | `TraceabilityWorkspaceScreen` 內的「溯源查詢」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/traceability/dashboard` | 以批號、料號、來源單號、工單號、訂單號、供應商或客戶關鍵字查詢追溯紀錄清單。 |
-| P0.2 | V1 Core | `TraceabilityChainView` | View | 批號鏈路視圖 | `TraceabilityWorkspaceScreen` 內的「批號鏈路」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/traceability/batches/{batch_no}/overview` | 顯示選取批號的 nodes / edges 追溯鏈，協助檢視來源、投入、產出、庫存、品檢與出貨關聯。 |
-| P0.3 | V1 Core | `TraceabilityRecallScopeView` | View | 召回範圍視圖 | `TraceabilityWorkspaceScreen` 內的「召回範圍」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/traceability/dashboard`、`GET /api/v2/traceability/batches/{batch_no}/overview` | 顯示目前庫存、製程中、已出貨與受影響客戶數量；若出貨/客戶 schema 尚未確認，第一版不推測不存在欄位。 |
-| P0.4 | V1 Core | `TraceabilityDocumentView` | View | 文件完整性視圖 | `TraceabilityWorkspaceScreen` 內的「文件完整性」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/traceability/batches/{batch_no}/overview` | 顯示 COA、溫度紀錄、收貨、品檢、生產、出貨等文件狀態 code；文件顯示文字由前端多國語言處理。 |
-| P1 | V1 Core | `TraceabilityDetailPanel` | Panel | 溯源明細面板 | `TraceabilityWorkspaceScreen` 右側 panel；窄版可作 drawer | API proposal，Pending Engineer Review | `GET /api/v2/traceability/batches/{batch_no}/overview` | 顯示選取批號的影響摘要、文件完整性、時間軸與主要風險 code。 |
+| P0 | V1 Core | `TraceabilityWorkspaceScreen` | Screen | 溯源中心 | `/traceability` | API proposal，Pending Engineer Review | `GET /api/v2/trace/dashboard`、`GET /api/v2/trace/batches/{batch_no}/overview` | 以批號為核心檢視來源、進貨、庫存、生產投入、產出、品檢與 workflow 節點；不包含寫入操作、召回評估或文件完整性。 |
+| P0.1 | V1 Core | `TraceabilitySearchView` | View | 溯源查詢視圖 | `TraceabilityWorkspaceScreen` 內的「溯源查詢」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/trace/dashboard` | 以批號、料號、來源單號、工單號、供應商或客戶關鍵字查詢追溯紀錄清單；查詢狀態由前端自行保存。 |
+| P0.2 | V1 Core | `TraceabilityChainView` | View | 批號鏈路視圖 | `TraceabilityWorkspaceScreen` 內的「批號鏈路」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的 nodes / edges 追溯鏈，協助檢視來源、投入、產出、庫存、品檢與任務關聯。 |
+| P0.3 | V2 Deferred | `TraceabilityRecallScopeView` | View | 召回範圍視圖 | `TraceabilityWorkspaceScreen` 內的下一版頁籤 | Deferred to V2；第一版暫不實作 | TBD | 召回範圍、已出貨數量、受影響客戶與庫存鎖定需另行規劃，不納入第一版 read-only API。 |
+| P0.4 | V2 Deferred | `TraceabilityDocumentView` | View | 文件完整性視圖 | `TraceabilityWorkspaceScreen` 內的下一版頁籤 | Deferred to V2；第一版暫不實作 | TBD | COA、溫度紀錄、收貨、品檢、生產、出貨等文件狀態需待文件/附件資料來源確認後再規劃。 |
+| P1 | V1 Core | `TraceabilityDetailPanel` | Panel | 溯源明細面板 | `TraceabilityWorkspaceScreen` 右側 panel；窄版可作 drawer | API proposal，Pending Engineer Review | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的批號資訊、追溯鏈、時間軸、追溯狀態與主要風險 code。 |
 
 ### Traceability Scope Boundary
 
-溯源中心第一版只做 read-only 查詢與判讀，不建立召回單、不鎖定庫存、不修改文件、不變更 workflow task。若後續需要正式召回流程、文件補件、品質處置或出貨攔截，應另行規劃 mutation API 與權限流程。
+溯源中心第一版只做 read-only 批號追溯查詢與判讀，不建立召回單、不鎖定庫存、不修改文件、不變更 workflow task。若後續需要正式召回流程、文件補件、品質處置或出貨攔截，應另行規劃 mutation API、資料表與權限流程。
 
 ## Not Standalone Screens
 
@@ -197,7 +197,7 @@ Naming rules:
 | `ProductionWorkspaceScreen` | 已有第一版，已串接 `GET /api/v2/production/dashboard` 與 `GET /api/v2/production/work-orders/{work_order_no}/detail`；Production enum 顯示由前端多國語系轉換。 | 依工程師實機資料檢查 dashboard payload、selected work order detail payload、產線產能、readiness、metrics、alerts、空狀態與 fallback 邊界。 |
 | `ProductionWorkOrderDetailPanel` | 已有第一版，已串接 selected work order detail API，API 失敗時保留 dashboard 清單資料並顯示 controlled fallback。 | 依 runtime payload 檢查 materials、MES events、outputs、reuse/waste、labor、machines、related documents 與 status tone 呈現。 |
 | `BatchCenterScreen` | 後端 API 已實作，已建立正式 API 文件與 pytest 驗證報告。 | 等工程師以實機 DB 進行 runtime review，確認 `/api/v2/batches/dashboard`、`/api/v2/batches/items/{item_no}/distribution`、`/api/v2/batches/{batch_no}/detail` payload 與畫面情境一致。 |
-| `TraceabilityWorkspaceScreen` | API proposal，Pending Engineer Review；本次已補齊 API 提案、後端流程演算法與靜態預覽頁。 | 等工程師確認 `traceability_center_proposal.md` 與 `traceability_center_flow_algorithm.md` 後，整合至正式 API 文件，再進行後端 API 實作。 |
+| `TraceabilityWorkspaceScreen` | API proposal，Pending Engineer Review；本次依工程師提問更新為第一版批號追溯範圍，暫不納入召回評估與文件完整性。 | 等工程師確認 `traceability_center_proposal.md` 與 `traceability_center_flow_algorithm.md` 後，整合至正式 API 文件，再進行後端 API 實作。 |
 
 ## Roadmap Coverage Confirmation
 

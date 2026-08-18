@@ -1,6 +1,6 @@
 "use client";
 
-import { Barcode, CalendarClock, ChevronLeft, ChevronRight, Database, Network, Search } from "lucide-react";
+import { Barcode, CalendarClock, ChevronLeft, ChevronRight, LoaderCircle, Network, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
@@ -11,9 +11,11 @@ import { useBatchDashboard } from "@/hooks/use-batch-dashboard";
 import { AppLayout } from "@/layouts/app-layout";
 import { getBatchDetail, getBatchDistribution, type BatchDashboardQuery } from "@/services/batches-api";
 import type { BatchDetail, BatchDistributionData, BatchDistributionRow, BatchItemSummary } from "@/types/batches";
+import type { StatusTone } from "@/types/dashboard";
 import { matchesSupportSearch, normalizeSupportSearch } from "@/utils/support-search";
 
 const pageSize = 50;
+const inventoryRecordPageSize = 5;
 
 const itemCategoryOptions = [
   { value: "", label: "全部類別" },
@@ -64,13 +66,17 @@ function itemMatchesSearch(item: BatchItemSummary, query: string) {
   );
 }
 
-function batchMatchesSearch(batch: BatchDistributionRow, query: string) {
+function batchMatchesSearch(batch: BatchDistributionRow, query: string, item?: BatchItemSummary) {
   if (!query) {
     return true;
   }
 
   return matchesSupportSearch(
     [
+      item?.itemNo,
+      item?.itemName,
+      item?.itemCategoryLabel,
+      item?.itemTypeLabel,
       batch.batchNo,
       batch.warehouseNo,
       batch.warehouseName,
@@ -90,6 +96,18 @@ function batchMatchesSearch(batch: BatchDistributionRow, query: string) {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return <SupportEmptyState title={title} description={description} />;
+}
+
+function LoadingState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-info/20 bg-info/10 px-4 py-4 text-info">
+      <LoaderCircle className="mt-0.5 h-5 w-5 animate-spin" aria-hidden="true" />
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-textSecondary">{description}</p>
+      </div>
+    </div>
+  );
 }
 
 function HeaderMetric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Barcode }) {
@@ -221,7 +239,7 @@ function BatchDistributionRows({
   );
 }
 
-function expiryStatusTone(expiryStatusCode: string) {
+function expiryStatusTone(expiryStatusCode: string): StatusTone {
   if (expiryStatusCode === "expired") {
     return "danger";
   }
@@ -252,19 +270,29 @@ function BatchDetailPanel({
   selectedBatch?: BatchDistributionRow;
   isLoading: boolean;
 }) {
+  const batch = detail?.batch;
+  const currentBatchNo = batch?.batchNo ?? selectedBatch?.batchNo ?? "";
+  const [inventoryRecordPageState, setInventoryRecordPageState] = useState({ batchNo: currentBatchNo, page: 0 });
+  const inventoryRecordPage = inventoryRecordPageState.batchNo === currentBatchNo ? inventoryRecordPageState.page : 0;
+
   if (isLoading) {
-    return <EmptyState title="正在載入批號明細" description="系統正在取得批號庫存、來源、預留與任務資料。" />;
+    return <LoadingState title="正在載入批號明細" description="系統正在取得批號庫存、來源、預留與任務資料。" />;
   }
 
   if (!selectedBatch && !detail) {
     return <EmptyState title="尚未選擇批號" description="請先選擇品項與批號，檢視目前營運狀態。" />;
   }
 
-  const batch = detail?.batch;
   const title = batch?.batchNo ?? selectedBatch?.batchNo ?? "批號明細";
   const itemName = batch?.itemName ?? "";
   const stockRows = detail?.stockByWarehouse ?? [];
   const inventoryRows = detail?.inventoryRecords ?? [];
+  const inventoryRecordPageCount = Math.max(1, Math.ceil(inventoryRows.length / inventoryRecordPageSize));
+  const safeInventoryRecordPage = Math.min(inventoryRecordPage, inventoryRecordPageCount - 1);
+  const visibleInventoryRows = inventoryRows.slice(
+    safeInventoryRecordPage * inventoryRecordPageSize,
+    safeInventoryRecordPage * inventoryRecordPageSize + inventoryRecordPageSize
+  );
   const reservationRows = detail?.reservations ?? [];
   const qualityRows = detail?.qualityHolds ?? [];
   const taskRows = detail?.tasks ?? [];
@@ -309,9 +337,46 @@ function BatchDetailPanel({
       </section>
 
       <section className="mt-5 space-y-2">
-        <p className="text-sm font-semibold text-textPrimary">出入庫紀錄</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-textPrimary">出入庫紀錄</p>
+          {inventoryRows.length > inventoryRecordPageSize ? (
+            <div className="flex items-center gap-2">
+              <StatusBadge tone="neutral">
+                {formatNumber(safeInventoryRecordPage + 1)} / {formatNumber(inventoryRecordPageCount)}
+              </StatusBadge>
+              <button
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-button border border-border bg-white px-2 text-xs font-medium text-textSecondary disabled:opacity-50"
+                disabled={safeInventoryRecordPage === 0}
+                onClick={() =>
+                  setInventoryRecordPageState({
+                    batchNo: currentBatchNo,
+                    page: Math.max(0, safeInventoryRecordPage - 1)
+                  })
+                }
+                type="button"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                上一頁
+              </button>
+              <button
+                className="inline-flex h-8 items-center justify-center gap-1 rounded-button border border-border bg-white px-2 text-xs font-medium text-textSecondary disabled:opacity-50"
+                disabled={safeInventoryRecordPage + 1 >= inventoryRecordPageCount}
+                onClick={() =>
+                  setInventoryRecordPageState({
+                    batchNo: currentBatchNo,
+                    page: Math.min(inventoryRecordPageCount - 1, safeInventoryRecordPage + 1)
+                  })
+                }
+                type="button"
+              >
+                下一頁
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
+        </div>
         {inventoryRows.length ? (
-          inventoryRows.slice(0, 5).map((row) => (
+          visibleInventoryRows.map((row) => (
             <div className="rounded-md border border-border px-3 py-2" key={`${row.recordTime}-${row.refNo}-${row.quantity}`}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-medium text-textPrimary">{row.categoryLabel}</p>
@@ -398,6 +463,7 @@ export default function BatchesPage() {
   const [itemCategory, setItemCategory] = useState("");
   const [riskLevelCode, setRiskLevelCode] = useState("");
   const [page, setPage] = useState(0);
+  const [distributionPage, setDistributionPage] = useState(0);
   const [selectedItemNo, setSelectedItemNo] = useState("");
   const [selectedRowKey, setSelectedRowKey] = useState("");
   const [distribution, setDistribution] = useState<BatchDistributionData>();
@@ -426,16 +492,32 @@ export default function BatchesPage() {
   );
   const selectedItem =
     visibleItems.find((item) => item.itemNo === selectedItemNo) ?? visibleItems[0];
+  const selectedItemMatchesSearch = selectedItem ? itemMatchesSearch(selectedItem, searchQuery) : false;
+  const distributionQuery = useMemo<BatchDashboardQuery>(
+    () => ({
+      keyword: searchValue.trim() && !selectedItemMatchesSearch ? searchValue.trim() : undefined,
+      riskLevelCode: riskLevelCode || undefined,
+      start: distributionPage * pageSize,
+      count: pageSize
+    }),
+    [distributionPage, riskLevelCode, searchValue, selectedItemMatchesSearch]
+  );
   const activeDistribution = distribution?.item.itemNo === selectedItem?.itemNo ? distribution : undefined;
   const visibleBatches = useMemo(
-    () => (activeDistribution?.batches ?? []).filter((batch) => batchMatchesSearch(batch, searchQuery)),
-    [activeDistribution?.batches, searchQuery]
+    () => (activeDistribution?.batches ?? []).filter((batch) => batchMatchesSearch(batch, searchQuery, selectedItem)),
+    [activeDistribution?.batches, searchQuery, selectedItem]
   );
   const selectedBatch =
     visibleBatches.find((batch) => batch.rowKey === selectedRowKey) ?? visibleBatches[0];
   const activeDetail = selectedBatch?.batchNo && detail?.batch.batchNo === selectedBatch.batchNo ? detail : undefined;
   const canGoPrevious = page > 0;
   const canGoNext = data.start + data.count < data.total;
+  const canDistributionGoPrevious = (activeDistribution?.start ?? 0) > 0 && !isDistributionLoading;
+  const canDistributionGoNext =
+    Boolean(activeDistribution) &&
+    (activeDistribution?.start ?? 0) + (activeDistribution?.count ?? 0) < (activeDistribution?.total ?? 0) &&
+    !isDistributionLoading;
+  const distributionPageRowCount = activeDistribution?.batches.length ?? visibleBatches.length;
   const showDistributionLoading = Boolean(selectedItem?.itemNo) && isDistributionLoading;
 
   useEffect(() => {
@@ -445,7 +527,7 @@ export default function BatchesPage() {
 
     let isMounted = true;
 
-    getBatchDistribution(selectedItem.itemNo, dashboardQuery, dataSourceMode).then((result) => {
+    getBatchDistribution(selectedItem.itemNo, distributionQuery, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -459,7 +541,7 @@ export default function BatchesPage() {
     return () => {
       isMounted = false;
     };
-  }, [dashboardQuery, dataSourceMode, selectedItem?.itemNo]);
+  }, [dataSourceMode, distributionQuery, selectedItem?.itemNo]);
 
   useEffect(() => {
     if (!selectedBatch?.batchNo) {
@@ -496,6 +578,10 @@ export default function BatchesPage() {
                   value={dataSourceMode}
                   onChange={(value) => {
                     setDataSourceMode(value);
+                    setDistributionPage(0);
+                    setDistributionError(undefined);
+                    setDetail(undefined);
+                    setDetailError(undefined);
                     setIsDistributionLoading(true);
                     setIsDetailLoading(true);
                   }}
@@ -523,6 +609,10 @@ export default function BatchesPage() {
                 className="w-full bg-transparent text-sm outline-none placeholder:text-textSecondary"
                 onChange={(event) => {
                   setPage(0);
+                  setDistributionPage(0);
+                  setDistributionError(undefined);
+                  setDetail(undefined);
+                  setDetailError(undefined);
                   setIsDistributionLoading(true);
                   setSearchValue(event.target.value);
                 }}
@@ -534,6 +624,10 @@ export default function BatchesPage() {
               className="h-10 rounded-input border border-border bg-slate-50 px-3 text-sm text-textPrimary outline-none"
               onChange={(event) => {
                 setPage(0);
+                setDistributionPage(0);
+                setDistributionError(undefined);
+                setDetail(undefined);
+                setDetailError(undefined);
                 setIsDistributionLoading(true);
                 setItemCategory(event.target.value);
               }}
@@ -549,6 +643,10 @@ export default function BatchesPage() {
               className="h-10 rounded-input border border-border bg-slate-50 px-3 text-sm text-textPrimary outline-none"
               onChange={(event) => {
                 setPage(0);
+                setDistributionPage(0);
+                setDistributionError(undefined);
+                setDetail(undefined);
+                setDetailError(undefined);
                 setIsDistributionLoading(true);
                 setRiskLevelCode(event.target.value);
               }}
@@ -564,6 +662,10 @@ export default function BatchesPage() {
               className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary disabled:opacity-50"
               disabled={!canGoPrevious}
               onClick={() => {
+                setDistributionPage(0);
+                setDistributionError(undefined);
+                setDetail(undefined);
+                setDetailError(undefined);
                 setIsDistributionLoading(true);
                 setPage((current) => Math.max(0, current - 1));
               }}
@@ -576,6 +678,10 @@ export default function BatchesPage() {
               className="inline-flex h-10 items-center justify-center gap-2 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary disabled:opacity-50"
               disabled={!canGoNext}
               onClick={() => {
+                setDistributionPage(0);
+                setDistributionError(undefined);
+                setDetail(undefined);
+                setDetailError(undefined);
                 setIsDistributionLoading(true);
                 setPage((current) => current + 1);
               }}
@@ -625,7 +731,7 @@ export default function BatchesPage() {
             </div>
             <div className="mt-5 grid gap-3">
               {isLoading ? (
-                <EmptyState title="正在載入批號品項" description="系統正在取得批號中心摘要資料。" />
+                <LoadingState title="正在載入批號品項" description="系統正在取得批號中心摘要資料。" />
               ) : visibleItems.length ? (
                 visibleItems.map((item) => (
                   <ItemSummaryRow
@@ -635,6 +741,10 @@ export default function BatchesPage() {
                     onSelect={() => {
                       setSelectedItemNo(item.itemNo);
                       setSelectedRowKey("");
+                      setDistributionPage(0);
+                      setDistributionError(undefined);
+                      setDetail(undefined);
+                      setDetailError(undefined);
                       setIsDistributionLoading(true);
                       setIsDetailLoading(true);
                     }}
@@ -659,32 +769,68 @@ export default function BatchesPage() {
               </div>
               <div className="mt-5">
                 {showDistributionLoading ? (
-                  <EmptyState title="正在載入批號分布" description="系統正在取得此品項的批號與倉庫分布。" />
+                  <LoadingState title="正在載入批號分布" description="系統正在取得此品項的批號與倉庫分布。" />
                 ) : visibleBatches.length ? (
-                  <BatchDistributionRows
-                    batches={visibleBatches}
-                    selectedRowKey={selectedBatch?.rowKey}
-                    onSelect={(batch) => {
-                      setSelectedRowKey(batch.rowKey);
-                      setIsDetailLoading(true);
-                    }}
-                  />
+                  <div className="space-y-3">
+                    <BatchDistributionRows
+                      batches={visibleBatches}
+                      selectedRowKey={selectedBatch?.rowKey}
+                      onSelect={(batch) => {
+                        setSelectedRowKey(batch.rowKey);
+                        setDetail(undefined);
+                        setDetailError(undefined);
+                        setIsDetailLoading(true);
+                      }}
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <StatusBadge tone="neutral">
+                        {formatNumber((activeDistribution?.start ?? 0) + 1)} - {formatNumber((activeDistribution?.start ?? 0) + distributionPageRowCount)} / {formatNumber(activeDistribution?.total ?? visibleBatches.length)}
+                      </StatusBadge>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex h-9 items-center justify-center gap-1 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary disabled:opacity-50"
+                          disabled={!canDistributionGoPrevious}
+                          onClick={() => {
+                            setDistributionPage((current) => Math.max(0, current - 1));
+                            setDistributionError(undefined);
+                            setDetail(undefined);
+                            setDetailError(undefined);
+                            setIsDistributionLoading(true);
+                          }}
+                          type="button"
+                        >
+                          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                          上一頁
+                        </button>
+                        <button
+                          className="inline-flex h-9 items-center justify-center gap-1 rounded-button border border-border bg-white px-3 text-sm font-medium text-textSecondary disabled:opacity-50"
+                          disabled={!canDistributionGoNext}
+                          onClick={() => {
+                            setDistributionPage((current) => current + 1);
+                            setDistributionError(undefined);
+                            setDetail(undefined);
+                            setDetailError(undefined);
+                            setIsDistributionLoading(true);
+                          }}
+                          type="button"
+                        >
+                          下一頁
+                          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <EmptyState title="沒有符合條件的批號分布" description="目前此品項沒有可顯示的批號分布資料。" />
                 )}
               </div>
             </article>
 
-            <BatchDetailPanel detail={activeDetail} selectedBatch={selectedBatch} isLoading={isDetailLoading} />
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-border bg-white p-4 shadow-card">
-          <div className="flex items-start gap-3 text-textSecondary">
-            <Database className="mt-0.5 h-5 w-5" aria-hidden="true" />
-            <p className="text-sm leading-6">
-              此畫面目前以查看批號庫存、品檢保留、來源單據與未完成任務為主；新增、調整、放行與出入庫執行會由相對應作業流程處理。
-            </p>
+            <BatchDetailPanel
+              detail={activeDetail}
+              selectedBatch={selectedBatch}
+              isLoading={Boolean(selectedBatch?.batchNo) && isDetailLoading}
+            />
           </div>
         </section>
       </div>

@@ -24,6 +24,13 @@ const riskLabels: Dictionary = {
   unknown: "待確認"
 };
 
+const expiryStatusLabels: Dictionary = {
+  valid: "效期品",
+  near_expiry: "即期品",
+  expired: "過期品",
+  unknown: "待確認"
+};
+
 const qaStatusLabels: Dictionary = {
   released: "已放行",
   inspection: "檢驗中",
@@ -133,6 +140,10 @@ export function batchRiskLevelTone(value?: string): StatusTone {
 
 export function batchRiskLabel(value?: string) {
   return dictLabel(riskLabels, value);
+}
+
+export function batchExpiryStatusLabel(value?: string) {
+  return dictLabel(expiryStatusLabels, value);
 }
 
 export function batchQaStatusLabel(value?: string) {

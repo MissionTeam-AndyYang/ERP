@@ -7,8 +7,8 @@
 
 | 項目 | 回覆理解 | 本次提案採用結論 |
 |---|---|---|
-| `batches[].batchStageCode` 型態 | `batchStageCode` 是後端回傳給前端進行 enum 轉換與多國語系顯示的階段代碼，不是資料庫整數欄位，也不承載前端顯示文字。 | 維持 `String`。即使同一批號回傳多筆分布列，每一列的 `batchStageCode` 仍回傳 String enum code，例如 `available`、`quality_hold`、`production_input`、`production_output`。 |
-| `batches[].relatedDocuments[]` 關聯來源 | `relatedDocuments[]` 只表示此批號分布列目前或近期作業相關的文件，不取代批號原始來源 `batches[].refCategory` / `refNo`。 | 第一版僅由可明確追溯到批號、料號、倉庫或任務來源的資料表彙整：`workflow_task_state`、`warehouse_inventory_reservation`、`warehouse_quality_hold`、`inventory_record`；若為產製中情境，可再由 `production_data_input`、`production_data_output` 補充 `work_order` / `process_order` 關聯。 |
+| `batches[].batchStageCode` 型態 | `batchStageCode` 是後端回傳給前端進行 enum 轉換與多國語系顯示的階段代碼，不是資料庫整數欄位，也不承載前端顯示文字。 | 維持 `String`。依 2026-08-18 調整，`/distribution` 只回傳倉庫庫存分布列，因此 enum 採 `available`、`quality_hold`、`reserved`、`stocked`、`inbound_pending`、`shipped`、`unknown` 等倉庫情境 code。 |
+| `batches[].relatedDocuments[]` 關聯來源 | `relatedDocuments[]` 只表示此批號分布列目前或近期作業相關的文件，不取代批號原始來源 `batches[].refCategory` / `refNo`。 | 第一版僅由可明確追溯到批號、料號、倉庫或任務來源的資料表彙整：`workflow_task_state`、`warehouse_inventory_reservation`、`warehouse_quality_hold`、`inventory_record`。 |
 
 # 工程師提問
 1. 品檢保留量與隔離量在定義上有何差異？是否可簡化設計，僅保留其中一種方式？
@@ -32,9 +32,18 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 | 品檢保留量與隔離量 | 第一版尚未建立隔離的獨立資料設計，為避免後端推測不存在的狀態，批號中心 V1 僅保留品檢保留量。 | 移除 `quarantineQuantity`、`quarantineBatchCount`、`quarantine` risk / stage enum；若未來需要隔離流程，另以正式資料表或 `warehouse_quality_hold.reasonCode` 規劃下一版。 |
 | Dashboard 欄位命名 | 採用語意更清楚且接近畫面用途的命名。 | `summary.managedItemCount` 改為 `summary.stockItemCount`；`summary.distributedBatchCount` 改為 `summary.stockBatchCount`；`items[].highestRiskLevelCode` 改為 `items[].riskLevelCode`；`items[].primaryRiskCode` 改為 `items[].riskCode`。 |
 | `items[].demandSignals[]` | 目前 Batch Center 第一版畫面未使用此區塊，依 AGENTS.md 原則不預留未使用欄位。 | Dashboard API 移除 `items[].demandSignals[]`；需求或任務影響後續由 detail、task 或下一版工作台畫面承接。 |
-| 同批號分布於倉庫與產製中 | `batchStageCode` 不應被視為整個批號唯一狀態，而是分布列的目前作業階段。 | `/distribution` 以分布列回傳階段；同一批號若同時存在倉庫庫存與產製中數量，回傳多筆分布列，各列依所屬情境給不同 `batchStageCode`。 |
+| 同批號分布於倉庫與產製中 | `batchStageCode` 不應被視為整個批號唯一狀態，而是分布列的目前作業階段。 | 依 2026-08-18 調整，`/distribution` 本版只回傳倉庫庫存分布；產製中情境不在此 API 回傳。 |
 | 批號來源與關聯單據 | 批號來源表示此批號建立時的原始來源；關聯單據表示此批號目前或近期相關的任務、品檢、出貨、移倉等文件。 | 批號來源欄位統一為 `refCategory` / `refNo`，來源固定取 `batch_number.refCategory` / `batch_number.ref_no`；關聯單據改為 `relatedDocuments[].refCategory` / `relatedDocuments[].refNo`。 |
 | Detail 出入庫欄位命名 | 採用資料庫欄位語意與簡潔命名。 | `inventoryRecords[].movementCategory` 改為 `inventoryRecords[].category`；`inventoryRecords[].movementSource` 改為 `inventoryRecords[].source`。 |
+
+# 本次規格調整 2026-08-18
+
+| 項目 | 調整結論 |
+|---|---|
+| `/api/v2/batches/dashboard` 單位資訊 | `items[]` 新增 `unit`，後端只回傳單位 code，前端負責顯示文字與多國語系轉換。 |
+| `/api/v2/batches/items/{item_no}/distribution` 分布範圍 | 此 API 調整為倉庫庫存分布，只回傳目前仍有倉庫庫存的批號列，不再於此 API 回傳產製中分布列。 |
+| 存放天數 | `batches[]` 新增 `daysInStock`，由首次入庫時間與查詢基準時間換算。 |
+| 期限狀態 | `batches[]` 新增 `expiryStatusCode`，回傳 `valid`、`near_expiry`、`expired`、`unknown`。 |
 
 # BatchCenterScreen API 提案
 
@@ -63,7 +72,7 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 | API | Method | 用途 |
 |---|---|---|
 | `/api/v2/batches/dashboard` | GET | 批號中心 KPI、料品層級批號摘要、篩選與分頁清單 |
-| `/api/v2/batches/items/{item_no}/distribution` | GET | 指定料品的批號與倉庫分布 |
+| `/api/v2/batches/items/{item_no}/distribution` | GET | 指定料品各批號在倉庫的庫存量、存放天數與期限狀態 |
 | `/api/v2/batches/{batch_no}/detail` | GET | 指定批號跨倉庫的庫存、來源單據、預留、品檢、板位與未完成任務 |
 
 > 工程師確認前，本文件為 API 提案；確認後才整合至 `docs/spec/api/` 正式 API 文件並進行後端實作。
@@ -108,6 +117,7 @@ summary.distributedBatchCount 更名為 stockBatchCount。
       "itemCategory": "Integer",
       "itemSubCategory": "Integer",
       "itemType": "Integer",
+      "unit": "Integer",
       "totalBatchCount": "Integer",
       "warehouseCount": "Integer",
       "currentQuantity": "Float",
@@ -143,6 +153,7 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 | `items[].itemCategory` | Integer | 料品品項類別 code；前端負責多國語系顯示。 | `batch_number.itemCategory` |
 | `items[].itemSubCategory` | Integer | 料品品項子類別 code。 | `batch_number.itemSubCategory` |
 | `items[].itemType` | Integer | 品項型態 code；前端負責多國語系顯示。 | `batch_number.itemType` |
+| `items[].unit` | Integer | 此料品目前庫存主要單位 code；前端負責顯示文字與多國語系轉換。 | `batch_number.unit`、庫存快照 fallback |
 | `items[].totalBatchCount` | Integer | 此料品目前庫存量大於 0 的不重複批號數。 | 庫存快照結果 |
 | `items[].warehouseCount` | Integer | 此料品目前庫存量大於 0 的不重複倉庫數。 | 庫存快照結果 |
 | `items[].currentQuantity` | Float | 此料品目前庫存數量總和，取至小數點第 2 位；不同單位混用時，前端仍只顯示數值摘要並由 detail 顯示原單位 code。 | `CWarehouseInventorySnapshotCalculator` |
@@ -189,6 +200,8 @@ summary.distributedBatchCount 更名為 stockBatchCount。
       "unit": "Integer",
       "validDate": "Integer",
       "validDays": "Integer",
+      "daysInStock": "Integer",
+      "expiryStatusCode": "String",
       "qaStatusCode": "String",
       "batchStageCode": "String",
       "riskLevelCode": "String",
@@ -233,14 +246,16 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 | `batches[].unit` | Integer | 此批號庫存單位 code。 | `batch_number.unit`、庫存快照 fallback |
 | `batches[].validDate` | Integer | 批號有效期限 UTC timestamp；無值時回傳 0。 | `batch_number.validDate` |
 | `batches[].validDays` | Integer | 批號有效天數；無值時回傳 0。 | `batch_number.validDays` |
+| `batches[].daysInStock` | Integer | 此批號於此倉庫自首次入庫日至查詢基準日的存放天數；無首次入庫日或首次入庫日晚於查詢基準日時回傳 0。 | 庫存快照 `firstInboundTimestamp` |
+| `batches[].expiryStatusCode` | String | 此批號期限狀態 code；前端負責轉換為效期品、即期品、過期品等顯示文字。 | `valid`、`near_expiry`、`expired`、`unknown` |
 | `batches[].qaStatusCode` | String | 品檢狀態 code；前端負責顯示文字。 | `released`、`inspection`、`quality_hold`、`blocked`、`unknown` |
-| `batches[].batchStageCode` | String | 此分布列的批號作業階段 code；資料型態維持 String enum code。同一批號若同時位於倉庫與產製中，需回傳多筆分布列，各列依實際情境給不同階段。 | `inbound_pending`、`stocked`、`available`、`reserved`、`quality_hold`、`production_input`、`production_output`、`shipped`、`unknown` |
+| `batches[].batchStageCode` | String | 此倉庫分布列的批號作業階段 code；資料型態維持 String enum code。 | `inbound_pending`、`stocked`、`available`、`reserved`、`quality_hold`、`shipped`、`unknown` |
 | `batches[].riskLevelCode` | String | 此批號風險等級 code。 | `normal`、`attention`、`high_risk` |
 | `batches[].riskCodes[]` | String | 此批號命中的風險 code 清單。 | `expired`、`near_expiry`、`quality_hold`、`reserved`、`stock_shortage`、`workflow_blocked` |
 | `batches[].refCategory` | Integer | 批號建立時的來源單據類別，固定以 `batch_number.refCategory` 為準；例如採購進貨批號來自進貨單，產製批號來自工單或製程單。 | `batch_number.refCategory` |
 | `batches[].refNo` | String | 批號建立時的來源單號，固定以 `batch_number.ref_no` 為準；不以後續出入庫紀錄覆蓋。 | `batch_number.ref_no` |
-| `batches[].relatedDocuments[].refCategory` | Integer | 與此批號目前狀態或作業相關的單據類別；例如品檢任務、預留出貨、移倉或生產任務，不代表批號原始建立來源。 | `workflow_task_state.refCategory`、`warehouse_inventory_reservation.refCategory`、`warehouse_quality_hold.refCategory`、`inventory_record.refCategory`；產製中情境可由 `production_data_input` / `production_data_output` 對應 `work_order`、`process_order` |
-| `batches[].relatedDocuments[].refNo` | String | 關聯單據 no；無值時回傳空字串。 | `workflow_task_state.ref_no`、`warehouse_inventory_reservation.ref_no`、`warehouse_quality_hold.ref_no`、`inventory_record.ref_no`；產製中情境可由 `production_data_input.work_order_no` / `production_data_output.work_order_no`、`process_order_no` 補充 |
+| `batches[].relatedDocuments[].refCategory` | Integer | 與此批號目前狀態或作業相關的單據類別；例如品檢任務、預留出貨、移倉或出入庫單據，不代表批號原始建立來源。 | `workflow_task_state.refCategory`、`warehouse_inventory_reservation.refCategory`、`warehouse_quality_hold.refCategory`、`inventory_record.refCategory` |
+| `batches[].relatedDocuments[].refNo` | String | 關聯單據 no；無值時回傳空字串。 | `workflow_task_state.ref_no`、`warehouse_inventory_reservation.ref_no`、`warehouse_quality_hold.ref_no`、`inventory_record.ref_no` |
 | `total` | Integer | 套用篩選後的批號倉庫分布列總數。 | 查詢結果 |
 | `start` | Integer | 本次分頁起點。 | Query parameter |
 | `count` | Integer | 本次回傳筆數。 | Query parameter / 實際筆數 |
@@ -253,7 +268,7 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 |---|---|---|
 | 採購進貨產生批號 | 回傳建立批號時的進貨單類別與進貨單號，例如 `goods_receipt_note` 對應的 code 與 `GRN-20260801-001`。 | 若此批號正在品檢、預留出貨或移倉，回傳品檢任務、出庫任務或移倉任務的類別與單號。 |
 | 生產產出產生批號 | 回傳建立批號時的工單／製程單類別與單號，例如 `MO-20260801-003`。 | 若此批號後續入庫、品檢或被出貨預留，回傳對應入庫、品檢或出貨相關單據。 |
-| 同批號同時位於倉庫與產製中 | 每一分布列皆保留相同的批號建立來源 `refCategory` / `refNo`。 | 倉庫列可關聯預留、品檢或移倉文件；產製列可關聯工單、製程或待入庫任務。 |
+| 同批號分布於多個倉庫 | 每一倉庫分布列皆保留相同的批號建立來源 `refCategory` / `refNo`。 | 各倉庫列可分別關聯預留、品檢、移倉或出入庫文件。 |
 
 ### 5.4 `relatedDocuments[]` 資料表來源
 
@@ -265,8 +280,6 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 | `warehouse_inventory_reservation` | 預留紀錄仍有效或尚未完成，且符合目前分布列的料號、批號與倉庫。 | `warehouse_inventory_reservation.refCategory` | `warehouse_inventory_reservation.ref_no` |
 | `warehouse_quality_hold` | 品檢保留紀錄仍有效或尚未解除，且符合目前分布列的批號與倉庫。 | `warehouse_quality_hold.refCategory` | `warehouse_quality_hold.ref_no` |
 | `inventory_record` | 最近出入庫紀錄與目前分布列的批號、倉庫或來源單據相關；僅用於補充近期異動文件，不覆蓋批號來源。 | `inventory_record.refCategory` | `inventory_record.ref_no` |
-| `production_data_input` | 分布列為 `production_input`，且投入資料的 `batch_number` 符合目前批號。 | 依 `work_order` 或 `process_order` 對應的 refCategory code | `production_data_input.work_order_no` 或 `production_data_input.process_order_no` |
-| `production_data_output` | 分布列為 `production_output`，且產出資料的 `batch_number` 符合目前批號。 | 依 `work_order` 或 `process_order` 對應的 refCategory code | `production_data_output.work_order_no` 或 `production_data_output.process_order_no` |
 
 ## 6. GET `/api/v2/batches/{batch_no}/detail`
 
@@ -438,8 +451,9 @@ summary.distributedBatchCount 更名為 stockBatchCount。
 |---|---|
 | `riskLevelCode` | `normal`、`attention`、`high_risk` |
 | `riskCode` / `riskCodes[]` | `normal`、`expired`、`near_expiry`、`quality_hold`、`reserved`、`stock_shortage`、`workflow_blocked`、`unknown` |
+| `expiryStatusCode` | `valid`、`near_expiry`、`expired`、`unknown` |
 | `qaStatusCode` | `released`、`inspection`、`quality_hold`、`blocked`、`unknown` |
-| `batchStageCode` | `inbound_pending`、`stocked`、`available`、`reserved`、`quality_hold`、`production_input`、`production_output`、`shipped`、`unknown` |
+| `batchStageCode` | `inbound_pending`、`stocked`、`available`、`reserved`、`quality_hold`、`shipped`、`unknown` |
 
 若後續多個後端檔案共用這些 enum，需集中定義於 `restserver/package/common/common.py`。
 

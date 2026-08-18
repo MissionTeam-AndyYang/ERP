@@ -584,6 +584,13 @@ class EBatchRiskCode(object):
     UNKNOWN = "unknown"
 
 
+class EBatchExpiryStatusCode(object):
+    VALID = "valid"
+    NEAR_EXPIRY = "near_expiry"
+    EXPIRED = "expired"
+    UNKNOWN = "unknown"
+
+
 class EBatchQaStatusCode(object):
     RELEASED = "released"
     INSPECTION = "inspection"

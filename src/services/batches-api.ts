@@ -14,6 +14,7 @@ import {
   batchRiskLabel,
   batchRiskLevelLabel,
   batchRiskTone,
+  batchExpiryStatusLabel,
   batchStageLabel,
   batchTaskStatusLabel,
   batchTaskStatusTone,
@@ -48,6 +49,7 @@ type ApiBatchDashboardItem = {
   itemCategory?: number;
   itemSubCategory?: number;
   itemType?: number;
+  unit?: number;
   totalBatchCount?: number;
   warehouseCount?: number;
   currentQuantity?: number;
@@ -89,6 +91,8 @@ type ApiBatchDistributionRow = {
   unit?: number;
   validDate?: number;
   validDays?: number;
+  daysInStock?: number;
+  expiryStatusCode?: string;
   qaStatusCode?: string;
   batchStageCode?: string;
   riskLevelCode?: string;
@@ -294,7 +298,7 @@ function kpisFromSummary(summary: BatchSummary): BatchKpiItem[] {
 function mapDashboardItem(item: ApiBatchDashboardItem): BatchItemSummary {
   const riskLevelCode = normalizeBatchRiskLevel(item.riskLevelCode);
   const riskCodes = item.riskCode ? [item.riskCode] : [];
-  const unitLabel = "單位";
+  const unit = asNumber(item.unit);
 
   return {
     itemNo: item.itemNo ?? "",
@@ -304,6 +308,7 @@ function mapDashboardItem(item: ApiBatchDashboardItem): BatchItemSummary {
     itemSubCategory: asNumber(item.itemSubCategory),
     itemType: asNumber(item.itemType),
     itemTypeLabel: batchItemTypeLabel(item.itemType),
+    unit,
     totalBatchCount: asNumber(item.totalBatchCount),
     warehouseCount: asNumber(item.warehouseCount),
     currentQuantity: asNumber(item.currentQuantity),
@@ -320,7 +325,7 @@ function mapDashboardItem(item: ApiBatchDashboardItem): BatchItemSummary {
     riskLabel: batchRiskLabel(item.riskCode),
     ownerDepartment: asNumber(item.ownerDepartment),
     ownerDepartmentLabel: batchDepartmentLabel(item.ownerDepartment),
-    unitLabel,
+    unitLabel: batchUnitLabel(unit),
     tone: batchRiskTone(riskLevelCode, riskCodes)
   };
 }
@@ -356,6 +361,9 @@ function mapDistributionRow(item: ApiBatchDistributionRow, index = 0): BatchDist
     validDate: timestampToDate(item.validDate),
     validTimestamp: asNumber(item.validDate),
     validDays: asNumber(item.validDays),
+    daysInStock: asNumber(item.daysInStock),
+    expiryStatusCode: item.expiryStatusCode ?? "unknown",
+    expiryStatusLabel: batchExpiryStatusLabel(item.expiryStatusCode),
     qaStatusCode: item.qaStatusCode ?? "unknown",
     qaStatusLabel: batchQaStatusLabel(item.qaStatusCode),
     batchStageCode,

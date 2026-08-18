@@ -12,6 +12,7 @@ if str(RESTSERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(RESTSERVER_ROOT))
 
 from package.common.common import (
+    EBatchExpiryStatusCode,
     EBatchRiskCode,
     EBatchRiskLevelCode,
     EBatchStageCode,
@@ -237,12 +238,13 @@ def test_batch_center_dashboard_groups_item_and_risk_fields():
     assert dict_item["itemNo"] == "RM-001"
     assert dict_item["currentQuantity"] == 90.0
     assert dict_item["availableQuantity"] == 65.0
+    assert dict_item["unit"] == 1
     assert dict_item["riskLevelCode"] == EBatchRiskLevelCode.HIGH_RISK
     assert dict_item["riskCode"] == EBatchRiskCode.QUALITY_HOLD
     assert dict_item["ownerDepartment"] == 5
 
 
-def test_batch_center_distribution_returns_warehouse_and_production_rows():
+def test_batch_center_distribution_returns_warehouse_stock_rows():
     obj_session = build_session()
     n_now = seed_batch_center(obj_session)
     dict_payload = CBatchCenterService()._CBatchCenterService__get_distribution_with_session(
@@ -255,13 +257,13 @@ def test_batch_center_distribution_returns_warehouse_and_production_rows():
         for dict_row in dict_payload["batches"]
     }
     assert EBatchStageCode.QUALITY_HOLD in dict_rows
-    assert EBatchStageCode.PRODUCTION_OUTPUT in dict_rows
+    assert EBatchStageCode.PRODUCTION_OUTPUT not in dict_rows
     assert dict_rows[EBatchStageCode.QUALITY_HOLD]["currentQuantity"] == 90.0
+    assert dict_rows[EBatchStageCode.QUALITY_HOLD]["daysInStock"] == 40
+    assert dict_rows[EBatchStageCode.QUALITY_HOLD]["expiryStatusCode"] == EBatchExpiryStatusCode.NEAR_EXPIRY
     assert dict_rows[EBatchStageCode.QUALITY_HOLD]["refNo"] == "GRN-001"
     assert dict_rows[EBatchStageCode.QUALITY_HOLD]["relatedDocuments"]
     assert isinstance(dict_rows[EBatchStageCode.QUALITY_HOLD]["batchStageCode"], str)
-    assert dict_rows[EBatchStageCode.PRODUCTION_OUTPUT]["warehouseNo"] == ""
-    assert dict_rows[EBatchStageCode.PRODUCTION_OUTPUT]["currentQuantity"] == 3.0
 
 
 def test_batch_center_detail_returns_confirmed_child_datasets():

@@ -5,6 +5,7 @@ from collections import defaultdict
 from flask import request
 
 from package.common.common import (
+    EBatchExpiryStatusCode,
     EBatchQaStatusCode,
     EBatchRiskCode,
     EBatchRiskLevelCode,
@@ -17,8 +18,6 @@ from package.dbwrapper.dbmgr import CDBMgr
 from package.dbwrapper.table import (
     CTableBatchNumber,
     CTableInventoryRec,
-    CTableProductionDataInput,
-    CTableProductionDataOutput,
     CTableWarehouseInventoryReservation,
     CTableWarehousePalletMovement,
     CTableWarehouseQualityHold,
@@ -229,13 +228,6 @@ class CBatchCenterService(object):
             dict_context,
             n_query_timestamp,
         )
-        lst_rows.extend(self.__query_production_rows(
-            obj_session,
-            str_item_no,
-            str_batch_no,
-            n_query_timestamp,
-            dict_context.get("sources", {}),
-        ))
         lst_rows = self.__filter_rows(
             lst_rows,
             str_keyword,
@@ -339,6 +331,8 @@ class CBatchCenterService(object):
                 "unit": util_safe_int(dict_inventory.get("unit")),
                 "validDate": util_safe_int(dict_inventory.get("validDate")),
                 "validDays": util_safe_int(dict_inventory.get("validDays")),
+                "daysInStock": self.__days_in_stock(dict_inventory, n_query_timestamp),
+                "expiryStatusCode": self.__expiry_status_code(dict_inventory, n_query_timestamp),
                 "qaStatusCode": self.__qa_status_code(dict_inventory, lst_tasks),
                 "batchStageCode": self.__batch_stage_code(dict_inventory, lst_tasks),
                 "riskLevelCode": str_risk_level_code,
@@ -369,6 +363,7 @@ class CBatchCenterService(object):
                 "itemCategory": util_safe_int(dict_row.get("itemCategory")),
                 "itemSubCategory": util_safe_int(dict_row.get("itemSubCategory")),
                 "itemType": util_safe_int(dict_row.get("itemType")),
+                "unit": util_safe_int(dict_row.get("unit")),
                 "totalBatchCount": 0,
                 "warehouseCount": 0,
                 "currentQuantity": 0.0,
@@ -459,6 +454,8 @@ class CBatchCenterService(object):
             "unit": util_safe_int(dict_row.get("unit")),
             "validDate": util_safe_int(dict_row.get("validDate")),
             "validDays": util_safe_int(dict_row.get("validDays")),
+            "daysInStock": util_safe_int(dict_row.get("daysInStock")),
+            "expiryStatusCode": dict_row.get("expiryStatusCode", EBatchExpiryStatusCode.UNKNOWN),
             "qaStatusCode": dict_row.get("qaStatusCode", EBatchQaStatusCode.UNKNOWN),
             "batchStageCode": dict_row.get("batchStageCode", EBatchStageCode.UNKNOWN),
             "riskLevelCode": dict_row.get("riskLevelCode", EBatchRiskLevelCode.NORMAL),
@@ -679,60 +676,6 @@ class CBatchCenterService(object):
         if dict_doc not in dict_docs[str_key]:
             dict_docs[str_key].append(dict_doc)
 
-    def __query_production_rows(self, obj_session, str_item_no, str_batch_no, n_query_timestamp, dict_sources):
-        lst_results = []
-        lst_filters = [CTableProductionDataInput.item_no == str_item_no]
-        if str_batch_no:
-            lst_filters.append(CTableProductionDataInput.batch_number == str_batch_no)
-        for obj_row in obj_session.query(CTableProductionDataInput).filter(*lst_filters).all():
-            lst_results.append(self.__production_row(obj_row, EBatchStageCode.PRODUCTION_INPUT, n_query_timestamp, dict_sources))
-
-        lst_filters = [CTableProductionDataOutput.item_no == str_item_no]
-        if str_batch_no:
-            lst_filters.append(CTableProductionDataOutput.batch_number == str_batch_no)
-        for obj_row in obj_session.query(CTableProductionDataOutput).filter(*lst_filters).all():
-            lst_results.append(self.__production_row(obj_row, EBatchStageCode.PRODUCTION_OUTPUT, n_query_timestamp, dict_sources))
-        return lst_results
-
-    def __production_row(self, obj_row, str_stage_code, n_query_timestamp, dict_sources):
-        str_batch_no = obj_row.batch_number or ""
-        dict_source = dict_sources.get(str_batch_no, {})
-        return {
-            "batchNo": str_batch_no,
-            "warehouseNo": "",
-            "warehouseName": "",
-            "locationCode": "",
-            "palletCount": 0.0,
-            "currentQuantity": util_round_quantity(obj_row.count),
-            "availableQuantity": 0.0,
-            "reservedQuantity": 0.0,
-            "qualityHoldQuantity": 0.0,
-            "unit": util_safe_int(obj_row.unit),
-            "validDate": util_safe_int(getattr(obj_row, "valid_date", 0)),
-            "validDays": 0,
-            "qaStatusCode": EBatchQaStatusCode.UNKNOWN,
-            "batchStageCode": str_stage_code,
-            "riskLevelCode": EBatchRiskLevelCode.NORMAL,
-            "riskCode": EBatchRiskCode.NORMAL,
-            "riskCodes": [],
-            "refCategory": util_safe_int(dict_source.get("refCategory")),
-            "refNo": dict_source.get("refNo", ""),
-            "relatedDocuments": self.__production_related_docs(obj_row),
-            "itemNo": obj_row.item_no or "",
-            "itemName": obj_row.item_name or "",
-            "itemCategory": util_safe_int(obj_row.category),
-            "itemSubCategory": util_safe_int(obj_row.itemSubCategory),
-            "itemType": 0,
-            "ownerDepartment": 0,
-            "serverTimestamp": n_query_timestamp,
-        }
-
-    def __production_related_docs(self, obj_row):
-        lst_docs = []
-        self.__add_related_doc({"key": lst_docs}, "key", 0, obj_row.work_order_no)
-        self.__add_related_doc({"key": lst_docs}, "key", 0, obj_row.process_order_no)
-        return lst_docs
-
     def __build_item_header(self, str_item_no, lst_rows):
         for dict_row in lst_rows:
             if dict_row.get("itemNo") == str_item_no:
@@ -847,6 +790,22 @@ class CBatchCenterService(object):
         if n_remaining_seconds < 0:
             return False
         return (float(n_remaining_seconds) / float(n_valid_days * 86400)) <= (1.0 / 3.0)
+
+    def __expiry_status_code(self, dict_inventory, n_query_timestamp):
+        n_valid_date = util_safe_int(dict_inventory.get("validDate"))
+        if not n_valid_date:
+            return EBatchExpiryStatusCode.UNKNOWN
+        if n_valid_date < n_query_timestamp:
+            return EBatchExpiryStatusCode.EXPIRED
+        if self.__is_near_expiry(dict_inventory, n_query_timestamp):
+            return EBatchExpiryStatusCode.NEAR_EXPIRY
+        return EBatchExpiryStatusCode.VALID
+
+    def __days_in_stock(self, dict_inventory, n_query_timestamp):
+        n_first_inbound_timestamp = util_safe_int(dict_inventory.get("firstInboundTimestamp"))
+        if not n_first_inbound_timestamp or n_first_inbound_timestamp > n_query_timestamp:
+            return 0
+        return int((n_query_timestamp - n_first_inbound_timestamp) / 86400)
 
     def __risk_level_code(self, lst_risk_codes, dict_inventory):
         if EBatchRiskCode.EXPIRED in lst_risk_codes:

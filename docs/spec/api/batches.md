@@ -7,7 +7,7 @@
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | [/api/v2/batches/dashboard](#get-api-v2-batches-dashboard) | GET | 查詢批號中心 KPI、料品層級批號摘要、篩選與分頁清單 | OK | 依 `batch_center_proposal.md` 實作 |
-| [/api/v2/batches/items/{item_no}/distribution](#get-api-v2-batches-items-item_no-distribution) | GET | 查詢指定料品的批號與倉庫／產製中分布 | OK | 依 `batch_center_proposal.md` 實作 |
+| [/api/v2/batches/items/{item_no}/distribution](#get-api-v2-batches-items-item_no-distribution) | GET | 查詢指定料品各批號在倉庫的庫存量、存放天數與期限狀態 | OK | 依工程師確認調整為倉庫庫存分布 |
 | [/api/v2/batches/{batch_no}/detail](#get-api-v2-batches-batch_no-detail) | GET | 查詢指定批號跨倉庫庫存、來源單據、預留、品檢、板位與未完成任務 | OK | 依 `batch_center_proposal.md` 實作 |
 
 ## GET /api/v2/batches/dashboard
@@ -70,6 +70,7 @@ None
         "itemCategory": "Integer",
         "itemSubCategory": "Integer",
         "itemType": "Integer",
+        "unit": "Integer",
         "totalBatchCount": "Integer",
         "warehouseCount": "Integer",
         "currentQuantity": "Float",
@@ -104,6 +105,7 @@ None
 | payload.items[].itemCategory | Integer | 料品品項類別 code |  |
 | payload.items[].itemSubCategory | Integer | 料品品項子類別 code |  |
 | payload.items[].itemType | Integer | 品項型態 code |  |
+| payload.items[].unit | Integer | 此料品目前庫存主要單位 code；前端負責顯示文字與多國語言轉換 |  |
 | payload.items[].totalBatchCount | Integer | 此料品目前庫存量大於 0 的不重複批號數 |  |
 | payload.items[].warehouseCount | Integer | 此料品目前庫存量大於 0 的不重複倉庫數 |  |
 | payload.items[].currentQuantity | Float | 此料品目前庫存數量總和，取至小數點第 2 位 |  |
@@ -150,7 +152,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v2/batches/items/{item_no}/distribution | GET | 查詢指定料品的批號與倉庫／產製中分布 |
+| /api/v2/batches/items/{item_no}/distribution | GET | 查詢指定料品各批號在倉庫的庫存量、存放天數與期限狀態 |
 
 ### Request Header
 
@@ -195,6 +197,8 @@ None
         "unit": "Integer",
         "validDate": "Integer",
         "validDays": "Integer",
+        "daysInStock": "Integer",
+        "expiryStatusCode": "String",
         "qaStatusCode": "String",
         "batchStageCode": "String",
         "riskLevelCode": "String",
@@ -225,7 +229,7 @@ None
 | payload.item.itemType | Integer | 品項型態 code |  |
 | payload.item.unit | Integer | 此料品主要庫存單位 code |  |
 | payload.batches[].batchNo | String | 批號 |  |
-| payload.batches[].warehouseNo | String | 倉儲別名 no；產製中分布列無倉庫時回傳空字串 |  |
+| payload.batches[].warehouseNo | String | 倉儲別名 no；此 API 僅回傳目前仍有倉庫庫存的批號分布列 |  |
 | payload.batches[].warehouseName | String | 倉儲別名名稱；無值時回傳空字串 |  |
 | payload.batches[].locationCode | String | 主要板位或倉位代碼；無資料時回傳空字串 |  |
 | payload.batches[].palletCount | Float | 此批號於此倉庫目前佔用板數，取至小數點第 2 位 |  |
@@ -236,8 +240,10 @@ None
 | payload.batches[].unit | Integer | 此分布列單位 code |  |
 | payload.batches[].validDate | Integer | 批號有效期限 UTC timestamp |  |
 | payload.batches[].validDays | Integer | 批號有效天數 |  |
+| payload.batches[].daysInStock | Integer | 此批號於此倉庫自首次入庫日至查詢基準日的存放天數；無首次入庫日或首次入庫日晚於查詢基準日時回傳 0 |  |
+| payload.batches[].expiryStatusCode | String | 此批號期限狀態 code；前端負責顯示「效期品、即期品、過期品」等文字 | valid、near_expiry、expired、unknown |
 | payload.batches[].qaStatusCode | String | 品檢狀態 code | released、inspection、quality_hold、blocked、unknown |
-| payload.batches[].batchStageCode | String | 此分布列批號作業階段 code，維持 String enum code | inbound_pending、stocked、available、reserved、quality_hold、production_input、production_output、shipped、unknown |
+| payload.batches[].batchStageCode | String | 此倉庫分布列批號作業階段 code，維持 String enum code | inbound_pending、stocked、available、reserved、quality_hold、shipped、unknown |
 | payload.batches[].riskLevelCode | String | 此批號分布列風險等級 code | normal、attention、high_risk |
 | payload.batches[].riskCodes[] | String | 此批號分布列命中的風險 code 清單 | expired、near_expiry、quality_hold、reserved、stock_shortage、workflow_blocked |
 | payload.batches[].refCategory | Integer | 批號建立時的來源單據類別，固定以 `batch_number.refCategory` 為準 |  |
@@ -252,10 +258,13 @@ None
 
 1. 驗證 `item_no`。
 2. 建立 Batch Center 共用庫存資料集合，強制套用 `itemNo=item_no`。
-3. 以 `batchNo + warehouseNo + batchStageCode` 建立分布列；同批號同時存在倉庫與產製中數量時回傳多列。
-4. 回填批號主檔、倉庫名稱、板位、預留、品檢、風險、來源單據與關聯文件。
-5. `relatedDocuments[]` 由 `workflow_task_state`、`warehouse_inventory_reservation`、`warehouse_quality_hold`、`inventory_record`，以及產製中情境的 `production_data_input` / `production_data_output` 彙整並以 `refCategory + refNo` 去重。
-6. 套用篩選、排序與分頁後回傳。
+3. 僅保留目前庫存量大於 0 且具有倉庫別的庫存列。
+4. 以 `batchNo + warehouseNo + batchStageCode` 建立倉庫分布列；同批號分布於多個倉庫時回傳多列。
+5. 回填批號主檔、倉庫名稱、板位、目前庫存量、預留、品檢、單位、存放天數、期限狀態、風險、來源單據與關聯文件。
+6. `daysInStock` 由首次入庫時間與查詢基準時間相減後換算為天數。
+7. `expiryStatusCode` 判斷規則：已逾有效期限回傳 `expired`；剩餘效期小於等於總效期 1/3 回傳 `near_expiry`；仍在有效期限且非即期回傳 `valid`；缺少有效期限資料回傳 `unknown`。
+8. `relatedDocuments[]` 由 `workflow_task_state`、`warehouse_inventory_reservation`、`warehouse_quality_hold`、`inventory_record` 彙整並以 `refCategory + refNo` 去重。
+9. 套用篩選、排序與分頁後回傳。
 
 ### Database Tables Used
 
@@ -267,8 +276,6 @@ None
 | warehouse_quality_hold | 品檢保留與關聯文件 |
 | warehouse_pallet_movement | 板數 |
 | workflow_task_state | 未完成任務與關聯文件 |
-| production_data_input | 產製投入批號分布 |
-| production_data_output | 產製產出批號分布 |
 
 ## GET /api/v2/batches/{batch_no}/detail
 

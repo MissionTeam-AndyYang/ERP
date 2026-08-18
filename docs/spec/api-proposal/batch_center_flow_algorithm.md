@@ -87,7 +87,7 @@
 判斷規則如下：
 
 1. `batchStageCode` 以分布列為判斷單位，不代表整個批號唯一狀態。
-2. 若同一批號部分數量位於倉庫、部分數量處於產製中，`/distribution` 回傳多筆分布列；倉庫列依倉庫庫存狀態判斷，產製列依工單或製程情境判斷。
+2. `/distribution` 目前只回傳倉庫庫存分布列；若同一批號分布於多個倉庫，依倉庫分列回傳。
 3. 倉庫列判斷優先順序如下，先命中者為 `batchStageCode`：
    - `qualityHoldQuantity > 0`：`quality_hold`
    - `reservedQuantity > 0` 且 `availableQuantity <= 0`：`reserved`
@@ -96,8 +96,6 @@
    - 僅存在進貨或入庫未完成任務且尚無庫存：`inbound_pending`
    - 其他：`unknown`
 4. 產製情境若有正式來源資料可佐證，可回傳：
-   - 已投入產線、尚未成為製成批號：`production_input`
-   - 產製完成、尚未完成入庫或仍在產出等待區：`production_output`
 5. 產製情境若沒有倉庫或板位資料，`warehouseNo`、`warehouseName`、`locationCode` 回傳空字串，來源與關聯單據仍依 `refCategory` / `refNo` 回傳。
 
 ### 3.5 風險等級
@@ -128,13 +126,21 @@
 
 1. 驗證 `item_no`。
 2. 建立共用資料集合，強制套用 `itemNo=item_no`。
-3. 以 `batchNo + warehouseNo + batchStageCode` 建立分布列；若同批號同時存在倉庫與產製情境，需分列回傳。
-4. 回填批號主檔、倉庫名稱、板位、預留、品檢、風險、來源單據與關聯文件。
-5. 排序優先順序：
+3. 僅保留目前庫存量大於 0 且具有倉庫別的庫存列。
+4. 以 `batchNo + warehouseNo + batchStageCode` 建立倉庫分布列；若同批號分布於多個倉庫，需分列回傳。
+5. 每列需回傳此批號於此倉庫的 `currentQuantity`、`unit`、`daysInStock` 與 `expiryStatusCode`。
+6. `daysInStock` 由首次入庫時間與查詢基準時間相減後換算為天數；無首次入庫日或首次入庫日晚於查詢基準日時回傳 0。
+7. `expiryStatusCode` 判斷規則：
+   - `validDate=0`：`unknown`。
+   - `validDate < queryTimestamp`：`expired`。
+   - 剩餘效期小於等於總效期 1/3：`near_expiry`。
+   - 其他仍在有效期限內的批號：`valid`。
+8. 回填批號主檔、倉庫名稱、板位、預留、品檢、風險、來源單據與關聯文件。
+9. 排序優先順序：
    - `riskLevelCode` 高到低。
    - `validDate` 早到晚，無值排後。
    - `batchNo`、`warehouseNo`。
-6. 套用分頁後回傳。
+10. 套用分頁後回傳。
 
 ## 6. GET `/api/v2/batches/{batch_no}/detail`
 

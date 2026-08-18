@@ -27,6 +27,7 @@ export type BatchItemSummary = {
   itemSubCategory: number;
   itemType: number;
   itemTypeLabel: string;
+  unit: number;
   totalBatchCount: number;
   warehouseCount: number;
   currentQuantity: number;
@@ -72,6 +73,9 @@ export type BatchDistributionRow = {
   validDate: string;
   validTimestamp: number;
   validDays: number;
+  daysInStock: number;
+  expiryStatusCode: string;
+  expiryStatusLabel: string;
   qaStatusCode: string;
   qaStatusLabel: string;
   batchStageCode: string;

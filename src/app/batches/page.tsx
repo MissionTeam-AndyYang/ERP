@@ -75,6 +75,8 @@ function batchMatchesSearch(batch: BatchDistributionRow, query: string) {
       batch.warehouseNo,
       batch.warehouseName,
       batch.locationCode,
+      batch.daysInStock,
+      batch.expiryStatusLabel,
       batch.qaStatusLabel,
       batch.batchStageLabel,
       batch.refCategoryLabel,
@@ -167,17 +169,18 @@ function BatchDistributionRows({
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <div className="grid grid-cols-[1.05fr_1fr_0.8fr] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold text-textSecondary md:grid-cols-[1fr_0.9fr_0.9fr_0.8fr_0.8fr]">
+      <div className="grid grid-cols-[1.05fr_1fr_0.8fr] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold text-textSecondary md:grid-cols-[1fr_0.9fr_0.85fr_0.75fr_0.75fr_0.75fr]">
         <span>批號</span>
         <span>倉庫 / 庫位</span>
         <span className="hidden md:block">數量</span>
         <span>品檢 / 階段</span>
-        <span className="hidden md:block">效期</span>
+        <span className="hidden md:block">存放</span>
+        <span className="hidden md:block">期限</span>
       </div>
       <div className="divide-y divide-border">
         {batches.map((batch) => (
           <button
-            className={`grid w-full grid-cols-[1.05fr_1fr_0.8fr] gap-3 px-4 py-3 text-left text-sm transition hover:bg-primary/5 md:grid-cols-[1fr_0.9fr_0.9fr_0.8fr_0.8fr] ${
+            className={`grid w-full grid-cols-[1.05fr_1fr_0.8fr] gap-3 px-4 py-3 text-left text-sm transition hover:bg-primary/5 md:grid-cols-[1fr_0.9fr_0.85fr_0.75fr_0.75fr_0.75fr] ${
               selectedRowKey === batch.rowKey ? "bg-primary/5" : "bg-white"
             }`}
             key={batch.rowKey}
@@ -204,12 +207,31 @@ function BatchDistributionRows({
               <StatusBadge tone={batch.tone}>{batch.qaStatusLabel}</StatusBadge>
               <span className="mt-2 block text-xs text-textSecondary">{batch.batchStageLabel}</span>
             </span>
-            <span className="hidden text-textPrimary md:block">{batch.validDate || "未提供"}</span>
+            <span className="hidden text-textPrimary md:block">
+              {formatNumber(batch.daysInStock)} 天
+            </span>
+            <span className="hidden md:block">
+              <StatusBadge tone={expiryStatusTone(batch.expiryStatusCode)}>{batch.expiryStatusLabel}</StatusBadge>
+              <span className="mt-2 block text-xs text-textSecondary">{batch.validDate || "未提供"}</span>
+            </span>
           </button>
         ))}
       </div>
     </div>
   );
+}
+
+function expiryStatusTone(expiryStatusCode: string) {
+  if (expiryStatusCode === "expired") {
+    return "danger";
+  }
+  if (expiryStatusCode === "near_expiry") {
+    return "warning";
+  }
+  if (expiryStatusCode === "valid") {
+    return "success";
+  }
+  return "neutral";
 }
 
 function DetailMetric({ label, value }: { label: string; value: string }) {
@@ -261,6 +283,8 @@ function BatchDetailPanel({
       <dl className="mt-5 grid gap-4 sm:grid-cols-2">
         <DetailMetric label="來源單據" value={`${batch?.refCategoryLabel ?? selectedBatch?.refCategoryLabel ?? "來源"} ${batch?.refNo ?? selectedBatch?.refNo ?? ""}`.trim()} />
         <DetailMetric label="有效日期" value={batch?.validDate || selectedBatch?.validDate || "未提供"} />
+        <DetailMetric label="存放天數" value={`${formatNumber(selectedBatch?.daysInStock ?? 0)} 天`} />
+        <DetailMetric label="期限狀態" value={selectedBatch?.expiryStatusLabel ?? "待確認"} />
         <DetailMetric label="目前數量" value={`${formatNumber(selectedBatch?.currentQuantity ?? 0, 2)} ${selectedBatch?.unitLabel ?? batch?.unitLabel ?? ""}`} />
         <DetailMetric label="可用 / 預留 / 品檢保留" value={`${formatNumber(selectedBatch?.availableQuantity ?? 0, 2)} / ${formatNumber(selectedBatch?.reservedQuantity ?? 0, 2)} / ${formatNumber(selectedBatch?.qualityHoldQuantity ?? 0, 2)}`} />
       </dl>

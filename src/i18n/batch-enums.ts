@@ -45,8 +45,6 @@ const batchStageLabels: Dictionary = {
   available: "可用",
   reserved: "已預留",
   quality_hold: "品檢保留",
-  production_input: "生產投入",
-  production_output: "生產產出",
   shipped: "已出貨",
   unknown: "待確認"
 };

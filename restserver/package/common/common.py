@@ -610,3 +610,72 @@ class EBatchStageCode(object):
     SHIPPED = "shipped"
     UNKNOWN = "unknown"
 
+
+# ------------------------------------------------------------
+# Traceability Center API enums
+# ------------------------------------------------------------
+
+class ETraceDirectionCode(object):
+    UPSTREAM = "upstream"
+    DOWNSTREAM = "downstream"
+    BOTH = "both"
+
+
+class ETraceStatusCode(object):
+    COMPLETE = "complete"
+    BROKEN = "broken"
+    UNKNOWN = "unknown"
+
+
+class ETraceRiskLevelCode(object):
+    NORMAL = "normal"
+    ATTENTION = "attention"
+    HIGH_RISK = "high_risk"
+
+
+class ETraceRiskCode(object):
+    NORMAL = "normal"
+    BROKEN_CHAIN = "broken_chain"
+    EXPIRED = "expired"
+    QUALITY_HOLD = "quality_hold"
+    UNKNOWN = "unknown"
+
+
+class ETracePartnerTypeCode(object):
+    SUPPLIER = "supplier"
+    CUSTOMER = "customer"
+    INTERNAL = "internal"
+    UNKNOWN = "unknown"
+
+
+class ETraceNodeTypeCode(object):
+    SUPPLIER = "supplier"
+    RECEIPT = "receipt"
+    BATCH = "batch"
+    INVENTORY = "inventory"
+    PRODUCTION_INPUT = "production_input"
+    PRODUCTION_OUTPUT = "production_output"
+    QUALITY = "quality"
+    WORK_ORDER = "work_order"
+    UNKNOWN = "unknown"
+
+
+class ETraceRelationTypeCode(object):
+    SOURCE_OF = "source_of"
+    RECEIVED_AS = "received_as"
+    STORED_IN = "stored_in"
+    CONSUMED_BY = "consumed_by"
+    PRODUCED_AS = "produced_as"
+    INSPECTED_BY = "inspected_by"
+
+
+class ETraceEventTypeCode(object):
+    RECEIPT = "receipt"
+    INVENTORY_IN = "inventory_in"
+    INVENTORY_OUT = "inventory_out"
+    PRODUCTION_INPUT = "production_input"
+    PRODUCTION_OUTPUT = "production_output"
+    QUALITY_HOLD = "quality_hold"
+    QUALITY_RELEASE = "quality_release"
+    TASK = "task"
+

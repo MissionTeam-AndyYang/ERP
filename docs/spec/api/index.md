@@ -31,6 +31,7 @@
 - [sale](./sale.md)
 - [shipwarehouse](./shipwarehouse.md)
 - [transitems](./transitems.md)
+- [trace](./trace.md)
 - [user](./user.md)
 - [warehouse](./warehouse.md)
 - [work](./work.md)

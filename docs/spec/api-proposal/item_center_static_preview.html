@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>品項中心 Item Center Static Preview</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --line: #d9e0ea;
+        --text: #1f2937;
+        --muted: #667085;
+        --brand: #1d4ed8;
+        --ok: #15803d;
+        --warn: #a16207;
+        --danger: #b91c1c;
+        --info: #0369a1;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 230px 1fr;
+        min-height: 100vh;
+      }
+      aside {
+        background: #162033;
+        color: #dbe7f6;
+        padding: 24px 18px;
+      }
+      .brand {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 26px;
+      }
+      .nav {
+        display: grid;
+        gap: 8px;
+      }
+      .nav span {
+        display: block;
+        padding: 10px 12px;
+        border-radius: 6px;
+        color: #aebed3;
+        font-size: 14px;
+      }
+      .nav .active {
+        background: #24314a;
+        color: #fff;
+      }
+      main {
+        padding: 24px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: flex-end;
+        margin-bottom: 18px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 26px;
+      }
+      .subtitle {
+        color: var(--muted);
+        margin-top: 6px;
+        font-size: 14px;
+      }
+      .filters {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .chip, .field {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      .kpis {
+        grid-template-columns: repeat(5, minmax(150px, 1fr));
+        margin-bottom: 16px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 6px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th, td {
+        padding: 11px 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        background: #f8fafc;
+        font-weight: 600;
+      }
+      .badge {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 12px;
+        border: 1px solid var(--line);
+      }
+      .ok { color: var(--ok); background: #ecfdf3; border-color: #bbf7d0; }
+      .warn { color: var(--warn); background: #fffbeb; border-color: #fde68a; }
+      .danger { color: var(--danger); background: #fef2f2; border-color: #fecaca; }
+      .info { color: var(--info); background: #eff6ff; border-color: #bfdbfe; }
+      .category-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .category {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fbfcfe;
+      }
+      .category strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+      .task {
+        display: grid;
+        gap: 6px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .task:last-child { border-bottom: 0; }
+      @media (max-width: 980px) {
+        .shell { grid-template-columns: 1fr; }
+        aside { display: none; }
+        .layout, .kpis { grid-template-columns: 1fr; }
+        .topbar { align-items: stretch; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside>
+        <div class="brand">恆旺 ERP 2.0</div>
+        <nav class="nav">
+          <span>管理者 Dashboard</span>
+          <span>倉庫中心</span>
+          <span>BOM 中心</span>
+          <span>批號中心</span>
+          <span>溯源中心</span>
+          <span class="active">品項中心</span>
+        </nav>
+      </aside>
+      <main>
+        <section class="topbar">
+          <div>
+            <h1>品項中心</h1>
+            <div class="subtitle">檢視料品主檔、分類、庫存訊號、BOM 關聯與主檔待維護事項。</div>
+          </div>
+          <div class="filters">
+            <span class="field">搜尋：RM / FG / BOM / 批號</span>
+            <span class="chip">類別：全部</span>
+            <span class="chip">狀態：需注意優先</span>
+          </div>
+        </section>
+
+        <section class="grid kpis">
+          <div class="card"><div class="label">品項總數</div><div class="value">428</div></div>
+          <div class="card"><div class="label">可用主檔</div><div class="value">410</div></div>
+          <div class="card"><div class="label">製成品</div><div class="value">86</div></div>
+          <div class="card"><div class="label">需注意</div><div class="value">18</div></div>
+          <div class="card"><div class="label">必要資料缺漏</div><div class="value">6</div></div>
+        </section>
+
+        <section class="layout">
+          <div class="grid">
+            <div class="card">
+              <div class="label">品項分類摘要</div>
+              <div class="category-grid" style="margin-top: 12px;">
+                <div class="category"><strong>原料</strong><span class="badge warn">5 項需維護</span><p class="label">目前庫存 112 項，BOM 使用 96 項</p></div>
+                <div class="category"><strong>物料 / 膠捲</strong><span class="badge info">採購訊號</span><p class="label">低庫存與缺近期批號由後端以 code 回傳</p></div>
+                <div class="category"><strong>製成品</strong><span class="badge ok">BOM 已關聯</span><p class="label">量產品項與 BOM 版本保持可追蹤</p></div>
+              </div>
+            </div>
+            <div class="card">
+              <table>
+                <thead>
+                  <tr>
+                    <th>料號</th>
+                    <th>品名 / 類別</th>
+                    <th>主檔狀態</th>
+                    <th>庫存 / 批號</th>
+                    <th>BOM</th>
+                    <th>最新活動</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>FG-CURRY-101</td>
+                    <td>咖哩雞肉調理包<br><span class="label">製成品 / 冷凍</span></td>
+                    <td><span class="badge ok">ready</span></td>
+                    <td>1,240 / 6 批</td>
+                    <td>finished_good / 1</td>
+                    <td>2026-08-18</td>
+                  </tr>
+                  <tr>
+                    <td>RM-CORN-001</td>
+                    <td>冷凍玉米粒<br><span class="label">原料</span></td>
+                    <td><span class="badge warn">attention</span></td>
+                    <td>320 / 2 批</td>
+                    <td>input_material / 8</td>
+                    <td>2026-08-17</td>
+                  </tr>
+                  <tr>
+                    <td>PK-BAG-010</td>
+                    <td>耐熱殺菌袋<br><span class="label">物料</span></td>
+                    <td><span class="badge danger">missing_required_data</span></td>
+                    <td>0 / 0 批</td>
+                    <td>input_material / 4</td>
+                    <td>2026-08-12</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <aside class="card">
+            <div class="label">主檔待維護事項</div>
+            <div class="task">
+              <strong>PK-BAG-010 缺少倉庫單位</strong>
+              <span class="badge danger">missing_unit</span>
+              <span class="label">ownerDepartment: 採購 / 倉庫確認後由前端轉譯</span>
+            </div>
+            <div class="task">
+              <strong>WIP-SAUCE-008 缺少有效 BOM 關聯</strong>
+              <span class="badge warn">missing_bom</span>
+              <span class="label">避免生產排程或成本試算無法引用</span>
+            </div>
+            <div class="task">
+              <strong>RM-SPICE-022 無近期庫存訊號</strong>
+              <span class="badge info">missing_stock_signal</span>
+              <span class="label">供採購與倉庫檢查是否停用或需補主檔</span>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

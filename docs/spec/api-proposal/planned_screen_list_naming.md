@@ -155,16 +155,32 @@ Naming rules:
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `TraceabilityWorkspaceScreen` | Screen | 溯源中心 | `/traceability` | API proposal，Pending Engineer Review | `GET /api/v2/trace/dashboard`、`GET /api/v2/trace/batches/{batch_no}/overview` | 以批號為核心檢視來源、進貨、庫存、生產投入、產出、品檢與 workflow 節點；不包含寫入操作、召回評估或文件完整性。 |
-| P0.1 | V1 Core | `TraceabilitySearchView` | View | 溯源查詢視圖 | `TraceabilityWorkspaceScreen` 內的「溯源查詢」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/trace/dashboard` | 以批號、料號、來源單號、工單號、供應商或客戶關鍵字查詢追溯紀錄清單；查詢狀態由前端自行保存。 |
-| P0.2 | V1 Core | `TraceabilityChainView` | View | 批號鏈路視圖 | `TraceabilityWorkspaceScreen` 內的「批號鏈路」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的 nodes / edges 追溯鏈，協助檢視來源、投入、產出、庫存、品檢與任務關聯。 |
+| P0 | V1 Core | `TraceabilityWorkspaceScreen` | Screen | 溯源中心 | `/traceability` | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/trace/dashboard`、`GET /api/v2/trace/batches/{batch_no}/overview` | 以批號為核心檢視來源、進貨、庫存、生產投入、產出、品檢與 workflow 節點；不包含寫入操作、召回評估或文件完整性。 |
+| P0.1 | V1 Core | `TraceabilitySearchView` | View | 溯源查詢視圖 | `TraceabilityWorkspaceScreen` 內的「溯源查詢」頁籤 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/trace/dashboard` | 以批號、料號、來源單號、工單號、供應商或客戶關鍵字查詢追溯紀錄清單；查詢狀態由前端自行保存。 |
+| P0.2 | V1 Core | `TraceabilityChainView` | View | 批號鏈路視圖 | `TraceabilityWorkspaceScreen` 內的「批號鏈路」頁籤 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的 nodes / edges 追溯鏈，協助檢視來源、投入、產出、庫存、品檢與任務關聯。 |
 | P0.3 | V2 Deferred | `TraceabilityRecallScopeView` | View | 召回範圍視圖 | `TraceabilityWorkspaceScreen` 內的下一版頁籤 | Deferred to V2；第一版暫不實作 | TBD | 召回範圍、已出貨數量、受影響客戶與庫存鎖定需另行規劃，不納入第一版 read-only API。 |
 | P0.4 | V2 Deferred | `TraceabilityDocumentView` | View | 文件完整性視圖 | `TraceabilityWorkspaceScreen` 內的下一版頁籤 | Deferred to V2；第一版暫不實作 | TBD | COA、溫度紀錄、收貨、品檢、生產、出貨等文件狀態需待文件/附件資料來源確認後再規劃。 |
-| P1 | V1 Core | `TraceabilityDetailPanel` | Panel | 溯源明細面板 | `TraceabilityWorkspaceScreen` 右側 panel；窄版可作 drawer | API proposal，Pending Engineer Review | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的批號資訊、追溯鏈、時間軸、追溯狀態與主要風險 code。 |
+| P1 | V1 Core | `TraceabilityDetailPanel` | Panel | 溯源明細面板 | `TraceabilityWorkspaceScreen` 右側 panel；窄版可作 drawer | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的批號資訊、追溯鏈、時間軸、追溯狀態與主要風險 code。 |
 
 ### Traceability Scope Boundary
 
 溯源中心第一版只做 read-only 批號追溯查詢與判讀，不建立召回單、不鎖定庫存、不修改文件、不變更 workflow task。若後續需要正式召回流程、文件補件、品質處置或出貨攔截，應另行規劃 mutation API、資料表與權限流程。
+
+## Item Center Screen Roadmap
+
+`ItemCenterScreen` 對應目前 `/items` 執行畫面，第一版定位為料品主資料 read-only 工作區，聚焦料品分類、主檔完整度、庫存訊號、BOM 關聯與待維護事項。它不取代倉庫、批號、BOM 或研發成本畫面。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `ItemCenterScreen` | Screen | 品項中心 | `/items` | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard`、`GET /api/v2/items/{item_no}/detail` | 檢視原料、物料、膠捲、在製品、製成品與貨品主檔，包含主檔完整度、庫存訊號、BOM 關聯、近期批號與維護風險。 |
+| P0.1 | V1 Core | `ItemCategorySummaryView` | View | 品項分類摘要視圖 | `ItemCenterScreen` 內的分類摘要與 KPI | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 依料品品項類別彙總品項數、目前有庫存品項數、BOM 關聯數與需注意品項數。 |
+| P0.2 | V1 Core | `ItemMasterListView` | View | 品項主檔清單視圖 | `ItemCenterScreen` 主要清單 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 支援關鍵字、類別、主檔狀態、是否有庫存、是否有 BOM 關聯與分頁。 |
+| P0.3 | V1 Core | `ItemMasterTaskView` | View | 主檔待維護視圖 | `ItemCenterScreen` 右側待維護面板 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 顯示缺單位、缺 BOM、缺庫存訊號或停用檢查等 read-only 維護建議。 |
+| P1 | V1 Core | `ItemDetailPanel` | Panel | 品項明細面板 | `ItemCenterScreen` 右側 panel；窄版可作 drawer | API proposal，Pending Engineer Review | `GET /api/v2/items/{item_no}/detail` | 顯示單一品項主檔、庫存摘要、BOM 使用、近期批號、關聯單據與主檔待維護事項。 |
+
+### Item Center Scope Boundary
+
+品項中心第一版不建立、修改或停用品項，不修改 BOM，不建立採購或生產任務。所有維護事項皆為 read-only 建議訊號；若後續需要主檔寫入、審核、停用或版本控管，需另行規劃 mutation API、權限與稽核流程。
 
 ## Not Standalone Screens
 

@@ -3,7 +3,7 @@ import time
 from collections import defaultdict, deque
 
 from flask import request
-from sqlalchemy import or_
+from sqlalchemy import case, func, or_
 
 from package.common.common import (
     EErrorCode,
@@ -21,6 +21,7 @@ from package.common.common import (
 from package.dbwrapper.dbmgr import CDBMgr
 from package.dbwrapper.table import (
     CTableBatchNumber,
+    CTableGoodsReceiptNote,
     CTableInventoryRec,
     CTableProductionData,
     CTableProductionDataInput,
@@ -92,7 +93,7 @@ class CTraceabilityService(object):
         n_query_timestamp = util_safe_int(time.time())
         n_start, n_count = self.__normalize_page(n_start, n_count)
         dict_range = util_build_local_date_range(str_start_date, str_end_date, str_timezone) if str_start_date and str_end_date else None
-        lst_batches = self.__query_batch_headers(
+        lst_all_batches = self.__query_batch_headers(
             obj_session,
             str_keyword,
             n_item_category,
@@ -100,7 +101,10 @@ class CTraceabilityService(object):
             str_batch_no,
             dict_range,
         )
-        lst_batch_nos = [obj_batch.no for obj_batch in lst_batches if obj_batch.no]
+        n_total = len(lst_all_batches)
+        lst_batches = lst_all_batches[n_start:n_start + n_count]
+        lst_all_batch_nos = [obj_batch.no for obj_batch in lst_all_batches if obj_batch.no]
+        lst_page_batch_nos = [obj_batch.no for obj_batch in lst_batches if obj_batch.no]
         dict_inventory = self.__build_inventory_by_batch(
             obj_session,
             n_query_timestamp,
@@ -108,66 +112,35 @@ class CTraceabilityService(object):
             n_item_category,
             str_item_no,
             str_batch_no,
+            lst_all_batch_nos,
         )
-        dict_prod_inputs = self.__query_production_inputs_by_batch(obj_session, lst_batch_nos)
-        dict_prod_outputs = self.__query_production_outputs_by_batch(obj_session, lst_batch_nos)
-        dict_quality = self.__query_quality_holds_by_batch(obj_session, lst_batch_nos)
-        dict_latest = self.__query_latest_event_timestamp_by_batch(obj_session, lst_batch_nos)
+        dict_prod_inputs = self.__query_production_inputs_by_batch(obj_session, lst_all_batch_nos)
+        dict_prod_outputs = self.__query_production_outputs_by_batch(obj_session, lst_all_batch_nos)
+        dict_quality = self.__query_quality_holds_by_batch(obj_session, lst_all_batch_nos)
+        dict_latest = self.__query_latest_event_timestamp_by_batch(obj_session, lst_all_batch_nos)
 
-        lst_records = []
-        for obj_batch in lst_batches:
-            str_no = obj_batch.no or ""
-            dict_stock = dict_inventory.get(str_no, {})
-            lst_inputs = dict_prod_inputs.get(str_no, [])
-            lst_outputs = dict_prod_outputs.get(str_no, [])
-            lst_holds = dict_quality.get(str_no, [])
-            dict_trace = self.__build_trace_state(obj_batch, dict_stock, lst_inputs, lst_outputs, lst_holds, n_query_timestamp)
-            dict_record = {
-                "traceId": "TRACE-%s" % str_no,
-                "traceDirectionCode": self.__trace_direction_code(obj_batch),
-                "itemNo": obj_batch.item_no or dict_stock.get("itemNo", ""),
-                "itemName": obj_batch.item_name or dict_stock.get("itemName", ""),
-                "itemCategory": util_safe_int(obj_batch.itemCategory or dict_stock.get("itemCategory")),
-                "itemSubCategory": util_safe_int(obj_batch.itemSubCategory or dict_stock.get("itemSubCategory")),
-                "itemType": util_safe_int(obj_batch.itemType or dict_stock.get("itemType")),
-                "batchNo": str_no,
-                "refCategory": util_safe_int(obj_batch.refCategory),
-                "refNo": obj_batch.ref_no or "",
-                "partnerTypeCode": self.__partner_type_code(obj_batch),
-                "partnerNo": "",
-                "partnerName": "",
-                "workOrderNo": self.__first_work_order_no(lst_inputs, lst_outputs),
-                "warehouseNo": dict_stock.get("warehouseNo", ""),
-                "warehouseName": dict_stock.get("warehouseName", ""),
-                "currentQuantity": util_round_quantity(dict_stock.get("currentQuantity")),
-                "unit": util_safe_int(obj_batch.unit or dict_stock.get("unit")),
-                "traceStatusCode": dict_trace.get("traceStatusCode"),
-                "riskLevelCode": dict_trace.get("riskLevelCode"),
-                "riskCode": dict_trace.get("riskCode"),
-                "latestEventTimestamp": max(
-                    util_safe_int(dict_latest.get(str_no)),
-                    util_safe_int(obj_batch.creationTime),
-                    util_safe_int(obj_batch.date),
-                    util_safe_int(dict_stock.get("latestInventoryTimestamp")),
-                ),
-            }
-            if self.__matches_keyword(dict_record, str_keyword):
-                lst_records.append(dict_record)
+        lst_all_records = [
+            self.__build_dashboard_record(
+                obj_batch,
+                dict_inventory,
+                dict_prod_inputs,
+                dict_prod_outputs,
+                dict_quality,
+                dict_latest,
+                n_query_timestamp,
+            )
+            for obj_batch in lst_all_batches
+        ]
+        dict_records_by_batch = {dict_record.get("batchNo", ""): dict_record for dict_record in lst_all_records}
+        lst_page = [
+            dict_records_by_batch.get(str_batch_no)
+            for str_batch_no in lst_page_batch_nos
+            if dict_records_by_batch.get(str_batch_no)
+        ]
 
-        lst_records = sorted(
-            lst_records,
-            key=lambda dict_row: (
-                self.__risk_sort(dict_row.get("riskLevelCode")),
-                self.__trace_status_sort(dict_row.get("traceStatusCode")),
-                -util_safe_int(dict_row.get("latestEventTimestamp")),
-                dict_row.get("batchNo", ""),
-            ),
-        )
-        n_total = len(lst_records)
-        lst_page = lst_records[n_start:n_start + n_count]
         return {
             "serverTimestamp": n_query_timestamp,
-            "summary": self.__build_summary(lst_records),
+            "summary": self.__build_summary(lst_all_records),
             "records": lst_page,
             "total": n_total,
             "start": n_start,
@@ -262,7 +235,71 @@ class CTraceabilityService(object):
             .first()
         )
 
-    def __build_inventory_by_batch(self, obj_session, n_query_timestamp, str_timezone, n_item_category, str_item_no, str_batch_no):
+    def __build_dashboard_record(
+        self,
+        obj_batch,
+        dict_inventory,
+        dict_prod_inputs,
+        dict_prod_outputs,
+        dict_quality,
+        dict_latest,
+        n_query_timestamp,
+    ):
+        str_no = obj_batch.no or ""
+        dict_stock = dict_inventory.get(str_no, {})
+        lst_inputs = dict_prod_inputs.get(str_no, [])
+        lst_outputs = dict_prod_outputs.get(str_no, [])
+        lst_holds = dict_quality.get(str_no, [])
+        dict_trace = self.__build_trace_state(obj_batch, dict_stock, lst_inputs, lst_outputs, lst_holds, n_query_timestamp)
+        return {
+            "traceId": "TRACE-%s" % str_no,
+            "traceDirectionCode": self.__trace_direction_code(obj_batch),
+            "itemNo": obj_batch.item_no or dict_stock.get("itemNo", ""),
+            "itemName": obj_batch.item_name or dict_stock.get("itemName", ""),
+            "itemCategory": util_safe_int(obj_batch.itemCategory or dict_stock.get("itemCategory")),
+            "itemSubCategory": util_safe_int(obj_batch.itemSubCategory or dict_stock.get("itemSubCategory")),
+            "itemType": util_safe_int(obj_batch.itemType or dict_stock.get("itemType")),
+            "batchNo": str_no,
+            "refCategory": util_safe_int(obj_batch.refCategory),
+            "refNo": obj_batch.ref_no or "",
+            "partnerTypeCode": self.__partner_type_code(obj_batch),
+            "partnerNo": "",
+            "partnerName": "",
+            "workOrderNo": self.__first_work_order_no(lst_inputs, lst_outputs),
+            "warehouseNo": dict_stock.get("warehouseNo", ""),
+            "warehouseName": dict_stock.get("warehouseName", ""),
+            "currentQuantity": util_round_quantity(dict_stock.get("currentQuantity")),
+            "unit": util_safe_int(obj_batch.unit or dict_stock.get("unit")),
+            "traceStatusCode": dict_trace.get("traceStatusCode"),
+            "riskLevelCode": dict_trace.get("riskLevelCode"),
+            "riskCode": dict_trace.get("riskCode"),
+            "latestEventTimestamp": max(
+                util_safe_int(dict_latest.get(str_no)),
+                util_safe_int(obj_batch.creationTime),
+                util_safe_int(obj_batch.date),
+                util_safe_int(dict_stock.get("latestInventoryTimestamp")),
+            ),
+        }
+
+    def __build_inventory_by_batch(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_timezone,
+        n_item_category,
+        str_item_no,
+        str_batch_no,
+        lst_batch_nos=None,
+    ):
+        if lst_batch_nos is not None:
+            return self.__query_inventory_summary_by_batch(
+                obj_session,
+                n_query_timestamp,
+                n_item_category,
+                str_item_no,
+                str_batch_no,
+                lst_batch_nos,
+            )
         obj_builder = CWarehouseInventoryContextBuilder()
         dict_context = obj_builder.build(
             obj_session=obj_session,
@@ -302,6 +339,130 @@ class CTraceabilityService(object):
             dict_stock["currentQuantity"] = util_round_quantity(dict_stock.get("currentQuantity"))
             dict_stock["qualityHoldQuantity"] = util_round_quantity(dict_stock.get("qualityHoldQuantity"))
         return dict_result
+
+    def __query_inventory_summary_by_batch(
+        self,
+        obj_session,
+        n_query_timestamp,
+        n_item_category,
+        str_item_no,
+        str_batch_no,
+        lst_batch_nos,
+    ):
+        lst_batch_nos = self.__clean_list(lst_batch_nos)
+        if not lst_batch_nos:
+            return {}
+        lst_filters = [
+            CTableInventoryRec.date <= n_query_timestamp,
+            CTableInventoryRec.batchNumber.in_(lst_batch_nos),
+        ]
+        if n_item_category:
+            lst_filters.append(CTableInventoryRec.itemCategory == n_item_category)
+        if str_item_no:
+            lst_filters.append(CTableInventoryRec.item_no == str_item_no)
+        if str_batch_no:
+            lst_filters.append(CTableInventoryRec.batchNumber == str_batch_no)
+        obj_signed_count = func.sum(
+            case(
+                (CTableInventoryRec.category == EInventoryCategory.IN, CTableInventoryRec.count),
+                (CTableInventoryRec.category == EInventoryCategory.OUT, -CTableInventoryRec.count),
+                else_=0,
+            )
+        ).label("currentQuantity")
+        obj_latest_inventory = func.max(CTableInventoryRec.date).label("latestInventoryTimestamp")
+        lst_rows = (
+            obj_session.query(
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.item_name,
+                CTableInventoryRec.itemCategory,
+                CTableInventoryRec.itemType,
+                CTableInventoryRec.warehouse_no,
+                CTableInventoryRec.warehouse_displayName,
+                CTableInventoryRec.unit,
+                obj_signed_count,
+                obj_latest_inventory,
+            )
+            .filter(*lst_filters)
+            .group_by(
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.item_name,
+                CTableInventoryRec.itemCategory,
+                CTableInventoryRec.itemType,
+                CTableInventoryRec.warehouse_no,
+                CTableInventoryRec.warehouse_displayName,
+                CTableInventoryRec.unit,
+            )
+            .all()
+        )
+        dict_quality = self.__query_quality_quantity_by_batch(obj_session, lst_batch_nos)
+        dict_result = {}
+        for obj_row in lst_rows:
+            if util_safe_float(obj_row.currentQuantity) <= 0:
+                continue
+            str_batch = obj_row.batchNumber or ""
+            dict_stock = dict_result.setdefault(str_batch, {
+                "itemNo": obj_row.item_no or "",
+                "itemName": obj_row.item_name or "",
+                "itemCategory": util_safe_int(obj_row.itemCategory),
+                "itemSubCategory": 0,
+                "itemType": util_safe_int(obj_row.itemType),
+                "unit": util_safe_int(obj_row.unit),
+                "warehouseNo": obj_row.warehouse_no or "",
+                "warehouseName": obj_row.warehouse_displayName or "",
+                "currentQuantity": 0.0,
+                "qualityHoldQuantity": 0.0,
+                "latestInventoryTimestamp": 0,
+            })
+            dict_stock["currentQuantity"] += util_safe_float(obj_row.currentQuantity)
+            dict_stock["latestInventoryTimestamp"] = max(
+                util_safe_int(dict_stock.get("latestInventoryTimestamp")),
+                util_safe_int(obj_row.latestInventoryTimestamp),
+            )
+        dict_batch_metadata = self.__query_batch_metadata(obj_session, lst_batch_nos)
+        for str_batch, dict_stock in dict_result.items():
+            dict_metadata = dict_batch_metadata.get(str_batch, {})
+            dict_stock["itemSubCategory"] = util_safe_int(dict_metadata.get("itemSubCategory"))
+            dict_stock["itemType"] = util_safe_int(dict_metadata.get("itemType") or dict_stock.get("itemType"))
+            dict_stock["currentQuantity"] = util_round_quantity(dict_stock.get("currentQuantity"))
+            dict_stock["qualityHoldQuantity"] = util_round_quantity(dict_quality.get(str_batch))
+        return dict_result
+
+    def __query_batch_metadata(self, obj_session, lst_batch_nos):
+        lst_batch_nos = self.__clean_list(lst_batch_nos)
+        if not lst_batch_nos:
+            return {}
+        lst_rows = (
+            obj_session.query(CTableBatchNumber)
+            .filter(CTableBatchNumber.no.in_(lst_batch_nos))
+            .order_by(CTableBatchNumber.date.desc(), CTableBatchNumber.creationTime.desc(), CTableBatchNumber.id.desc())
+            .all()
+        )
+        dict_result = {}
+        for obj_row in lst_rows:
+            str_batch_no = obj_row.no or ""
+            if str_batch_no and str_batch_no not in dict_result:
+                dict_result[str_batch_no] = {
+                    "itemSubCategory": util_safe_int(obj_row.itemSubCategory),
+                    "itemType": util_safe_int(obj_row.itemType),
+                }
+        return dict_result
+
+    def __query_quality_quantity_by_batch(self, obj_session, lst_batch_nos):
+        lst_batch_nos = self.__clean_list(lst_batch_nos)
+        if not lst_batch_nos:
+            return {}
+        lst_rows = (
+            obj_session.query(
+                CTableWarehouseQualityHold.batchNumber,
+                func.sum(CTableWarehouseQualityHold.holdQuantity).label("holdQuantity"),
+            )
+            .filter(CTableWarehouseQualityHold.batchNumber.in_(lst_batch_nos))
+            .group_by(CTableWarehouseQualityHold.batchNumber)
+            .all()
+        )
+        return {obj_row.batchNumber or "": util_round_quantity(obj_row.holdQuantity) for obj_row in lst_rows}
 
     def __query_production_inputs_by_batch(self, obj_session, lst_batch_nos):
         return self.__group_by_batch(
@@ -354,6 +515,7 @@ class CTraceabilityService(object):
             obj_batch = self.__query_batch_header(obj_session, str_batch_no)
             if obj_batch:
                 self.__add_batch_node(dict_nodes, obj_batch, ETraceRiskLevelCode.NORMAL)
+                self.__append_source_graph(obj_session, obj_batch, dict_nodes, dict_edges, lst_timeline)
             self.__append_inventory_graph(obj_session, str_batch_no, dict_nodes, dict_edges, lst_timeline)
             self.__append_quality_graph(obj_session, str_batch_no, dict_nodes, dict_edges, lst_timeline)
             for obj_input in obj_session.query(CTableProductionDataInput).filter(CTableProductionDataInput.batch_number == str_batch_no).all():
@@ -377,6 +539,7 @@ class CTraceabilityService(object):
                 str_output_node = self.__node_id(ETraceNodeTypeCode.PRODUCTION_OUTPUT, str_work_order_no, str_batch_no, obj_output.id)
                 self.__add_node(dict_nodes, str_output_node, ETraceNodeTypeCode.PRODUCTION_OUTPUT, obj_output, obj_output.time, ETraceRiskLevelCode.NORMAL)
                 self.__add_edge(dict_edges, str_output_node, self.__batch_node_id(str_batch_no), ETraceRelationTypeCode.PRODUCED_AS, obj_output.count, obj_output.unit)
+                self.__append_event(lst_timeline, ETraceEventTypeCode.PRODUCTION_OUTPUT, obj_output, obj_output.time, obj_output.work_order_no)
                 self.__append_work_order_graph(obj_session, str_work_order_no, dict_nodes, dict_edges, str_output_node)
                 for obj_input in obj_session.query(CTableProductionDataInput).filter(CTableProductionDataInput.work_order_no == str_work_order_no).all():
                     str_input_batch = obj_input.batch_number or ""
@@ -393,6 +556,68 @@ class CTraceabilityService(object):
             "edges": sorted(dict_edges.values(), key=lambda dict_row: dict_row.get("edgeId", "")),
             "timeline": sorted(lst_timeline, key=lambda dict_row: (dict_row.get("eventTimestamp", 0), dict_row.get("eventId", ""))),
         }
+
+    def __append_source_graph(self, obj_session, obj_batch, dict_nodes, dict_edges, lst_timeline):
+        if not obj_batch or not obj_batch.no or not obj_batch.ref_no:
+            return
+        obj_receipt = (
+            obj_session.query(CTableGoodsReceiptNote)
+            .filter(CTableGoodsReceiptNote.no == obj_batch.ref_no)
+            .first()
+        )
+        if not obj_receipt and util_safe_int(obj_batch.refCategory) != 1:
+            return
+        n_timestamp = util_safe_int(getattr(obj_receipt, "date", 0) or obj_batch.date or obj_batch.creationTime)
+        str_source_node = self.__node_id(ETraceNodeTypeCode.RECEIPT, obj_batch.ref_no, obj_batch.no, 0)
+        self.__add_source_node(
+            dict_nodes,
+            str_source_node,
+            obj_batch,
+            obj_receipt,
+            n_timestamp,
+        )
+        self.__add_edge(
+            dict_edges,
+            str_source_node,
+            self.__batch_node_id(obj_batch.no),
+            ETraceRelationTypeCode.RECEIVED_AS,
+            getattr(obj_receipt, "checkedCount", None) or obj_batch.checkedCount or obj_batch.expectedCount,
+            getattr(obj_receipt, "unit", None) or obj_batch.unit,
+        )
+        self.__append_source_event(lst_timeline, obj_batch, obj_receipt, n_timestamp)
+
+    def __add_source_node(self, dict_nodes, str_node_id, obj_batch, obj_receipt, n_timestamp):
+        if str_node_id in dict_nodes:
+            return
+        dict_nodes[str_node_id] = {
+            "nodeId": str_node_id,
+            "nodeTypeCode": ETraceNodeTypeCode.RECEIPT,
+            "refCategory": util_safe_int(obj_batch.refCategory),
+            "refNo": obj_batch.ref_no or "",
+            "itemNo": getattr(obj_receipt, "item_no", "") or obj_batch.item_no or "",
+            "batchNo": obj_batch.no or "",
+            "quantity": util_round_quantity(getattr(obj_receipt, "checkedCount", 0) or obj_batch.checkedCount or obj_batch.expectedCount),
+            "unit": util_safe_int(getattr(obj_receipt, "unit", 0) or obj_batch.unit),
+            "statusCode": ETraceStatusCode.UNKNOWN,
+            "riskLevelCode": ETraceRiskLevelCode.NORMAL,
+            "eventTimestamp": util_safe_int(n_timestamp),
+        }
+
+    def __append_source_event(self, lst_timeline, obj_batch, obj_receipt, n_timestamp):
+        str_event_id = "%s-%s-%s" % (ETraceEventTypeCode.RECEIPT, obj_batch.ref_no or "", obj_batch.no or "")
+        lst_timeline.append({
+            "eventId": str_event_id,
+            "eventTimestamp": util_safe_int(n_timestamp),
+            "eventTypeCode": ETraceEventTypeCode.RECEIPT,
+            "refCategory": util_safe_int(obj_batch.refCategory),
+            "refNo": obj_batch.ref_no or "",
+            "itemNo": getattr(obj_receipt, "item_no", "") or obj_batch.item_no or "",
+            "batchNo": obj_batch.no or "",
+            "quantity": util_round_quantity(getattr(obj_receipt, "checkedCount", 0) or obj_batch.checkedCount or obj_batch.expectedCount),
+            "unit": util_safe_int(getattr(obj_receipt, "unit", 0) or obj_batch.unit),
+            "ownerDepartment": 0,
+            "statusCode": ETraceStatusCode.UNKNOWN,
+        })
 
     def __append_inventory_graph(self, obj_session, str_batch_no, dict_nodes, dict_edges, lst_timeline):
         for obj_row in obj_session.query(CTableInventoryRec).filter(CTableInventoryRec.batchNumber == str_batch_no).order_by(CTableInventoryRec.date.asc(), CTableInventoryRec.id.asc()).all():

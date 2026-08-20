@@ -6,8 +6,8 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [/api/v2/trace/dashboard](#get-api-v2-trace-dashboard) | GET | 查詢溯源中心批號追溯摘要、追溯狀態、風險與分頁清單 | OK | 依工程師確認後的 `traceability_center_proposal.md` 實作 |
-| [/api/v2/trace/batches/{batch_no}/overview](#get-api-v2-trace-batches-batch_no-overview) | GET | 查詢指定批號的追溯鏈節點、節點關係與時間軸 | OK | 依工程師確認後的 `traceability_center_proposal.md` 實作 |
+| [/api/v2/trace/dashboard](#get-api-v2-trace-dashboard) | GET | 查詢溯源中心批號追溯摘要、追溯狀態、風險與分頁清單 | OK | 依 `traceability_center_proposal.md` 工程師提問 V2 調整為摘要查詢，不建立完整 graph |
+| [/api/v2/trace/batches/{batch_no}/overview](#get-api-v2-trace-batches-batch_no-overview) | GET | 查詢指定批號的追溯鏈節點、節點關係與時間軸 | OK | 依 `traceability_center_proposal.md` 工程師提問 V2 支援完整上下游投產追溯 |
 
 ## GET /api/v2/trace/dashboard
 
@@ -126,11 +126,12 @@ None
 
 1. 讀取查詢條件並轉換為後端型別。
 2. 以 `batch_number` 作為批號主清單來源，套用料品類別、料號、批號、關鍵字與日期區間條件。
-3. 透過 Warehouse 庫存快照共用邏輯取得目前庫存、品檢保留與批號來源資料；不重新建立第二套庫存計算邏輯。
-4. 查詢批號關聯的生產投入、產出生產資料、品檢保留與 workflow event 最新時間。
-5. 依料品類別判斷建議追溯方向：原料、物料、膠捲預設 downstream；製成品預設 upstream；在製品或其他預設 both。
-6. 依已確認來源、庫存、生產投入、產出與品檢資料判斷追溯狀態與風險 code；不推測不存在的節點或關係。
-7. 依風險、追溯狀態、最新事件時間與批號排序後套用分頁並回傳 payload。
+3. Dashboard 僅建立批號摘要列，不建立 `nodes[]`、`edges[]`、`timeline[]`，也不逐批號呼叫 overview。
+4. 以批號集合限定的庫存摘要查詢取得目前庫存、主要倉庫、品檢保留與最新庫存事件；不重新建立第二套月結/delta 庫存演算法。
+5. 批次查詢批號關聯的生產投入、產出生產資料、品檢保留與 workflow event 最新時間。
+6. 依料品類別判斷建議追溯方向：原料、物料、膠捲預設 downstream；製成品預設 upstream；在製品或其他預設 both。
+7. 依已確認來源、庫存、生產投入、產出與品檢資料判斷追溯狀態與風險 code；不推測不存在的節點或關係。
+8. 依批號建立時間排序、套用分頁並回傳 payload。
 
 ### Database Tables Used
 
@@ -254,12 +255,12 @@ None
 | payload.batch.validDays | Integer | 批號有效天數 |  |
 | payload.batch.refCategory | Integer | 批號建立時的來源單據類別 |  |
 | payload.batch.refNo | String | 批號建立時的來源單號 |  |
-| payload.batch.traceDirectionCode | String | 建議追溯方向 code | upstream、downstream、both |
+| payload.batch.traceDirectionCode | String | 建議追溯方向 code；此欄位供前端聚焦視角使用，不限制 overview 回傳完整上下游投產關係 | upstream、downstream、both |
 | payload.batch.traceStatusCode | String | 此批號追溯鏈狀態 code | complete、broken、unknown |
 | payload.batch.riskLevelCode | String | 此批號追溯風險等級 code | normal、attention、high_risk |
 | payload.batch.riskCode | String | 此批號追溯主要風險 code | normal、broken_chain、expired、quality_hold、unknown |
 | payload.nodes[].nodeId | String | 追溯節點識別值，供前端畫鏈路使用 |  |
-| payload.nodes[].nodeTypeCode | String | 追溯節點類型 code | supplier、receipt、batch、inventory、production_input、production_output、quality、work_order、unknown |
+| payload.nodes[].nodeTypeCode | String | 追溯節點類型 code；採購/進貨來源以 `receipt` 節點表示，內部產製來源以 `work_order`、`production_input`、`production_output` 節點表示 | supplier、receipt、batch、inventory、production_input、production_output、quality、work_order、unknown |
 | payload.nodes[].refCategory | Integer | 節點來源單據類別；無資料時回傳 0 |  |
 | payload.nodes[].refNo | String | 節點來源單號、工單號或關聯單號；無資料時回傳空字串 |  |
 | payload.nodes[].itemNo | String | 節點對應料品 no；無資料時回傳空字串 |  |
@@ -291,8 +292,8 @@ None
 
 1. 驗證 `batch_no` 並讀取 `batch_number` 批號主檔。
 2. 透過 Warehouse 庫存快照共用邏輯取得指定批號目前庫存與品檢保留數量。
-3. 建立批號根節點，並依已確認資料查詢庫存事件、品檢保留、生產投入、生產產出與 workflow 任務。
-4. 以批號為節點邊界建立追溯圖：投入批號與工單、產出批號、庫存節點、品檢節點皆需有資料來源才建立。
+3. 建立批號根節點，並依已確認資料查詢採購/進貨來源、庫存事件、品檢保留、生產投入、生產產出與 workflow 任務。
+4. 以批號為節點邊界建立完整可確認投產追溯圖：查詢製成品批號時，可由產出工單往上游展開至在製品與原物料投入；查詢原料批號時，可由採購/進貨來源往下游展開至使用此原料的工單與產出的在製品/製成品。
 5. 使用 visited batch 集合避免循環追溯；遇到缺漏來源時停止展開，不推測不存在的節點。
 6. 依批號效期、品檢保留與追溯鏈完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
 7. 回傳批號資訊、nodes、edges 與 timeline。

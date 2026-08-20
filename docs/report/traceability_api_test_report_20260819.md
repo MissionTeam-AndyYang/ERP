@@ -13,6 +13,8 @@
 | Trace graph nodes / edges include confirmed production input and output relations | PASS |
 | Quality hold and expired batch risk codes are returned as enum values | PASS |
 | Invalid batch number returns no payload for API wrapper handling | PASS |
+| Finished goods overview traces upstream to WIP, raw material, and receipt nodes | PASS |
+| Dashboard does not build full overview graph and respects paging payload shape | PASS |
 
 ## Command
 
@@ -25,8 +27,8 @@
 ## Result
 
 ```txt
-3 passed in 0.80s
-7 passed in 1.04s
+5 passed in 2.26s
+9 passed in 1.09s
 /api/v2/trace/batches/<batch_no>/overview
 /api/v2/trace/dashboard
 ```

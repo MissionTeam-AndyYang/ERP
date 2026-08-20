@@ -24,6 +24,7 @@ from package.common.common import (
 )
 from package.dbwrapper.table import (
     CTableBatchNumber,
+    CTableGoodsReceiptNote,
     CTableInventoryDelta,
     CTableInventoryItemMonthStatistic,
     CTableInventoryMonthStatistic,
@@ -54,6 +55,7 @@ def build_session():
         CTableInventoryItemMonthStatistic.__table__,
         CTableInventoryMonthStatistic.__table__,
         CTableBatchNumber.__table__,
+        CTableGoodsReceiptNote.__table__,
         CTableMaterial.__table__,
         CTableItemSafetyStock.__table__,
         CTableShipWarehouseAlias.__table__,
@@ -94,6 +96,36 @@ def seed_traceability(obj_session):
             validDays=90,
             validDate=n_now + 70 * 86400,
             creationTime=n_now - 20 * 86400,
+        ),
+        CTableGoodsReceiptNote(
+            no="GRN-001",
+            purchase_order_no="PO-001",
+            date=n_now - 20 * 86400,
+            category=1,
+            item_no="RM-001",
+            item_name="原料A",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            unit=1,
+            expectedCount=100,
+            checkedCount=100,
+            amount=1000,
+            creationTime=n_now - 20 * 86400,
+        ),
+        CTableGoodsReceiptNote(
+            no="GRN-002",
+            purchase_order_no="PO-002",
+            date=n_now - 30 * 86400,
+            category=1,
+            item_no="RM-002",
+            item_name="過期原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            unit=1,
+            expectedCount=10,
+            checkedCount=10,
+            amount=100,
+            creationTime=n_now - 30 * 86400,
         ),
         CTableBatchNumber(
             date=n_now - 10 * 86400,
@@ -309,13 +341,52 @@ def test_trace_batch_overview_builds_multilevel_graph():
     assert "batch:B-RM-001" in set_node_ids
     assert "batch:B-WIP-001" in set_node_ids
     assert "batch:B-FG-001" in set_node_ids
+    assert any(dict_node["nodeTypeCode"] == "receipt" and dict_node["refNo"] == "GRN-001" for dict_node in dict_payload["nodes"])
     set_relations = {dict_edge["relationTypeCode"] for dict_edge in dict_payload["edges"]}
+    assert ETraceRelationTypeCode.RECEIVED_AS in set_relations
     assert ETraceRelationTypeCode.CONSUMED_BY in set_relations
     assert ETraceRelationTypeCode.PRODUCED_AS in set_relations
     set_events = {dict_event["eventTypeCode"] for dict_event in dict_payload["timeline"]}
+    assert ETraceEventTypeCode.RECEIPT in set_events
     assert ETraceEventTypeCode.PRODUCTION_INPUT in set_events
     assert ETraceEventTypeCode.PRODUCTION_OUTPUT in set_events
     assert ETraceEventTypeCode.QUALITY_HOLD in set_events
+
+
+def test_trace_batch_overview_finished_goods_traces_upstream_to_material_receipt():
+    obj_session = build_session()
+    seed_traceability(obj_session)
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-FG-001", "Asia/Taipei",
+    )
+
+    assert dict_payload["batch"]["batchNo"] == "B-FG-001"
+    set_node_ids = {dict_node["nodeId"] for dict_node in dict_payload["nodes"]}
+    assert "batch:B-FG-001" in set_node_ids
+    assert "batch:B-WIP-001" in set_node_ids
+    assert "batch:B-RM-001" in set_node_ids
+    assert any(dict_node["nodeTypeCode"] == "receipt" and dict_node["refNo"] == "GRN-001" for dict_node in dict_payload["nodes"])
+    set_events = {dict_event["eventTypeCode"] for dict_event in dict_payload["timeline"]}
+    assert ETraceEventTypeCode.RECEIPT in set_events
+    assert ETraceEventTypeCode.PRODUCTION_INPUT in set_events
+    assert ETraceEventTypeCode.PRODUCTION_OUTPUT in set_events
+
+
+def test_trace_dashboard_does_not_build_overview_graph(monkeypatch):
+    obj_session = build_session()
+    seed_traceability(obj_session)
+
+    def fail_build_graph(*args, **kwargs):
+        raise AssertionError("dashboard must not build full trace graph")
+
+    monkeypatch.setattr(CTraceabilityService, "_CTraceabilityService__build_trace_graph", fail_build_graph)
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_dashboard_with_session(
+        obj_session, "Asia/Taipei", "", 0, "", "", "", "", 0, 2,
+    )
+
+    assert dict_payload["total"] == 4
+    assert dict_payload["count"] == 2
+    assert "nodes" not in dict_payload["records"][0]
 
 
 def test_trace_batch_overview_invalid_batch_returns_none():

@@ -1,3 +1,11 @@
+# 工程師提問
+1. 請僅設計並保留目前畫面所需的欄位，其他暫不需要的欄位請先移除。
+2. 針對 /api/v2/items/dashboard
+   - 請說明 masterStatusCode 定義中 attention、missing_required_data的差異，並評估 summary.attentionItemCount 與 summary.missingRequiredDataCount  是否可整合為單一欄位。
+   - 請確認 items[].latestBatchNo 與 items[].latestActivityTimestamp 是否為目前畫面所需欄位，若無使用請移除。
+   - 請說明為何僅有料品品項資訊時，仍需建立 task 與設定下一步轉交部門。並請舉例說明 masterTasks 欄位在回傳時所包含的資料內容。   
+3. 請詳細說明 bomRoleCode 各數值的定義。
+
 # ItemCenterScreen API 提案
 
 > Status: API Proposal / Pending Engineer Review  

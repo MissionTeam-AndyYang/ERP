@@ -145,10 +145,10 @@
 
 ## 5. 待工程師確認事項
 
-| 項目 | 需確認內容 |
-|---|---|
-| 停用狀態來源 | 現有 `material`、`inproduct`、`product`、`goods` 是否有可判斷 inactive 的欄位或需新增欄位。 |
-| 料品重複 no | 若同一 `item_no` 出現在多張主檔表，是否視為資料異常。 |
-| 製成品 / 在製品 BOM 必要性 | 第一版是否將缺 BOM 視為 `attention`，或只作一般資訊缺口。 |
-| 原料庫存訊號 | 原料、物料、膠捲沒有庫存與近期批號時，是否需要列入 `masterTasks[]`。 |
-| 部門 code | `masterTasks[].ownerDepartment` 對研發、倉庫、生管、採購的對應 code 是否已有正式定義。 |
+| 項目 | 需確認內容 | 工程師回覆 |
+|---|---|---|
+| 停用狀態來源 | 現有 `material`、`inproduct`、`product`、`goods` 是否有可判斷 inactive 的欄位或需新增欄位。 |目前暫不規劃設計停用／啟用功能。|
+| 料品重複 no | 若同一 `item_no` 出現在多張主檔表，是否視為資料異常。 |請列出並說明主檔表所包含的資料表清單。|
+| 製成品 / 在製品 BOM 必要性 | 第一版是否將缺 BOM 視為 `attention`，或只作一般資訊缺口。 |需進一步釐清 attention、missing_required_data的差異，才能提供正確的回覆。|
+| 原料庫存訊號 | 原料、物料、膠捲沒有庫存與近期批號時，是否需要列入 `masterTasks[]`。 |需進一步釐清 masterTasks 欄位在回傳時所包含的資料內容，才能提供正確的回覆。|
+| 部門 code | `masterTasks[].ownerDepartment` 對研發、倉庫、生管、採購的對應 code 是否已有正式定義。 |需進一步釐清 masterTasks 欄位在回傳時所包含的資料內容，才能提供正確的回覆。|

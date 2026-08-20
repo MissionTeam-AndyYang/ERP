@@ -13,6 +13,7 @@
 5. 數值精度遵循既有規範：數量/重量取至小數點第 2 位、金額四捨五入取整數、單價取至小數點第 4 位。
 6. 第一版為 read-only，不建立召回單、不修改文件、不鎖定庫存、不變更任務狀態。
 7. 第一版暫不提供文件完整性與召回評估，因此流程不建立 `documents[]`、`impactSummary`、受影響客戶或召回相關欄位。
+8. Dashboard API 僅負責批號追溯摘要，不建立完整 `nodes[]`、`edges[]`、`timeline[]`；完整追溯圖只由單批號 overview API 建立。
 
 ## 2. 查詢區間與篩選
 
@@ -31,6 +32,7 @@
 2. 製成品批號：向上追溯，`traceDirectionCode=upstream`。
 3. 在製品批號：若可由資料關聯判斷上下游，回傳 `traceDirectionCode=both`，並呈現可確認的上游投入與下游產出。
 4. 若料品類別不足以判斷，回傳 `traceDirectionCode=both`，但僅建立資料表能確認的節點與連線。
+5. `traceDirectionCode` 是前端初始聚焦方向，不限制 overview 的資料完整性；overview 預設回傳已確認的上下游投產關係。
 
 ## 4. 共用資料集合
 
@@ -66,7 +68,10 @@
 
 1. 追溯鏈以 `nodes[]` 與 `edges[]` 呈現，不假設一定是單線流程。
 2. 從查詢批號建立 root batch node。
-3. 依追溯方向遞迴查找可確認的投入、產出、入庫、庫存、品檢與任務節點。
+3. 依查詢批號建立可確認的完整上下游投產追溯圖：
+   - 查詢製成品批號時，先由 `production_data_output.batch_number` 找出產出工單，再由同工單 `production_data_input` 找出投入在製品/原物料；若投入批號仍是產出批號，繼續往上游展開。
+   - 查詢原料批號時，先由 `batch_number.refCategory/ref_no`、`goods_receipt_note`、`inventory_record` 建立採購/進貨/入庫來源，再由 `production_data_input.batch_number` 找出使用此批號的工單與同工單產出的在製品/製成品。
+   - 查詢在製品批號時，同時呈現產出此在製品的上游工單與使用此在製品的下游工單。
 4. 每次擴展節點時以 `nodeTypeCode + refCategory + refNo + itemNo + batchNo` 建立 visited key，避免資料循環造成無限遞迴。
 5. 若找到多個下游或上游批號，全部建立節點與 edge。
 6. 若無法再找到可確認的下一個節點，停止該路徑追溯。
@@ -92,8 +97,8 @@
 ## 7. GET `/api/v2/trace/dashboard`
 
 1. 驗證 query parameters。
-2. 由 `batch_number` 取得候選批號集合。
-3. 批次查詢庫存快照、production input/output、inventory record、quality hold、workflow task。
+2. 由 `batch_number` 取得候選批號集合，先套用 query 條件、排序與分頁，避免對全量批號建立追溯摘要。
+3. 僅針對本頁批號集合批次查詢庫存快照、production input/output 存在性、inventory record 最新時間、quality hold、workflow task。
 4. 對每個批號建立 dashboard row：
    - 依料品類別決定 `traceDirectionCode`。
    - 回填批號主檔與來源單據。
@@ -106,7 +111,8 @@
    - `traceStatusCode=broken` 優先。
    - `latestEventTimestamp` 新到舊。
    - `batchNo` 穩定排序。
-6. 分頁後回傳 `records`、`summary`、`total`、`start`、`count`。
+6. Dashboard 不建立完整追溯圖，也不得逐批號呼叫 overview。
+7. 回傳 `records`、`summary`、`total`、`start`、`count`。
 
 ## 8. GET `/api/v2/trace/batches/{batch_no}/overview`
 
@@ -124,19 +130,24 @@
    - 由 inventory、production、workflow 事件合併。
    - 依時間由早到晚排序。
 8. 回傳完整 payload。
+9. 若查詢批號為製成品，必須可由製成品產出工單往上游展開至在製品與原物料投入；若查詢批號為原料，必須可由採購/進貨來源往下游展開至使用此原料的工單與產出的在製品/製成品。
 
 ## 9. 效能與重構要求
 
 1. Dashboard 不得逐筆批號執行 N+1 查詢；批號主檔、庫存快照、生產、庫存異動、任務資料應批次取得後於記憶體中彙整。
-2. Overview 可針對單一批號查詢明細，但仍應避免同一資料表重複查詢。
-3. 追溯鏈建立邏輯建議封裝為 `CTraceabilityContextBuilder` 或相似 service，供 dashboard 與 batch overview 共用。
-4. 若正式實作需要新增 enum，應集中放置於 `restserver/package/common/common.py`。
-5. 正式實作需建立 pytest，至少涵蓋：
+2. Dashboard 應先完成 DB 層分頁，再對本頁批號集合做 bounded 查詢；不可先對全部批號計算完整追溯資訊後再分頁。
+3. Overview 可針對單一批號查詢明細，但仍應避免同一資料表重複查詢。
+4. 若現有 Warehouse 快照 context 對 dashboard 全量資料成本過高，建議抽出批號集合專用 snapshot helper，只取本頁批號需要的 `currentQuantity`、主要倉庫與品檢保留訊號。
+5. 建議確認或新增查詢索引：`batch_number(no)`、`batch_number(item_no)`、`batch_number(itemCategory, date)`、`inventory_record(batchNumber, date)`、`production_data_input(batch_number, work_order_no)`、`production_data_output(batch_number, work_order_no)`、`warehouse_quality_hold(batchNumber, date)`。
+6. 追溯鏈建立邏輯建議封裝為 `CTraceabilityContextBuilder` 或相似 service，供 dashboard 與 batch overview 共用；dashboard 僅使用摘要能力，overview 才使用 graph 展開能力。
+7. 若正式實作需要新增 enum，應集中放置於 `restserver/package/common/common.py`。
+8. 正式實作需建立 pytest，至少涵蓋：
    - dashboard 欄位存在性。
    - dashboard 批號查詢、日期區間與分頁。
    - batch overview nodes/edges/timeline 結構。
-   - 原料批號向下追溯至多個在製品/製成品。
-   - 製成品批號向上追溯至在製品/原料。
+   - 原料批號由採購/進貨來源往下游追溯至多個在製品/製成品。
+   - 製成品批號由產出工單往上游追溯至在製品/原物料投入。
+   - Dashboard 不建立完整 graph、不逐批號呼叫 overview。
    - 追溯斷點對 `traceStatusCode`、`riskLevelCode`、`riskCode` 的影響。
 
 ## 10. 工程師待確認項目

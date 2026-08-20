@@ -6,6 +6,18 @@
    - 若目前設計並未支援上述追溯方式，請依此設計為主進行修正。
    - 請舉例說明原物料向上追溯與製成品向下追溯時，API 會回傳哪些資料。
 
+## 工程師回覆V2
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| `/api/v2/trace/dashboard` 效能 | Dashboard API 調整為「批號追溯清單摘要」用途，不展開完整 nodes / edges / timeline，也不逐筆建立完整追溯圖。後端應採兩階段查詢：先依 `batch_number` 與 query 條件取得候選批號並完成 DB 層排序/分頁，再只針對本頁批號批次查詢庫存摘要、生產投入/產出存在性、品檢保留與最新事件時間。 |
+| 庫存計算效能 | Dashboard 不應為所有批號呼叫完整 Warehouse Dashboard；僅需要 `currentQuantity`、主要 `warehouseNo/warehouseName` 與品檢保留訊號時，應以可重用的庫存快照 context / calculator 對本頁批號集合進行 bounded 查詢。若工程師認為目前 `CWarehouseInventoryContextBuilder` 對全量資料成本過高，建議再抽出批號集合專用的 snapshot helper。 |
+| `/api/v2/trace/batches/{batch_no}/overview` 追溯方向 | 單批號 overview 的責任是建立「可確認的完整投產追溯圖」，不應只回傳單一方向。即使 `traceDirectionCode` 仍保留作為前端建議視角，overview 仍需在同一張 `nodes[] / edges[]` 中呈現該批號已確認的採購來源、庫存、投入、產出、在製品與製成品關係。 |
+| 製成品追溯到原物料 | 支援。當查詢製成品批號時，後端應先以 `production_data_output.batch_number` 找到產出此製成品批號的工單，再以同一工單的 `production_data_input` 找到投入批號；若投入批號為在製品，需繼續往前找出產出該在製品的工單與更上游原物料投入。 |
+| 原料追溯到採購與產出 | 支援。當查詢原料批號時，後端應以 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 或 `inventory_record` 建立採購/進貨/入庫來源節點，再以 `production_data_input.batch_number` 找到使用此原料批號的工單，並以同一工單的 `production_data_output` 找到產出的在製品或製成品批號。 |
+| 查詢語意說明 | 工程師提問中的「製成品向下追溯」與「原料向上追溯」本質上是要求 API 能從任一批號切入後，呈現已確認的上下游投產關係；因此文件調整為「overview 預設回傳完整可確認追溯圖」，前端可依 `traceDirectionCode` 或使用者視角決定畫面聚焦方向。 |
+| 範例資料 | 已於本文件新增「5.3 追溯範例」說明原料批號與製成品批號查詢時，`batch`、`nodes[]`、`edges[]`、`timeline[]` 會回傳哪些資料。 |
+
 # 工程師提問
 
 1. 請將 URL Path 由 `/api/v2/traceability/xxx` 更名為 `/api/v2/trace/xxx`。
@@ -45,7 +57,7 @@
 
 ## 1. 畫面定位
 
-「溯源中心」第一版定位為批號追溯 read-only 工作區，用於讓管理者從指定批號快速查看可確認的來源、入庫、庫存、生產投入、產出、品檢與流程節點。
+「溯源中心」第一版定位為批號追溯 read-only 工作區，用於讓管理者從指定批號快速查看可確認的來源、入庫、庫存、生產投入、產出、品檢與流程節點。單批號 overview 需支援從任一批號切入後，建立已確認的完整投產追溯圖；製成品可回看其上游在製品與原物料投入，原料可回看其採購/進貨來源並往下查看產出的在製品或製成品。
 
 | 畫面 | 主視角 | 本版邊界 |
 |---|---|---|
@@ -72,8 +84,8 @@
 | `itemCategory` | Integer | No | 料品品項類別 code；前端負責顯示文字。 |
 | `itemNo` | String | No | 料品 no。 |
 | `batchNo` | String | No | 批號。若提供，dashboard 以此批號為主要查詢條件。 |
-| `startDate` | Integer | No | 查詢區間起始 UTC timestamp；未提供時不套用起始日篩選。 |
-| `endDate` | Integer | No | 查詢區間結束 UTC timestamp；未提供時不套用結束日篩選。 |
+| `startDate` | String | No | 批號建立日期查詢起日，格式 `YYYY-MM-DD`；需與 `endDate` 同時提供。 |
+| `endDate` | String | No | 批號建立日期查詢迄日，格式 `YYYY-MM-DD`；需與 `startDate` 同時提供。 |
 | `start` | Integer | No | 分頁起點，預設 0；負值視為 0。 |
 | `count` | Integer | No | 回傳筆數，預設 50，最大 100。 |
 | `x-timezone` | Header String | No | 前端顯示偏好的 IANA timezone；後端不以此改寫資料庫保存的 UTC timestamp。 |
@@ -277,6 +289,64 @@
 | `timeline[].statusCode` | String | 事件狀態 code；前端負責顯示文字。 | `complete`、`pending`、`blocked`、`missing`、`unknown` |
 
 `nodes[]`、`edges[]`、`timeline[]` 節點本身不另列說明。
+
+### 5.3 追溯範例
+
+#### 5.3.1 原物料批號查詢範例
+
+查詢：
+
+```txt
+GET /api/v2/trace/batches/RM-BATCH-001/overview
+```
+
+假設 `RM-BATCH-001` 是由採購進貨產生，後續投入 `WO-0001` 產出在製品 `WIP-BATCH-001`，再由 `WO-0002` 產出製成品 `FG-BATCH-001`，API 應回傳：
+
+| Payload 區塊 | 回傳內容 |
+|---|---|
+| `batch` | `batchNo=RM-BATCH-001`、原料品項資料、`refCategory/refNo` 指向採購進貨或入庫來源、`traceDirectionCode=downstream`。 |
+| `nodes[]` | 原料批號節點、進貨/入庫或庫存節點、`WO-0001` 工單節點、原料投入節點、`WIP-BATCH-001` 在製品批號節點、`WO-0002` 工單節點、在製品投入節點、`FG-BATCH-001` 製成品批號節點。 |
+| `edges[]` | 採購/進貨來源與原料批號的 `received_as/source_of` 關係、原料批號投入工單的 `consumed_by` 關係、工單產出在製品的 `produced_as` 關係、在製品再投入與產出製成品的 `consumed_by/produced_as` 關係。 |
+| `timeline[]` | 進貨/入庫事件、原料投入事件、在製品產出事件、在製品投入事件、製成品產出事件、相關品檢或 workflow task 事件。 |
+
+#### 5.3.2 製成品批號查詢範例
+
+查詢：
+
+```txt
+GET /api/v2/trace/batches/FG-BATCH-001/overview
+```
+
+假設 `FG-BATCH-001` 由 `WO-0002` 產出，投入來源為 `WIP-BATCH-001`，而 `WIP-BATCH-001` 由 `WO-0001` 使用原料批號 `RM-BATCH-001` 產出，API 應回傳：
+
+| Payload 區塊 | 回傳內容 |
+|---|---|
+| `batch` | `batchNo=FG-BATCH-001`、製成品品項資料、製成品批號來源工單、`traceDirectionCode=upstream`。 |
+| `nodes[]` | 製成品批號節點、`WO-0002` 工單節點、在製品投入節點、`WIP-BATCH-001` 在製品批號節點、`WO-0001` 工單節點、原料投入節點、`RM-BATCH-001` 原料批號節點、原料採購/進貨/入庫來源節點。 |
+| `edges[]` | 原料批號到原料投入的 `consumed_by` 關係、`WO-0001` 產出在製品的 `produced_as` 關係、在製品投入 `WO-0002` 的 `consumed_by` 關係、`WO-0002` 產出製成品的 `produced_as` 關係。 |
+| `timeline[]` | 原料進貨/入庫事件、原料投入事件、在製品產出事件、在製品投入事件、製成品產出事件、相關品檢或 workflow task 事件。 |
+
+> 以上範例僅描述資料結構與節點關係。若某個採購、入庫、投入或產出節點在資料庫中不存在，API 不建立虛構節點；該追溯鏈段停止展開，並依規則反映於 `traceStatusCode` 與 `riskCode`。
+
+## 5.4 Dashboard 效能設計調整
+
+`GET /api/v2/trace/dashboard` 第一版需避免做完整追溯圖展開。建議後端實作以以下流程為準：
+
+1. 以 `batch_number` 作為主查詢來源，先套用 `keyword`、`itemCategory`、`itemNo`、`batchNo`、`startDate`、`endDate`。
+2. 在 DB 層完成初步排序與分頁，先取得本頁批號集合。
+3. 僅針對本頁批號集合批次查詢：
+   - `inventory_record` 最新事件與入出庫存在性。
+   - `production_data_input` / `production_data_output` 是否有投入/產出關聯與第一筆工單 no。
+   - `warehouse_quality_hold` 是否有品檢保留。
+   - 必要的目前庫存摘要。
+4. Dashboard 只計算 `records[]` 清單欄位與 `summary`，不建立 `nodes[]`、`edges[]`、`timeline[]`。
+5. 若 summary 需要全量統計，應以聚合查詢或 bounded query 完成，不得逐批號呼叫 overview。
+6. 若資料量仍大，建議工程師評估新增或確認以下索引：
+   - `batch_number(no)`、`batch_number(item_no)`、`batch_number(itemCategory, date)`、`batch_number(refCategory, ref_no)`。
+   - `inventory_record(batchNumber, date)`。
+   - `production_data_input(batch_number, work_order_no)`。
+   - `production_data_output(batch_number, work_order_no)`。
+   - `warehouse_quality_hold(batchNumber, date)`。
 
 ## 6. Enum Code 建議
 

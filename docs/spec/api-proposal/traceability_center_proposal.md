@@ -1,3 +1,10 @@
+# 工程師提問V3
+1. 針對 /api/v2/trace/batches/{batch_no}/overview 
+   - 目前資料回傳時間過長且資料量過於龐大，導致效能不足。請評估是否能加速回傳時間，或提出其他可改善效能的方法。
+   - 目前僅需列出『原料』，物料與膠捲暫時不需要。
+   - 請補充 nodeTypeCode 各數值的詳細說明。
+  
+
 # 工程師提問V2
 1. 針對 /api/v2/trace/dashboard，目前資料回傳時間過長，效能不足。請評估是否能加速回傳時間，或提出其他可改善效能的方法。
 2. 針對 /api/v2/trace/batches/{batch_no}/overview 

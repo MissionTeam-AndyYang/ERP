@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>品項與交易主資料中心 Static Preview</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --line: #d8e0eb;
+        --text: #1f2937;
+        --muted: #667085;
+        --brand: #155e75;
+        --brand-soft: #e6f6fa;
+        --ok: #15803d;
+        --warn: #a16207;
+        --danger: #b91c1c;
+        --info: #0369a1;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 238px 1fr;
+        min-height: 100vh;
+      }
+      aside.nav {
+        background: #172033;
+        color: #dbe7f6;
+        padding: 24px 18px;
+      }
+      .brand {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 24px;
+      }
+      .nav-list {
+        display: grid;
+        gap: 8px;
+      }
+      .nav-item {
+        border-radius: 6px;
+        color: #aebed3;
+        display: block;
+        font-size: 14px;
+        padding: 10px 12px;
+      }
+      .nav-item.active {
+        background: #26334d;
+        color: #fff;
+      }
+      main {
+        padding: 24px;
+      }
+      .topbar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 0;
+      }
+      .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+        margin-top: 6px;
+        max-width: 860px;
+      }
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .field, .chip, .tab, .button {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 13px;
+        padding: 8px 10px;
+      }
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .tab.active {
+        background: var(--brand-soft);
+        border-color: #9bd7e5;
+        color: var(--brand);
+        font-weight: 700;
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      .kpis {
+        grid-template-columns: repeat(5, minmax(136px, 1fr));
+        margin-bottom: 16px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 6px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 390px;
+        gap: 16px;
+      }
+      .three {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th, td {
+        border-bottom: 1px solid var(--line);
+        padding: 11px 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .badge {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        display: inline-block;
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+      .ok { background: #ecfdf3; border-color: #bbf7d0; color: var(--ok); }
+      .warn { background: #fffbeb; border-color: #fde68a; color: var(--warn); }
+      .danger { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
+      .info { background: #eff6ff; border-color: #bfdbfe; color: var(--info); }
+      .muted-box {
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+      }
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      h2, h3 {
+        margin: 0;
+      }
+      h2 { font-size: 18px; }
+      h3 { font-size: 15px; }
+      .detail-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .detail-row {
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        gap: 4px;
+        padding-bottom: 10px;
+      }
+      .detail-row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 1080px) {
+        .shell { grid-template-columns: 1fr; }
+        aside.nav { display: none; }
+        .layout, .kpis, .three, .split { grid-template-columns: 1fr; }
+        .topbar { align-items: stretch; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="nav">
+        <div class="brand">恆旺 ERP 2.0</div>
+        <nav class="nav-list">
+          <span class="nav-item">管理者 Dashboard</span>
+          <span class="nav-item">訂單履約</span>
+          <span class="nav-item">採購與備料</span>
+          <span class="nav-item">倉庫中心</span>
+          <span class="nav-item">BOM 中心</span>
+          <span class="nav-item">批號中心</span>
+          <span class="nav-item active">品項與交易主資料</span>
+        </nav>
+      </aside>
+      <main>
+        <section class="topbar">
+          <div>
+            <h1>品項與交易主資料中心</h1>
+            <div class="subtitle">
+              同一入口檢視客戶／廠商、料品品項與交易品項。交易品項需同時看見公司、內部料品與合約交易條件，避免採購、訂購與報價流程對同一品項產生不同理解。
+            </div>
+          </div>
+          <div class="filters">
+            <span class="field">搜尋：公司 / 交易品項 / 料號 / 合約</span>
+            <span class="chip">角色：全部</span>
+            <span class="chip">資料狀態：需注意優先</span>
+          </div>
+        </section>
+
+        <nav class="tabs">
+          <span class="tab active">客戶／廠商</span>
+          <span class="tab active">料品品項</span>
+          <span class="tab active">交易品項</span>
+        </nav>
+
+        <section class="grid kpis">
+          <div class="card"><div class="label">公司主檔</div><div class="value">126</div></div>
+          <div class="card"><div class="label">客戶</div><div class="value">52</div></div>
+          <div class="card"><div class="label">供應商</div><div class="value">88</div></div>
+          <div class="card"><div class="label">交易品項</div><div class="value">314</div></div>
+          <div class="card"><div class="label">資料缺口</div><div class="value">9</div></div>
+        </section>
+
+        <section class="three" style="margin-bottom: 16px;">
+          <div class="card">
+            <div class="section-title">
+              <h2>客戶／廠商</h2>
+              <span class="badge info">company</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>公司</th>
+                  <th>角色</th>
+                  <th>交易品項</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>海森通路<br><span class="label">CUST-001</span></td>
+                  <td><span class="badge ok">客戶</span></td>
+                  <td>18 項</td>
+                </tr>
+                <tr>
+                  <td>綠田食品<br><span class="label">SUP-017</span></td>
+                  <td><span class="badge info">供應商</span></td>
+                  <td>26 項</td>
+                </tr>
+                <tr>
+                  <td>明和包材<br><span class="label">SUP-022</span></td>
+                  <td><span class="badge warn">供應商</span></td>
+                  <td>12 項</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="section-title">
+              <h2>料品品項</h2>
+              <span class="badge info">material / product</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>料號</th>
+                  <th>類別</th>
+                  <th>庫存/BOM</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>FG-CURRY-101<br><span class="label">咖哩雞肉調理包</span></td>
+                  <td><span class="badge ok">製成品</span></td>
+                  <td>1,240 / 1</td>
+                </tr>
+                <tr>
+                  <td>RM-CORN-001<br><span class="label">冷凍玉米粒</span></td>
+                  <td><span class="badge warn">原料</span></td>
+                  <td>320 / 8</td>
+                </tr>
+                <tr>
+                  <td>PK-BAG-010<br><span class="label">耐熱殺菌袋</span></td>
+                  <td><span class="badge danger">物料</span></td>
+                  <td>0 / 4</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="section-title">
+              <h2>交易品項</h2>
+              <span class="badge info">trans_items</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>交易品項</th>
+                  <th>公司</th>
+                  <th>料品</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>咖哩雞肉 220g<br><span class="label">TR-FG-1001</span></td>
+                  <td>海森通路</td>
+                  <td>FG-CURRY-101</td>
+                </tr>
+                <tr>
+                  <td>冷凍玉米粒 20kg<br><span class="label">TR-RM-0302</span></td>
+                  <td>綠田食品</td>
+                  <td>RM-CORN-001</td>
+                </tr>
+                <tr>
+                  <td>封口機保養<br><span class="label">TR-SV-0088</span></td>
+                  <td>佳衡機電</td>
+                  <td><span class="badge warn">不適用</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="layout">
+          <div class="grid">
+            <div class="card">
+              <div class="section-title">
+                <div>
+                  <h2>交易品項清單</h2>
+                  <div class="label">以交易品項為主列，直接顯示公司、料品與合約交易條件。</div>
+                </div>
+                <span class="button">API / Mock</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>交易品項</th>
+                    <th>客戶／廠商</th>
+                    <th>對應料品</th>
+                    <th>合約 / 交易條件</th>
+                    <th>資料狀態</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>TR-FG-1001<br><strong>咖哩雞肉 220g</strong><br><span class="label">產品 / 一般</span></td>
+                    <td>海森通路<br><span class="label">客戶 / CUST-001</span></td>
+                    <td>FG-CURRY-101<br><span class="label">咖哩雞肉調理包</span></td>
+                    <td>CT-SO-2401<br><span class="label">盒 / 52.5000 / 物流 3.2000</span></td>
+                    <td><span class="badge ok">ready</span></td>
+                  </tr>
+                  <tr>
+                    <td>TR-RM-0302<br><strong>冷凍玉米粒 20kg</strong><br><span class="label">材料 / 一般</span></td>
+                    <td>綠田食品<br><span class="label">供應商 / SUP-017</span></td>
+                    <td>RM-CORN-001<br><span class="label">冷凍玉米粒</span></td>
+                    <td>CT-PO-2318<br><span class="label">公斤 / 38.2500 / 物流 0.9000</span></td>
+                    <td><span class="badge ok">ready</span></td>
+                  </tr>
+                  <tr>
+                    <td>TR-PK-0410<br><strong>耐熱殺菌袋箱購</strong><br><span class="label">材料 / 一般</span></td>
+                    <td>明和包材<br><span class="label">供應商 / SUP-022</span></td>
+                    <td>PK-BAG-010<br><span class="label">耐熱殺菌袋</span></td>
+                    <td>CT-PO-2411<br><span class="label">箱 / 1,280.0000 / 物流 80.0000</span></td>
+                    <td><span class="badge warn">missing_contract_price</span></td>
+                  </tr>
+                  <tr>
+                    <td>TR-SV-0088<br><strong>封口機保養</strong><br><span class="label">設備 / 機具</span></td>
+                    <td>佳衡機電<br><span class="label">供應商 / SUP-031</span></td>
+                    <td><span class="badge info">無對應料品</span><br><span class="label">trans_items2</span></td>
+                    <td>CT-SV-2402<br><span class="label">次 / 8,000.0000</span></td>
+                    <td><span class="badge ok">ready</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card">
+              <div class="section-title">
+                <h2>資料缺口</h2>
+                <span class="badge warn">read-only</span>
+              </div>
+              <div class="split">
+                <div class="muted-box">
+                  <h3>交易品項缺合約價格</h3>
+                  <div class="label">TR-PK-0410 的最新合約未提供可確認的交易單價。</div>
+                </div>
+                <div class="muted-box">
+                  <h3>公司缺帳款資料</h3>
+                  <div class="label">SUP-031 缺少可用付款摘要，採購與財務需確認。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="card">
+            <div class="section-title">
+              <div>
+                <h2>交易品項明細</h2>
+                <div class="label">TransactionItemDetailPanel</div>
+              </div>
+              <span class="badge ok">ready</span>
+            </div>
+            <div class="detail-list">
+              <div class="detail-row">
+                <span class="label">交易品項</span>
+                <strong>TR-FG-1001 / 咖哩雞肉 220g</strong>
+              </div>
+              <div class="detail-row">
+                <span class="label">客戶／廠商</span>
+                <strong>海森通路 CUST-001</strong>
+                <span class="badge ok">客戶</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">對應料品</span>
+                <strong>FG-CURRY-101 / 咖哩雞肉調理包</strong>
+              </div>
+              <div class="detail-row">
+                <span class="label">合約來源</span>
+                <strong>CT-SO-2401 / 訂購合約</strong>
+              </div>
+              <div class="detail-row">
+                <span class="label">交易條件</span>
+                <strong>盒 / 52.5000</strong>
+                <span class="label">物流成本 3.2000；規格轉換 1.0000</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">畫面責任</span>
+                <span class="label">此 panel 僅呈現公司、料品與交易條件的關聯，不建立合約、不修改品項、不產生 workflow task。</span>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

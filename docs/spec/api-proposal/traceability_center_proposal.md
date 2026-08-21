@@ -2,6 +2,16 @@
 1. 針對 /api/v2/trace/batches/{batch_no}/overview 
    - 投產/產製追溯流程僅需該批號的進貨時間、製產時間與銷貨時間，以及各產製階段的投入物與產出物關係。當該批號出現問題時，應能追溯至何時購買、產製何產品以及何時銷貨。請評估 nodes[] 是否可簡化，並確認 nodes[] 與 edges[] 是否可整合為單一結構。
 
+## 工程師回覆V4
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| `nodes[]` / `edges[]` 是否可簡化 | 可簡化。依工程師提問 V4，第一版 overview 不再以 graph 結構回傳 `nodes[]` 與 `edges[]`，改為單一流程結構 `traceSteps[]`。每一個 step 直接包含事件時間、來源單據、投入物與產出物，前端不需再自行合併節點與連線。 |
+| 投產/產製追溯重點 | Overview 第一版改以「進貨 / 生產 / 銷貨」三類流程步驟為主：`receipt` 表示何時購買或進貨、`production` 表示何時投產與產出何產品、`sale` 表示何時銷貨或出貨。 |
+| 投入物與產出物關係 | 已新增 `traceSteps[].inputItems[]` 與 `traceSteps[].outputItems[]`。生產步驟中，投入物與產出物被放在同一筆 step 內，取代原本 `production_input` node、`production_output` node 與 edge 的組合。 |
+| 銷貨時間資料來源 | 若正式資料庫文件已確認銷貨或出貨資料來源，後端可建立 `stepTypeCode=sale` 的 step；若目前尚無穩定資料表或欄位，`sale` step 不建立，不推測不存在的銷貨資料。 |
+| V3 graph 設計處理 | V3 的原始提問與回覆保留作為歷史 review 記錄；但正式 V1 proposal 以 V4 的 `traceSteps[]` 結構為準。`nodeTypeCode` 與 `relationTypeCode` 改列為 V1 不使用、V2 graph 擴充時再評估。 |
+
 # 工程師提問V3
 1. 針對 /api/v2/trace/batches/{batch_no}/overview 
    - 目前資料回傳時間過長且資料量過於龐大，導致效能不足。請評估是否能加速回傳時間，或提出其他可改善效能的方法。
@@ -12,12 +22,12 @@
 
 | 項目 | 回覆與文件調整 |
 |---|---|
-| Overview 回傳時間與資料量 | `/api/v2/trace/batches/{batch_no}/overview` 調整為「核心批號追溯圖」，第一版只展開原料、在製品、製成品三類批號節點；不展開物料、膠捲節點，以降低資料量與追溯圖複雜度。 |
-| Overview 效能策略 | 後端應先以查詢批號建立 root，再以 `production_data_input` / `production_data_output` 批次查詢上下游批號集合；每一輪只處理尚未拜訪且 itemCategory 屬於原料(1)、在製品(4)、製成品(5) 的批號。不得對每個節點重複查詢完整庫存快照或完整 workflow。 |
-| 節點展開限制 | 建議第一版設定防護上限：最大展開層數 5、最大批號節點數 100、最大 edges 數 200；若超過上限，停止繼續展開並保留已確認節點，不建立推測資料。 |
-| 物料與膠捲處理 | 若生產投入資料中存在物料(2)或膠捲(3)，第一版 overview 不建立對應 batch / production_input / production_output 節點，也不列入 timeline；未來若前端需要包材追溯，再另行擴充。 |
-| 查詢批號本身為物料或膠捲 | 若使用者直接查詢物料或膠捲批號，API 可回傳 `batch` header 與空的 `nodes[]`、`edges[]`、`timeline[]`，並以 `traceStatusCode=unknown`、`riskCode=unknown` 表示第一版未展開此類追溯。 |
-| `nodeTypeCode` 說明 | 已於本文件新增「5.6 nodeTypeCode 詳細說明」，逐一說明 `supplier`、`receipt`、`batch`、`inventory`、`production_input`、`production_output`、`quality`、`work_order`、`unknown` 的使用情境與第一版是否會建立。 |
+| Overview 回傳時間與資料量 | `/api/v2/trace/batches/{batch_no}/overview` 依 V3 先限制只處理原料、在製品、製成品三類核心批號；再依 V4 將正式回傳結構簡化為 `traceSteps[]`，降低前端與後端組圖成本。 |
+| Overview 效能策略 | 後端應先以查詢批號建立 root，再以 `production_data_input` / `production_data_output` 批次查詢上下游批號集合；每一輪只處理尚未拜訪且 itemCategory 屬於原料(1)、在製品(4)、製成品(5) 的批號。不得對每個批號重複查詢完整庫存快照或完整 workflow。 |
+| 展開限制 | 建議第一版設定防護上限：最大展開層數 5、最大核心批號數 100、最大 `traceSteps[]` 筆數 150；若超過上限，停止繼續展開並保留已確認流程，不建立推測資料。 |
+| 物料與膠捲處理 | 若生產投入資料中存在物料(2)或膠捲(3)，第一版 overview 不列入 `traceSteps[].inputItems[]` / `traceSteps[].outputItems[]`；未來若前端需要包材追溯，再另行擴充。 |
+| 查詢批號本身為物料或膠捲 | 若使用者直接查詢物料或膠捲批號，API 可回傳 `batch` header 與空的 `traceSteps[]`，並以 `traceStatusCode=unknown`、`riskCode=unknown` 表示第一版未展開此類追溯。 |
+| `nodeTypeCode` 說明 | V3 原規劃的 `nodeTypeCode` 已依 V4 結論改為 V1 不使用；正式提案改以「5.6 traceStepTypeCode 詳細說明」描述 `receipt`、`production`、`sale`。 |
 
 # 工程師提問V2
 1. 針對 /api/v2/trace/dashboard，目前資料回傳時間過長，效能不足。請評估是否能加速回傳時間，或提出其他可改善效能的方法。
@@ -33,11 +43,11 @@
 |---|---|
 | `/api/v2/trace/dashboard` 效能 | Dashboard API 調整為「批號追溯清單摘要」用途，不展開完整 nodes / edges / timeline，也不逐筆建立完整追溯圖。後端應採兩階段查詢：先依 `batch_number` 與 query 條件取得候選批號並完成 DB 層排序/分頁，再只針對本頁批號批次查詢庫存摘要、生產投入/產出存在性、品檢保留與最新事件時間。 |
 | 庫存計算效能 | Dashboard 不應為所有批號呼叫完整 Warehouse Dashboard；僅需要 `currentQuantity`、主要 `warehouseNo/warehouseName` 與品檢保留訊號時，應以可重用的庫存快照 context / calculator 對本頁批號集合進行 bounded 查詢。若工程師認為目前 `CWarehouseInventoryContextBuilder` 對全量資料成本過高，建議再抽出批號集合專用的 snapshot helper。 |
-| `/api/v2/trace/batches/{batch_no}/overview` 追溯方向 | 單批號 overview 的責任是建立「可確認的完整投產追溯圖」，不應只回傳單一方向。即使 `traceDirectionCode` 仍保留作為前端建議視角，overview 仍需在同一張 `nodes[] / edges[]` 中呈現該批號已確認的採購來源、庫存、投入、產出、在製品與製成品關係。 |
+| `/api/v2/trace/batches/{batch_no}/overview` 追溯方向 | 單批號 overview 的責任是建立「可確認的完整投產追溯流程」，不應只回傳單一方向。即使 `traceDirectionCode` 仍保留作為前端建議視角，overview 仍需在同一個 `traceSteps[]` 中呈現該批號已確認的進貨、產製與銷貨流程。 |
 | 製成品追溯到原物料 | 支援。當查詢製成品批號時，後端應先以 `production_data_output.batch_number` 找到產出此製成品批號的工單，再以同一工單的 `production_data_input` 找到投入批號；若投入批號為在製品，需繼續往前找出產出該在製品的工單與更上游原物料投入。 |
-| 原料追溯到採購與產出 | 支援。當查詢原料批號時，後端應以 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 或 `inventory_record` 建立採購/進貨/入庫來源節點，再以 `production_data_input.batch_number` 找到使用此原料批號的工單，並以同一工單的 `production_data_output` 找到產出的在製品或製成品批號。 |
+| 原料追溯到採購與產出 | 支援。當查詢原料批號時，後端應以 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 或 `inventory_record` 建立採購/進貨/入庫來源步驟，再以 `production_data_input.batch_number` 找到使用此原料批號的工單，並以同一工單的 `production_data_output` 找到產出的在製品或製成品批號。 |
 | 查詢語意說明 | 工程師提問中的「製成品向下追溯」與「原料向上追溯」本質上是要求 API 能從任一批號切入後，呈現已確認的上下游投產關係；因此文件調整為「overview 預設回傳完整可確認追溯圖」，前端可依 `traceDirectionCode` 或使用者視角決定畫面聚焦方向。 |
-| 範例資料 | 已於本文件新增「5.3 追溯範例」說明原料批號與製成品批號查詢時，`batch`、`nodes[]`、`edges[]`、`timeline[]` 會回傳哪些資料。 |
+| 範例資料 | 已於本文件新增「5.3 追溯範例」說明原料批號與製成品批號查詢時，`batch` 與 `traceSteps[]` 會回傳哪些資料。 |
 
 # 工程師提問
 
@@ -60,12 +70,12 @@
 | `primaryRiskCode` | 已更名為 `riskCode`，表示此筆追溯資料最主要的風險代碼。 |
 | 文件完整性 | 原規劃的文件完整性是指 COA、溫度紀錄、收貨文件、品檢文件、生產文件、出貨文件等文件狀態。但依工程師確認，第一版暫不提供此功能，因此已移除 `documents[]`、`pendingDocumentCount`、`documentPendingCount`、`documentStatusCode` 與相關查詢條件。 |
 | 召回評估 | 第一版暫不提供召回範圍與受影響客戶評估，因此已移除 `impactSummary`、`impactedQuantity`、`impactedCustomerCount`、出貨與召回相關欄位。 |
-| 追溯入口 | 第一版以批號為唯一主要追溯入口。依工程師提問 V3，overview 只展開原料、在製品與製成品：原料批號向下追溯；製成品批號向上追溯；在製品批號可依資料關聯同時呈現可確認的上下游節點；物料與膠捲暫不展開。 |
+| 追溯入口 | 第一版以批號為唯一主要追溯入口。依工程師提問 V3，overview 只展開原料、在製品與製成品：原料批號向下追溯；製成品批號向上追溯；在製品批號可依資料關聯同時呈現可確認的上下游流程；物料與膠捲暫不展開。 |
 | 查詢條件 | 第一版只保留 `keyword`、`batchNo`、`itemCategory`、`itemNo`、`startDate`、`endDate`、`start`、`count` 與 `x-timezone`。不開放文件狀態、追溯方向、追溯狀態、風險等級與 period 快速區間查詢。 |
-| 多層批號關係 | 支援。追溯鏈以 `nodes[]` 與 `edges[]` 表示有向無環圖（DAG）或可防循環的關聯圖，可呈現單一原料批號投入多個在製品批號，再由多個在製品批號產出多個製成品批號的情境。 |
+| 多層批號關係 | 支援。依 V4 結論，追溯流程以 `traceSteps[]` 表示；同一個 `production` step 可包含多筆 `inputItems[]` 與 `outputItems[]`，可呈現單一原料批號投入多個在製品批號，再由多個在製品批號產出多個製成品批號的情境。 |
 | 查詢記錄欄位 | `queryTypeCode` 與 `queryValue` 屬於前端查詢 UI 狀態，不由後端回傳。 |
 | 供應商與客戶欄位 | 第一版不在同一筆 dashboard record 同時回傳供應商與客戶兩組欄位，改為單一組 `partnerTypeCode`、`partnerNo`、`partnerName`。`partnerTypeCode` 可為 `supplier`、`customer`、`internal`、`unknown`。 |
-| `refCategory` 用途 | `refCategory` 對應 API 回傳中的 `records[].refCategory`、`batch.refCategory`、`nodes[].refCategory`、`timeline[].refCategory`，用途是標示該筆資料關聯的來源單據類別，供後端追溯節點建構與前端未來 drill-down 導向使用。第一版僅回傳資料表已能確認的 code，不推測不存在的 code。 |
+| `refCategory` 用途 | `refCategory` 對應 API 回傳中的 `records[].refCategory`、`batch.refCategory`、`traceSteps[].refCategory`，用途是標示該筆資料關聯的來源單據類別，供後端追溯流程建構與前端未來 drill-down 導向使用。第一版僅回傳資料表已能確認的 code，不推測不存在的 code。 |
 | 追溯鏈斷點 | 依工程師回覆，追溯流程持續進行至不可再追溯為止，並於此狀態下判定為 `broken`。 |
 
 # TraceabilityWorkspaceScreen API 提案
@@ -78,12 +88,12 @@
 
 ## 1. 畫面定位
 
-「溯源中心」第一版定位為批號追溯 read-only 工作區，用於讓管理者從指定批號快速查看可確認的來源、入庫、庫存、生產投入、產出、品檢與流程節點。單批號 overview 需支援從任一批號切入後，建立已確認的核心投產追溯圖；製成品可回看其上游在製品與原料投入，原料可回看其採購/進貨來源並往下查看產出的在製品或製成品。依工程師提問 V3，第一版 overview 只展開原料(1)、在製品(4)、製成品(5)，物料(2)與膠捲(3)暫不展開。
+「溯源中心」第一版定位為批號追溯 read-only 工作區，用於讓管理者從指定批號快速查看可確認的進貨時間、產製時間、銷貨時間，以及各產製階段的投入物與產出物關係。單批號 overview 需支援從任一批號切入後，建立已確認的核心投產流程；製成品可回看其上游在製品與原料投入，原料可回看其採購/進貨來源並往下查看產出的在製品或製成品。依工程師提問 V4，正式 V1 proposal 以 `traceSteps[]` 表示流程步驟，不再回傳 `nodes[]` 與 `edges[]`。依工程師提問 V3，第一版 overview 只展開原料(1)、在製品(4)、製成品(5)，物料(2)與膠捲(3)暫不展開。
 
 | 畫面 | 主視角 | 本版邊界 |
 |---|---|---|
 | `BatchCenterScreen` | 料品 -> 批號 -> 倉庫分布 | 管理目前仍有庫存的批號、可用量、預留量、品檢保留量與效期風險。 |
-| `TraceabilityWorkspaceScreen` | 批號 -> 追溯鏈 -> 時間軸 | 以批號為入口檢視可確認的上下游節點、節點關係與追溯斷點。 |
+| `TraceabilityWorkspaceScreen` | 批號 -> 投產流程 -> 進貨/產製/銷貨時間 | 以批號為入口檢視可確認的進貨、產製、銷貨流程，以及投入物與產出物關係。 |
 | `WarehouseInventoryMovementLedgerScreen` | 庫存異動流水帳 | 下一版延伸畫面，本次不納入。 |
 
 第一版不提供 POST、PUT、DELETE，不建立召回單、不修改文件狀態、不鎖定庫存、不變更 workflow task。後端只回傳 enum code、數值、時間戳與資料庫欄位；顯示文字與多國語言由前端處理。
@@ -93,7 +103,7 @@
 | API | Method | 用途 |
 |---|---|---|
 | `/api/v2/trace/dashboard` | GET | 查詢溯源中心 KPI 與批號追溯清單。 |
-| `/api/v2/trace/batches/{batch_no}/overview` | GET | 查詢單一批號的批號資訊、追溯節點、節點關係與時間軸。 |
+| `/api/v2/trace/batches/{batch_no}/overview` | GET | 查詢單一批號的批號資訊與 `traceSteps[]` 投產/產製追溯流程。 |
 
 > 工程師確認前，本文件為 API 提案；確認後才整合至 `docs/spec/api/` 正式 API 文件並進行後端實作。
 
@@ -173,7 +183,7 @@
 | `records[].itemSubCategory` | Integer | 料品品項子類別 code。 | `batch_number.itemSubCategory` |
 | `records[].itemType` | Integer | 料品型態 code。 | `batch_number.itemType` |
 | `records[].batchNo` | String | 批號。 | `batch_number.no` |
-| `records[].refCategory` | Integer | 此批號主要來源或關聯單據類別 code，用於追溯節點與前端 drill-down。 | `batch_number.refCategory` 或可確認來源文件 |
+| `records[].refCategory` | Integer | 此批號主要來源或關聯單據類別 code，用於追溯流程與前端 drill-down。 | `batch_number.refCategory` 或可確認來源文件 |
 | `records[].refNo` | String | 此批號主要來源或關聯單據 no。 | `batch_number.ref_no` 或可確認來源文件 |
 | `records[].partnerTypeCode` | String | 此追溯紀錄的主要關聯對象類型 code。 | `supplier`、`customer`、`internal`、`unknown` |
 | `records[].partnerNo` | String | 主要關聯對象 no；無值時回傳空字串。 | 供應商、客戶或內部來源資料 |
@@ -191,7 +201,7 @@
 | `start` | Integer | 本次分頁起點。 | Query parameter |
 | `count` | Integer | 本次回傳筆數。 | Query parameter / 實際筆數 |
 
-`records[]` 節點本身不另列說明。API 不回傳前端顯示用繁中文字串，例如 `traceStatusName`、`riskLabel`。
+`records[]` 陣列本身不另列說明。API 不回傳前端顯示用繁中文字串，例如 `traceStatusName`、`riskLabel`。
 
 ## 5. GET `/api/v2/trace/batches/{batch_no}/overview`
 
@@ -217,44 +227,35 @@
     "riskLevelCode": "String",
     "riskCode": "String"
   },
-  "nodes": [
+  "traceSteps": [
     {
-      "nodeId": "String",
-      "nodeTypeCode": "String",
+      "stepId": "String",
+      "stepTypeCode": "String",
+      "eventTimestamp": "Integer",
       "refCategory": "Integer",
       "refNo": "String",
-      "itemNo": "String",
-      "batchNo": "String",
-      "quantity": "Float",
-      "unit": "Integer",
       "statusCode": "String",
       "riskLevelCode": "String",
-      "eventTimestamp": "Integer"
-    }
-  ],
-  "edges": [
-    {
-      "edgeId": "String",
-      "fromNodeId": "String",
-      "toNodeId": "String",
-      "relationTypeCode": "String",
-      "quantity": "Float",
-      "unit": "Integer"
-    }
-  ],
-  "timeline": [
-    {
-      "eventId": "String",
-      "eventTimestamp": "Integer",
-      "eventTypeCode": "String",
-      "refCategory": "Integer",
-      "refNo": "String",
-      "itemNo": "String",
-      "batchNo": "String",
-      "quantity": "Float",
-      "unit": "Integer",
-      "ownerDepartment": "Integer",
-      "statusCode": "String"
+      "inputItems": [
+        {
+          "itemNo": "String",
+          "itemName": "String",
+          "itemCategory": "Integer",
+          "batchNo": "String",
+          "quantity": "Float",
+          "unit": "Integer"
+        }
+      ],
+      "outputItems": [
+        {
+          "itemNo": "String",
+          "itemName": "String",
+          "itemCategory": "Integer",
+          "batchNo": "String",
+          "quantity": "Float",
+          "unit": "Integer"
+        }
+      ]
     }
   ]
 }
@@ -274,42 +275,33 @@
 | `batch.unit` | Integer | 單位 code；前端負責顯示文字。 | `batch_number.unit` |
 | `batch.validDate` | Integer | 批號有效期限 UTC timestamp；無資料時回傳 0。 | `batch_number.validDate` |
 | `batch.validDays` | Integer | 批號有效天數；無資料時回傳 0。 | `batch_number.validDays` |
-| `batch.refCategory` | Integer | 批號原始來源單據類別 code，用於追溯節點與前端 drill-down。 | `batch_number.refCategory` |
+| `batch.refCategory` | Integer | 批號原始來源單據類別 code，用於追溯流程與前端 drill-down。 | `batch_number.refCategory` |
 | `batch.refNo` | String | 批號原始來源單據 no。 | `batch_number.ref_no` |
 | `batch.traceDirectionCode` | String | 後端依批號料品類別推導的追溯方向 code。 | `upstream`、`downstream`、`both` |
 | `batch.traceStatusCode` | String | 此批號追溯完整性狀態 code。 | `complete`、`broken`、`unknown` |
 | `batch.riskLevelCode` | String | 此批號追溯風險等級 code。 | `normal`、`attention`、`high_risk` |
 | `batch.riskCode` | String | 此批號主要追溯風險 code。 | `normal`、`broken_chain`、`expired`、`quality_hold`、`unknown` |
-| `nodes[].nodeId` | String | 追溯鏈節點唯一識別值。 | 後端組合 |
-| `nodes[].nodeTypeCode` | String | 節點類型 code；前端負責顯示文字。第一版詳見「5.6 nodeTypeCode 詳細說明」。 | `supplier`、`receipt`、`batch`、`inventory`、`production_input`、`production_output`、`quality`、`work_order`、`unknown` |
-| `nodes[].refCategory` | Integer | 節點關聯單據類別 code。 | 來源資料表 |
-| `nodes[].refNo` | String | 節點關聯單據 no。 | 來源資料表 |
-| `nodes[].itemNo` | String | 節點關聯料品 no；無關聯時回傳空字串。 | 來源資料表 |
-| `nodes[].batchNo` | String | 節點關聯批號；無關聯時回傳空字串。 | 來源資料表 |
-| `nodes[].quantity` | Float | 節點關聯數量，取至小數點第 2 位。 | 來源資料表 |
-| `nodes[].unit` | Integer | 節點關聯單位 code；無單位時回傳 0。 | 來源資料表 |
-| `nodes[].statusCode` | String | 節點狀態 code；前端負責顯示文字。 | `complete`、`pending`、`blocked`、`missing`、`unknown` |
-| `nodes[].riskLevelCode` | String | 節點風險等級 code。 | `normal`、`attention`、`high_risk` |
-| `nodes[].eventTimestamp` | Integer | 節點主要事件時間；無資料時回傳 0。 | 來源資料表 |
-| `edges[].edgeId` | String | 追溯鏈連線唯一識別值。 | 後端組合 |
-| `edges[].fromNodeId` | String | 連線起點節點 ID。 | `nodes[].nodeId` |
-| `edges[].toNodeId` | String | 連線終點節點 ID。 | `nodes[].nodeId` |
-| `edges[].relationTypeCode` | String | 節點關係類型 code。 | `source_of`、`received_as`、`stored_in`、`consumed_by`、`produced_as`、`inspected_by` |
-| `edges[].quantity` | Float | 關係對應數量，取至小數點第 2 位；無法歸屬時回傳 0。 | 來源資料表 |
-| `edges[].unit` | Integer | 關係對應單位 code；無單位時回傳 0。 | 來源資料表 |
-| `timeline[].eventId` | String | 時間軸事件唯一識別值。 | 後端組合 |
-| `timeline[].eventTimestamp` | Integer | 事件時間 UTC timestamp。 | 來源資料表 |
-| `timeline[].eventTypeCode` | String | 事件類型 code；前端負責顯示文字。 | `receipt`、`inventory_in`、`inventory_out`、`production_input`、`production_output`、`quality_hold`、`quality_release`、`task` |
-| `timeline[].refCategory` | Integer | 事件關聯單據類別 code。 | 來源資料表 |
-| `timeline[].refNo` | String | 事件關聯單據 no。 | 來源資料表 |
-| `timeline[].itemNo` | String | 事件關聯料品 no；無資料時回傳空字串。 | 來源資料表 |
-| `timeline[].batchNo` | String | 事件關聯批號。 | 來源資料表 |
-| `timeline[].quantity` | Float | 事件關聯數量，取至小數點第 2 位。 | 來源資料表 |
-| `timeline[].unit` | Integer | 事件關聯單位 code；無資料時回傳 0。 | 來源資料表 |
-| `timeline[].ownerDepartment` | Integer | 此事件或下一步處理責任部門 code；無明確資料時回傳 0。 | `workflow_task_state.nextOwnerDepartment` 或來源文件部門 |
-| `timeline[].statusCode` | String | 事件狀態 code；前端負責顯示文字。 | `complete`、`pending`、`blocked`、`missing`、`unknown` |
+| `traceSteps[].stepId` | String | 追溯流程步驟唯一識別值，供前端列表 key 使用。 | 後端組合 |
+| `traceSteps[].stepTypeCode` | String | 流程步驟類型 code；用於區分進貨、產製與銷貨。 | `receipt`、`production`、`sale` |
+| `traceSteps[].eventTimestamp` | Integer | 此流程步驟發生時間 UTC timestamp；例如進貨時間、生產時間或銷貨時間。 | 來源資料表 |
+| `traceSteps[].refCategory` | Integer | 此流程步驟關聯單據類別 code。 | 來源資料表 |
+| `traceSteps[].refNo` | String | 此流程步驟關聯單號，例如進貨單號、工單號或銷貨/出貨單號。 | 來源資料表 |
+| `traceSteps[].statusCode` | String | 此流程步驟狀態 code；前端負責顯示文字。 | `complete`、`pending`、`blocked`、`missing`、`unknown` |
+| `traceSteps[].riskLevelCode` | String | 此流程步驟風險等級 code。 | `normal`、`attention`、`high_risk` |
+| `traceSteps[].inputItems[].itemNo` | String | 此步驟投入料品 no；進貨步驟可為空陣列。 | 來源資料表 |
+| `traceSteps[].inputItems[].itemName` | String | 此步驟投入料品名稱；無資料時回傳空字串。 | 來源資料表 |
+| `traceSteps[].inputItems[].itemCategory` | Integer | 此步驟投入料品品項類別 code。 | `EItemCategory` |
+| `traceSteps[].inputItems[].batchNo` | String | 此步驟投入批號；無批號時回傳空字串。 | 來源資料表 |
+| `traceSteps[].inputItems[].quantity` | Float | 此步驟投入數量，取至小數點第 2 位。 | 來源資料表 |
+| `traceSteps[].inputItems[].unit` | Integer | 此步驟投入單位 code。 | 來源資料表 |
+| `traceSteps[].outputItems[].itemNo` | String | 此步驟產出或銷貨料品 no。 | 來源資料表 |
+| `traceSteps[].outputItems[].itemName` | String | 此步驟產出或銷貨料品名稱；無資料時回傳空字串。 | 來源資料表 |
+| `traceSteps[].outputItems[].itemCategory` | Integer | 此步驟產出或銷貨料品品項類別 code。 | `EItemCategory` |
+| `traceSteps[].outputItems[].batchNo` | String | 此步驟產出或銷貨批號；無批號時回傳空字串。 | 來源資料表 |
+| `traceSteps[].outputItems[].quantity` | Float | 此步驟產出或銷貨數量，取至小數點第 2 位。 | 來源資料表 |
+| `traceSteps[].outputItems[].unit` | Integer | 此步驟產出或銷貨單位 code。 | 來源資料表 |
 
-`nodes[]`、`edges[]`、`timeline[]` 節點本身不另列說明。
+`traceSteps[]` 陣列本身不另列說明。API 不回傳前端顯示用繁中文字串，例如 `stepTypeName`、`statusName` 或 `riskLabel`。
 
 ### 5.3 追溯範例
 
@@ -326,9 +318,7 @@ GET /api/v2/trace/batches/RM-BATCH-001/overview
 | Payload 區塊 | 回傳內容 |
 |---|---|
 | `batch` | `batchNo=RM-BATCH-001`、原料品項資料、`refCategory/refNo` 指向採購進貨或入庫來源、`traceDirectionCode=downstream`。 |
-| `nodes[]` | 原料批號節點、進貨/入庫或庫存節點、`WO-0001` 工單節點、原料投入節點、`WIP-BATCH-001` 在製品批號節點、`WO-0002` 工單節點、在製品投入節點、`FG-BATCH-001` 製成品批號節點。 |
-| `edges[]` | 採購/進貨來源與原料批號的 `received_as/source_of` 關係、原料批號投入工單的 `consumed_by` 關係、工單產出在製品的 `produced_as` 關係、在製品再投入與產出製成品的 `consumed_by/produced_as` 關係。 |
-| `timeline[]` | 進貨/入庫事件、原料投入事件、在製品產出事件、在製品投入事件、製成品產出事件、相關品檢或 workflow task 事件。 |
+| `traceSteps[]` | 一筆 `receipt` step 表示原料何時進貨；一筆 `production` step 表示 `WO-0001` 投入 `RM-BATCH-001` 並產出 `WIP-BATCH-001`；另一筆 `production` step 表示 `WO-0002` 投入 `WIP-BATCH-001` 並產出 `FG-BATCH-001`；若銷貨/出貨資料來源已確認，再建立一筆 `sale` step 表示製成品何時銷貨。 |
 
 #### 5.3.2 製成品批號查詢範例
 
@@ -343,11 +333,9 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 | Payload 區塊 | 回傳內容 |
 |---|---|
 | `batch` | `batchNo=FG-BATCH-001`、製成品品項資料、製成品批號來源工單、`traceDirectionCode=upstream`。 |
-| `nodes[]` | 製成品批號節點、`WO-0002` 工單節點、在製品投入節點、`WIP-BATCH-001` 在製品批號節點、`WO-0001` 工單節點、原料投入節點、`RM-BATCH-001` 原料批號節點、原料採購/進貨/入庫來源節點。 |
-| `edges[]` | 原料批號到原料投入的 `consumed_by` 關係、`WO-0001` 產出在製品的 `produced_as` 關係、在製品投入 `WO-0002` 的 `consumed_by` 關係、`WO-0002` 產出製成品的 `produced_as` 關係。 |
-| `timeline[]` | 原料進貨/入庫事件、原料投入事件、在製品產出事件、在製品投入事件、製成品產出事件、相關品檢或 workflow task 事件。 |
+| `traceSteps[]` | 依時間排序回傳 `receipt`、`production`、`production`、`sale` 等流程步驟；每筆 `production` step 直接列出 `inputItems[]` 與 `outputItems[]`，因此可看出製成品由哪個在製品投入、該在製品又由哪些原料投入產出。 |
 
-> 以上範例僅描述資料結構與節點關係。若某個採購、入庫、投入或產出節點在資料庫中不存在，API 不建立虛構節點；該追溯鏈段停止展開，並依規則反映於 `traceStatusCode` 與 `riskCode`。
+> 以上範例僅描述資料結構與流程關係。若某個採購、入庫、投入、產出或銷貨步驟在資料庫中不存在，API 不建立虛構 step；該追溯鏈段停止展開，並依規則反映於 `traceStatusCode` 與 `riskCode`。
 
 ### 5.3.3 第一版追溯範圍限制
 
@@ -355,13 +343,13 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 
 | itemCategory | 類別 | Overview V1 處理方式 |
 |---:|---|---|
-| 1 | 原料 | 建立 batch 節點，並可往下追溯至使用此原料的工單、在製品與製成品。 |
-| 2 | 物料 | 暫不建立節點、不列入 timeline；未來若需要包材追溯再擴充。 |
-| 3 | 膠捲 | 暫不建立節點、不列入 timeline；未來若需要包材追溯再擴充。 |
-| 4 | 在製品 | 建立 batch 節點，並可同時呈現上游原料投入與下游製成品產出。 |
-| 5 | 製成品 | 建立 batch 節點，並可往上追溯至在製品與原料投入。 |
+| 1 | 原料 | 可建立 `receipt` step，並往下追溯至使用此原料的 `production` step、在製品與製成品。 |
+| 2 | 物料 | 暫不列入 `traceSteps[]`；未來若需要包材追溯再擴充。 |
+| 3 | 膠捲 | 暫不列入 `traceSteps[]`；未來若需要包材追溯再擴充。 |
+| 4 | 在製品 | 可同時呈現上游原料投入與下游製成品產出的 `production` step。 |
+| 5 | 製成品 | 可往上追溯至在製品與原料投入，若銷貨/出貨資料來源已確認，可往下呈現 `sale` step。 |
 
-若查詢批號本身為物料或膠捲，API 不回傳 404，因為批號確實存在；但第一版可回傳 `batch` header，並讓 `nodes[]`、`edges[]`、`timeline[]` 為空陣列，`traceStatusCode=unknown`、`riskCode=unknown`，表示此類批號暫不納入本版追溯圖展開。
+若查詢批號本身為物料或膠捲，API 不回傳 404，因為批號確實存在；但第一版可回傳 `batch` header，並讓 `traceSteps[]` 為空陣列，`traceStatusCode=unknown`、`riskCode=unknown`，表示此類批號暫不納入本版追溯流程展開。
 
 ## 5.4 Dashboard 效能設計調整
 
@@ -374,7 +362,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
    - `production_data_input` / `production_data_output` 是否有投入/產出關聯與第一筆工單 no。
    - `warehouse_quality_hold` 是否有品檢保留。
    - 必要的目前庫存摘要。
-4. Dashboard 只計算 `records[]` 清單欄位與 `summary`，不建立 `nodes[]`、`edges[]`、`timeline[]`。
+4. Dashboard 只計算 `records[]` 清單欄位與 `summary`，不建立 `traceSteps[]`。
 5. 若 summary 需要全量統計，應以聚合查詢或 bounded query 完成，不得逐批號呼叫 overview。
 6. 若資料量仍大，建議工程師評估新增或確認以下索引：
    - `batch_number(no)`、`batch_number(item_no)`、`batch_number(itemCategory, date)`、`batch_number(refCategory, ref_no)`。
@@ -385,37 +373,32 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 
 ## 5.5 Overview 效能設計調整
 
-`GET /api/v2/trace/batches/{batch_no}/overview` 第一版需避免一次展開過大的追溯圖。建議後端實作以以下流程為準：
+`GET /api/v2/trace/batches/{batch_no}/overview` 第一版需避免一次展開過大的追溯流程。建議後端實作以以下流程為準：
 
-1. 先查詢 root batch，若 root batch 的 `itemCategory` 不屬於原料(1)、在製品(4)、製成品(5)，回傳 root `batch` header 與空 graph，不再展開。
-2. 使用 BFS 或受控 DFS 建立追溯圖，每一輪以批號集合批次查詢 `production_data_input` 與 `production_data_output`，避免逐節點 N+1 查詢。
-3. 每次取得上下游批號後，先查詢 `batch_number` header，僅保留 `itemCategory in (1, 4, 5)` 的批號；物料(2)、膠捲(3)不建立節點與時間軸事件。
-4. 庫存與品檢資料僅針對已納入 graph 的核心批號集合批次查詢，不對被排除的物料與膠捲做庫存快照計算。
-5. 建議第一版防護上限：
+1. 先查詢 root batch，若 root batch 的 `itemCategory` 不屬於原料(1)、在製品(4)、製成品(5)，回傳 root `batch` header 與空 `traceSteps[]`，不再展開。
+2. 使用 BFS 或受控 DFS 找出需要追溯的核心批號集合，每一輪以批號集合批次查詢 `production_data_input` 與 `production_data_output`，避免逐批號 N+1 查詢。
+3. 每次取得上下游批號後，先查詢 `batch_number` header，僅保留 `itemCategory in (1, 4, 5)` 的批號；物料(2)、膠捲(3)不建立 `traceSteps[]` item。
+4. 以流程步驟彙整資料：採購/進貨來源建立 `receipt` step；同一工單的投入與產出合併為一筆 `production` step；已確認的銷貨/出貨來源建立 `sale` step。
+5. 庫存與品檢資料僅用於判斷 `traceStatusCode`、`riskLevelCode`、`riskCode`，不再作為獨立 step 回傳。
+6. 建議第一版防護上限：
    - `maxDepth=5`：最多展開 5 層上下游關係。
-   - `maxBatchNodeCount=100`：最多建立 100 個 batch 節點。
-   - `maxEdgeCount=200`：最多建立 200 條 edge。
-6. 若達到防護上限，停止後續展開；已確認的節點與 edge 仍回傳，不建立推測節點。
-7. 若資料量仍大，建議工程師確認或新增以下索引：
+   - `maxBatchCount=100`：最多納入 100 個核心批號。
+   - `maxTraceStepCount=150`：最多建立 150 筆 `traceSteps[]`。
+7. 若達到防護上限，停止後續展開；已確認的 `traceSteps[]` 仍回傳，不建立推測流程。
+8. 若資料量仍大，建議工程師確認或新增以下索引：
    - `batch_number(no, itemCategory)`。
    - `production_data_input(batch_number, work_order_no)`。
    - `production_data_output(batch_number, work_order_no)`。
    - `inventory_record(batchNumber, date)`。
    - `warehouse_quality_hold(batchNumber, date)`。
 
-## 5.6 nodeTypeCode 詳細說明
+## 5.6 traceStepTypeCode 詳細說明
 
-| nodeTypeCode | 節點語意 | 建立時機 | 第一版備註 |
+| traceStepTypeCode | 流程語意 | 建立時機 | 第一版備註 |
 |---|---|---|---|
-| `supplier` | 供應商節點，表示原料採購來源的交易對象。 | 當 `goods_receipt_note` 或後續採購資料可明確取得 supplier no/name 時建立。 | 目前若資料來源不足，可先不建立，改以 `receipt` 表示採購/進貨來源。 |
-| `receipt` | 進貨/收貨來源節點，表示批號由採購進貨或收貨流程產生。 | 原料批號的 `batch_number.refCategory/ref_no` 可對應 `goods_receipt_note`，或可確認為進貨來源時建立。 | 原料追溯的上游起點之一。 |
-| `batch` | 批號節點，表示原料、在製品或製成品批號。 | 批號存在於 `batch_number`，且 `itemCategory` 屬於原料(1)、在製品(4)、製成品(5) 時建立。 | 第一版不建立物料(2)、膠捲(3) batch 節點。 |
-| `inventory` | 庫存事件或庫存位置節點，表示批號入庫、出庫或目前庫存所在倉庫。 | 需要呈現批號庫存流向，且 `inventory_record` 有可確認資料時建立。 | 若 overview 資料量過大，可只保留必要入庫/出庫事件於 `timeline[]`，不一定建立獨立 inventory 節點。 |
-| `production_input` | 生產投入節點，表示某批號被投入指定工單。 | `production_data_input.batch_number` 命中已納入 graph 的核心批號時建立。 | 物料與膠捲投入第一版不建立此節點。 |
-| `production_output` | 生產產出節點，表示指定工單產出某在製品或製成品批號。 | `production_data_output.batch_number` 命中已納入 graph 的核心批號時建立。 | 用於連接工單與產出批號。 |
-| `quality` | 品檢節點，表示該批號存在品檢保留、放行或品質阻塞。 | `warehouse_quality_hold` 或後續品檢資料有可確認批號關聯時建立。 | 第一版只回傳 enum code，不回傳繁中文字串。 |
-| `work_order` | 工單節點，表示生產投入與產出的共同作業單位。 | 同一 `work_order_no` 同時關聯投入或產出資料時建立。 | 用於串接原料 -> 在製品 -> 製成品的投產鏈。 |
-| `unknown` | 未知節點類型，表示資料存在但來源類型無法被正式辨識。 | 僅在資料表有可確認資料但無法歸類至上述類型時使用。 | 應盡量避免；不得用於建立推測節點。 |
+| `receipt` | 進貨或收貨步驟，回答「此批號何時購買或進貨」。 | 原料批號的 `batch_number.refCategory/ref_no` 可對應 `goods_receipt_note`，或可確認為採購/進貨來源時建立。 | `inputItems[]` 可為空，`outputItems[]` 放入進貨形成的批號。 |
+| `production` | 產製步驟，回答「此工單投入哪些批號，產出哪些在製品或製成品」。 | 同一 `work_order_no` 可從 `production_data_input` 與 `production_data_output` 取得投入與產出時建立。 | `inputItems[]` 與 `outputItems[]` 皆應盡量由同一工單資料組成。 |
+| `sale` | 銷貨或出貨步驟，回答「此批號何時銷貨或出貨」。 | 正式資料庫文件確認銷貨/出貨資料來源，且可與批號或製成品建立關聯時建立。 | 目前若資料來源尚未確認，不建立 `sale` step，不推測不存在的銷貨資料。 |
 
 ## 6. Enum Code 建議
 
@@ -426,9 +409,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 | `riskLevelCode` | `normal`、`attention`、`high_risk` |
 | `riskCode` | `normal`、`broken_chain`、`expired`、`quality_hold`、`unknown` |
 | `partnerTypeCode` | `supplier`、`customer`、`internal`、`unknown` |
-| `nodeTypeCode` | `supplier`、`receipt`、`batch`、`inventory`、`production_input`、`production_output`、`quality`、`work_order`、`unknown` |
-| `relationTypeCode` | `source_of`、`received_as`、`stored_in`、`consumed_by`、`produced_as`、`inspected_by` |
-| `eventTypeCode` | `receipt`、`inventory_in`、`inventory_out`、`production_input`、`production_output`、`quality_hold`、`quality_release`、`task` |
+| `traceStepTypeCode` | `receipt`、`production`、`sale` |
 
 若工程師確認後進入實作，跨檔共用 enum 應集中定義於 `restserver/package/common/common.py`。
 
@@ -437,16 +418,13 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 | Table | Purpose |
 |---|---|
 | `batch_number` | 批號主檔、料品資訊、原始來源單據、效期與單位。 |
-| `inventory_record` | 入出庫、庫存異動、批號流向與時間軸事件。 |
+| `inventory_record` | 入出庫、庫存異動與批號流向補充；第一版 overview 不作為獨立 step 回傳。 |
 | `inventory_item_month_statistic` / `inventory_delta` | 目前庫存快照計算來源；應重用既有 Warehouse 快照邏輯。 |
 | `production_data` | 工單、製程與生產事件主資料。 |
-| `production_data_input` | 原料、在製品或製成品批號投入製程關聯；第一版 overview 不展開物料與膠捲投入節點。 |
+| `production_data_input` | 原料、在製品或製成品批號投入製程關聯；第一版 overview 不將物料與膠捲投入列入 `traceSteps[]`。 |
 | `production_data_output` | 在製品/製成品批號產出關聯。 |
 | `goods_receipt_note` | 採購進貨來源、供應商與收貨文件關聯。 |
-| `warehouse_quality_hold` | 品檢保留、放行或阻塞資訊。 |
-| `workflow_task_state` | 未完成任務、下一步負責部門與流程阻塞資訊。 |
-| `workflow_task_event` | 任務事件時間軸補充。 |
-| `warehouse_inventory_reservation` | 預留量與訂單/工單影響範圍補充。 |
+| `warehouse_quality_hold` | 品檢保留、放行或阻塞資訊；用於風險判斷，不作為獨立 step 回傳。 |
 
 若正式資料庫文件中尚未提供出貨、銷貨或客戶流向資料表的穩定欄位，第一版不得推測不存在的欄位；召回評估與客戶流向留待下一版規劃。
 
@@ -456,5 +434,5 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 |---|---|---|
 | 出貨/客戶流向資料來源 | 召回範圍需要判斷已出貨數量與受影響客戶；目前第一版暫不納入。 | 目前暫不規劃設計「召回」的功能。 |
 | 文件完整性資料來源 | COA、溫度紀錄、品檢文件、出貨文件若未有正式文件表，第一版不應推測。 | 目前暫不規劃設計「文件完整性」的顯示。 |
-| `refCategory` code 對照 | `refCategory` 對應 API 回傳中的來源單據類別，需確認正式 code 對照。 | `refCategory` 對應 `records[].refCategory`、`batch.refCategory`、`nodes[].refCategory`、`timeline[].refCategory`；用途為標示資料來源單據類別與支援後續 drill-down。 |
+| `refCategory` code 對照 | `refCategory` 對應 API 回傳中的來源單據類別，需確認正式 code 對照。 | `refCategory` 對應 `records[].refCategory`、`batch.refCategory`、`traceSteps[].refCategory`；用途為標示資料來源單據類別與支援後續 drill-down。 |
 | 追溯鏈斷點判斷 | 若缺少必要來源文件或投入/產出關聯，需確認是否判定為 `broken`。 | 追溯流程持續進行至不可再追溯為止，並於此狀態下判定為 `broken`。 |

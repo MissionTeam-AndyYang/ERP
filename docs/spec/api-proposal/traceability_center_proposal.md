@@ -4,6 +4,16 @@
    - 目前僅需列出 原料、在製品與製成品，物料與膠捲暫時不需要。
    - 請補充 nodeTypeCode 各數值的詳細說明。
   
+## 工程師回覆V3
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| Overview 回傳時間與資料量 | `/api/v2/trace/batches/{batch_no}/overview` 調整為「核心批號追溯圖」，第一版只展開原料、在製品、製成品三類批號節點；不展開物料、膠捲節點，以降低資料量與追溯圖複雜度。 |
+| Overview 效能策略 | 後端應先以查詢批號建立 root，再以 `production_data_input` / `production_data_output` 批次查詢上下游批號集合；每一輪只處理尚未拜訪且 itemCategory 屬於原料(1)、在製品(4)、製成品(5) 的批號。不得對每個節點重複查詢完整庫存快照或完整 workflow。 |
+| 節點展開限制 | 建議第一版設定防護上限：最大展開層數 5、最大批號節點數 100、最大 edges 數 200；若超過上限，停止繼續展開並保留已確認節點，不建立推測資料。 |
+| 物料與膠捲處理 | 若生產投入資料中存在物料(2)或膠捲(3)，第一版 overview 不建立對應 batch / production_input / production_output 節點，也不列入 timeline；未來若前端需要包材追溯，再另行擴充。 |
+| 查詢批號本身為物料或膠捲 | 若使用者直接查詢物料或膠捲批號，API 可回傳 `batch` header 與空的 `nodes[]`、`edges[]`、`timeline[]`，並以 `traceStatusCode=unknown`、`riskCode=unknown` 表示第一版未展開此類追溯。 |
+| `nodeTypeCode` 說明 | 已於本文件新增「5.6 nodeTypeCode 詳細說明」，逐一說明 `supplier`、`receipt`、`batch`、`inventory`、`production_input`、`production_output`、`quality`、`work_order`、`unknown` 的使用情境與第一版是否會建立。 |
 
 # 工程師提問V2
 1. 針對 /api/v2/trace/dashboard，目前資料回傳時間過長，效能不足。請評估是否能加速回傳時間，或提出其他可改善效能的方法。
@@ -46,7 +56,7 @@
 | `primaryRiskCode` | 已更名為 `riskCode`，表示此筆追溯資料最主要的風險代碼。 |
 | 文件完整性 | 原規劃的文件完整性是指 COA、溫度紀錄、收貨文件、品檢文件、生產文件、出貨文件等文件狀態。但依工程師確認，第一版暫不提供此功能，因此已移除 `documents[]`、`pendingDocumentCount`、`documentPendingCount`、`documentStatusCode` 與相關查詢條件。 |
 | 召回評估 | 第一版暫不提供召回範圍與受影響客戶評估，因此已移除 `impactSummary`、`impactedQuantity`、`impactedCustomerCount`、出貨與召回相關欄位。 |
-| 追溯入口 | 第一版以批號為唯一主要追溯入口。原料、物料、膠捲批號向下追溯；製成品批號向上追溯；在製品批號可依資料關聯同時呈現可確認的上下游節點。 |
+| 追溯入口 | 第一版以批號為唯一主要追溯入口。依工程師提問 V3，overview 只展開原料、在製品與製成品：原料批號向下追溯；製成品批號向上追溯；在製品批號可依資料關聯同時呈現可確認的上下游節點；物料與膠捲暫不展開。 |
 | 查詢條件 | 第一版只保留 `keyword`、`batchNo`、`itemCategory`、`itemNo`、`startDate`、`endDate`、`start`、`count` 與 `x-timezone`。不開放文件狀態、追溯方向、追溯狀態、風險等級與 period 快速區間查詢。 |
 | 多層批號關係 | 支援。追溯鏈以 `nodes[]` 與 `edges[]` 表示有向無環圖（DAG）或可防循環的關聯圖，可呈現單一原料批號投入多個在製品批號，再由多個在製品批號產出多個製成品批號的情境。 |
 | 查詢記錄欄位 | `queryTypeCode` 與 `queryValue` 屬於前端查詢 UI 狀態，不由後端回傳。 |
@@ -64,7 +74,7 @@
 
 ## 1. 畫面定位
 
-「溯源中心」第一版定位為批號追溯 read-only 工作區，用於讓管理者從指定批號快速查看可確認的來源、入庫、庫存、生產投入、產出、品檢與流程節點。單批號 overview 需支援從任一批號切入後，建立已確認的完整投產追溯圖；製成品可回看其上游在製品與原物料投入，原料可回看其採購/進貨來源並往下查看產出的在製品或製成品。
+「溯源中心」第一版定位為批號追溯 read-only 工作區，用於讓管理者從指定批號快速查看可確認的來源、入庫、庫存、生產投入、產出、品檢與流程節點。單批號 overview 需支援從任一批號切入後，建立已確認的核心投產追溯圖；製成品可回看其上游在製品與原料投入，原料可回看其採購/進貨來源並往下查看產出的在製品或製成品。依工程師提問 V3，第一版 overview 只展開原料(1)、在製品(4)、製成品(5)，物料(2)與膠捲(3)暫不展開。
 
 | 畫面 | 主視角 | 本版邊界 |
 |---|---|---|
@@ -267,7 +277,7 @@
 | `batch.riskLevelCode` | String | 此批號追溯風險等級 code。 | `normal`、`attention`、`high_risk` |
 | `batch.riskCode` | String | 此批號主要追溯風險 code。 | `normal`、`broken_chain`、`expired`、`quality_hold`、`unknown` |
 | `nodes[].nodeId` | String | 追溯鏈節點唯一識別值。 | 後端組合 |
-| `nodes[].nodeTypeCode` | String | 節點類型 code；前端負責顯示文字。 | `supplier`、`receipt`、`batch`、`inventory`、`production_input`、`production_output`、`quality`、`work_order`、`unknown` |
+| `nodes[].nodeTypeCode` | String | 節點類型 code；前端負責顯示文字。第一版詳見「5.6 nodeTypeCode 詳細說明」。 | `supplier`、`receipt`、`batch`、`inventory`、`production_input`、`production_output`、`quality`、`work_order`、`unknown` |
 | `nodes[].refCategory` | Integer | 節點關聯單據類別 code。 | 來源資料表 |
 | `nodes[].refNo` | String | 節點關聯單據 no。 | 來源資料表 |
 | `nodes[].itemNo` | String | 節點關聯料品 no；無關聯時回傳空字串。 | 來源資料表 |
@@ -335,6 +345,20 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 
 > 以上範例僅描述資料結構與節點關係。若某個採購、入庫、投入或產出節點在資料庫中不存在，API 不建立虛構節點；該追溯鏈段停止展開，並依規則反映於 `traceStatusCode` 與 `riskCode`。
 
+### 5.3.3 第一版追溯範圍限制
+
+依工程師提問 V3，單批號 overview 第一版只列出核心投產追溯所需的原料、在製品與製成品：
+
+| itemCategory | 類別 | Overview V1 處理方式 |
+|---:|---|---|
+| 1 | 原料 | 建立 batch 節點，並可往下追溯至使用此原料的工單、在製品與製成品。 |
+| 2 | 物料 | 暫不建立節點、不列入 timeline；未來若需要包材追溯再擴充。 |
+| 3 | 膠捲 | 暫不建立節點、不列入 timeline；未來若需要包材追溯再擴充。 |
+| 4 | 在製品 | 建立 batch 節點，並可同時呈現上游原料投入與下游製成品產出。 |
+| 5 | 製成品 | 建立 batch 節點，並可往上追溯至在製品與原料投入。 |
+
+若查詢批號本身為物料或膠捲，API 不回傳 404，因為批號確實存在；但第一版可回傳 `batch` header，並讓 `nodes[]`、`edges[]`、`timeline[]` 為空陣列，`traceStatusCode=unknown`、`riskCode=unknown`，表示此類批號暫不納入本版追溯圖展開。
+
 ## 5.4 Dashboard 效能設計調整
 
 `GET /api/v2/trace/dashboard` 第一版需避免做完整追溯圖展開。建議後端實作以以下流程為準：
@@ -354,6 +378,40 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
    - `production_data_input(batch_number, work_order_no)`。
    - `production_data_output(batch_number, work_order_no)`。
    - `warehouse_quality_hold(batchNumber, date)`。
+
+## 5.5 Overview 效能設計調整
+
+`GET /api/v2/trace/batches/{batch_no}/overview` 第一版需避免一次展開過大的追溯圖。建議後端實作以以下流程為準：
+
+1. 先查詢 root batch，若 root batch 的 `itemCategory` 不屬於原料(1)、在製品(4)、製成品(5)，回傳 root `batch` header 與空 graph，不再展開。
+2. 使用 BFS 或受控 DFS 建立追溯圖，每一輪以批號集合批次查詢 `production_data_input` 與 `production_data_output`，避免逐節點 N+1 查詢。
+3. 每次取得上下游批號後，先查詢 `batch_number` header，僅保留 `itemCategory in (1, 4, 5)` 的批號；物料(2)、膠捲(3)不建立節點與時間軸事件。
+4. 庫存與品檢資料僅針對已納入 graph 的核心批號集合批次查詢，不對被排除的物料與膠捲做庫存快照計算。
+5. 建議第一版防護上限：
+   - `maxDepth=5`：最多展開 5 層上下游關係。
+   - `maxBatchNodeCount=100`：最多建立 100 個 batch 節點。
+   - `maxEdgeCount=200`：最多建立 200 條 edge。
+6. 若達到防護上限，停止後續展開；已確認的節點與 edge 仍回傳，不建立推測節點。
+7. 若資料量仍大，建議工程師確認或新增以下索引：
+   - `batch_number(no, itemCategory)`。
+   - `production_data_input(batch_number, work_order_no)`。
+   - `production_data_output(batch_number, work_order_no)`。
+   - `inventory_record(batchNumber, date)`。
+   - `warehouse_quality_hold(batchNumber, date)`。
+
+## 5.6 nodeTypeCode 詳細說明
+
+| nodeTypeCode | 節點語意 | 建立時機 | 第一版備註 |
+|---|---|---|---|
+| `supplier` | 供應商節點，表示原料採購來源的交易對象。 | 當 `goods_receipt_note` 或後續採購資料可明確取得 supplier no/name 時建立。 | 目前若資料來源不足，可先不建立，改以 `receipt` 表示採購/進貨來源。 |
+| `receipt` | 進貨/收貨來源節點，表示批號由採購進貨或收貨流程產生。 | 原料批號的 `batch_number.refCategory/ref_no` 可對應 `goods_receipt_note`，或可確認為進貨來源時建立。 | 原料追溯的上游起點之一。 |
+| `batch` | 批號節點，表示原料、在製品或製成品批號。 | 批號存在於 `batch_number`，且 `itemCategory` 屬於原料(1)、在製品(4)、製成品(5) 時建立。 | 第一版不建立物料(2)、膠捲(3) batch 節點。 |
+| `inventory` | 庫存事件或庫存位置節點，表示批號入庫、出庫或目前庫存所在倉庫。 | 需要呈現批號庫存流向，且 `inventory_record` 有可確認資料時建立。 | 若 overview 資料量過大，可只保留必要入庫/出庫事件於 `timeline[]`，不一定建立獨立 inventory 節點。 |
+| `production_input` | 生產投入節點，表示某批號被投入指定工單。 | `production_data_input.batch_number` 命中已納入 graph 的核心批號時建立。 | 物料與膠捲投入第一版不建立此節點。 |
+| `production_output` | 生產產出節點，表示指定工單產出某在製品或製成品批號。 | `production_data_output.batch_number` 命中已納入 graph 的核心批號時建立。 | 用於連接工單與產出批號。 |
+| `quality` | 品檢節點，表示該批號存在品檢保留、放行或品質阻塞。 | `warehouse_quality_hold` 或後續品檢資料有可確認批號關聯時建立。 | 第一版只回傳 enum code，不回傳繁中文字串。 |
+| `work_order` | 工單節點，表示生產投入與產出的共同作業單位。 | 同一 `work_order_no` 同時關聯投入或產出資料時建立。 | 用於串接原料 -> 在製品 -> 製成品的投產鏈。 |
+| `unknown` | 未知節點類型，表示資料存在但來源類型無法被正式辨識。 | 僅在資料表有可確認資料但無法歸類至上述類型時使用。 | 應盡量避免；不得用於建立推測節點。 |
 
 ## 6. Enum Code 建議
 
@@ -378,7 +436,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 | `inventory_record` | 入出庫、庫存異動、批號流向與時間軸事件。 |
 | `inventory_item_month_statistic` / `inventory_delta` | 目前庫存快照計算來源；應重用既有 Warehouse 快照邏輯。 |
 | `production_data` | 工單、製程與生產事件主資料。 |
-| `production_data_input` | 原料/物料/批號投入製程關聯。 |
+| `production_data_input` | 原料、在製品或製成品批號投入製程關聯；第一版 overview 不展開物料與膠捲投入節點。 |
 | `production_data_output` | 在製品/製成品批號產出關聯。 |
 | `goods_receipt_note` | 採購進貨來源、供應商與收貨文件關聯。 |
 | `warehouse_quality_hold` | 品檢保留、放行或阻塞資訊。 |

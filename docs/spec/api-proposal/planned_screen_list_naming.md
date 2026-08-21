@@ -168,19 +168,19 @@ Naming rules:
 
 ## Item Center Screen Roadmap
 
-`ItemCenterScreen` 對應目前 `/items` 執行畫面，第一版定位為料品主資料 read-only 工作區，聚焦料品分類、主檔完整度、庫存訊號、BOM 關聯與 read-only 維護建議。它不取代倉庫、批號、BOM 或研發成本畫面。
+`ItemCenterScreen` 對應目前 `/items` 執行畫面，第一版定位為料品主資料 read-only 工作區，聚焦料品分類、主檔完整度、庫存訊號、BOM 關聯與 read-only 維護建議。它不取代倉庫、批號、BOM 或研發成本畫面。依工程師 review，維護建議資料命名為 `maintenanceSuggestions[]`，不使用 task 命名，避免與 workflow task 混淆。
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0 | V1 Core | `ItemCenterScreen` | Screen | 品項中心 | `/items` | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard`、`GET /api/v2/items/{item_no}/detail` | 檢視原料、物料、膠捲、在製品、製成品與貨品主檔，包含主檔完整度、庫存訊號、BOM 關聯與維護風險。 |
 | P0.1 | V1 Core | `ItemCategorySummaryView` | View | 品項分類摘要視圖 | `ItemCenterScreen` 內的分類摘要與 KPI | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 依料品品項類別彙總品項數、目前有庫存品項數、BOM 關聯數與需注意品項數。 |
 | P0.2 | V1 Core | `ItemMasterListView` | View | 品項主檔清單視圖 | `ItemCenterScreen` 主要清單 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 支援關鍵字、類別、主檔狀態、是否有庫存、是否有 BOM 關聯與分頁。 |
-| P0.3 | V1 Core | `ItemMasterTaskView` | View | 主檔待維護視圖 | `ItemCenterScreen` 右側待維護面板 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 顯示缺單位、缺 BOM、缺庫存訊號或停用檢查等 read-only 維護建議；不代表 workflow task 或部門轉交。 |
+| P0.3 | V1 Core | `ItemMaintenanceSuggestionView` | View | 主檔維護建議視圖 | `ItemCenterScreen` 右側待維護面板 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 顯示缺單位、缺 BOM、缺庫存訊號等 read-only 維護建議；不代表 workflow task 或部門轉交。 |
 | P1 | V1 Core | `ItemDetailPanel` | Panel | 品項明細面板 | `ItemCenterScreen` 右側 panel；窄版可作 drawer | API proposal，Pending Engineer Review | `GET /api/v2/items/{item_no}/detail` | 顯示單一品項主檔、庫存摘要、BOM 使用、近期批號與主檔維護建議。 |
 
 ### Item Center Scope Boundary
 
-品項中心第一版不建立、修改或停用品項，不修改 BOM，不建立採購、生產或 workflow 任務。所有維護事項皆為 read-only 建議訊號；若後續需要主檔寫入、審核、停用或版本控管，需另行規劃 mutation API、權限與稽核流程。
+品項中心第一版不建立、修改或停用品項，不修改 BOM，不建立採購、生產或 workflow 任務。所有維護事項皆為 read-only `maintenanceSuggestions[]` 建議訊號；若後續需要主檔寫入、審核、停用或版本控管，需另行規劃 mutation API、權限與稽核流程。
 
 ## Not Standalone Screens
 

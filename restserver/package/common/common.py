@@ -648,6 +648,12 @@ class ETracePartnerTypeCode(object):
     UNKNOWN = "unknown"
 
 
+class ETraceStepTypeCode(object):
+    RECEIPT = "receipt"
+    PRODUCTION = "production"
+    SALE = "sale"
+
+
 class ETraceNodeTypeCode(object):
     SUPPLIER = "supplier"
     RECEIPT = "receipt"

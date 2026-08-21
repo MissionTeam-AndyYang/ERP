@@ -14,10 +14,9 @@ if str(RESTSERVER_ROOT) not in sys.path:
 from package.common.common import (
     EInventoryCategory,
     EItemCategory,
-    ETraceEventTypeCode,
-    ETraceRelationTypeCode,
     ETraceRiskCode,
     ETraceRiskLevelCode,
+    ETraceStepTypeCode,
     ETraceStatusCode,
     EWorkflowTaskStatus,
     EWorkflowTaskType,
@@ -328,7 +327,7 @@ def test_trace_dashboard_returns_confirmed_fields():
     assert dict_records["B-EXPIRED-001"]["riskCode"] == ETraceRiskCode.EXPIRED
 
 
-def test_trace_batch_overview_builds_multilevel_graph():
+def test_trace_batch_overview_builds_multilevel_steps():
     obj_session = build_session()
     seed_traceability(obj_session)
     dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
@@ -337,20 +336,18 @@ def test_trace_batch_overview_builds_multilevel_graph():
 
     assert dict_payload["batch"]["batchNo"] == "B-RM-001"
     assert dict_payload["batch"]["traceStatusCode"] == ETraceStatusCode.COMPLETE
-    set_node_ids = {dict_node["nodeId"] for dict_node in dict_payload["nodes"]}
-    assert "batch:B-RM-001" in set_node_ids
-    assert "batch:B-WIP-001" in set_node_ids
-    assert "batch:B-FG-001" in set_node_ids
-    assert any(dict_node["nodeTypeCode"] == "receipt" and dict_node["refNo"] == "GRN-001" for dict_node in dict_payload["nodes"])
-    set_relations = {dict_edge["relationTypeCode"] for dict_edge in dict_payload["edges"]}
-    assert ETraceRelationTypeCode.RECEIVED_AS in set_relations
-    assert ETraceRelationTypeCode.CONSUMED_BY in set_relations
-    assert ETraceRelationTypeCode.PRODUCED_AS in set_relations
-    set_events = {dict_event["eventTypeCode"] for dict_event in dict_payload["timeline"]}
-    assert ETraceEventTypeCode.RECEIPT in set_events
-    assert ETraceEventTypeCode.PRODUCTION_INPUT in set_events
-    assert ETraceEventTypeCode.PRODUCTION_OUTPUT in set_events
-    assert ETraceEventTypeCode.QUALITY_HOLD in set_events
+    assert "nodes" not in dict_payload
+    assert "edges" not in dict_payload
+    assert "timeline" not in dict_payload
+    lst_steps = dict_payload["traceSteps"]
+    assert any(dict_step["stepTypeCode"] == ETraceStepTypeCode.RECEIPT and dict_step["refNo"] == "GRN-001" for dict_step in lst_steps)
+    dict_production_steps = {dict_step["refNo"]: dict_step for dict_step in lst_steps if dict_step["stepTypeCode"] == ETraceStepTypeCode.PRODUCTION}
+    assert "WO-001" in dict_production_steps
+    assert "WO-002" in dict_production_steps
+    assert any(dict_item["batchNo"] == "B-RM-001" for dict_item in dict_production_steps["WO-001"]["inputItems"])
+    assert any(dict_item["batchNo"] == "B-WIP-001" for dict_item in dict_production_steps["WO-001"]["outputItems"])
+    assert any(dict_item["batchNo"] == "B-WIP-001" for dict_item in dict_production_steps["WO-002"]["inputItems"])
+    assert any(dict_item["batchNo"] == "B-FG-001" for dict_item in dict_production_steps["WO-002"]["outputItems"])
 
 
 def test_trace_batch_overview_finished_goods_traces_upstream_to_material_receipt():
@@ -361,25 +358,33 @@ def test_trace_batch_overview_finished_goods_traces_upstream_to_material_receipt
     )
 
     assert dict_payload["batch"]["batchNo"] == "B-FG-001"
-    set_node_ids = {dict_node["nodeId"] for dict_node in dict_payload["nodes"]}
-    assert "batch:B-FG-001" in set_node_ids
-    assert "batch:B-WIP-001" in set_node_ids
-    assert "batch:B-RM-001" in set_node_ids
-    assert any(dict_node["nodeTypeCode"] == "receipt" and dict_node["refNo"] == "GRN-001" for dict_node in dict_payload["nodes"])
-    set_events = {dict_event["eventTypeCode"] for dict_event in dict_payload["timeline"]}
-    assert ETraceEventTypeCode.RECEIPT in set_events
-    assert ETraceEventTypeCode.PRODUCTION_INPUT in set_events
-    assert ETraceEventTypeCode.PRODUCTION_OUTPUT in set_events
+    lst_steps = dict_payload["traceSteps"]
+    assert any(dict_step["stepTypeCode"] == ETraceStepTypeCode.RECEIPT and dict_step["refNo"] == "GRN-001" for dict_step in lst_steps)
+    dict_production_steps = {dict_step["refNo"]: dict_step for dict_step in lst_steps if dict_step["stepTypeCode"] == ETraceStepTypeCode.PRODUCTION}
+    assert "WO-001" in dict_production_steps
+    assert "WO-002" in dict_production_steps
+    set_input_batches = {
+        dict_item["batchNo"]
+        for dict_step in dict_production_steps.values()
+        for dict_item in dict_step["inputItems"]
+    }
+    set_output_batches = {
+        dict_item["batchNo"]
+        for dict_step in dict_production_steps.values()
+        for dict_item in dict_step["outputItems"]
+    }
+    assert {"B-RM-001", "B-WIP-001"}.issubset(set_input_batches)
+    assert {"B-WIP-001", "B-FG-001"}.issubset(set_output_batches)
 
 
-def test_trace_dashboard_does_not_build_overview_graph(monkeypatch):
+def test_trace_dashboard_does_not_build_overview_steps(monkeypatch):
     obj_session = build_session()
     seed_traceability(obj_session)
 
-    def fail_build_graph(*args, **kwargs):
-        raise AssertionError("dashboard must not build full trace graph")
+    def fail_build_steps(*args, **kwargs):
+        raise AssertionError("dashboard must not build full trace steps")
 
-    monkeypatch.setattr(CTraceabilityService, "_CTraceabilityService__build_trace_graph", fail_build_graph)
+    monkeypatch.setattr(CTraceabilityService, "_CTraceabilityService__build_trace_steps", fail_build_steps)
     dict_payload = CTraceabilityService()._CTraceabilityService__get_dashboard_with_session(
         obj_session, "Asia/Taipei", "", 0, "", "", "", "", 0, 2,
     )

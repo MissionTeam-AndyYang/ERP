@@ -6,8 +6,8 @@
 
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
-| [/api/v2/trace/dashboard](#get-api-v2-trace-dashboard) | GET | 查詢溯源中心批號追溯摘要、追溯狀態、風險與分頁清單 | OK | 依 `traceability_center_proposal.md` 工程師提問 V2 調整為摘要查詢，不建立完整 graph |
-| [/api/v2/trace/batches/{batch_no}/overview](#get-api-v2-trace-batches-batch_no-overview) | GET | 查詢指定批號的追溯鏈節點、節點關係與時間軸 | OK | 依 `traceability_center_proposal.md` 工程師提問 V2 支援完整上下游投產追溯 |
+| [/api/v2/trace/dashboard](#get-api-v2-trace-dashboard) | GET | 查詢溯源中心批號追溯摘要、追溯狀態、風險與分頁清單 | OK | 依 `traceability_center_proposal.md` 工程師提問 V2 調整為摘要查詢，不建立完整 overview 流程 |
+| [/api/v2/trace/batches/{batch_no}/overview](#get-api-v2-trace-batches-batch_no-overview) | GET | 查詢指定批號的進貨、產製與銷貨追溯流程 | OK | 依 `traceability_center_proposal.md` 工程師提問 V4，overview 改以 `traceSteps[]` 回傳，不再回傳 `nodes[]`、`edges[]`、`timeline[]` |
 
 ## GET /api/v2/trace/dashboard
 
@@ -126,7 +126,7 @@ None
 
 1. 讀取查詢條件並轉換為後端型別。
 2. 以 `batch_number` 作為批號主清單來源，套用料品類別、料號、批號、關鍵字與日期區間條件。
-3. Dashboard 僅建立批號摘要列，不建立 `nodes[]`、`edges[]`、`timeline[]`，也不逐批號呼叫 overview。
+3. Dashboard 僅建立批號摘要列，不建立 `traceSteps[]`，也不逐批號呼叫 overview。
 4. 以批號集合限定的庫存摘要查詢取得目前庫存、主要倉庫、品檢保留與最新庫存事件；不重新建立第二套月結/delta 庫存演算法。
 5. 批次查詢批號關聯的生產投入、產出生產資料、品檢保留與 workflow event 最新時間。
 6. 依料品類別判斷建議追溯方向：原料、物料、膠捲預設 downstream；製成品預設 upstream；在製品或其他預設 both。
@@ -156,7 +156,7 @@ None
 
 | URL | Method | Description |
 |----------|----------|----------------|
-| /api/v2/trace/batches/{batch_no}/overview | GET | 查詢指定批號的追溯鏈節點、節點關係與時間軸 |
+| /api/v2/trace/batches/{batch_no}/overview | GET | 查詢指定批號的進貨、產製與銷貨追溯流程 |
 
 ### Request Header
 
@@ -197,44 +197,35 @@ None
       "riskLevelCode": "String",
       "riskCode": "String"
     },
-    "nodes": [
+    "traceSteps": [
       {
-        "nodeId": "String",
-        "nodeTypeCode": "String",
+        "stepId": "String",
+        "stepTypeCode": "String",
+        "eventTimestamp": "Integer",
         "refCategory": "Integer",
         "refNo": "String",
-        "itemNo": "String",
-        "batchNo": "String",
-        "quantity": "Float",
-        "unit": "Integer",
         "statusCode": "String",
         "riskLevelCode": "String",
-        "eventTimestamp": "Integer"
-      }
-    ],
-    "edges": [
-      {
-        "edgeId": "String",
-        "fromNodeId": "String",
-        "toNodeId": "String",
-        "relationTypeCode": "String",
-        "quantity": "Float",
-        "unit": "Integer"
-      }
-    ],
-    "timeline": [
-      {
-        "eventId": "String",
-        "eventTimestamp": "Integer",
-        "eventTypeCode": "String",
-        "refCategory": "Integer",
-        "refNo": "String",
-        "itemNo": "String",
-        "batchNo": "String",
-        "quantity": "Float",
-        "unit": "Integer",
-        "ownerDepartment": "Integer",
-        "statusCode": "String"
+        "inputItems": [
+          {
+            "itemNo": "String",
+            "itemName": "String",
+            "itemCategory": "Integer",
+            "batchNo": "String",
+            "quantity": "Float",
+            "unit": "Integer"
+          }
+        ],
+        "outputItems": [
+          {
+            "itemNo": "String",
+            "itemName": "String",
+            "itemCategory": "Integer",
+            "batchNo": "String",
+            "quantity": "Float",
+            "unit": "Integer"
+          }
+        ]
       }
     ]
   }
@@ -255,60 +246,52 @@ None
 | payload.batch.validDays | Integer | 批號有效天數 |  |
 | payload.batch.refCategory | Integer | 批號建立時的來源單據類別 |  |
 | payload.batch.refNo | String | 批號建立時的來源單號 |  |
-| payload.batch.traceDirectionCode | String | 建議追溯方向 code；此欄位供前端聚焦視角使用，不限制 overview 回傳完整上下游投產關係 | upstream、downstream、both |
-| payload.batch.traceStatusCode | String | 此批號追溯鏈狀態 code | complete、broken、unknown |
+| payload.batch.traceDirectionCode | String | 建議追溯方向 code；此欄位供前端聚焦視角使用，不限制 overview 回傳完整上下游投產流程 | upstream、downstream、both |
+| payload.batch.traceStatusCode | String | 此批號追溯流程狀態 code | complete、broken、unknown |
 | payload.batch.riskLevelCode | String | 此批號追溯風險等級 code | normal、attention、high_risk |
 | payload.batch.riskCode | String | 此批號追溯主要風險 code | normal、broken_chain、expired、quality_hold、unknown |
-| payload.nodes[].nodeId | String | 追溯節點識別值，供前端畫鏈路使用 |  |
-| payload.nodes[].nodeTypeCode | String | 追溯節點類型 code；採購/進貨來源以 `receipt` 節點表示，內部產製來源以 `work_order`、`production_input`、`production_output` 節點表示 | supplier、receipt、batch、inventory、production_input、production_output、quality、work_order、unknown |
-| payload.nodes[].refCategory | Integer | 節點來源單據類別；無資料時回傳 0 |  |
-| payload.nodes[].refNo | String | 節點來源單號、工單號或關聯單號；無資料時回傳空字串 |  |
-| payload.nodes[].itemNo | String | 節點對應料品 no；無資料時回傳空字串 |  |
-| payload.nodes[].batchNo | String | 節點對應批號；無資料時回傳空字串 |  |
-| payload.nodes[].quantity | Float | 節點對應數量，取至小數點第 2 位 |  |
-| payload.nodes[].unit | Integer | 節點對應單位 code |  |
-| payload.nodes[].statusCode | String | 節點狀態 code；無法由現有資料判斷時回傳 `unknown` |  |
-| payload.nodes[].riskLevelCode | String | 節點風險等級 code | normal、attention、high_risk |
-| payload.nodes[].eventTimestamp | Integer | 節點發生時間或建立時間 UTC timestamp；無資料時回傳 0 |  |
-| payload.edges[].edgeId | String | 追溯關係識別值，供前端畫線使用 |  |
-| payload.edges[].fromNodeId | String | 來源節點 id |  |
-| payload.edges[].toNodeId | String | 目的節點 id |  |
-| payload.edges[].relationTypeCode | String | 追溯節點關係 code | source_of、received_as、stored_in、consumed_by、produced_as、inspected_by |
-| payload.edges[].quantity | Float | 此關係對應數量，取至小數點第 2 位；無明確數量時回傳 0 |  |
-| payload.edges[].unit | Integer | 此關係對應單位 code；無明確單位時回傳 0 |  |
-| payload.timeline[].eventId | String | 時間軸事件識別值 |  |
-| payload.timeline[].eventTimestamp | Integer | 事件發生時間 UTC timestamp |  |
-| payload.timeline[].eventTypeCode | String | 事件類型 code | receipt、inventory_in、inventory_out、production_input、production_output、quality_hold、quality_release、task |
-| payload.timeline[].refCategory | Integer | 事件來源單據類別；無資料時回傳 0 |  |
-| payload.timeline[].refNo | String | 事件來源單號、工單號或任務關聯單號；無資料時回傳空字串 |  |
-| payload.timeline[].itemNo | String | 事件對應料品 no；無資料時回傳空字串 |  |
-| payload.timeline[].batchNo | String | 事件對應批號；無資料時回傳空字串 |  |
-| payload.timeline[].quantity | Float | 事件對應數量，取至小數點第 2 位 |  |
-| payload.timeline[].unit | Integer | 事件對應單位 code |  |
-| payload.timeline[].ownerDepartment | Integer | workflow 任務下一步負責部門 code；非任務事件回傳 0 |  |
-| payload.timeline[].statusCode | String | 事件狀態 code；無法由現有資料判斷時回傳 `unknown` |  |
+| payload.traceSteps[].stepId | String | 追溯流程步驟識別值，供前端列表 key 使用 |  |
+| payload.traceSteps[].stepTypeCode | String | 流程步驟類型 code；用於區分進貨、產製與銷貨 | receipt、production、sale |
+| payload.traceSteps[].eventTimestamp | Integer | 此流程步驟發生時間 UTC timestamp；例如進貨時間、生產時間或銷貨時間 |  |
+| payload.traceSteps[].refCategory | Integer | 此流程步驟關聯單據類別 code；無資料時回傳 0 |  |
+| payload.traceSteps[].refNo | String | 此流程步驟關聯單號，例如進貨單號、工單號或銷貨／出貨單號 |  |
+| payload.traceSteps[].statusCode | String | 此流程步驟狀態 code；前端負責顯示文字 | complete、pending、blocked、missing、unknown |
+| payload.traceSteps[].riskLevelCode | String | 此流程步驟風險等級 code | normal、attention、high_risk |
+| payload.traceSteps[].inputItems[].itemNo | String | 此步驟投入料品 no；進貨步驟可為空陣列 |  |
+| payload.traceSteps[].inputItems[].itemName | String | 此步驟投入料品名稱；無資料時回傳空字串 |  |
+| payload.traceSteps[].inputItems[].itemCategory | Integer | 此步驟投入料品品項類別 code |  |
+| payload.traceSteps[].inputItems[].batchNo | String | 此步驟投入批號；無批號時回傳空字串 |  |
+| payload.traceSteps[].inputItems[].quantity | Float | 此步驟投入數量，取至小數點第 2 位 |  |
+| payload.traceSteps[].inputItems[].unit | Integer | 此步驟投入單位 code |  |
+| payload.traceSteps[].outputItems[].itemNo | String | 此步驟產出或銷貨料品 no |  |
+| payload.traceSteps[].outputItems[].itemName | String | 此步驟產出或銷貨料品名稱；無資料時回傳空字串 |  |
+| payload.traceSteps[].outputItems[].itemCategory | Integer | 此步驟產出或銷貨料品品項類別 code |  |
+| payload.traceSteps[].outputItems[].batchNo | String | 此步驟產出或銷貨批號；無批號時回傳空字串 |  |
+| payload.traceSteps[].outputItems[].quantity | Float | 此步驟產出或銷貨數量，取至小數點第 2 位 |  |
+| payload.traceSteps[].outputItems[].unit | Integer | 此步驟產出或銷貨單位 code |  |
 
 ### Processing Flow
 
 1. 驗證 `batch_no` 並讀取 `batch_number` 批號主檔。
 2. 透過 Warehouse 庫存快照共用邏輯取得指定批號目前庫存與品檢保留數量。
-3. 建立批號根節點，並依已確認資料查詢採購/進貨來源、庫存事件、品檢保留、生產投入、生產產出與 workflow 任務。
-4. 以批號為節點邊界建立完整可確認投產追溯圖：查詢製成品批號時，可由產出工單往上游展開至在製品與原物料投入；查詢原料批號時，可由採購/進貨來源往下游展開至使用此原料的工單與產出的在製品/製成品。
-5. 使用 visited batch 集合避免循環追溯；遇到缺漏來源時停止展開，不推測不存在的節點。
-6. 依批號效期、品檢保留與追溯鏈完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
-7. 回傳批號資訊、nodes、edges 與 timeline。
+3. 若批號類別不是原料、在製品或製成品，回傳批號 header 與空 `traceSteps[]`，並以 `traceStatusCode=unknown`、`riskCode=unknown` 表示本版不展開。
+4. 以批號為入口受控展開投產流程，僅納入原料、在製品與製成品；物料與膠捲不列入 `traceSteps[]`。
+5. 依 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 建立 `receipt` step，表示此批號何時採購或進貨。
+6. 依 `production_data_input` 與 `production_data_output` 查詢同一工單的投入與產出，合併為單一 `production` step；`inputItems[]` 表示投入物，`outputItems[]` 表示產出物。
+7. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
+8. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。
+9. 依批號效期、品檢保留與追溯流程完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
+10. 回傳批號資訊與 `traceSteps[]`。
 
 ### Database Tables Used
 
 | Table | Purpose |
 |----------|------|
 | batch_number | 批號主檔、料品資訊、來源單據與效期 |
-| inventory_record | 批號入出庫事件與時間軸 |
+| inventory_record | 批號入出庫與庫存補充；overview 不作為獨立 step 回傳 |
 | inventory_item_month_statistic | 由 Warehouse 庫存快照共用邏輯使用的批號庫存月結基準 |
 | inventory_delta | 由 Warehouse 庫存快照共用邏輯使用的批號庫存異動補算 |
 | production_data | 工單與產製資料主檔 |
-| production_data_input | 批號作為生產投入的追溯節點 |
-| production_data_output | 批號作為生產產出的追溯節點 |
-| warehouse_quality_hold | 品檢保留節點與品檢時間軸 |
-| workflow_task_state | 批號相關任務時間軸與負責部門 |
-| workflow_task_event | 批號相關 workflow 最新事件 |
+| production_data_input | 批號作為生產投入的追溯來源 |
+| production_data_output | 批號作為生產產出的追溯來源 |
+| warehouse_quality_hold | 品檢保留與品檢風險；overview 不作為獨立 step 回傳 |

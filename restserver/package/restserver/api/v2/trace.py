@@ -10,12 +10,10 @@ from package.common.common import (
     EInventoryCategory,
     EItemCategory,
     ETraceDirectionCode,
-    ETraceEventTypeCode,
-    ETraceNodeTypeCode,
     ETracePartnerTypeCode,
-    ETraceRelationTypeCode,
     ETraceRiskCode,
     ETraceRiskLevelCode,
+    ETraceStepTypeCode,
     ETraceStatusCode,
 )
 from package.dbwrapper.dbmgr import CDBMgr
@@ -28,7 +26,6 @@ from package.dbwrapper.table import (
     CTableProductionDataOutput,
     CTableWarehouseQualityHold,
     CTableWorkflowTaskEvent,
-    CTableWorkflowTaskState,
 )
 from package.log.log import CLogger
 from package.restserver.api.v2.warehouse import CWarehouseInventoryContextBuilder
@@ -41,7 +38,9 @@ from package.util.util import (
 
 
 class CTraceabilityService(object):
-    MAX_GRAPH_DEPTH = 8
+    MAX_TRACE_DEPTH = 5
+    MAX_TRACE_BATCH_COUNT = 100
+    MAX_TRACE_STEP_COUNT = 150
 
     def get_dashboard(
         self,
@@ -163,15 +162,24 @@ class CTraceabilityService(object):
             "",
             str_batch_no,
         ).get(str_batch_no, {})
-        dict_graph = self.__build_trace_graph(obj_session, obj_batch, dict_inventory, n_query_timestamp)
-        dict_trace = self.__build_trace_state(
-            obj_batch,
-            dict_inventory,
-            self.__query_production_inputs_by_batch(obj_session, [str_batch_no]).get(str_batch_no, []),
-            self.__query_production_outputs_by_batch(obj_session, [str_batch_no]).get(str_batch_no, []),
-            self.__query_quality_holds_by_batch(obj_session, [str_batch_no]).get(str_batch_no, []),
-            n_query_timestamp,
-        )
+        b_core_category = self.__is_trace_core_item_category(util_safe_int(obj_batch.itemCategory))
+        lst_trace_steps = []
+        if b_core_category:
+            lst_trace_steps = self.__build_trace_steps(obj_session, obj_batch)
+            dict_trace = self.__build_trace_state(
+                obj_batch,
+                dict_inventory,
+                self.__query_production_inputs_by_batch(obj_session, [str_batch_no]).get(str_batch_no, []),
+                self.__query_production_outputs_by_batch(obj_session, [str_batch_no]).get(str_batch_no, []),
+                self.__query_quality_holds_by_batch(obj_session, [str_batch_no]).get(str_batch_no, []),
+                n_query_timestamp,
+            )
+        else:
+            dict_trace = {
+                "traceStatusCode": ETraceStatusCode.UNKNOWN,
+                "riskLevelCode": ETraceRiskLevelCode.NORMAL,
+                "riskCode": ETraceRiskCode.UNKNOWN,
+            }
         return {
             "serverTimestamp": n_query_timestamp,
             "batch": {
@@ -191,9 +199,7 @@ class CTraceabilityService(object):
                 "riskLevelCode": dict_trace.get("riskLevelCode"),
                 "riskCode": dict_trace.get("riskCode"),
             },
-            "nodes": dict_graph.get("nodes", []),
-            "edges": dict_graph.get("edges", []),
-            "timeline": dict_graph.get("timeline", []),
+            "traceSteps": lst_trace_steps,
         }
 
     def __query_batch_headers(self, obj_session, str_keyword, n_item_category, str_item_no, str_batch_no, dict_range):
@@ -499,65 +505,38 @@ class CTraceabilityService(object):
             dict_result[obj_row.batchNumber or ""] = max(dict_result[obj_row.batchNumber or ""], util_safe_int(obj_row.eventTimestamp))
         return dict_result
 
-    def __build_trace_graph(self, obj_session, obj_root_batch, dict_root_inventory, n_query_timestamp):
-        dict_nodes = {}
-        dict_edges = {}
-        lst_timeline = []
-        str_root_batch = obj_root_batch.no or ""
-        self.__add_batch_node(dict_nodes, obj_root_batch, self.__batch_risk_level(obj_root_batch, dict_root_inventory, [], n_query_timestamp))
-        obj_queue = deque([(str_root_batch, 0)])
+    def __build_trace_steps(self, obj_session, obj_root_batch):
+        dict_steps = {}
+        obj_queue = deque([(obj_root_batch.no or "", 0)])
         set_visited = set()
-        while obj_queue:
+        while obj_queue and len(set_visited) < self.MAX_TRACE_BATCH_COUNT and len(dict_steps) < self.MAX_TRACE_STEP_COUNT:
             str_batch_no, n_depth = obj_queue.popleft()
-            if str_batch_no in set_visited or n_depth > self.MAX_GRAPH_DEPTH:
+            if not str_batch_no or str_batch_no in set_visited or n_depth > self.MAX_TRACE_DEPTH:
                 continue
             set_visited.add(str_batch_no)
             obj_batch = self.__query_batch_header(obj_session, str_batch_no)
-            if obj_batch:
-                self.__add_batch_node(dict_nodes, obj_batch, ETraceRiskLevelCode.NORMAL)
-                self.__append_source_graph(obj_session, obj_batch, dict_nodes, dict_edges, lst_timeline)
-            self.__append_inventory_graph(obj_session, str_batch_no, dict_nodes, dict_edges, lst_timeline)
-            self.__append_quality_graph(obj_session, str_batch_no, dict_nodes, dict_edges, lst_timeline)
-            for obj_input in obj_session.query(CTableProductionDataInput).filter(CTableProductionDataInput.batch_number == str_batch_no).all():
-                str_work_order_no = obj_input.work_order_no or ""
-                str_input_node = self.__node_id(ETraceNodeTypeCode.PRODUCTION_INPUT, str_work_order_no, str_batch_no, obj_input.id)
-                self.__add_node(dict_nodes, str_input_node, ETraceNodeTypeCode.PRODUCTION_INPUT, obj_input, obj_input.time, ETraceRiskLevelCode.NORMAL)
-                self.__add_edge(dict_edges, self.__batch_node_id(str_batch_no), str_input_node, ETraceRelationTypeCode.CONSUMED_BY, obj_input.count, obj_input.unit)
-                self.__append_event(lst_timeline, ETraceEventTypeCode.PRODUCTION_INPUT, obj_input, obj_input.time, obj_input.work_order_no)
-                self.__append_work_order_graph(obj_session, str_work_order_no, dict_nodes, dict_edges, str_input_node)
-                for obj_output in obj_session.query(CTableProductionDataOutput).filter(CTableProductionDataOutput.work_order_no == str_work_order_no).all():
-                    str_output_batch = obj_output.batch_number or ""
-                    str_output_node = self.__node_id(ETraceNodeTypeCode.PRODUCTION_OUTPUT, str_work_order_no, str_output_batch, obj_output.id)
-                    self.__add_node(dict_nodes, str_output_node, ETraceNodeTypeCode.PRODUCTION_OUTPUT, obj_output, obj_output.time, ETraceRiskLevelCode.NORMAL)
-                    self.__add_edge(dict_edges, str_input_node, str_output_node, ETraceRelationTypeCode.PRODUCED_AS, obj_output.count, obj_output.unit)
-                    self.__append_event(lst_timeline, ETraceEventTypeCode.PRODUCTION_OUTPUT, obj_output, obj_output.time, obj_output.work_order_no)
-                    if str_output_batch:
-                        self.__add_edge(dict_edges, str_output_node, self.__batch_node_id(str_output_batch), ETraceRelationTypeCode.PRODUCED_AS, obj_output.count, obj_output.unit)
-                        obj_queue.append((str_output_batch, n_depth + 1))
-            for obj_output in obj_session.query(CTableProductionDataOutput).filter(CTableProductionDataOutput.batch_number == str_batch_no).all():
-                str_work_order_no = obj_output.work_order_no or ""
-                str_output_node = self.__node_id(ETraceNodeTypeCode.PRODUCTION_OUTPUT, str_work_order_no, str_batch_no, obj_output.id)
-                self.__add_node(dict_nodes, str_output_node, ETraceNodeTypeCode.PRODUCTION_OUTPUT, obj_output, obj_output.time, ETraceRiskLevelCode.NORMAL)
-                self.__add_edge(dict_edges, str_output_node, self.__batch_node_id(str_batch_no), ETraceRelationTypeCode.PRODUCED_AS, obj_output.count, obj_output.unit)
-                self.__append_event(lst_timeline, ETraceEventTypeCode.PRODUCTION_OUTPUT, obj_output, obj_output.time, obj_output.work_order_no)
-                self.__append_work_order_graph(obj_session, str_work_order_no, dict_nodes, dict_edges, str_output_node)
-                for obj_input in obj_session.query(CTableProductionDataInput).filter(CTableProductionDataInput.work_order_no == str_work_order_no).all():
-                    str_input_batch = obj_input.batch_number or ""
-                    str_input_node = self.__node_id(ETraceNodeTypeCode.PRODUCTION_INPUT, str_work_order_no, str_input_batch, obj_input.id)
-                    self.__add_node(dict_nodes, str_input_node, ETraceNodeTypeCode.PRODUCTION_INPUT, obj_input, obj_input.time, ETraceRiskLevelCode.NORMAL)
-                    self.__add_edge(dict_edges, str_input_node, str_output_node, ETraceRelationTypeCode.CONSUMED_BY, obj_input.count, obj_input.unit)
-                    self.__append_event(lst_timeline, ETraceEventTypeCode.PRODUCTION_INPUT, obj_input, obj_input.time, obj_input.work_order_no)
-                    if str_input_batch:
-                        self.__add_edge(dict_edges, self.__batch_node_id(str_input_batch), str_input_node, ETraceRelationTypeCode.CONSUMED_BY, obj_input.count, obj_input.unit)
-                        obj_queue.append((str_input_batch, n_depth + 1))
-        self.__append_workflow_timeline(obj_session, list(set_visited), lst_timeline)
-        return {
-            "nodes": sorted(dict_nodes.values(), key=lambda dict_row: (dict_row.get("eventTimestamp", 0), dict_row.get("nodeId", ""))),
-            "edges": sorted(dict_edges.values(), key=lambda dict_row: dict_row.get("edgeId", "")),
-            "timeline": sorted(lst_timeline, key=lambda dict_row: (dict_row.get("eventTimestamp", 0), dict_row.get("eventId", ""))),
-        }
+            if not obj_batch or not self.__is_trace_core_item_category(util_safe_int(obj_batch.itemCategory)):
+                continue
+            self.__append_receipt_step(obj_session, obj_batch, dict_steps)
+            for obj_input in self.__query_inputs_by_batch_no(obj_session, str_batch_no):
+                self.__append_production_step_by_work_order(
+                    obj_session,
+                    obj_input.work_order_no,
+                    dict_steps,
+                    obj_queue,
+                    n_depth,
+                )
+            for obj_output in self.__query_outputs_by_batch_no(obj_session, str_batch_no):
+                self.__append_production_step_by_work_order(
+                    obj_session,
+                    obj_output.work_order_no,
+                    dict_steps,
+                    obj_queue,
+                    n_depth,
+                )
+        return sorted(dict_steps.values(), key=lambda dict_row: (dict_row.get("eventTimestamp", 0), dict_row.get("stepId", "")))
 
-    def __append_source_graph(self, obj_session, obj_batch, dict_nodes, dict_edges, lst_timeline):
+    def __append_receipt_step(self, obj_session, obj_batch, dict_steps):
         if not obj_batch or not obj_batch.no or not obj_batch.ref_no:
             return
         obj_receipt = (
@@ -568,92 +547,124 @@ class CTraceabilityService(object):
         if not obj_receipt and util_safe_int(obj_batch.refCategory) != 1:
             return
         n_timestamp = util_safe_int(getattr(obj_receipt, "date", 0) or obj_batch.date or obj_batch.creationTime)
-        str_source_node = self.__node_id(ETraceNodeTypeCode.RECEIPT, obj_batch.ref_no, obj_batch.no, 0)
-        self.__add_source_node(
-            dict_nodes,
-            str_source_node,
-            obj_batch,
-            obj_receipt,
-            n_timestamp,
-        )
-        self.__add_edge(
-            dict_edges,
-            str_source_node,
-            self.__batch_node_id(obj_batch.no),
-            ETraceRelationTypeCode.RECEIVED_AS,
-            getattr(obj_receipt, "checkedCount", None) or obj_batch.checkedCount or obj_batch.expectedCount,
-            getattr(obj_receipt, "unit", None) or obj_batch.unit,
-        )
-        self.__append_source_event(lst_timeline, obj_batch, obj_receipt, n_timestamp)
-
-    def __add_source_node(self, dict_nodes, str_node_id, obj_batch, obj_receipt, n_timestamp):
-        if str_node_id in dict_nodes:
+        str_step_id = self.__trace_step_id(ETraceStepTypeCode.RECEIPT, obj_batch.ref_no, obj_batch.no)
+        if str_step_id in dict_steps:
             return
-        dict_nodes[str_node_id] = {
-            "nodeId": str_node_id,
-            "nodeTypeCode": ETraceNodeTypeCode.RECEIPT,
+        dict_steps[str_step_id] = {
+            "stepId": str_step_id,
+            "stepTypeCode": ETraceStepTypeCode.RECEIPT,
+            "eventTimestamp": n_timestamp,
             "refCategory": util_safe_int(obj_batch.refCategory),
             "refNo": obj_batch.ref_no or "",
-            "itemNo": getattr(obj_receipt, "item_no", "") or obj_batch.item_no or "",
-            "batchNo": obj_batch.no or "",
-            "quantity": util_round_quantity(getattr(obj_receipt, "checkedCount", 0) or obj_batch.checkedCount or obj_batch.expectedCount),
-            "unit": util_safe_int(getattr(obj_receipt, "unit", 0) or obj_batch.unit),
-            "statusCode": ETraceStatusCode.UNKNOWN,
+            "statusCode": ETraceStatusCode.COMPLETE,
             "riskLevelCode": ETraceRiskLevelCode.NORMAL,
-            "eventTimestamp": util_safe_int(n_timestamp),
+            "inputItems": [],
+            "outputItems": [
+                {
+                    "itemNo": getattr(obj_receipt, "item_no", "") or obj_batch.item_no or "",
+                    "itemName": getattr(obj_receipt, "item_name", "") or obj_batch.item_name or "",
+                    "itemCategory": util_safe_int(getattr(obj_receipt, "itemCategory", 0) or obj_batch.itemCategory),
+                    "batchNo": obj_batch.no or "",
+                    "quantity": util_round_quantity(getattr(obj_receipt, "checkedCount", 0) or obj_batch.checkedCount or obj_batch.expectedCount),
+                    "unit": util_safe_int(getattr(obj_receipt, "unit", 0) or obj_batch.unit),
+                }
+            ],
         }
 
-    def __append_source_event(self, lst_timeline, obj_batch, obj_receipt, n_timestamp):
-        str_event_id = "%s-%s-%s" % (ETraceEventTypeCode.RECEIPT, obj_batch.ref_no or "", obj_batch.no or "")
-        lst_timeline.append({
-            "eventId": str_event_id,
-            "eventTimestamp": util_safe_int(n_timestamp),
-            "eventTypeCode": ETraceEventTypeCode.RECEIPT,
-            "refCategory": util_safe_int(obj_batch.refCategory),
-            "refNo": obj_batch.ref_no or "",
-            "itemNo": getattr(obj_receipt, "item_no", "") or obj_batch.item_no or "",
-            "batchNo": obj_batch.no or "",
-            "quantity": util_round_quantity(getattr(obj_receipt, "checkedCount", 0) or obj_batch.checkedCount or obj_batch.expectedCount),
-            "unit": util_safe_int(getattr(obj_receipt, "unit", 0) or obj_batch.unit),
-            "ownerDepartment": 0,
-            "statusCode": ETraceStatusCode.UNKNOWN,
-        })
-
-    def __append_inventory_graph(self, obj_session, str_batch_no, dict_nodes, dict_edges, lst_timeline):
-        for obj_row in obj_session.query(CTableInventoryRec).filter(CTableInventoryRec.batchNumber == str_batch_no).order_by(CTableInventoryRec.date.asc(), CTableInventoryRec.id.asc()).all():
-            if util_safe_float(obj_row.count) == 0:
-                continue
-            str_node = self.__node_id(ETraceNodeTypeCode.INVENTORY, obj_row.warehouse_no, str_batch_no, obj_row.id)
-            self.__add_node(dict_nodes, str_node, ETraceNodeTypeCode.INVENTORY, obj_row, obj_row.date, ETraceRiskLevelCode.NORMAL)
-            self.__add_edge(dict_edges, self.__batch_node_id(str_batch_no), str_node, ETraceRelationTypeCode.STORED_IN, obj_row.count, obj_row.unit)
-            self.__append_event(
-                lst_timeline,
-                ETraceEventTypeCode.INVENTORY_IN if util_safe_int(obj_row.category) == EInventoryCategory.IN else ETraceEventTypeCode.INVENTORY_OUT,
-                obj_row,
-                obj_row.date,
-                obj_row.ref_no,
-            )
-
-    def __append_quality_graph(self, obj_session, str_batch_no, dict_nodes, dict_edges, lst_timeline):
-        for obj_row in obj_session.query(CTableWarehouseQualityHold).filter(CTableWarehouseQualityHold.batchNumber == str_batch_no).all():
-            str_node = self.__node_id(ETraceNodeTypeCode.QUALITY, obj_row.inspection_no or obj_row.no, str_batch_no, obj_row.id)
-            self.__add_node(dict_nodes, str_node, ETraceNodeTypeCode.QUALITY, obj_row, obj_row.date, ETraceRiskLevelCode.ATTENTION)
-            self.__add_edge(dict_edges, self.__batch_node_id(str_batch_no), str_node, ETraceRelationTypeCode.INSPECTED_BY, obj_row.holdQuantity, obj_row.unit)
-            self.__append_event(lst_timeline, ETraceEventTypeCode.QUALITY_HOLD, obj_row, obj_row.date, obj_row.ref_no)
-
-    def __append_work_order_graph(self, obj_session, str_work_order_no, dict_nodes, dict_edges, str_related_node):
+    def __append_production_step_by_work_order(self, obj_session, str_work_order_no, dict_steps, obj_queue, n_depth):
+        str_work_order_no = str_work_order_no or ""
         if not str_work_order_no:
             return
-        obj_data = obj_session.query(CTableProductionData).filter(CTableProductionData.work_order_no == str_work_order_no).first()
-        str_work_node = self.__node_id(ETraceNodeTypeCode.WORK_ORDER, str_work_order_no, "", 0)
-        self.__add_node(dict_nodes, str_work_node, ETraceNodeTypeCode.WORK_ORDER, obj_data, obj_data.date if obj_data else 0, ETraceRiskLevelCode.NORMAL)
-        self.__add_edge(dict_edges, str_related_node, str_work_node, ETraceRelationTypeCode.CONSUMED_BY, 0, 0)
-
-    def __append_workflow_timeline(self, obj_session, lst_batch_nos, lst_timeline):
-        if not lst_batch_nos:
+        str_step_id = self.__trace_step_id(ETraceStepTypeCode.PRODUCTION, str_work_order_no, "")
+        if str_step_id in dict_steps:
             return
-        for obj_row in obj_session.query(CTableWorkflowTaskState).filter(CTableWorkflowTaskState.batchNumber.in_(lst_batch_nos)).all():
-            self.__append_event(lst_timeline, ETraceEventTypeCode.TASK, obj_row, obj_row.updateTime or obj_row.creationTime or obj_row.dueTimestamp, obj_row.ref_no)
+        lst_inputs = self.__query_inputs_by_work_order(obj_session, str_work_order_no)
+        lst_outputs = self.__query_outputs_by_work_order(obj_session, str_work_order_no)
+        lst_input_items = [
+            self.__build_trace_step_item(obj_row)
+            for obj_row in lst_inputs
+            if self.__is_trace_core_item_category(util_safe_int(obj_row.category))
+        ]
+        lst_output_items = [
+            self.__build_trace_step_item(obj_row)
+            for obj_row in lst_outputs
+            if self.__is_trace_core_item_category(util_safe_int(obj_row.category))
+        ]
+        if not lst_input_items and not lst_output_items:
+            return
+        obj_data = obj_session.query(CTableProductionData).filter(CTableProductionData.work_order_no == str_work_order_no).first()
+        n_timestamp = self.__production_step_timestamp(obj_data, lst_inputs, lst_outputs)
+        dict_steps[str_step_id] = {
+            "stepId": str_step_id,
+            "stepTypeCode": ETraceStepTypeCode.PRODUCTION,
+            "eventTimestamp": n_timestamp,
+            "refCategory": 0,
+            "refNo": str_work_order_no,
+            "statusCode": ETraceStatusCode.COMPLETE,
+            "riskLevelCode": ETraceRiskLevelCode.NORMAL,
+            "inputItems": lst_input_items,
+            "outputItems": lst_output_items,
+        }
+        for obj_row in list(lst_inputs) + list(lst_outputs):
+            str_batch_no = obj_row.batch_number or ""
+            if str_batch_no and len(dict_steps) < self.MAX_TRACE_STEP_COUNT:
+                obj_queue.append((str_batch_no, n_depth + 1))
+
+    def __query_inputs_by_batch_no(self, obj_session, str_batch_no):
+        return (
+            obj_session.query(CTableProductionDataInput)
+            .filter(CTableProductionDataInput.batch_number == str_batch_no)
+            .all()
+        )
+
+    def __query_outputs_by_batch_no(self, obj_session, str_batch_no):
+        return (
+            obj_session.query(CTableProductionDataOutput)
+            .filter(CTableProductionDataOutput.batch_number == str_batch_no)
+            .all()
+        )
+
+    def __query_inputs_by_work_order(self, obj_session, str_work_order_no):
+        return (
+            obj_session.query(CTableProductionDataInput)
+            .filter(CTableProductionDataInput.work_order_no == str_work_order_no)
+            .order_by(CTableProductionDataInput.time.asc(), CTableProductionDataInput.id.asc())
+            .all()
+        )
+
+    def __query_outputs_by_work_order(self, obj_session, str_work_order_no):
+        return (
+            obj_session.query(CTableProductionDataOutput)
+            .filter(CTableProductionDataOutput.work_order_no == str_work_order_no)
+            .order_by(CTableProductionDataOutput.time.asc(), CTableProductionDataOutput.id.asc())
+            .all()
+        )
+
+    def __build_trace_step_item(self, obj_row):
+        return {
+            "itemNo": obj_row.item_no or "",
+            "itemName": obj_row.item_name or "",
+            "itemCategory": util_safe_int(obj_row.category),
+            "batchNo": obj_row.batch_number or "",
+            "quantity": util_round_quantity(obj_row.count),
+            "unit": util_safe_int(obj_row.unit),
+        }
+
+    def __production_step_timestamp(self, obj_data, lst_inputs, lst_outputs):
+        lst_timestamps = [util_safe_int(getattr(obj_data, "date", 0))]
+        lst_timestamps.extend([util_safe_int(obj_row.time) for obj_row in list(lst_inputs) + list(lst_outputs)])
+        lst_timestamps = [n_timestamp for n_timestamp in lst_timestamps if n_timestamp > 0]
+        return min(lst_timestamps) if lst_timestamps else 0
+
+    def __is_trace_core_item_category(self, n_item_category):
+        return util_safe_int(n_item_category) in [
+            EItemCategory.PM,
+            EItemCategory.INPRODUCT,
+            EItemCategory.PRODUCT,
+        ]
+
+    def __trace_step_id(self, str_step_type_code, str_ref_no, str_batch_no):
+        return "%s:%s:%s" % (str_step_type_code or "", str_ref_no or "", str_batch_no or "")
 
     def __build_trace_state(self, obj_batch, dict_stock, lst_inputs, lst_outputs, lst_holds, n_query_timestamp):
         b_has_connection = bool(obj_batch.ref_no or lst_inputs or lst_outputs or dict_stock.get("currentQuantity"))
@@ -677,70 +688,6 @@ class CTraceabilityService(object):
 
     def __batch_risk_level(self, obj_batch, dict_stock, lst_holds, n_query_timestamp):
         return self.__build_trace_state(obj_batch, dict_stock, [], [], lst_holds, n_query_timestamp).get("riskLevelCode")
-
-    def __add_batch_node(self, dict_nodes, obj_batch, str_risk_level_code):
-        if not obj_batch or not obj_batch.no:
-            return
-        str_node = self.__batch_node_id(obj_batch.no)
-        dict_nodes[str_node] = {
-            "nodeId": str_node,
-            "nodeTypeCode": ETraceNodeTypeCode.BATCH,
-            "refCategory": util_safe_int(obj_batch.refCategory),
-            "refNo": obj_batch.ref_no or "",
-            "itemNo": obj_batch.item_no or "",
-            "batchNo": obj_batch.no or "",
-            "quantity": util_round_quantity(obj_batch.checkedCount or obj_batch.expectedCount),
-            "unit": util_safe_int(obj_batch.unit),
-            "statusCode": ETraceStatusCode.UNKNOWN,
-            "riskLevelCode": str_risk_level_code or ETraceRiskLevelCode.NORMAL,
-            "eventTimestamp": util_safe_int(obj_batch.date or obj_batch.creationTime),
-        }
-
-    def __add_node(self, dict_nodes, str_node_id, str_node_type_code, obj_row, n_timestamp, str_risk_level_code):
-        if str_node_id in dict_nodes:
-            return
-        dict_nodes[str_node_id] = {
-            "nodeId": str_node_id,
-            "nodeTypeCode": str_node_type_code,
-            "refCategory": util_safe_int(getattr(obj_row, "refCategory", 0)),
-            "refNo": getattr(obj_row, "ref_no", "") or getattr(obj_row, "work_order_no", "") or "",
-            "itemNo": getattr(obj_row, "item_no", "") or "",
-            "batchNo": getattr(obj_row, "batchNumber", "") or getattr(obj_row, "batch_number", "") or "",
-            "quantity": util_round_quantity(getattr(obj_row, "count", 0) or getattr(obj_row, "holdQuantity", 0)),
-            "unit": util_safe_int(getattr(obj_row, "unit", 0)),
-            "statusCode": ETraceStatusCode.UNKNOWN,
-            "riskLevelCode": str_risk_level_code or ETraceRiskLevelCode.NORMAL,
-            "eventTimestamp": util_safe_int(n_timestamp),
-        }
-
-    def __add_edge(self, dict_edges, str_from, str_to, str_relation_type_code, f_quantity, n_unit):
-        if not str_from or not str_to or str_from == str_to:
-            return
-        str_edge = "%s>%s>%s" % (str_from, str_relation_type_code, str_to)
-        dict_edges[str_edge] = {
-            "edgeId": str_edge,
-            "fromNodeId": str_from,
-            "toNodeId": str_to,
-            "relationTypeCode": str_relation_type_code,
-            "quantity": util_round_quantity(f_quantity),
-            "unit": util_safe_int(n_unit),
-        }
-
-    def __append_event(self, lst_timeline, str_event_type_code, obj_row, n_timestamp, str_ref_no):
-        str_event_id = "%s-%s-%s" % (str_event_type_code, util_safe_int(getattr(obj_row, "id", 0)), util_safe_int(n_timestamp))
-        lst_timeline.append({
-            "eventId": str_event_id,
-            "eventTimestamp": util_safe_int(n_timestamp),
-            "eventTypeCode": str_event_type_code,
-            "refCategory": util_safe_int(getattr(obj_row, "refCategory", 0)),
-            "refNo": str_ref_no or getattr(obj_row, "ref_no", "") or getattr(obj_row, "work_order_no", "") or "",
-            "itemNo": getattr(obj_row, "item_no", "") or "",
-            "batchNo": getattr(obj_row, "batchNumber", "") or getattr(obj_row, "batch_number", "") or "",
-            "quantity": util_round_quantity(getattr(obj_row, "count", 0) or getattr(obj_row, "holdQuantity", 0) or getattr(obj_row, "processedQuantity", 0)),
-            "unit": util_safe_int(getattr(obj_row, "unit", 0)),
-            "ownerDepartment": util_safe_int(getattr(obj_row, "ownerDepartment", 0)),
-            "statusCode": str(util_safe_int(getattr(obj_row, "taskStatus", 0))) if getattr(obj_row, "taskStatus", 0) else ETraceStatusCode.UNKNOWN,
-        })
 
     def __build_summary(self, lst_records):
         n_total = len(lst_records)
@@ -812,13 +759,6 @@ class CTraceabilityService(object):
             ETraceStatusCode.UNKNOWN: 1,
             ETraceStatusCode.COMPLETE: 2,
         }.get(str_trace_status_code, 3)
-
-    def __batch_node_id(self, str_batch_no):
-        return "batch:%s" % (str_batch_no or "")
-
-    def __node_id(self, str_node_type_code, str_ref_no, str_batch_no, n_id):
-        return "%s:%s:%s:%s" % (str_node_type_code, str_ref_no or "", str_batch_no or "", util_safe_int(n_id))
-
 
 class CTraceabilityDashboard(object):
     def get(self, str_timezone="", str_id=""):

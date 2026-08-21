@@ -11,6 +11,17 @@
 3. 庫存數字統一使用 Warehouse 庫存快照共用邏輯，不另行重算。
 4. BOM 關聯只回傳已能由 BOM 資料表確認的關係，不推測未建立的 BOM。
 5. 後端回傳 enum code；前端負責中文與多國語言顯示。
+6. `masterTasks[]` 僅代表 read-only 主檔維護建議，不是 workflow task，不設定下一步轉交部門。
+
+## 工程師回覆
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| 第一版欄位範圍 | 已將流程收斂為目前 `ItemCenterScreen` 需要的 KPI、分類摘要、品項清單與 read-only 維護建議；不再產生暫未使用的最新批號、最新活動時間、關聯單據、下一步負責部門或處理期限。 |
+| `attention` / `missing_required_data` | 第一版整合為 `masterStatusCode=maintenance_needed`，差異改由 `maintenanceRiskCode` 或 `masterTasks[].taskTypeCode` 表示。 |
+| `summary` 統計 | `attentionItemCount` 與 `missingRequiredDataCount` 整合為 `maintenanceItemCount`。 |
+| `masterTasks` 定位 | `masterTasks[]` 是畫面右側「主資料待辦」的 read-only 維護建議，不建立 workflow、不寫入資料表、不指定 `ownerDepartment`。 |
+| `bomRoleCode` | 判斷來源維持 BOM 相關資料表；定義需與 `item_center_proposal.md` 的「6.1 bomRoleCode 詳細說明」一致。 |
 
 ## 2. GET `/api/v2/items/dashboard`
 
@@ -63,39 +74,33 @@
   - `bomRoleCode`
   - `bomCount`
 
-### Step 5：補充近期批號與活動時間
-
-- 從 `batch_number` 依 `item_no` 取得最新批號。
-- 從 `inventory_record` 取得最新庫存活動時間。
-- 取主檔建立時間、批號建立時間、庫存活動時間與 BOM 關聯時間中的最大值作為 `latestActivityTimestamp`。
-
-### Step 6：判斷主檔狀態與維護風險
+### Step 5：判斷主檔狀態與維護風險
 
 建議規則如下，待工程師確認後實作：
 
 | 條件 | `masterStatusCode` | `maintenanceRiskCode` |
 |---|---|---|
-| 缺少 `unitWarehouse` 且此品項需庫存管理 | `missing_required_data` | `missing_unit` |
-| 製成品或在製品缺少 BOM 關聯 | `attention` | `missing_bom` |
-| 原料、物料、膠捲無庫存訊號且無近期批號 | `attention` | `missing_stock_signal` |
+| 缺少 `unitWarehouse` 且此品項需庫存管理 | `maintenance_needed` | `missing_unit` |
+| 製成品或在製品缺少 BOM 關聯 | `maintenance_needed` | `missing_bom` |
+| 原料、物料、膠捲無庫存訊號且無近期批號 | `maintenance_needed` | `missing_stock_signal` |
 | 無上述風險 | `ready` | `normal` |
 
-### Step 7：套用篩選、排序與分頁
+### Step 6：套用篩選、排序與分頁
 
 - 套用 query 條件。
 - 排序建議：
-  1. `masterStatusCode=missing_required_data`
-  2. `masterStatusCode=attention`
+  1. `masterStatusCode=maintenance_needed`
   3. 料品品項類別順序：原料、物料、膠捲、在製品、製成品、貨品、其他
-  4. `latestActivityTimestamp` 由新到舊
-  5. `itemNo` 由小到大
+  4. `itemNo` 由小到大
 - 套用分頁。
 
-### Step 8：建立 `summary`、`categorySummary` 與 `masterTasks`
+### Step 7：建立 `summary`、`categorySummary` 與 `masterTasks`
 
 - `summary` 由篩選前/後資料彙總產生，需與 API 文件欄位一致。
+  - `summary.maintenanceItemCount` 統計 `masterStatusCode=maintenance_needed` 的品項數。
 - `categorySummary` 依 `itemCategory` 彙總。
-- `masterTasks` 由 Step 6 的維護風險產生 read-only 建議事項。
+- `masterTasks` 由 Step 5 的維護風險產生 read-only 建議事項，只回傳 `taskId`、`itemNo`、`taskTypeCode`、`riskLevelCode`。
+- 不回傳 `ownerDepartment`、`refCategory`、`refNo`、`dueTimestamp`，避免把主檔維護訊號誤解為正式 workflow task。
 
 ## 3. GET `/api/v2/items/{item_no}/detail`
 
@@ -126,14 +131,10 @@
 - 只回傳近期必要筆數，建議最多 20 筆。
 - 庫存數量與風險等級由 Warehouse / Batch 共用規則補充。
 
-### Step 6：建立關聯單據清單
-
-- 從 `batch_number`、`inventory_record`、BOM 關聯資料建立 read-only 文件摘要。
-- 僅回傳已確認存在的 `refCategory`、`refNo` 與日期。
-
-### Step 7：建立主檔待維護事項
+### Step 6：建立主檔待維護事項
 
 - 使用 dashboard 同一套規則建立 `masterTasks[]`，避免清單與 detail 顯示不一致。
+- `masterTasks[]` 只回傳 read-only 維護建議，不回傳下一步負責部門或處理期限。
 
 ## 4. 效能與重構建議
 
@@ -148,7 +149,7 @@
 | 項目 | 需確認內容 | 工程師回覆 |
 |---|---|---|
 | 停用狀態來源 | 現有 `material`、`inproduct`、`product`、`goods` 是否有可判斷 inactive 的欄位或需新增欄位。 |目前暫不規劃設計停用／啟用功能。|
-| 料品重複 no | 若同一 `item_no` 出現在多張主檔表，是否視為資料異常。 |請列出並說明主檔表所包含的資料表清單。|
-| 製成品 / 在製品 BOM 必要性 | 第一版是否將缺 BOM 視為 `attention`，或只作一般資訊缺口。 |需進一步釐清 attention、missing_required_data的差異，才能提供正確的回覆。|
-| 原料庫存訊號 | 原料、物料、膠捲沒有庫存與近期批號時，是否需要列入 `masterTasks[]`。 |需進一步釐清 masterTasks 欄位在回傳時所包含的資料內容，才能提供正確的回覆。|
-| 部門 code | `masterTasks[].ownerDepartment` 對研發、倉庫、生管、採購的對應 code 是否已有正式定義。 |需進一步釐清 masterTasks 欄位在回傳時所包含的資料內容，才能提供正確的回覆。|
+| 料品重複 no | 若同一 `item_no` 出現在多張主檔表，是否視為資料異常。 |主檔候選來源包含 `material`、`inproduct`、`product`、`goods`；若同一 `item_no` 出現在多張主檔表，建議視為資料異常並列入工程師確認，不由 API 自行合併推測。|
+| 製成品 / 在製品 BOM 必要性 | 第一版是否將缺 BOM 視為維護訊號，或只作一般資訊缺口。 |第一版不再區分 `attention` 與 `missing_required_data`，統一以 `masterStatusCode=maintenance_needed` 表示待維護，並以 `maintenanceRiskCode=missing_bom` 說明原因。|
+| 原料庫存訊號 | 原料、物料、膠捲沒有庫存與近期批號時，是否需要列入 `masterTasks[]`。 |可列入 read-only `masterTasks[]` 作為維護建議，但不建立 workflow task，也不回傳下一步轉交部門。|
+| 部門 code | `masterTasks[].ownerDepartment` 對研發、倉庫、生管、採購的對應 code 是否已有正式定義。 |第一版已移除 `masterTasks[].ownerDepartment`，避免將維護建議誤解為正式流程轉交。|

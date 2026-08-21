@@ -6,6 +6,17 @@
    - 請說明為何僅有料品品項資訊時，仍需建立 task 與設定下一步轉交部門。並請舉例說明 masterTasks 欄位在回傳時所包含的資料內容。   
 3. 請詳細說明 bomRoleCode 各數值的定義。
 
+## 工程師回覆
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| 第一版欄位範圍 | 已依目前 `ItemCenterScreen` 畫面收斂欄位，只保留 KPI、分類摘要、品項卡片清單與右側主檔維護建議需要的資料。移除暫未使用的文件摘要、下一步負責部門、來源單據與處理期限等欄位。 |
+| `attention` 與 `missing_required_data` | 第一版不再拆成兩個 `masterStatusCode`。兩者本質皆為「主檔待維護」訊號，只是風險原因不同；因此整合為 `masterStatusCode=maintenance_needed`，並以 `maintenanceRiskCode` 表示原因，例如 `missing_unit`、`missing_bom`、`missing_stock_signal`。 |
+| `summary.attentionItemCount` 與 `summary.missingRequiredDataCount` | 已整合為單一欄位 `summary.maintenanceItemCount`，對應畫面 KPI「待維護」。 |
+| `items[].latestBatchNo`、`items[].latestActivityTimestamp` | 目前畫面未直接使用，已自 dashboard API 移除。若後續需要近期批號或活動時間，應由批號中心或品項 detail 延伸欄位再行規劃。 |
+| `masterTasks` 定位 | 第一版不建立 workflow task，也不回傳下一步轉交部門。`masterTasks[]` 僅作為 read-only UI 維護建議，供右側「主資料待辦」面板顯示；欄位收斂為 `taskId`、`itemNo`、`taskTypeCode`、`riskLevelCode`。前端依 enum 與 item 資訊組合顯示文字。 |
+| `bomRoleCode` 定義 | 已新增「6.1 bomRoleCode 詳細說明」，說明各 code 對應的 BOM 語意與判斷來源。 |
+
 # ItemCenterScreen API 提案
 
 > Status: API Proposal / Pending Engineer Review  
@@ -16,7 +27,7 @@
 
 ## 1. 畫面定位
 
-「品項中心」第一版定位為料品主資料 read-only 工作區，協助管理者快速確認原料、物料、膠捲、在製品、製成品與貨品的主檔完整度、庫存訊號、BOM 關聯、批號管理與待維護事項。
+「品項中心」第一版定位為料品主資料 read-only 工作區，協助管理者快速確認原料、物料、膠捲、在製品、製成品與貨品的主檔完整度、庫存訊號、BOM 關聯與待維護事項。
 
 此畫面不取代 `WarehouseOverviewScreen`、`BatchCenterScreen`、`BOMCenterScreen` 或 `RDCostWorkspaceScreen`：
 
@@ -46,7 +57,7 @@
 | `itemCategory` | Integer | No | 料品品項類別 code。 |
 | `itemSubCategory` | Integer | No | 料品品項子類別 code。 |
 | `itemType` | Integer | No | 品項型態 code。 |
-| `masterStatusCode` | String | No | 主檔狀態 code；第一版建議支援 `ready`、`attention`、`missing_required_data`、`inactive`、`unknown`。 |
+| `masterStatusCode` | String | No | 主檔狀態 code；第一版建議支援 `ready`、`maintenance_needed`、`inactive`、`unknown`。 |
 | `hasStock` | Boolean | No | 是否只查詢目前仍有庫存的料品。 |
 | `hasBom` | Boolean | No | 是否只查詢已關聯 BOM 或被 BOM 使用的料品。 |
 | `start` | Integer | No | 分頁起點，預設 0；負值視為 0。 |
@@ -64,8 +75,7 @@
     "totalItemCount": "Integer",
     "activeItemCount": "Integer",
     "finishedGoodsCount": "Integer",
-    "attentionItemCount": "Integer",
-    "missingRequiredDataCount": "Integer"
+    "maintenanceItemCount": "Integer"
   },
   "categorySummary": [
     {
@@ -73,7 +83,7 @@
       "itemCount": "Integer",
       "stockItemCount": "Integer",
       "bomLinkedItemCount": "Integer",
-      "attentionItemCount": "Integer"
+      "maintenanceItemCount": "Integer"
     }
   ],
   "items": [
@@ -92,9 +102,7 @@
       "currentQuantity": "Float",
       "batchCount": "Integer",
       "bomRoleCode": "String",
-      "bomCount": "Integer",
-      "latestBatchNo": "String",
-      "latestActivityTimestamp": "Integer"
+      "bomCount": "Integer"
     }
   ],
   "masterTasks": [
@@ -102,11 +110,7 @@
       "taskId": "String",
       "itemNo": "String",
       "taskTypeCode": "String",
-      "riskLevelCode": "String",
-      "ownerDepartment": "Integer",
-      "refCategory": "Integer",
-      "refNo": "String",
-      "dueTimestamp": "Integer"
+      "riskLevelCode": "String"
     }
   ],
   "total": "Integer",
@@ -123,13 +127,12 @@
 | `summary.totalItemCount` | Integer | 套用篩選前可納入品項中心的料品總數。 | `material`、`inproduct`、`product`、`goods` |
 | `summary.activeItemCount` | Integer | 主檔可被業務流程引用的料品數；若現有資料表無停用欄位，第一版以可查得主檔者視為 active。 | 主檔彙總 |
 | `summary.finishedGoodsCount` | Integer | `itemCategory=5` 的製成品數。 | `product` |
-| `summary.attentionItemCount` | Integer | `masterStatusCode=attention` 或 `missing_required_data` 的料品數。 | 後端規則 |
-| `summary.missingRequiredDataCount` | Integer | 缺少必要主檔欄位或必要關聯的料品數。 | 後端規則 |
+| `summary.maintenanceItemCount` | Integer | `masterStatusCode=maintenance_needed` 的料品數，對應畫面 KPI「待維護」。 | 後端規則 |
 | `categorySummary[].itemCategory` | Integer | 料品品項類別 code。 | `EItemCategory` |
 | `categorySummary[].itemCount` | Integer | 此品項類別的料品數。 | 主檔彙總 |
 | `categorySummary[].stockItemCount` | Integer | 此品項類別目前仍有庫存的料品數。 | Warehouse 庫存快照共用邏輯 |
 | `categorySummary[].bomLinkedItemCount` | Integer | 此品項類別已與 BOM 或產品規格建立關聯的料品數。 | `bom_item`、`product_spec`、`product_bom_spec`、`inproduct_bom_spec` |
-| `categorySummary[].attentionItemCount` | Integer | 此品項類別需要維護或注意的料品數。 | 後端規則 |
+| `categorySummary[].maintenanceItemCount` | Integer | 此品項類別需要維護的料品數，計算來源為 `masterStatusCode=maintenance_needed`。 | 後端規則 |
 | `items[].itemNo` | String | 料品 no。 | 各料品主檔 |
 | `items[].itemName` | String | 料品名稱。 | 各料品主檔 |
 | `items[].itemCategory` | Integer | 料品品項類別 code。 | `EItemCategory` |
@@ -138,23 +141,17 @@
 | `items[].unitShipping` | Integer | 出貨或採購顯示單位 code；前端負責顯示文字。 | 各料品主檔 |
 | `items[].unitWarehouse` | Integer | 倉庫庫存單位 code；前端負責顯示文字。 | 各料品主檔 |
 | `items[].unitProduct` | Integer | 生產用量單位 code；前端負責顯示文字。 | 各料品主檔 |
-| `items[].masterStatusCode` | String | 主檔狀態 code。 | ready、attention、missing_required_data、inactive、unknown |
+| `items[].masterStatusCode` | String | 主檔狀態 code。 | ready、maintenance_needed、inactive、unknown |
 | `items[].maintenanceRiskCode` | String | 主檔主要維護風險 code。 | normal、missing_unit、missing_bom、missing_stock_signal、inactive、unknown |
 | `items[].hasStock` | Boolean | 此料品目前是否仍有庫存量大於 0。 | Warehouse 庫存快照共用邏輯 |
 | `items[].currentQuantity` | Float | 此料品目前庫存數量總和，取至小數點第 2 位；混合單位風險由前端以單位 code 輔助呈現。 | Warehouse 庫存快照共用邏輯 |
 | `items[].batchCount` | Integer | 此料品目前仍有庫存或近期建立的不重複批號數。 | `batch_number`、庫存快照 |
 | `items[].bomRoleCode` | String | 此料品在 BOM 關聯中的角色 code。 | `input_material`、`wip_output`、`finished_good`、`none`、`unknown` |
 | `items[].bomCount` | Integer | 此料品已關聯或被使用的 BOM / 產品規格數。 | BOM 相關資料表 |
-| `items[].latestBatchNo` | String | 此料品最新批號；無批號時回傳空字串。 | `batch_number.no` |
-| `items[].latestActivityTimestamp` | Integer | 此料品最新批號、庫存或 BOM 關聯活動時間。 | 批號、庫存、BOM 資料彙總 |
-| `masterTasks[].taskId` | String | 主檔待維護事項識別值，供前端列表 key 使用。 | 後端組合 |
+| `masterTasks[].taskId` | String | 主檔維護建議識別值，供前端列表 key 使用；此欄位不是 workflow task id。 | 後端組合 |
 | `masterTasks[].itemNo` | String | 待維護事項對應料品 no。 | 後端規則 |
-| `masterTasks[].taskTypeCode` | String | 待維護事項類型 code。 | missing_unit、missing_bom、missing_stock_signal、inactive_review |
+| `masterTasks[].taskTypeCode` | String | 維護建議類型 code。 | missing_unit、missing_bom、missing_stock_signal、inactive_review |
 | `masterTasks[].riskLevelCode` | String | 待維護事項風險等級 code。 | normal、attention、high_risk |
-| `masterTasks[].ownerDepartment` | Integer | 建議下一步負責部門 code；無法判斷時回傳 0。 | 後端規則或 workflow |
-| `masterTasks[].refCategory` | Integer | 待維護事項來源單據類別；非單據型事項回傳 0。 | 後端規則 |
-| `masterTasks[].refNo` | String | 待維護事項來源單號；非單據型事項回傳空字串。 | 後端規則 |
-| `masterTasks[].dueTimestamp` | Integer | 建議處理期限 UTC timestamp；無明確期限時回傳 0。 | 後端規則 |
 | `total` | Integer | 套用篩選後的料品筆數。 |  |
 | `start` | Integer | 本次分頁起點。 |  |
 | `count` | Integer | 本次回傳筆數。 |  |
@@ -209,21 +206,11 @@
       "riskLevelCode": "String"
     }
   ],
-  "relatedDocuments": [
-    {
-      "refCategory": "Integer",
-      "refNo": "String",
-      "documentTypeCode": "String",
-      "documentTimestamp": "Integer"
-    }
-  ],
   "masterTasks": [
     {
       "taskId": "String",
       "taskTypeCode": "String",
-      "riskLevelCode": "String",
-      "ownerDepartment": "Integer",
-      "dueTimestamp": "Integer"
+      "riskLevelCode": "String"
     }
   ]
 }
@@ -242,7 +229,7 @@
 | `item.unitShipping` | Integer | 出貨或採購顯示單位 code。 | 各料品主檔 |
 | `item.unitWarehouse` | Integer | 倉庫庫存單位 code。 | 各料品主檔 |
 | `item.unitProduct` | Integer | 生產用量單位 code。 | 各料品主檔 |
-| `item.masterStatusCode` | String | 主檔狀態 code。 | ready、attention、missing_required_data、inactive、unknown |
+| `item.masterStatusCode` | String | 主檔狀態 code。 | ready、maintenance_needed、inactive、unknown |
 | `item.maintenanceRiskCode` | String | 主檔主要維護風險 code。 | normal、missing_unit、missing_bom、missing_stock_signal、inactive、unknown |
 | `item.creationTime` | Integer | 主檔建立時間 UTC timestamp；無資料時回傳 0。 | 各料品主檔 |
 | `inventorySummary.hasStock` | Boolean | 此料品目前是否仍有庫存量大於 0。 | Warehouse 庫存快照共用邏輯 |
@@ -265,25 +252,28 @@
 | `recentBatches[].unit` | Integer | 批號單位 code。 | `batch_number.unit` |
 | `recentBatches[].validDate` | Integer | 批號有效期限 UTC timestamp。 | `batch_number.validDate` |
 | `recentBatches[].riskLevelCode` | String | 批號風險等級 code。 | normal、attention、high_risk |
-| `relatedDocuments[].refCategory` | Integer | 關聯單據類別 code。 | 已確認資料來源 |
-| `relatedDocuments[].refNo` | String | 關聯單據 no。 | 已確認資料來源 |
-| `relatedDocuments[].documentTypeCode` | String | 關聯單據類型 code。 | batch、inventory、bom、purchase、production、unknown |
-| `relatedDocuments[].documentTimestamp` | Integer | 關聯單據日期 UTC timestamp。 | 已確認資料來源 |
-| `masterTasks[].taskId` | String | 主檔待維護事項識別值。 | 後端組合 |
-| `masterTasks[].taskTypeCode` | String | 待維護事項類型 code。 | missing_unit、missing_bom、missing_stock_signal、inactive_review |
+| `masterTasks[].taskId` | String | 主檔維護建議識別值；此欄位不是 workflow task id。 | 後端組合 |
+| `masterTasks[].taskTypeCode` | String | 維護建議類型 code。 | missing_unit、missing_bom、missing_stock_signal、inactive_review |
 | `masterTasks[].riskLevelCode` | String | 待維護事項風險等級 code。 | normal、attention、high_risk |
-| `masterTasks[].ownerDepartment` | Integer | 建議下一步負責部門 code；無法判斷時回傳 0。 | 後端規則或 workflow |
-| `masterTasks[].dueTimestamp` | Integer | 建議處理期限 UTC timestamp；無明確期限時回傳 0。 | 後端規則 |
 
 ## 6. Enum 建議
 
 | Enum | Values |
 |---|---|
-| `masterStatusCode` | `ready`、`attention`、`missing_required_data`、`inactive`、`unknown` |
+| `masterStatusCode` | `ready`、`maintenance_needed`、`inactive`、`unknown` |
 | `maintenanceRiskCode` | `normal`、`missing_unit`、`missing_bom`、`missing_stock_signal`、`inactive`、`unknown` |
 | `bomRoleCode` | `input_material`、`wip_output`、`finished_good`、`none`、`unknown` |
 | `taskTypeCode` | `missing_unit`、`missing_bom`、`missing_stock_signal`、`inactive_review` |
-| `documentTypeCode` | `batch`、`inventory`、`bom`、`purchase`、`production`、`unknown` |
+
+### 6.1 bomRoleCode 詳細說明
+
+| bomRoleCode | 定義 | 判斷來源 | 使用情境 |
+|---|---|---|---|
+| `input_material` | 此料品被 BOM 或產品規格作為投入料使用。 | `bom_item`、`product_bom_spec`、`inproduct_bom_spec` 可確認此料品為子階或投入項。 | 原料、物料、膠捲常見；表示此料品會被 BOM / 生產配方引用。 |
+| `wip_output` | 此料品為在製品，且可由 BOM 或產品規格產出或被產品規格引用。 | `inproduct`、`product_spec`、`inproduct_bom_spec` 可確認此料品為在製品關聯。 | 半成品、拌料、餡料等在製品主檔。 |
+| `finished_good` | 此料品為製成品，且為 BOM / 產品規格的成品端。 | `product`、`product_spec`、`product_bom_spec` 可確認此料品為製成品關聯。 | 成品、組裝品或可銷售產品。 |
+| `none` | 目前查無 BOM 或產品規格關聯。 | BOM 相關資料表查無關聯。 | 用於提醒前端顯示「尚未關聯 BOM」或由維護風險判斷是否需要處理。 |
+| `unknown` | 資料存在但無法由目前已確認規則判定 BOM 角色。 | 主檔或 BOM 關聯資料不足。 | 避免後端推測不存在的 BOM 關係。 |
 
 ## 7. Database Tables Used
 
@@ -308,5 +298,5 @@
 1. 第一版 `items[]` 應以資料表可確認的主檔資料為準，不推測不存在的品項。
 2. 若 `material.category` 對應 `EItemCategory.PM / MA / AF`，後端需保持原始 code；中文類別名稱由前端轉換。
 3. `hasStock`、`currentQuantity`、`batchCount` 應使用 Warehouse 庫存快照共用邏輯，避免與 Warehouse / Batch Center 數字不一致。
-4. `masterTasks[]` 是後端依缺漏規則產生的 read-only 維護建議，不代表 workflow task 寫入或待辦建立。
+4. `masterTasks[]` 是後端依缺漏規則產生的 read-only 維護建議，不代表 workflow task 寫入、待辦建立或部門轉交。
 5. 若工程師確認現有主檔無停用狀態欄位，`inactive` 可保留 enum 定義但第一版不回傳。

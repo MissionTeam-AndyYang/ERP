@@ -91,7 +91,7 @@
         gap: 14px;
       }
       .kpis {
-        grid-template-columns: repeat(5, minmax(150px, 1fr));
+        grid-template-columns: repeat(4, minmax(150px, 1fr));
         margin-bottom: 16px;
       }
       .card {
@@ -202,7 +202,6 @@
           <div class="card"><div class="label">可用主檔</div><div class="value">410</div></div>
           <div class="card"><div class="label">製成品</div><div class="value">86</div></div>
           <div class="card"><div class="label">需注意</div><div class="value">18</div></div>
-          <div class="card"><div class="label">必要資料缺漏</div><div class="value">6</div></div>
         </section>
 
         <section class="layout">
@@ -224,7 +223,6 @@
                     <th>主檔狀態</th>
                     <th>庫存 / 批號</th>
                     <th>BOM</th>
-                    <th>最新活動</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,23 +232,20 @@
                     <td><span class="badge ok">ready</span></td>
                     <td>1,240 / 6 批</td>
                     <td>finished_good / 1</td>
-                    <td>2026-08-18</td>
                   </tr>
                   <tr>
                     <td>RM-CORN-001</td>
                     <td>冷凍玉米粒<br><span class="label">原料</span></td>
-                    <td><span class="badge warn">attention</span></td>
+                    <td><span class="badge warn">maintenance_needed</span></td>
                     <td>320 / 2 批</td>
                     <td>input_material / 8</td>
-                    <td>2026-08-17</td>
                   </tr>
                   <tr>
                     <td>PK-BAG-010</td>
                     <td>耐熱殺菌袋<br><span class="label">物料</span></td>
-                    <td><span class="badge danger">missing_required_data</span></td>
+                    <td><span class="badge danger">maintenance_needed</span></td>
                     <td>0 / 0 批</td>
                     <td>input_material / 4</td>
-                    <td>2026-08-12</td>
                   </tr>
                 </tbody>
               </table>
@@ -262,7 +257,7 @@
             <div class="task">
               <strong>PK-BAG-010 缺少倉庫單位</strong>
               <span class="badge danger">missing_unit</span>
-              <span class="label">ownerDepartment: 採購 / 倉庫確認後由前端轉譯</span>
+              <span class="label">read-only 維護建議，不代表 workflow task</span>
             </div>
             <div class="task">
               <strong>WIP-SAUCE-008 缺少有效 BOM 關聯</strong>

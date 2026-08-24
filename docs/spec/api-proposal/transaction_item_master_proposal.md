@@ -1,3 +1,43 @@
+# 工程師提問
+1. 將/api/v2/item-trade-master/xxx更名為/api/v2/transitems/xxx
+2. 目前規劃中不顯示公司交易角色 (companyRoleCode)，請移除相關欄位及畫面設計
+3. 交易品項第一版設計請以 trans_items1 為主，後續再行評估並考量 trans_items2 的設計呈現
+4. 針對 共用 Query Parameters / Header 
+   - 移除 dataQualityCode 欄位
+   - transactionItemSourceCode 更名 transItemType
+   - transactionCategory 更名 transItemCategory
+   - hasMaterialItem 更名 hasLinkedItem
+
+5. 針對 /api/v2/item-trade-master/dashboard
+   - linkedMaterialItemCount 更名 linkedItemCount
+   - transactionItems[].transactionItemxxx 更名 transactionItems[].transItemxxx
+   - transactionItems[].transactionxxx 更名 transactionItems[].transItemxxx
+   - transactionItems[].transactionItemSourceCode 更名 transactionItems[].transItemType
+   - transactionItems[].materialItemxxx 更名 transactionItems[].itemxxx 
+   - 移除 companies[].paymentSummaryCode 欄位，並新增公司帳款(收款/付款)相關資訊，例如：現結／月結。若為月結，需包含結帳日與帳款天數 (參照資料表company.received_id與company.paid_id)
+   - 請評估 dataQualityIssues 欄位資料是否可拆分存放，例如以 transactionItems[].dataQualityCode 與 companies[].dataQualityCode 方式呈現，並確認是否能達到相同效果
+   
+6. 針對 /api/v2/item-trade-master/companies/{company_no}/detail
+    - 移除 company[].paymentSummaryCode 欄位，並新增公司帳款(收款/付款)相關資訊，例如：現結／月結。若為月結，需包含結帳日與帳款天數 (參照資料表company.received_id與company.paid_id)
+   - transactionItems[].transactionItemxxx 更名 transactionItems[].transItemxxx
+   - transactionItems[].transactionxxx 更名 transactionItems[].transItemxxx
+   - transactionItems[].transactionItemSourceCode 更名 transactionItems[].transItemType
+   - transactionItems[].materialItemxxx 更名 transactionItems[].itemxxx 
+   - contracts[].transactionItemxxx 更名 transactionItems[].transItemxxx
+   - transactionItems[] 與 contracts[] 的資料結構相近，是否可合併為單一欄位？或在設計上是否有其他需要考量的因素？
+   - 新增 transactionItems[].transItemCategory欄位: 交易品項樣式 code；依來源表分別使用 trans_items.category 或 trans_items2.category
+
+7. 針對 /api/v2/item-trade-master/transaction-items/{transaction_item_no}/detail
+    - 將 URI 更名為 /api/v2/transitems/transitems/{transaction_item_no}/detail
+   - transactionItems.transactionItemxxx 更名 transactionItems[].transItemxxx
+   - transactionItems.transactionxxx 更名 transactionItems[].transItemxxx
+   - transactionItems.transactionItemSourceCode 更名 transactionItems[].transItemType
+   - transactionItems.materialItemxxx 更名 transactionItems[].itemxxx 
+   - tradeTerms 更名 contracts
+   - relatedMaterialItem 更名 linkedItems
+   - 請說明 transactionItem.dataQualityCode 與 dataQualityIssues 在定義上的差異，並評估是否僅需保留其中之一
+
+
 # Transaction Item Master API Proposal
 
 > Status: API Proposal / Pending Engineer Review  

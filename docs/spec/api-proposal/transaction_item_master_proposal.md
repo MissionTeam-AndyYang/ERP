@@ -1,3 +1,12 @@
+# 工程師提問V2
+1. 針對 /api/v2/item-trade-master/companies/{company_no}/detail
+  - receivableTerms 更名 receivablePayment ; payableTerms 更名 payablelePayment 
+  - settlementTypeCode 更名 paymentTypeCode
+  - closingDay 更名  paymentDate
+  - accountDays 更名  paymentPeriod
+  - 新增 paymentSource: 收付款方式；現金 (0)、匯款 (1)、支票 (2)
+
+
 # 工程師提問
 1. 將/api/v2/item-trade-master/xxx更名為/api/v2/transitems/xxx
 2. 目前規劃中不顯示公司交易角色 (companyRoleCode)，請移除相關欄位及畫面設計
@@ -50,7 +59,7 @@
 | dataQualityIssues 拆分 | 已移除獨立 `dataQualityIssues[]`。第一版改由 `companies[].dataQualityCode`、`transactionItems[].dataQualityCode` 與 `transItem.dataQualityCode` 表示資料完整度，可達到畫面提示資料缺口的效果，也能避免額外維護一組非資料庫任務的 issue list。 |
 | transactionItems[] 與 contracts[] 是否合併 | 不建議合併。`transactionItems[]` 表示公司目前維護的交易品項主檔摘要；`contracts[]` 表示合約與交易條件清單。兩者雖有部分欄位相似，但生命週期與業務問題不同，因此第一版保留分離。 |
 | detail dataQualityCode 與 dataQualityIssues 差異 | `dataQualityCode` 是該筆公司或交易品項的整體資料完整度狀態；`dataQualityIssues[]` 原本是拆成多筆缺口事件。第一版只保留 `dataQualityCode`，由前端依 enum 顯示對應提示。 |
-
+v
 # Transaction Item Master API Proposal
 
 > Status: API Proposal / Pending Engineer Review  

@@ -2,7 +2,7 @@
 1. 將/api/v2/item-trade-master/xxx更名為/api/v2/transitems/xxx
 2. 目前規劃中不顯示公司交易角色 (companyRoleCode)，請移除相關欄位及畫面設計
 3. 交易品項第一版設計請以 trans_items1 為主，後續再行評估並考量 trans_items2 的設計呈現
-4. 針對 共用 Query Parameters / Header 
+4. 針對 共用 Query Parameters / Header
    - 移除 dataQualityCode 欄位
    - transactionItemSourceCode 更名 transItemType
    - transactionCategory 更名 transItemCategory
@@ -13,16 +13,16 @@
    - transactionItems[].transactionItemxxx 更名 transactionItems[].transItemxxx
    - transactionItems[].transactionxxx 更名 transactionItems[].transItemxxx
    - transactionItems[].transactionItemSourceCode 更名 transactionItems[].transItemType
-   - transactionItems[].materialItemxxx 更名 transactionItems[].itemxxx 
+   - transactionItems[].materialItemxxx 更名 transactionItems[].itemxxx
    - 移除 companies[].paymentSummaryCode 欄位，並新增公司帳款(收款/付款)相關資訊，例如：現結／月結。若為月結，需包含結帳日與帳款天數 (參照資料表company.received_id與company.paid_id)
    - 請評估 dataQualityIssues 欄位資料是否可拆分存放，例如以 transactionItems[].dataQualityCode 與 companies[].dataQualityCode 方式呈現，並確認是否能達到相同效果
-   
+
 6. 針對 /api/v2/item-trade-master/companies/{company_no}/detail
     - 移除 company[].paymentSummaryCode 欄位，並新增公司帳款(收款/付款)相關資訊，例如：現結／月結。若為月結，需包含結帳日與帳款天數 (參照資料表company.received_id與company.paid_id)
    - transactionItems[].transactionItemxxx 更名 transactionItems[].transItemxxx
    - transactionItems[].transactionxxx 更名 transactionItems[].transItemxxx
    - transactionItems[].transactionItemSourceCode 更名 transactionItems[].transItemType
-   - transactionItems[].materialItemxxx 更名 transactionItems[].itemxxx 
+   - transactionItems[].materialItemxxx 更名 transactionItems[].itemxxx
    - contracts[].transactionItemxxx 更名 transactionItems[].transItemxxx
    - transactionItems[] 與 contracts[] 的資料結構相近，是否可合併為單一欄位？或在設計上是否有其他需要考量的因素？
    - 新增 transactionItems[].transItemCategory欄位: 交易品項樣式 code；依來源表分別使用 trans_items.category 或 trans_items2.category
@@ -32,11 +32,24 @@
    - transactionItems.transactionItemxxx 更名 transactionItems[].transItemxxx
    - transactionItems.transactionxxx 更名 transactionItems[].transItemxxx
    - transactionItems.transactionItemSourceCode 更名 transactionItems[].transItemType
-   - transactionItems.materialItemxxx 更名 transactionItems[].itemxxx 
+   - transactionItems.materialItemxxx 更名 transactionItems[].itemxxx
    - tradeTerms 更名 contracts
    - relatedMaterialItem 更名 linkedItems
    - 請說明 transactionItem.dataQualityCode 與 dataQualityIssues 在定義上的差異，並評估是否僅需保留其中之一
 
+## 工程師回覆
+
+| 項目 | 回覆與調整 |
+|---|---|
+| API URI 命名 | 已將本提案正式 API 路徑改為 `/api/v2/transitems/...`。 |
+| 公司交易角色 | 第一版畫面不顯示公司交易角色，已移除 `companyRoleCode` 與相關描述。 |
+| 第一版交易品項範圍 | 第一版以 `trans_items` 為主。工程師提到的 `trans_items1` 依現行資料庫文件理解為 `trans_items`；`trans_items2` 暫列為下一版評估範圍，本版 API 不查詢、不合併、不回傳。 |
+| 共用參數調整 | 已移除 query `dataQualityCode`，並將 `transactionItemSourceCode`、`transactionCategory`、`hasMaterialItem` 分別改為 `transItemType`、`transItemCategory`、`hasLinkedItem`。 |
+| 欄位命名調整 | 已將 `transactionItemxxx` / `transactionxxx` 統一改為 `transItemxxx`，並將 `materialItemxxx` 改為 `itemxxx`。 |
+| 公司帳款資訊 | 已移除 `paymentSummaryCode`，改以 `receivableTerms` 與 `payableTerms` 回傳收款／付款條件；來源分別參照 `company.received_id` 與 `company.paid_id`。 |
+| dataQualityIssues 拆分 | 已移除獨立 `dataQualityIssues[]`。第一版改由 `companies[].dataQualityCode`、`transactionItems[].dataQualityCode` 與 `transItem.dataQualityCode` 表示資料完整度，可達到畫面提示資料缺口的效果，也能避免額外維護一組非資料庫任務的 issue list。 |
+| transactionItems[] 與 contracts[] 是否合併 | 不建議合併。`transactionItems[]` 表示公司目前維護的交易品項主檔摘要；`contracts[]` 表示合約與交易條件清單。兩者雖有部分欄位相似，但生命週期與業務問題不同，因此第一版保留分離。 |
+| detail dataQualityCode 與 dataQualityIssues 差異 | `dataQualityCode` 是該筆公司或交易品項的整體資料完整度狀態；`dataQualityIssues[]` 原本是拆成多筆缺口事件。第一版只保留 `dataQualityCode`，由前端依 enum 顯示對應提示。 |
 
 # Transaction Item Master API Proposal
 
@@ -52,9 +65,9 @@
 
 | View | 主視角 | 本版邊界 |
 |---|---|---|
-| `CompanyMasterView` | 客戶／廠商主檔 | 檢視公司主檔、交易角色、聯絡與帳款摘要、交易品項數與合約摘要。 |
+| `CompanyMasterView` | 客戶／廠商主檔 | 檢視公司主檔、聯絡資訊、收付款條件、交易品項數與合約摘要。 |
 | `MaterialItemMasterView` | 料品品項 | 延續既有 `ItemCenterScreen`，檢視 `material`、`inproduct`、`product`、`goods` 的主檔、庫存訊號、BOM 關聯與維護建議。 |
-| `TransactionItemMasterView` | 交易品項 | 檢視 `trans_items`、`trans_items2` 及其公司、料品與合約交易條件關聯。 |
+| `TransactionItemMasterView` | 交易品項 | 第一版檢視 `trans_items` 及其公司、料品與合約交易條件關聯；`trans_items2` 留待下一版評估。 |
 
 交易品項不應只顯示交易品名與價格，必須同時呈現「客戶／廠商」與「對應料品品項」，才能支援採購、訂購、報價、合約與後續訂單流程的共同理解。
 
@@ -64,9 +77,9 @@
 
 | API | Method | 用途 |
 |---|---|---|
-| `/api/v2/item-trade-master/dashboard` | GET | 查詢客戶／廠商摘要、交易品項清單、交易品項 KPI 與資料缺口摘要。 |
-| `/api/v2/item-trade-master/companies/{company_no}/detail` | GET | 查詢單一客戶／廠商主檔、交易品項、合約與近期交易摘要。 |
-| `/api/v2/item-trade-master/transaction-items/{transaction_item_no}/detail` | GET | 查詢單一交易品項的公司、料品、交易條件、合約來源與資料缺口。 |
+| `/api/v2/transitems/dashboard` | GET | 查詢客戶／廠商摘要、交易品項清單、交易品項 KPI 與資料完整度摘要。 |
+| `/api/v2/transitems/companies/{company_no}/detail` | GET | 查詢單一客戶／廠商主檔、交易品項、合約與帳款條件摘要。 |
+| `/api/v2/transitems/transitems/{transaction_item_no}/detail` | GET | 查詢單一交易品項的公司、料品、交易條件、合約來源與資料完整度。 |
 
 `MaterialItemMasterView` 仍沿用既有 `GET /api/v2/items/dashboard` 與 `GET /api/v2/items/{item_no}/detail`，不在本提案重複定義。
 
@@ -76,17 +89,15 @@
 |---|---|---:|---|
 | `keyword` | String | No | 公司 no、公司簡稱、交易品項 no、交易品項名稱、料品 no、料品名稱或合約 no 關鍵字。 |
 | `companyNo` | String | No | 客戶／廠商 no，對應 `company.no`。 |
-| `companyRoleCode` | String | No | 公司交易角色 code；第一版建議由後端依關聯資料推導 `customer`、`supplier`、`both`、`unknown`。 |
-| `transactionItemSourceCode` | String | No | 交易品項來源 code；`trans_items` 或 `trans_items2`。 |
-| `transactionCategory` | Integer | No | 交易品項樣式 code；依來源表分別使用 `trans_items.category` 或 `trans_items2.category`。 |
-| `hasMaterialItem` | Boolean | No | 是否只顯示已關聯內部料品的交易品項。 |
+| `transItemType` | String | No | 交易品項來源 code；第一版固定以 `trans_items` 為主，保留此參數供前端狀態與後續版本延伸。 |
+| `transItemCategory` | Integer | No | 交易品項樣式 code，對應 `trans_items.category`。 |
+| `hasLinkedItem` | Boolean | No | 是否只顯示已關聯內部料品的交易品項。 |
 | `hasContract` | Boolean | No | 是否只顯示已被合約引用的交易品項。 |
-| `dataQualityCode` | String | No | 資料完整度 code；第一版支援 `ready`、`missing_company`、`missing_material_item`、`missing_contract_price`、`unknown`。 |
 | `start` | Integer | No | 分頁起點，預設 0；負值視為 0。 |
 | `count` | Integer | No | 回傳筆數，預設 50，最大 100。 |
 | `x-timezone` | Header String | No | 前端顯示偏好的 IANA timezone；後端不改寫資料庫 UTC timestamp。 |
 
-## 4. GET `/api/v2/item-trade-master/dashboard`
+## 4. GET `/api/v2/transitems/dashboard`
 
 ### 4.1 Success Response Data
 
@@ -97,9 +108,9 @@
     "companyCount": "Integer",
     "customerCount": "Integer",
     "supplierCount": "Integer",
-    "transactionItemCount": "Integer",
-    "linkedMaterialItemCount": "Integer",
-    "contractLinkedTransactionItemCount": "Integer",
+    "transItemCount": "Integer",
+    "linkedItemCount": "Integer",
+    "contractLinkedTransItemCount": "Integer",
     "dataQualityIssueCount": "Integer"
   },
   "companies": [
@@ -108,27 +119,35 @@
       "companyDisplayName": "String",
       "companyName": "String",
       "businessNo": "String",
-      "companyRoleCode": "String",
-      "transactionItemCount": "Integer",
+      "transItemCount": "Integer",
       "contractCount": "Integer",
       "contactName": "String",
       "contactPhone": "String",
-      "paymentSummaryCode": "String"
+      "receivableTerms": {
+        "settlementTypeCode": "String",
+        "closingDay": "Integer",
+        "accountDays": "Integer"
+      },
+      "payableTerms": {
+        "settlementTypeCode": "String",
+        "closingDay": "Integer",
+        "accountDays": "Integer"
+      },
+      "dataQualityCode": "String"
     }
   ],
   "transactionItems": [
     {
-      "transactionItemNo": "String",
-      "transactionItemName": "String",
-      "transactionItemSourceCode": "String",
-      "transactionCategory": "Integer",
-      "transactionAttribute": "Integer",
+      "transItemNo": "String",
+      "transItemName": "String",
+      "transItemType": "String",
+      "transItemCategory": "Integer",
+      "transItemAttribute": "Integer",
       "companyNo": "String",
       "companyDisplayName": "String",
-      "companyRoleCode": "String",
-      "materialItemNo": "String",
-      "materialItemName": "String",
-      "materialItemCategory": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
+      "itemCategory": "Integer",
       "contractNo": "String",
       "contractCategory": "Integer",
       "contractType": "Integer",
@@ -137,15 +156,6 @@
       "shippingPrice": "Float",
       "unitConversion": "Float",
       "dataQualityCode": "String"
-    }
-  ],
-  "dataQualityIssues": [
-    {
-      "issueId": "String",
-      "targetTypeCode": "String",
-      "targetNo": "String",
-      "issueCode": "String",
-      "riskLevelCode": "String"
     }
   ],
   "total": "Integer",
@@ -160,33 +170,37 @@
 |---|---|---|---|
 | `serverTimestamp` | Integer | API 回應建立時間，UTC timestamp。 | 系統時間 |
 | `summary.companyCount` | Integer | 套用篩選後的公司主檔數。 | `company` |
-| `summary.customerCount` | Integer | 被判定具有客戶角色的公司數。 | `company`、`contract.category=2`、訂購/銷售關聯 |
-| `summary.supplierCount` | Integer | 被判定具有供應商角色的公司數。 | `company`、`contract.category=1`、採購關聯 |
-| `summary.transactionItemCount` | Integer | 交易品項總數。 | `trans_items`、`trans_items2` |
-| `summary.linkedMaterialItemCount` | Integer | 已關聯內部料品的交易品項數。 | `trans_items.item_no` |
-| `summary.contractLinkedTransactionItemCount` | Integer | 已被合約引用的交易品項數。 | `contract.item_no` |
-| `summary.dataQualityIssueCount` | Integer | 目前畫面需提示的資料缺口數。 | 後端資料完整度規則 |
+| `summary.customerCount` | Integer | 與訂購合約或銷售交易資料存在關聯的公司數。 | `company`、`contract.category=2` |
+| `summary.supplierCount` | Integer | 與採購合約或採購交易資料存在關聯的公司數。 | `company`、`contract.category=1` |
+| `summary.transItemCount` | Integer | 第一版交易品項總數。 | `trans_items` |
+| `summary.linkedItemCount` | Integer | 已關聯內部料品的交易品項數。 | `trans_items.item_no` |
+| `summary.contractLinkedTransItemCount` | Integer | 已被合約引用的交易品項數。 | `contract.item_no` |
+| `summary.dataQualityIssueCount` | Integer | 公司與交易品項中 `dataQualityCode` 不為 `ready` 的總數。 | 後端資料完整度規則 |
 | `companies[].companyNo` | String | 公司 no。 | `company.no` |
 | `companies[].companyDisplayName` | String | 公司簡稱。 | `company.displayName` |
 | `companies[].companyName` | String | 公司名稱。 | `company.name` |
 | `companies[].businessNo` | String | 統一編號。 | `company.businessNo` |
-| `companies[].companyRoleCode` | String | 公司交易角色 code。 | customer、supplier、both、unknown |
-| `companies[].transactionItemCount` | Integer | 此公司關聯的交易品項數。 | `trans_items.company_no`、`trans_items2.company_no` |
+| `companies[].transItemCount` | Integer | 此公司關聯的第一版交易品項數。 | `trans_items.company_no` |
 | `companies[].contractCount` | Integer | 此公司關聯的合約數。 | `contract.item_ref_no` |
 | `companies[].contactName` | String | 主要聯絡人。 | `company.contactName` |
 | `companies[].contactPhone` | String | 主要聯絡電話；若來源為 JSON 或 longtext，後端只回傳畫面使用的一個摘要字串。 | `company.contactPhone` |
-| `companies[].paymentSummaryCode` | String | 帳款摘要 code。 | payment_ready、missing_payment、unknown |
-| `transactionItems[].transactionItemNo` | String | 交易品項 no。 | `trans_items.no`、`trans_items2.no` |
-| `transactionItems[].transactionItemName` | String | 交易品項名稱。 | `trans_items.name`、`trans_items2.name` |
-| `transactionItems[].transactionItemSourceCode` | String | 交易品項來源表 code。 | trans_items、trans_items2 |
-| `transactionItems[].transactionCategory` | Integer | 交易品項樣式 code。 | `trans_items.category` 或 `trans_items2.category` |
-| `transactionItems[].transactionAttribute` | Integer | 交易品項屬性 code。 | `trans_items.attribute` 或 `trans_items2.attribute` |
-| `transactionItems[].companyNo` | String | 關聯公司 no。 | `trans_items.company_no`、`trans_items2.company_no`、fallback `contract.item_ref_no` |
-| `transactionItems[].companyDisplayName` | String | 關聯公司簡稱。 | `trans_items.company_displayName`、`trans_items2.company_displayName`、fallback `company.displayName` |
-| `transactionItems[].companyRoleCode` | String | 關聯公司在此交易品項上的角色 code。 | customer、supplier、both、unknown |
-| `transactionItems[].materialItemNo` | String | 對應內部料品 no；`trans_items2` 無料品關聯時回傳空字串。 | `trans_items.item_no` |
-| `transactionItems[].materialItemName` | String | 對應內部料品名稱。 | `trans_items.item_name` |
-| `transactionItems[].materialItemCategory` | Integer | 對應內部料品類別 code；無料品時回傳 0。 | `contract.itemCategory` 或料品主檔 |
+| `companies[].receivableTerms.settlementTypeCode` | String | 收款條件類型 code，例如現結、月結或未知。 | `company.received_id` 對應帳款條件資料 |
+| `companies[].receivableTerms.closingDay` | Integer | 收款月結結帳日；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `companies[].receivableTerms.accountDays` | Integer | 收款帳款天數；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `companies[].payableTerms.settlementTypeCode` | String | 付款條件類型 code，例如現結、月結或未知。 | `company.paid_id` 對應帳款條件資料 |
+| `companies[].payableTerms.closingDay` | Integer | 付款月結結帳日；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `companies[].payableTerms.accountDays` | Integer | 付款帳款天數；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `companies[].dataQualityCode` | String | 公司主檔資料完整度 code，主要檢查聯絡資訊與收付款條件。 | `dataQualityCode` |
+| `transactionItems[].transItemNo` | String | 交易品項 no。 | `trans_items.no` |
+| `transactionItems[].transItemName` | String | 交易品項名稱。 | `trans_items.name` |
+| `transactionItems[].transItemType` | String | 交易品項來源 code。 | `trans_items` |
+| `transactionItems[].transItemCategory` | Integer | 交易品項樣式 code。 | `trans_items.category` |
+| `transactionItems[].transItemAttribute` | Integer | 交易品項屬性 code。 | `trans_items.attribute` |
+| `transactionItems[].companyNo` | String | 關聯公司 no。 | `trans_items.company_no`、fallback `contract.item_ref_no` |
+| `transactionItems[].companyDisplayName` | String | 關聯公司簡稱。 | `trans_items.company_displayName`、fallback `company.displayName` |
+| `transactionItems[].itemNo` | String | 對應內部料品 no；無關聯時回傳空字串。 | `trans_items.item_no` |
+| `transactionItems[].itemName` | String | 對應內部料品名稱。 | `trans_items.item_name` |
+| `transactionItems[].itemCategory` | Integer | 對應內部料品類別 code；無料品時回傳 0。 | `contract.itemCategory` 或料品主檔 |
 | `transactionItems[].contractNo` | String | 目前可明確關聯的合約 no；無合約時回傳空字串。 | `contract.no` |
 | `transactionItems[].contractCategory` | Integer | 合約類別 code。 | 採購(1)、訂購(2) |
 | `transactionItems[].contractType` | Integer | 合約樣式 code。 | `contract.type` |
@@ -194,17 +208,12 @@
 | `transactionItems[].tradePrice` | Float | 交易單價，取至小數點第 4 位。 | `contract.price` |
 | `transactionItems[].shippingPrice` | Float | 物流價格，取至小數點第 4 位。 | `contract.shippingPrice` |
 | `transactionItems[].unitConversion` | Float | 交易單位與料品盤點單位的規格轉換。 | `contract.unitConversion` |
-| `transactionItems[].dataQualityCode` | String | 此交易品項資料完整度 code。 | ready、missing_company、missing_material_item、missing_contract_price、unknown |
-| `dataQualityIssues[].issueId` | String | 資料缺口識別值，供前端列表 key 使用；不是 workflow task id。 | 後端組合 |
-| `dataQualityIssues[].targetTypeCode` | String | 缺口目標類型。 | company、transaction_item |
-| `dataQualityIssues[].targetNo` | String | 缺口目標 no。 |  |
-| `dataQualityIssues[].issueCode` | String | 缺口類型 code。 | missing_company、missing_material_item、missing_contract_price、missing_payment |
-| `dataQualityIssues[].riskLevelCode` | String | 風險等級 code。 | normal、attention、high_risk |
+| `transactionItems[].dataQualityCode` | String | 此交易品項資料完整度 code。 | `dataQualityCode` |
 | `total` | Integer | 套用篩選後的交易品項筆數。 |  |
 | `start` | Integer | 本次分頁起點。 |  |
 | `count` | Integer | 本次回傳筆數。 |  |
 
-## 5. GET `/api/v2/item-trade-master/companies/{company_no}/detail`
+## 5. GET `/api/v2/transitems/companies/{company_no}/detail`
 
 ### 5.1 Success Response Data
 
@@ -222,16 +231,27 @@
     "contactPhone": "String",
     "contactTitle": "String",
     "contactEmail": "String",
-    "companyRoleCode": "String",
-    "paymentSummaryCode": "String"
+    "receivableTerms": {
+      "settlementTypeCode": "String",
+      "closingDay": "Integer",
+      "accountDays": "Integer"
+    },
+    "payableTerms": {
+      "settlementTypeCode": "String",
+      "closingDay": "Integer",
+      "accountDays": "Integer"
+    },
+    "dataQualityCode": "String"
   },
   "transactionItems": [
     {
-      "transactionItemNo": "String",
-      "transactionItemName": "String",
-      "transactionItemSourceCode": "String",
-      "materialItemNo": "String",
-      "materialItemName": "String",
+      "transItemNo": "String",
+      "transItemName": "String",
+      "transItemType": "String",
+      "transItemCategory": "Integer",
+      "transItemAttribute": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
       "contractNo": "String",
       "tradeUnit": "Integer",
       "tradePrice": "Float",
@@ -245,8 +265,8 @@
       "contractCategory": "Integer",
       "contractType": "Integer",
       "effectiveDate": "Integer",
-      "transactionItemNo": "String",
-      "transactionItemName": "String"
+      "transItemNo": "String",
+      "transItemName": "String"
     }
   ]
 }
@@ -266,61 +286,75 @@
 | `company.contactPhone` | String | 聯絡電話摘要。 | `company.contactPhone` |
 | `company.contactTitle` | String | 聯絡人職稱。 | `company.contactTitle` |
 | `company.contactEmail` | String | 聯絡人 email。 | `company.contactEmail` |
-| `company.companyRoleCode` | String | 公司交易角色 code。 | customer、supplier、both、unknown |
-| `company.paymentSummaryCode` | String | 帳款摘要 code。 | payment_ready、missing_payment、unknown |
-| `transactionItems[]` | Array | 此公司關聯的交易品項摘要，欄位定義同 dashboard 子集合。 | `trans_items`、`trans_items2`、`contract` |
+| `company.receivableTerms.settlementTypeCode` | String | 收款條件類型 code，例如現結、月結或未知。 | `company.received_id` 對應帳款條件資料 |
+| `company.receivableTerms.closingDay` | Integer | 收款月結結帳日；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `company.receivableTerms.accountDays` | Integer | 收款帳款天數；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `company.payableTerms.settlementTypeCode` | String | 付款條件類型 code，例如現結、月結或未知。 | `company.paid_id` 對應帳款條件資料 |
+| `company.payableTerms.closingDay` | Integer | 付款月結結帳日；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `company.payableTerms.accountDays` | Integer | 付款帳款天數；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `company.dataQualityCode` | String | 公司主檔資料完整度 code。 | `dataQualityCode` |
+| `transactionItems[]` | Array | 此公司關聯的第一版交易品項摘要。 | `trans_items`、`contract` |
+| `transactionItems[].transItemNo` | String | 交易品項 no。 | `trans_items.no` |
+| `transactionItems[].transItemName` | String | 交易品項名稱。 | `trans_items.name` |
+| `transactionItems[].transItemType` | String | 交易品項來源 code。 | `trans_items` |
+| `transactionItems[].transItemCategory` | Integer | 交易品項樣式 code。 | `trans_items.category` |
+| `transactionItems[].transItemAttribute` | Integer | 交易品項屬性 code。 | `trans_items.attribute` |
+| `transactionItems[].itemNo` | String | 對應內部料品 no。 | `trans_items.item_no` |
+| `transactionItems[].itemName` | String | 對應內部料品名稱。 | `trans_items.item_name` |
+| `transactionItems[].contractNo` | String | 目前可明確關聯的合約 no。 | `contract.no` |
+| `transactionItems[].tradeUnit` | Integer | 交易單位 code。 | `contract.unit` |
+| `transactionItems[].tradePrice` | Float | 交易單價，取至小數點第 4 位。 | `contract.price` |
+| `transactionItems[].dataQualityCode` | String | 此交易品項資料完整度 code。 | `dataQualityCode` |
+| `contracts[]` | Array | 此公司相關合約清單；不與 `transactionItems[]` 合併，因合約與交易品項主檔生命週期不同。 | `contract` |
 | `contracts[].contractNo` | String | 合約 no。 | `contract.no` |
 | `contracts[].contractDisplayName` | String | 合約簡稱。 | `contract.displayName` |
 | `contracts[].contractCategory` | Integer | 合約類別。 | `contract.category` |
 | `contracts[].contractType` | Integer | 合約樣式。 | `contract.type` |
 | `contracts[].effectiveDate` | Integer | 生效日期 UTC timestamp。 | `contract.date` |
-| `contracts[].transactionItemNo` | String | 合約引用交易品項 no。 | `contract.item_no` |
-| `contracts[].transactionItemName` | String | 合約引用交易品項名稱。 | `contract.item_name` |
+| `contracts[].transItemNo` | String | 合約引用交易品項 no。 | `contract.item_no` |
+| `contracts[].transItemName` | String | 合約引用交易品項名稱。 | `contract.item_name` |
 
-## 6. GET `/api/v2/item-trade-master/transaction-items/{transaction_item_no}/detail`
+## 6. GET `/api/v2/transitems/transitems/{transaction_item_no}/detail`
 
 ### 6.1 Success Response Data
 
 ```json
 {
   "serverTimestamp": "Integer",
-  "transactionItem": {
-    "transactionItemNo": "String",
-    "transactionItemName": "String",
-    "transactionItemSourceCode": "String",
-    "transactionCategory": "Integer",
-    "transactionAttribute": "Integer",
+  "transItem": {
+    "transItemNo": "String",
+    "transItemName": "String",
+    "transItemType": "String",
+    "transItemCategory": "Integer",
+    "transItemAttribute": "Integer",
     "companyNo": "String",
     "companyDisplayName": "String",
-    "companyRoleCode": "String",
-    "materialItemNo": "String",
-    "materialItemName": "String",
-    "materialItemCategory": "Integer",
+    "itemNo": "String",
+    "itemName": "String",
+    "itemCategory": "Integer",
     "comment": "String",
     "creationTime": "Integer",
     "dataQualityCode": "String"
   },
-  "tradeTerms": {
-    "contractNo": "String",
-    "contractDisplayName": "String",
-    "contractCategory": "Integer",
-    "contractType": "Integer",
-    "tradeUnit": "Integer",
-    "tradePrice": "Float",
-    "shippingPrice": "Float",
-    "unitConversion": "Float",
-    "effectiveDate": "Integer"
-  },
-  "relatedMaterialItem": {
-    "materialItemNo": "String",
-    "materialItemName": "String",
-    "materialItemCategory": "Integer",
-    "unitWarehouse": "Integer"
-  },
-  "dataQualityIssues": [
+  "contracts": [
     {
-      "issueCode": "String",
-      "riskLevelCode": "String"
+      "contractNo": "String",
+      "contractDisplayName": "String",
+      "contractCategory": "Integer",
+      "contractType": "Integer",
+      "tradeUnit": "Integer",
+      "tradePrice": "Float",
+      "shippingPrice": "Float",
+      "unitConversion": "Float",
+      "effectiveDate": "Integer"
+    }
+  ],
+  "linkedItems": [
+    {
+      "itemNo": "String",
+      "itemName": "String",
+      "itemCategory": "Integer",
+      "unitWarehouse": "Integer"
     }
   ]
 }
@@ -330,64 +364,61 @@
 
 | Field Path | Type | Description | Source / Enum |
 |---|---|---|---|
-| `transactionItem.transactionItemNo` | String | 交易品項 no。 | `trans_items.no`、`trans_items2.no` |
-| `transactionItem.transactionItemName` | String | 交易品項名稱。 | `trans_items.name`、`trans_items2.name` |
-| `transactionItem.transactionItemSourceCode` | String | 來源表 code。 | trans_items、trans_items2 |
-| `transactionItem.transactionCategory` | Integer | 交易品項樣式 code。 | `trans_items.category`、`trans_items2.category` |
-| `transactionItem.transactionAttribute` | Integer | 交易品項屬性 code。 | `trans_items.attribute`、`trans_items2.attribute` |
-| `transactionItem.companyNo` | String | 關聯公司 no。 | 交易品項表或合約 fallback |
-| `transactionItem.companyDisplayName` | String | 關聯公司簡稱。 | 交易品項表或 `company.displayName` |
-| `transactionItem.companyRoleCode` | String | 公司交易角色 code。 | customer、supplier、both、unknown |
-| `transactionItem.materialItemNo` | String | 對應內部料品 no；無關聯時回傳空字串。 | `trans_items.item_no` |
-| `transactionItem.materialItemName` | String | 對應內部料品名稱。 | `trans_items.item_name` |
-| `transactionItem.materialItemCategory` | Integer | 對應內部料品類別 code；無關聯時回傳 0。 | `contract.itemCategory` 或料品主檔 |
-| `transactionItem.comment` | String | 規格或備註。 | `trans_items.comment`、`trans_items2.comment` |
-| `transactionItem.creationTime` | Integer | 資料建立時間 UTC timestamp；無資料時回傳 0。 | 交易品項表 |
-| `transactionItem.dataQualityCode` | String | 資料完整度 code。 | ready、missing_company、missing_material_item、missing_contract_price、unknown |
-| `tradeTerms.contractNo` | String | 合約 no；無合約時回傳空字串。 | `contract.no` |
-| `tradeTerms.contractDisplayName` | String | 合約簡稱。 | `contract.displayName` |
-| `tradeTerms.contractCategory` | Integer | 合約類別。 | `contract.category` |
-| `tradeTerms.contractType` | Integer | 合約樣式。 | `contract.type` |
-| `tradeTerms.tradeUnit` | Integer | 交易單位 code。 | `contract.unit` |
-| `tradeTerms.tradePrice` | Float | 交易單價，取至小數點第 4 位。 | `contract.price` |
-| `tradeTerms.shippingPrice` | Float | 物流價格，取至小數點第 4 位。 | `contract.shippingPrice` |
-| `tradeTerms.unitConversion` | Float | 規格轉換。 | `contract.unitConversion` |
-| `tradeTerms.effectiveDate` | Integer | 合約生效日期 UTC timestamp。 | `contract.date` |
-| `relatedMaterialItem.materialItemNo` | String | 內部料品 no。 | 料品主檔 |
-| `relatedMaterialItem.materialItemName` | String | 內部料品名稱。 | 料品主檔 |
-| `relatedMaterialItem.materialItemCategory` | Integer | 內部料品類別 code。 | 料品主檔 |
-| `relatedMaterialItem.unitWarehouse` | Integer | 料品盤點或倉庫單位 code。 | 料品主檔 |
-| `dataQualityIssues[].issueCode` | String | 資料缺口類型 code。 | missing_company、missing_material_item、missing_contract_price |
-| `dataQualityIssues[].riskLevelCode` | String | 風險等級 code。 | normal、attention、high_risk |
+| `transItem.transItemNo` | String | 交易品項 no。 | `trans_items.no` |
+| `transItem.transItemName` | String | 交易品項名稱。 | `trans_items.name` |
+| `transItem.transItemType` | String | 交易品項來源 code。 | `trans_items` |
+| `transItem.transItemCategory` | Integer | 交易品項樣式 code。 | `trans_items.category` |
+| `transItem.transItemAttribute` | Integer | 交易品項屬性 code。 | `trans_items.attribute` |
+| `transItem.companyNo` | String | 關聯公司 no。 | `trans_items.company_no`、合約 fallback |
+| `transItem.companyDisplayName` | String | 關聯公司簡稱。 | `trans_items.company_displayName`、fallback `company.displayName` |
+| `transItem.itemNo` | String | 對應內部料品 no；無關聯時回傳空字串。 | `trans_items.item_no` |
+| `transItem.itemName` | String | 對應內部料品名稱。 | `trans_items.item_name` |
+| `transItem.itemCategory` | Integer | 對應內部料品類別 code；無關聯時回傳 0。 | `contract.itemCategory` 或料品主檔 |
+| `transItem.comment` | String | 規格或備註。 | `trans_items.comment` |
+| `transItem.creationTime` | Integer | 資料建立時間 UTC timestamp；無資料時回傳 0。 | `trans_items.creationTime` |
+| `transItem.dataQualityCode` | String | 此交易品項整體資料完整度 code。 | `dataQualityCode` |
+| `contracts[]` | Array | 此交易品項相關合約清單；無合約時回傳空陣列。 | `contract` |
+| `contracts[].contractNo` | String | 合約 no。 | `contract.no` |
+| `contracts[].contractDisplayName` | String | 合約簡稱。 | `contract.displayName` |
+| `contracts[].contractCategory` | Integer | 合約類別。 | `contract.category` |
+| `contracts[].contractType` | Integer | 合約樣式。 | `contract.type` |
+| `contracts[].tradeUnit` | Integer | 交易單位 code。 | `contract.unit` |
+| `contracts[].tradePrice` | Float | 交易單價，取至小數點第 4 位。 | `contract.price` |
+| `contracts[].shippingPrice` | Float | 物流價格，取至小數點第 4 位。 | `contract.shippingPrice` |
+| `contracts[].unitConversion` | Float | 規格轉換。 | `contract.unitConversion` |
+| `contracts[].effectiveDate` | Integer | 合約生效日期 UTC timestamp。 | `contract.date` |
+| `linkedItems[]` | Array | 此交易品項對應的內部料品清單；第一版通常為 0 或 1 筆。 | `trans_items.item_no` 與料品主檔 |
+| `linkedItems[].itemNo` | String | 內部料品 no。 | 料品主檔 |
+| `linkedItems[].itemName` | String | 內部料品名稱。 | 料品主檔 |
+| `linkedItems[].itemCategory` | Integer | 內部料品類別 code。 | 料品主檔 |
+| `linkedItems[].unitWarehouse` | Integer | 料品盤點或倉庫單位 code。 | 料品主檔 |
 
 ## 7. Enum 建議
 
-| Enum | Values |
-|---|---|
-| `companyRoleCode` | `customer`、`supplier`、`both`、`unknown` |
-| `transactionItemSourceCode` | `trans_items`、`trans_items2` |
-| `dataQualityCode` | `ready`、`missing_company`、`missing_material_item`、`missing_contract_price`、`unknown` |
-| `issueCode` | `missing_company`、`missing_material_item`、`missing_contract_price`、`missing_payment` |
-| `paymentSummaryCode` | `payment_ready`、`missing_payment`、`unknown` |
+| Enum | Values | Description |
+|---|---|---|
+| `transItemType` | `trans_items` | 交易品項來源。第一版僅回傳 `trans_items`；`trans_items2` 留待下一版評估後再納入。 |
+| `dataQualityCode` | `ready`、`missing_company`、`missing_linked_item`、`missing_contract_price`、`missing_payment_terms`、`unknown` | 公司或交易品項資料完整度狀態。 |
+| `settlementTypeCode` | `cash`、`monthly`、`unknown` | 收款或付款條件類型，由帳款條件資料推導，前端負責顯示文字與多國語言轉換。 |
 
 ## 8. Database Tables Used
 
 | Table | Purpose |
 |---|---|
-| `company` | 客戶／廠商主檔、聯絡資訊與帳款資料關聯。 |
-| `trans_items` | 貨品、材料、產品類交易品項，包含公司與內部料品關聯。 |
-| `trans_items2` | 耗品、設備、工程、其他、雜項類交易品項，包含公司關聯。 |
+| `company` | 客戶／廠商主檔、聯絡資訊與帳款資料關聯；收款條件參照 `received_id`，付款條件參照 `paid_id`。 |
+| `trans_items` | 第一版交易品項主檔，包含公司與內部料品關聯。 |
 | `contract` | 合約與交易條件，提供交易單位、單價、物流價格、規格轉換與交易品項引用。 |
 | `material` | 原料、物料、膠捲主檔；用於交易品項對應內部料品。 |
 | `inproduct` | 在製品主檔；用於交易品項對應內部料品。 |
 | `product` | 製成品主檔；用於交易品項對應內部料品。 |
 | `goods` | 貨品主檔；若合約或交易品項指向貨品時作為補充。 |
-| `payment` | 公司帳款資料摘要。 |
+| `payment` | 公司收款／付款條件資料，供 `receivableTerms` 與 `payableTerms` 摘要使用。 |
 
 ## 9. 備註
 
-1. `trans_items.company_no` 與 `trans_items2.company_no` 文件描述為「客戶資料no」，但實際畫面應以「客戶／廠商」通稱呈現，角色由後端依合約類別、採購/訂購關聯或其他可確認來源推導。
-2. `trans_items2` 第一版沒有內部料品欄位，因此 `materialItemNo`、`materialItemName` 可為空字串；前端應以資料缺口或不適用狀態呈現，不應自行推測料品。
-3. `tradePrice` 與 `shippingPrice` 來源為 `contract`，若同一交易品項有多筆合約，第一版可優先回傳目前生效或最新生效日期的合約摘要；若無法唯一判定，應回傳空合約摘要並以 `dataQualityCode=missing_contract_price` 或 `unknown` 提示。
-4. 本提案不取代 `ItemCenterScreen` 既有料品 API；料品主資料仍由 `item_center_proposal.md` 維護。
-5. `dataQualityIssues[]` 是 read-only 資料缺口提示，不代表 workflow task，也不建立待辦或部門轉交。
+1. 第一版交易品項主資料以 `trans_items` 為唯一資料來源；`trans_items2` 不納入本版查詢、統計或回傳欄位，以避免不同資料型態混合造成畫面與 API 語意不清。
+2. 本提案不顯示公司交易角色，也不回傳 `companyRoleCode`。若未來管理者需要區分客戶／廠商視角，建議另以合約類別或交易流程資料建立可驗證的篩選邏輯，再進入下一版提案。
+3. `receivableTerms` 與 `payableTerms` 只回傳帳款條件 code 與必要數值；現結／月結等顯示文字由前端依 enum 與多國語言字典轉換。
+4. `dataQualityCode` 是 read-only 資料完整度提示，不代表 workflow task，也不建立待辦或部門轉交。第一版不再提供獨立 `dataQualityIssues[]`。
+5. `tradePrice` 與 `shippingPrice` 來源為 `contract`，若同一交易品項有多筆合約，第一版可優先回傳目前生效或最新生效日期的合約摘要；若無法唯一判定，應回傳空合約摘要並以 `dataQualityCode=missing_contract_price` 或 `unknown` 提示。
+6. 本提案不取代 `ItemCenterScreen` 既有料品 API；料品主資料仍由 `item_center_proposal.md` 維護。

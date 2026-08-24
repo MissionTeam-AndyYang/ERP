@@ -580,16 +580,8 @@ class CTraceabilityService(object):
             return
         lst_inputs = self.__query_inputs_by_work_order(obj_session, str_work_order_no)
         lst_outputs = self.__query_outputs_by_work_order(obj_session, str_work_order_no)
-        lst_input_items = [
-            self.__build_trace_step_item(obj_row)
-            for obj_row in lst_inputs
-            if self.__is_trace_core_item_category(util_safe_int(obj_row.category))
-        ]
-        lst_output_items = [
-            self.__build_trace_step_item(obj_row)
-            for obj_row in lst_outputs
-            if self.__is_trace_core_item_category(util_safe_int(obj_row.category))
-        ]
+        lst_input_items = self.__aggregate_trace_step_items(lst_inputs)
+        lst_output_items = self.__aggregate_trace_step_items(lst_outputs)
         if not lst_input_items and not lst_output_items:
             return
         obj_data = obj_session.query(CTableProductionData).filter(CTableProductionData.work_order_no == str_work_order_no).first()
@@ -649,6 +641,43 @@ class CTraceabilityService(object):
             "quantity": util_round_quantity(obj_row.count),
             "unit": util_safe_int(obj_row.unit),
         }
+
+    def __aggregate_trace_step_items(self, lst_rows):
+        dict_items = {}
+        for obj_row in lst_rows:
+            if not self.__is_trace_core_item_category(util_safe_int(obj_row.category)):
+                continue
+            dict_item = self.__build_trace_step_item(obj_row)
+            str_key = "%s|%s|%s|%s" % (
+                dict_item.get("itemNo", ""),
+                dict_item.get("batchNo", ""),
+                util_safe_int(dict_item.get("itemCategory")),
+                util_safe_int(dict_item.get("unit")),
+            )
+            dict_summary = dict_items.setdefault(str_key, {
+                "itemNo": dict_item.get("itemNo", ""),
+                "itemName": dict_item.get("itemName", ""),
+                "itemCategory": util_safe_int(dict_item.get("itemCategory")),
+                "batchNo": dict_item.get("batchNo", ""),
+                "quantity": 0.0,
+                "unit": util_safe_int(dict_item.get("unit")),
+            })
+            dict_summary["quantity"] += util_safe_float(dict_item.get("quantity"))
+        return [
+            {
+                "itemNo": dict_row.get("itemNo", ""),
+                "itemName": dict_row.get("itemName", ""),
+                "itemCategory": util_safe_int(dict_row.get("itemCategory")),
+                "batchNo": dict_row.get("batchNo", ""),
+                "quantity": util_round_quantity(dict_row.get("quantity")),
+                "unit": util_safe_int(dict_row.get("unit")),
+            }
+            for dict_row in sorted(dict_items.values(), key=lambda dict_row: (
+                dict_row.get("itemNo", ""),
+                dict_row.get("batchNo", ""),
+                util_safe_int(dict_row.get("unit")),
+            ))
+        ]
 
     def __production_step_timestamp(self, obj_data, lst_inputs, lst_outputs):
         lst_timestamps = [util_safe_int(getattr(obj_data, "date", 0))]

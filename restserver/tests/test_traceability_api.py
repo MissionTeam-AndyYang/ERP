@@ -259,6 +259,36 @@ def seed_traceability(obj_session):
             unit=1,
             count=55,
         ),
+        CTableProductionDataInput(
+            work_order_no="WO-001",
+            process_order_no="PROC-001",
+            group="G-001",
+            time=n_now - 10 * 86400,
+            action=1,
+            item_no="RM-001",
+            item_name="原料A",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-001",
+            serial_no="S-IN-001-B",
+            unit=1,
+            count=5,
+        ),
+        CTableProductionDataInput(
+            work_order_no="WO-001",
+            process_order_no="PROC-001",
+            group="G-001",
+            time=n_now - 10 * 86400,
+            action=1,
+            item_no="PK-001",
+            item_name="物料A",
+            category=EItemCategory.MA,
+            itemSubCategory=21,
+            batch_number="B-PK-001",
+            serial_no="S-IN-001-PK",
+            unit=1,
+            count=7,
+        ),
         CTableProductionDataOutput(
             work_order_no="WO-001",
             process_order_no="PROC-001",
@@ -273,6 +303,21 @@ def seed_traceability(obj_session):
             serial_no="S-OUT-001",
             unit=1,
             count=45,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-001",
+            process_order_no="PROC-001",
+            group="G-001",
+            time=n_now - 10 * 86400,
+            action=1,
+            item_no="WIP-001",
+            item_name="半成品A",
+            category=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-001",
+            serial_no="S-OUT-001-B",
+            unit=1,
+            count=5,
         ),
         CTableProductionData(work_order_no="WO-002", date=n_now - 5 * 86400, product_no="FG-001", product_name="製成品A"),
         CTableProductionDataInput(
@@ -346,6 +391,11 @@ def test_trace_batch_overview_builds_multilevel_steps():
     assert "WO-002" in dict_production_steps
     assert any(dict_item["batchNo"] == "B-RM-001" for dict_item in dict_production_steps["WO-001"]["inputItems"])
     assert any(dict_item["batchNo"] == "B-WIP-001" for dict_item in dict_production_steps["WO-001"]["outputItems"])
+    assert len([dict_item for dict_item in dict_production_steps["WO-001"]["inputItems"] if dict_item["batchNo"] == "B-RM-001"]) == 1
+    assert len([dict_item for dict_item in dict_production_steps["WO-001"]["outputItems"] if dict_item["batchNo"] == "B-WIP-001"]) == 1
+    assert next(dict_item for dict_item in dict_production_steps["WO-001"]["inputItems"] if dict_item["batchNo"] == "B-RM-001")["quantity"] == 60.0
+    assert next(dict_item for dict_item in dict_production_steps["WO-001"]["outputItems"] if dict_item["batchNo"] == "B-WIP-001")["quantity"] == 50.0
+    assert all(dict_item["itemCategory"] != EItemCategory.MA for dict_item in dict_production_steps["WO-001"]["inputItems"])
     assert any(dict_item["batchNo"] == "B-WIP-001" for dict_item in dict_production_steps["WO-002"]["inputItems"])
     assert any(dict_item["batchNo"] == "B-FG-001" for dict_item in dict_production_steps["WO-002"]["outputItems"])
 

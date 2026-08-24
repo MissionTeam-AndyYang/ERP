@@ -8,7 +8,7 @@
 |---|---|
 | `nodes[]` / `edges[]` 是否可簡化 | 可簡化。依工程師提問 V4，第一版 overview 不再以 graph 結構回傳 `nodes[]` 與 `edges[]`，改為單一流程結構 `traceSteps[]`。每一個 step 直接包含事件時間、來源單據、投入物與產出物，前端不需再自行合併節點與連線。 |
 | 投產/產製追溯重點 | Overview 第一版改以「進貨 / 生產 / 銷貨」三類流程步驟為主：`receipt` 表示何時購買或進貨、`production` 表示何時投產與產出何產品、`sale` 表示何時銷貨或出貨。 |
-| 投入物與產出物關係 | 已新增 `traceSteps[].inputItems[]` 與 `traceSteps[].outputItems[]`。生產步驟中，投入物與產出物被放在同一筆 step 內，取代原本 `production_input` node、`production_output` node 與 edge 的組合。 |
+| 投入物與產出物關係 | 已新增 `traceSteps[].inputItems[]` 與 `traceSteps[].outputItems[]`。生產步驟中，投入物與產出物被放在同一筆 step 內，取代原本 `production_input` node、`production_output` node 與 edge 的組合。同一 step 內相同 `itemNo + batchNo + itemCategory + unit` 的投入或產出需加總為單筆。 |
 | 銷貨時間資料來源 | 若正式資料庫文件已確認銷貨或出貨資料來源，後端可建立 `stepTypeCode=sale` 的 step；若目前尚無穩定資料表或欄位，`sale` step 不建立，不推測不存在的銷貨資料。 |
 | V3 graph 設計處理 | V3 的原始提問與回覆保留作為歷史 review 記錄；但正式 V1 proposal 以 V4 的 `traceSteps[]` 結構為準。`nodeTypeCode` 與 `relationTypeCode` 改列為 V1 不使用、V2 graph 擴充時再評估。 |
 
@@ -292,13 +292,13 @@
 | `traceSteps[].inputItems[].itemName` | String | 此步驟投入料品名稱；無資料時回傳空字串。 | 來源資料表 |
 | `traceSteps[].inputItems[].itemCategory` | Integer | 此步驟投入料品品項類別 code。 | `EItemCategory` |
 | `traceSteps[].inputItems[].batchNo` | String | 此步驟投入批號；無批號時回傳空字串。 | 來源資料表 |
-| `traceSteps[].inputItems[].quantity` | Float | 此步驟投入數量，取至小數點第 2 位。 | 來源資料表 |
+| `traceSteps[].inputItems[].quantity` | Float | 此步驟投入數量，取至小數點第 2 位；同一 step 內相同料品、批號、品項類別與單位需加總為單筆。 | 來源資料表 |
 | `traceSteps[].inputItems[].unit` | Integer | 此步驟投入單位 code。 | 來源資料表 |
 | `traceSteps[].outputItems[].itemNo` | String | 此步驟產出或銷貨料品 no。 | 來源資料表 |
 | `traceSteps[].outputItems[].itemName` | String | 此步驟產出或銷貨料品名稱；無資料時回傳空字串。 | 來源資料表 |
 | `traceSteps[].outputItems[].itemCategory` | Integer | 此步驟產出或銷貨料品品項類別 code。 | `EItemCategory` |
 | `traceSteps[].outputItems[].batchNo` | String | 此步驟產出或銷貨批號；無批號時回傳空字串。 | 來源資料表 |
-| `traceSteps[].outputItems[].quantity` | Float | 此步驟產出或銷貨數量，取至小數點第 2 位。 | 來源資料表 |
+| `traceSteps[].outputItems[].quantity` | Float | 此步驟產出或銷貨數量，取至小數點第 2 位；同一 step 內相同料品、批號、品項類別與單位需加總為單筆。 | 來源資料表 |
 | `traceSteps[].outputItems[].unit` | Integer | 此步驟產出或銷貨單位 code。 | 來源資料表 |
 
 `traceSteps[]` 陣列本身不另列說明。API 不回傳前端顯示用繁中文字串，例如 `stepTypeName`、`statusName` 或 `riskLabel`。
@@ -333,7 +333,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 | Payload 區塊 | 回傳內容 |
 |---|---|
 | `batch` | `batchNo=FG-BATCH-001`、製成品品項資料、製成品批號來源工單、`traceDirectionCode=upstream`。 |
-| `traceSteps[]` | 依時間排序回傳 `receipt`、`production`、`production`、`sale` 等流程步驟；每筆 `production` step 直接列出 `inputItems[]` 與 `outputItems[]`，因此可看出製成品由哪個在製品投入、該在製品又由哪些原料投入產出。 |
+| `traceSteps[]` | 依時間排序回傳 `receipt`、`production`、`production`、`sale` 等流程步驟；每筆 `production` step 直接列出加總後的 `inputItems[]` 與 `outputItems[]`，因此可看出製成品由哪個在製品投入、該在製品又由哪些原料投入產出。 |
 
 > 以上範例僅描述資料結構與流程關係。若某個採購、入庫、投入、產出或銷貨步驟在資料庫中不存在，API 不建立虛構 step；該追溯鏈段停止展開，並依規則反映於 `traceStatusCode` 與 `riskCode`。
 
@@ -344,7 +344,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 | itemCategory | 類別 | Overview V1 處理方式 |
 |---:|---|---|
 | 1 | 原料 | 可建立 `receipt` step，並往下追溯至使用此原料的 `production` step、在製品與製成品。 |
-| 2 | 物料 | 暫不列入 `traceSteps[]`；未來若需要包材追溯再擴充。 |
+| 2 | 物料 | 目前暫不列入 `traceSteps[]` 的 `inputItems[]` 或 `outputItems[]`；未來若需要包材追溯再擴充。 |
 | 3 | 膠捲 | 暫不列入 `traceSteps[]`；未來若需要包材追溯再擴充。 |
 | 4 | 在製品 | 可同時呈現上游原料投入與下游製成品產出的 `production` step。 |
 | 5 | 製成品 | 可往上追溯至在製品與原料投入，若銷貨/出貨資料來源已確認，可往下呈現 `sale` step。 |
@@ -379,13 +379,14 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 2. 使用 BFS 或受控 DFS 找出需要追溯的核心批號集合，每一輪以批號集合批次查詢 `production_data_input` 與 `production_data_output`，避免逐批號 N+1 查詢。
 3. 每次取得上下游批號後，先查詢 `batch_number` header，僅保留 `itemCategory in (1, 4, 5)` 的批號；物料(2)、膠捲(3)不建立 `traceSteps[]` item。
 4. 以流程步驟彙整資料：採購/進貨來源建立 `receipt` step；同一工單的投入與產出合併為一筆 `production` step；已確認的銷貨/出貨來源建立 `sale` step。
-5. 庫存與品檢資料僅用於判斷 `traceStatusCode`、`riskLevelCode`、`riskCode`，不再作為獨立 step 回傳。
-6. 建議第一版防護上限：
+5. `production` step 的 `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一工單拆成多筆投入或產出，回傳時只保留一筆加總後資料。
+6. 庫存與品檢資料僅用於判斷 `traceStatusCode`、`riskLevelCode`、`riskCode`，不再作為獨立 step 回傳。
+7. 建議第一版防護上限：
    - `maxDepth=5`：最多展開 5 層上下游關係。
    - `maxBatchCount=100`：最多納入 100 個核心批號。
    - `maxTraceStepCount=150`：最多建立 150 筆 `traceSteps[]`。
-7. 若達到防護上限，停止後續展開；已確認的 `traceSteps[]` 仍回傳，不建立推測流程。
-8. 若資料量仍大，建議工程師確認或新增以下索引：
+8. 若達到防護上限，停止後續展開；已確認的 `traceSteps[]` 仍回傳，不建立推測流程。
+9. 若資料量仍大，建議工程師確認或新增以下索引：
    - `batch_number(no, itemCategory)`。
    - `production_data_input(batch_number, work_order_no)`。
    - `production_data_output(batch_number, work_order_no)`。

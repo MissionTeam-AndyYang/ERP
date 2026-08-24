@@ -257,17 +257,17 @@ None
 | payload.traceSteps[].refNo | String | 此流程步驟關聯單號，例如進貨單號、工單號或銷貨／出貨單號 |  |
 | payload.traceSteps[].statusCode | String | 此流程步驟狀態 code；前端負責顯示文字 | complete、pending、blocked、missing、unknown |
 | payload.traceSteps[].riskLevelCode | String | 此流程步驟風險等級 code | normal、attention、high_risk |
-| payload.traceSteps[].inputItems[].itemNo | String | 此步驟投入料品 no；進貨步驟可為空陣列 |  |
+| payload.traceSteps[].inputItems[].itemNo | String | 此步驟投入料品 no；進貨步驟可為空陣列；同一 step 內相同料品、批號、品項類別與單位會加總為單筆 |  |
 | payload.traceSteps[].inputItems[].itemName | String | 此步驟投入料品名稱；無資料時回傳空字串 |  |
 | payload.traceSteps[].inputItems[].itemCategory | Integer | 此步驟投入料品品項類別 code |  |
 | payload.traceSteps[].inputItems[].batchNo | String | 此步驟投入批號；無批號時回傳空字串 |  |
-| payload.traceSteps[].inputItems[].quantity | Float | 此步驟投入數量，取至小數點第 2 位 |  |
+| payload.traceSteps[].inputItems[].quantity | Float | 此步驟投入數量，取至小數點第 2 位；若同一批號拆成多筆投入資料，後端加總後回傳單筆 |  |
 | payload.traceSteps[].inputItems[].unit | Integer | 此步驟投入單位 code |  |
-| payload.traceSteps[].outputItems[].itemNo | String | 此步驟產出或銷貨料品 no |  |
+| payload.traceSteps[].outputItems[].itemNo | String | 此步驟產出或銷貨料品 no；同一 step 內相同料品、批號、品項類別與單位會加總為單筆 |  |
 | payload.traceSteps[].outputItems[].itemName | String | 此步驟產出或銷貨料品名稱；無資料時回傳空字串 |  |
 | payload.traceSteps[].outputItems[].itemCategory | Integer | 此步驟產出或銷貨料品品項類別 code |  |
 | payload.traceSteps[].outputItems[].batchNo | String | 此步驟產出或銷貨批號；無批號時回傳空字串 |  |
-| payload.traceSteps[].outputItems[].quantity | Float | 此步驟產出或銷貨數量，取至小數點第 2 位 |  |
+| payload.traceSteps[].outputItems[].quantity | Float | 此步驟產出或銷貨數量，取至小數點第 2 位；若同一批號拆成多筆產出資料，後端加總後回傳單筆 |  |
 | payload.traceSteps[].outputItems[].unit | Integer | 此步驟產出或銷貨單位 code |  |
 
 ### Processing Flow
@@ -278,10 +278,11 @@ None
 4. 以批號為入口受控展開投產流程，僅納入原料、在製品與製成品；物料與膠捲不列入 `traceSteps[]`。
 5. 依 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 建立 `receipt` step，表示此批號何時採購或進貨。
 6. 依 `production_data_input` 與 `production_data_output` 查詢同一工單的投入與產出，合併為單一 `production` step；`inputItems[]` 表示投入物，`outputItems[]` 表示產出物。
-7. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
-8. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。
-9. 依批號效期、品檢保留與追溯流程完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
-10. 回傳批號資訊與 `traceSteps[]`。
+7. `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一工單拆成多筆投入或產出，回傳時只保留一筆加總後資料。
+8. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
+9. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。
+10. 依批號效期、品檢保留與追溯流程完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
+11. 回傳批號資訊與 `traceSteps[]`。
 
 ### Database Tables Used
 

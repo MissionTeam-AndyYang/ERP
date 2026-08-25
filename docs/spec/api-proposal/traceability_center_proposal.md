@@ -23,7 +23,7 @@
 | 項目 | 回覆與文件調整 |
 |---|---|
 | Overview 回傳時間與資料量 | `/api/v2/trace/batches/{batch_no}/overview` 依 V3 先限制只處理原料、在製品、製成品三類核心批號；再依 V4 將正式回傳結構簡化為 `traceSteps[]`，降低前端與後端組圖成本。 |
-| Overview 效能策略 | 後端應先以查詢批號建立 root，再以 `production_data_input` / `production_data_output` 批次查詢上下游批號集合；每一輪只處理尚未拜訪且 itemCategory 屬於原料(1)、在製品(4)、製成品(5) 的批號。不得對每個批號重複查詢完整庫存快照或完整 workflow。 |
+| Overview 效能策略 | 後端應先以查詢批號建立 root，再以 `production_data_input` / `production_data_output` 查詢上下游批號集合；production step 必須以 `work_order_no + process_order_no + group` 限定範圍，並於單次請求內快取已查詢的 batch header、batch input/output、work scope input/output 與 production data，避免重複查詢或誤納入同工單其他製成品資料。 |
 | 展開限制 | 建議第一版設定防護上限：最大展開層數 5、最大核心批號數 100、最大 `traceSteps[]` 筆數 150；若超過上限，停止繼續展開並保留已確認流程，不建立推測資料。 |
 | 物料與膠捲處理 | 若生產投入資料中存在物料(2)或膠捲(3)，第一版 overview 不列入 `traceSteps[].inputItems[]` / `traceSteps[].outputItems[]`；未來若前端需要包材追溯，再另行擴充。 |
 | 查詢批號本身為物料或膠捲 | 若使用者直接查詢物料或膠捲批號，API 可回傳 `batch` header 與空的 `traceSteps[]`，並以 `traceStatusCode=unknown`、`riskCode=unknown` 表示第一版未展開此類追溯。 |
@@ -44,8 +44,8 @@
 | `/api/v2/trace/dashboard` 效能 | Dashboard API 調整為「批號追溯清單摘要」用途，不展開完整 nodes / edges / timeline，也不逐筆建立完整追溯圖。後端應採兩階段查詢：先依 `batch_number` 與 query 條件取得候選批號並完成 DB 層排序/分頁，再只針對本頁批號批次查詢庫存摘要、生產投入/產出存在性、品檢保留與最新事件時間。 |
 | 庫存計算效能 | Dashboard 不應為所有批號呼叫完整 Warehouse Dashboard；僅需要 `currentQuantity`、主要 `warehouseNo/warehouseName` 與品檢保留訊號時，應以可重用的庫存快照 context / calculator 對本頁批號集合進行 bounded 查詢。若工程師認為目前 `CWarehouseInventoryContextBuilder` 對全量資料成本過高，建議再抽出批號集合專用的 snapshot helper。 |
 | `/api/v2/trace/batches/{batch_no}/overview` 追溯方向 | 單批號 overview 的責任是建立「可確認的完整投產追溯流程」，不應只回傳單一方向。即使 `traceDirectionCode` 仍保留作為前端建議視角，overview 仍需在同一個 `traceSteps[]` 中呈現該批號已確認的進貨、產製與銷貨流程。 |
-| 製成品追溯到原物料 | 支援。當查詢製成品批號時，後端應先以 `production_data_output.batch_number` 找到產出此製成品批號的工單，再以同一工單的 `production_data_input` 找到投入批號；若投入批號為在製品，需繼續往前找出產出該在製品的工單與更上游原物料投入。 |
-| 原料追溯到採購與產出 | 支援。當查詢原料批號時，後端應以 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 或 `inventory_record` 建立採購/進貨/入庫來源步驟，再以 `production_data_input.batch_number` 找到使用此原料批號的工單，並以同一工單的 `production_data_output` 找到產出的在製品或製成品批號。 |
+| 製成品追溯到原物料 | 支援。當查詢製成品批號時，後端應先以 `production_data_output.batch_number` 找到產出此製成品批號的工單與其 `process_order_no/group`，再查詢同一 `work_order_no + process_order_no + group` 的投入批號；若投入批號為在製品，需繼續往前找出產出該在製品的工單與更上游原物料投入。 |
+| 原料追溯到採購與產出 | 支援。當查詢原料批號時，後端應以 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 或 `inventory_record` 建立採購/進貨/入庫來源步驟，再以 `production_data_input.batch_number` 找到使用此原料批號的工單與其 `process_order_no/group`，並只查詢同一 `work_order_no + process_order_no + group` 的在製品或製成品產出批號。 |
 | 查詢語意說明 | 工程師提問中的「製成品向下追溯」與「原料向上追溯」本質上是要求 API 能從任一批號切入後，呈現已確認的上下游投產關係；因此文件調整為「overview 預設回傳完整可確認追溯圖」，前端可依 `traceDirectionCode` 或使用者視角決定畫面聚焦方向。 |
 | 範例資料 | 已於本文件新增「5.3 追溯範例」說明原料批號與製成品批號查詢時，`batch` 與 `traceSteps[]` 會回傳哪些資料。 |
 
@@ -376,20 +376,23 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 `GET /api/v2/trace/batches/{batch_no}/overview` 第一版需避免一次展開過大的追溯流程。建議後端實作以以下流程為準：
 
 1. 先查詢 root batch，若 root batch 的 `itemCategory` 不屬於原料(1)、在製品(4)、製成品(5)，回傳 root `batch` header 與空 `traceSteps[]`，不再展開。
-2. 使用 BFS 或受控 DFS 找出需要追溯的核心批號集合，每一輪以批號集合批次查詢 `production_data_input` 與 `production_data_output`，避免逐批號 N+1 查詢。
+2. 使用 BFS 或受控 DFS 找出需要追溯的核心批號集合。每次以批號找到相關 input/output row 後，必須保留該 row 的 `work_order_no`、`process_order_no` 與 `group`，作為下一步查詢 production step 的範圍。
 3. 每次取得上下游批號後，先查詢 `batch_number` header，僅保留 `itemCategory in (1, 4, 5)` 的批號；物料(2)、膠捲(3)不建立 `traceSteps[]` item。
-4. 以流程步驟彙整資料：採購/進貨來源建立 `receipt` step；同一工單的投入與產出合併為一筆 `production` step；已確認的銷貨/出貨來源建立 `sale` step。
-5. `production` step 的 `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一工單拆成多筆投入或產出，回傳時只保留一筆加總後資料。
-6. 庫存與品檢資料僅用於判斷 `traceStatusCode`、`riskLevelCode`、`riskCode`，不再作為獨立 step 回傳。
-7. 建議第一版防護上限：
+4. 以流程步驟彙整資料：採購/進貨來源建立 `receipt` step；同一 `work_order_no + process_order_no + group` 的投入與產出合併為一筆 `production` step；不得只用 `work_order_no` 合併整張工單；已確認的銷貨/出貨來源建立 `sale` step。
+5. `production` step 的 `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一 production step 拆成多筆投入或產出，回傳時只保留一筆加總後資料。
+6. overview 建立過程需使用單次請求內快取，避免同一批號、同一 work scope 或同一 production data 重複查詢。
+7. 庫存與品檢資料僅用於判斷 `traceStatusCode`、`riskLevelCode`、`riskCode`，不再作為獨立 step 回傳。
+8. 建議第一版防護上限：
    - `maxDepth=5`：最多展開 5 層上下游關係。
    - `maxBatchCount=100`：最多納入 100 個核心批號。
    - `maxTraceStepCount=150`：最多建立 150 筆 `traceSteps[]`。
-8. 若達到防護上限，停止後續展開；已確認的 `traceSteps[]` 仍回傳，不建立推測流程。
-9. 若資料量仍大，建議工程師確認或新增以下索引：
+9. 若達到防護上限，停止後續展開；已確認的 `traceSteps[]` 仍回傳，不建立推測流程。
+10. 若資料量仍大，建議工程師確認或新增以下索引：
    - `batch_number(no, itemCategory)`。
-   - `production_data_input(batch_number, work_order_no)`。
-   - `production_data_output(batch_number, work_order_no)`。
+   - `production_data_input(batch_number, work_order_no, process_order_no, group)`。
+   - `production_data_output(batch_number, work_order_no, process_order_no, group)`。
+   - `production_data_input(work_order_no, process_order_no, group)`。
+   - `production_data_output(work_order_no, process_order_no, group)`。
    - `inventory_record(batchNumber, date)`。
    - `warehouse_quality_hold(batchNumber, date)`。
 
@@ -398,7 +401,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 | traceStepTypeCode | 流程語意 | 建立時機 | 第一版備註 |
 |---|---|---|---|
 | `receipt` | 進貨或收貨步驟，回答「此批號何時購買或進貨」。 | 原料批號的 `batch_number.refCategory/ref_no` 可對應 `goods_receipt_note`，或可確認為採購/進貨來源時建立。 | `inputItems[]` 可為空，`outputItems[]` 放入進貨形成的批號。 |
-| `production` | 產製步驟，回答「此工單投入哪些批號，產出哪些在製品或製成品」。 | 同一 `work_order_no` 可從 `production_data_input` 與 `production_data_output` 取得投入與產出時建立。 | `inputItems[]` 與 `outputItems[]` 皆應盡量由同一工單資料組成。 |
+| `production` | 產製步驟，回答「此製程群組投入哪些批號，產出哪些在製品或製成品」。 | 同一 `work_order_no + process_order_no + group` 可從 `production_data_input` 與 `production_data_output` 取得投入與產出時建立。 | `inputItems[]` 與 `outputItems[]` 必須由同一 work scope 資料組成，避免同工單其他群組或其他製成品混入。 |
 | `sale` | 銷貨或出貨步驟，回答「此批號何時銷貨或出貨」。 | 正式資料庫文件確認銷貨/出貨資料來源，且可與批號或製成品建立關聯時建立。 | 目前若資料來源尚未確認，不建立 `sale` step，不推測不存在的銷貨資料。 |
 
 ## 6. Enum Code 建議

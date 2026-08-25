@@ -506,6 +506,14 @@ class CTraceabilityService(object):
         return dict_result
 
     def __build_trace_steps(self, obj_session, obj_root_batch):
+        dict_context = {
+            "batchHeaders": {obj_root_batch.no or "": obj_root_batch},
+            "inputsByBatch": {},
+            "outputsByBatch": {},
+            "inputsByScope": {},
+            "outputsByScope": {},
+            "productionData": {},
+        }
         dict_steps = {}
         obj_queue = deque([(obj_root_batch.no or "", 0)])
         set_visited = set()
@@ -514,22 +522,28 @@ class CTraceabilityService(object):
             if not str_batch_no or str_batch_no in set_visited or n_depth > self.MAX_TRACE_DEPTH:
                 continue
             set_visited.add(str_batch_no)
-            obj_batch = self.__query_batch_header(obj_session, str_batch_no)
+            obj_batch = self.__query_batch_header_cached(obj_session, dict_context, str_batch_no)
             if not obj_batch or not self.__is_trace_core_item_category(util_safe_int(obj_batch.itemCategory)):
                 continue
             self.__append_receipt_step(obj_session, obj_batch, dict_steps)
-            for obj_input in self.__query_inputs_by_batch_no(obj_session, str_batch_no):
+            for obj_input in self.__query_inputs_by_batch_no_cached(obj_session, dict_context, str_batch_no):
                 self.__append_production_step_by_work_order(
                     obj_session,
+                    dict_context,
                     obj_input.work_order_no,
+                    obj_input.process_order_no,
+                    obj_input.group,
                     dict_steps,
                     obj_queue,
                     n_depth,
                 )
-            for obj_output in self.__query_outputs_by_batch_no(obj_session, str_batch_no):
+            for obj_output in self.__query_outputs_by_batch_no_cached(obj_session, dict_context, str_batch_no):
                 self.__append_production_step_by_work_order(
                     obj_session,
+                    dict_context,
                     obj_output.work_order_no,
+                    obj_output.process_order_no,
+                    obj_output.group,
                     dict_steps,
                     obj_queue,
                     n_depth,
@@ -571,20 +585,42 @@ class CTraceabilityService(object):
             ],
         }
 
-    def __append_production_step_by_work_order(self, obj_session, str_work_order_no, dict_steps, obj_queue, n_depth):
+    def __append_production_step_by_work_order(
+        self,
+        obj_session,
+        dict_context,
+        str_work_order_no,
+        str_process_order_no,
+        str_group,
+        dict_steps,
+        obj_queue,
+        n_depth,
+    ):
         str_work_order_no = str_work_order_no or ""
         if not str_work_order_no:
             return
-        str_step_id = self.__trace_step_id(ETraceStepTypeCode.PRODUCTION, str_work_order_no, "")
+        str_step_id = self.__trace_production_step_id(str_work_order_no, str_process_order_no, str_group)
         if str_step_id in dict_steps:
             return
-        lst_inputs = self.__query_inputs_by_work_order(obj_session, str_work_order_no)
-        lst_outputs = self.__query_outputs_by_work_order(obj_session, str_work_order_no)
+        lst_inputs = self.__query_inputs_by_work_scope(
+            obj_session,
+            dict_context,
+            str_work_order_no,
+            str_process_order_no,
+            str_group,
+        )
+        lst_outputs = self.__query_outputs_by_work_scope(
+            obj_session,
+            dict_context,
+            str_work_order_no,
+            str_process_order_no,
+            str_group,
+        )
         lst_input_items = self.__aggregate_trace_step_items(lst_inputs)
         lst_output_items = self.__aggregate_trace_step_items(lst_outputs)
         if not lst_input_items and not lst_output_items:
             return
-        obj_data = obj_session.query(CTableProductionData).filter(CTableProductionData.work_order_no == str_work_order_no).first()
+        obj_data = self.__query_production_data_cached(obj_session, dict_context, str_work_order_no)
         n_timestamp = self.__production_step_timestamp(obj_data, lst_inputs, lst_outputs)
         dict_steps[str_step_id] = {
             "stepId": str_step_id,
@@ -602,6 +638,34 @@ class CTraceabilityService(object):
             if str_batch_no and len(dict_steps) < self.MAX_TRACE_STEP_COUNT:
                 obj_queue.append((str_batch_no, n_depth + 1))
 
+    def __query_batch_header_cached(self, obj_session, dict_context, str_batch_no):
+        str_batch_no = str_batch_no or ""
+        if str_batch_no not in dict_context["batchHeaders"]:
+            dict_context["batchHeaders"][str_batch_no] = self.__query_batch_header(obj_session, str_batch_no)
+        return dict_context["batchHeaders"].get(str_batch_no)
+
+    def __query_inputs_by_batch_no_cached(self, obj_session, dict_context, str_batch_no):
+        str_batch_no = str_batch_no or ""
+        if str_batch_no not in dict_context["inputsByBatch"]:
+            dict_context["inputsByBatch"][str_batch_no] = self.__query_inputs_by_batch_no(obj_session, str_batch_no)
+        return dict_context["inputsByBatch"].get(str_batch_no, [])
+
+    def __query_outputs_by_batch_no_cached(self, obj_session, dict_context, str_batch_no):
+        str_batch_no = str_batch_no or ""
+        if str_batch_no not in dict_context["outputsByBatch"]:
+            dict_context["outputsByBatch"][str_batch_no] = self.__query_outputs_by_batch_no(obj_session, str_batch_no)
+        return dict_context["outputsByBatch"].get(str_batch_no, [])
+
+    def __query_production_data_cached(self, obj_session, dict_context, str_work_order_no):
+        str_work_order_no = str_work_order_no or ""
+        if str_work_order_no not in dict_context["productionData"]:
+            dict_context["productionData"][str_work_order_no] = (
+                obj_session.query(CTableProductionData)
+                .filter(CTableProductionData.work_order_no == str_work_order_no)
+                .first()
+            )
+        return dict_context["productionData"].get(str_work_order_no)
+
     def __query_inputs_by_batch_no(self, obj_session, str_batch_no):
         return (
             obj_session.query(CTableProductionDataInput)
@@ -616,21 +680,39 @@ class CTraceabilityService(object):
             .all()
         )
 
-    def __query_inputs_by_work_order(self, obj_session, str_work_order_no):
-        return (
-            obj_session.query(CTableProductionDataInput)
-            .filter(CTableProductionDataInput.work_order_no == str_work_order_no)
-            .order_by(CTableProductionDataInput.time.asc(), CTableProductionDataInput.id.asc())
-            .all()
-        )
+    def __query_inputs_by_work_scope(self, obj_session, dict_context, str_work_order_no, str_process_order_no, str_group):
+        tpl_scope = self.__work_scope_key(str_work_order_no, str_process_order_no, str_group)
+        if tpl_scope not in dict_context["inputsByScope"]:
+            obj_query = (
+                obj_session.query(CTableProductionDataInput)
+                .filter(CTableProductionDataInput.work_order_no == str_work_order_no)
+            )
+            if str_process_order_no:
+                obj_query = obj_query.filter(CTableProductionDataInput.process_order_no == str_process_order_no)
+            if str_group:
+                obj_query = obj_query.filter(CTableProductionDataInput.group == str_group)
+            dict_context["inputsByScope"][tpl_scope] = obj_query.order_by(
+                CTableProductionDataInput.time.asc(),
+                CTableProductionDataInput.id.asc(),
+            ).all()
+        return dict_context["inputsByScope"].get(tpl_scope, [])
 
-    def __query_outputs_by_work_order(self, obj_session, str_work_order_no):
-        return (
-            obj_session.query(CTableProductionDataOutput)
-            .filter(CTableProductionDataOutput.work_order_no == str_work_order_no)
-            .order_by(CTableProductionDataOutput.time.asc(), CTableProductionDataOutput.id.asc())
-            .all()
-        )
+    def __query_outputs_by_work_scope(self, obj_session, dict_context, str_work_order_no, str_process_order_no, str_group):
+        tpl_scope = self.__work_scope_key(str_work_order_no, str_process_order_no, str_group)
+        if tpl_scope not in dict_context["outputsByScope"]:
+            obj_query = (
+                obj_session.query(CTableProductionDataOutput)
+                .filter(CTableProductionDataOutput.work_order_no == str_work_order_no)
+            )
+            if str_process_order_no:
+                obj_query = obj_query.filter(CTableProductionDataOutput.process_order_no == str_process_order_no)
+            if str_group:
+                obj_query = obj_query.filter(CTableProductionDataOutput.group == str_group)
+            dict_context["outputsByScope"][tpl_scope] = obj_query.order_by(
+                CTableProductionDataOutput.time.asc(),
+                CTableProductionDataOutput.id.asc(),
+            ).all()
+        return dict_context["outputsByScope"].get(tpl_scope, [])
 
     def __build_trace_step_item(self, obj_row):
         return {
@@ -694,6 +776,17 @@ class CTraceabilityService(object):
 
     def __trace_step_id(self, str_step_type_code, str_ref_no, str_batch_no):
         return "%s:%s:%s" % (str_step_type_code or "", str_ref_no or "", str_batch_no or "")
+
+    def __trace_production_step_id(self, str_work_order_no, str_process_order_no, str_group):
+        return "%s:%s:%s:%s" % (
+            ETraceStepTypeCode.PRODUCTION,
+            str_work_order_no or "",
+            str_process_order_no or "",
+            str_group or "",
+        )
+
+    def __work_scope_key(self, str_work_order_no, str_process_order_no, str_group):
+        return (str_work_order_no or "", str_process_order_no or "", str_group or "")
 
     def __build_trace_state(self, obj_batch, dict_stock, lst_inputs, lst_outputs, lst_holds, n_query_timestamp):
         b_has_connection = bool(obj_batch.ref_no or lst_inputs or lst_outputs or dict_stock.get("currentQuantity"))

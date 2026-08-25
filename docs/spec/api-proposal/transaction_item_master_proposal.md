@@ -6,6 +6,15 @@
   - accountDays 更名  paymentPeriod
   - 新增 paymentSource: 收付款方式；現金 (0)、匯款 (1)、支票 (2)
 
+## 工程師回覆V2
+
+| 項目 | 回覆與調整 |
+|---|---|
+| receivableTerms / payableTerms 命名 | 已依工程師提問改為 `receivablePayment` 與 `payablePayment`。工程師提問中的 `payablelePayment` 依命名一致性判斷為 typo，本提案採 `payablePayment`。 |
+| 帳款欄位命名 | 已將 `settlementTypeCode`、`closingDay`、`accountDays` 改為 `paymentTypeCode`、`paymentDate`、`paymentPeriod`。 |
+| 收付款方式 | 已新增 `paymentSource`，表示收付款方式 code：現金(0)、匯款(1)、支票(2)。 |
+| 適用範圍 | V2 提問雖以 company detail 為主，但 dashboard 的 `companies[]` 也顯示公司帳款摘要；為避免同一語意出現兩套欄位名稱，已同步調整 dashboard 與 company detail 的公司帳款欄位。 |
+
 
 # 工程師提問
 1. 將/api/v2/item-trade-master/xxx更名為/api/v2/transitems/xxx
@@ -55,11 +64,10 @@
 | 第一版交易品項範圍 | 第一版以 `trans_items` 為主。工程師提到的 `trans_items1` 依現行資料庫文件理解為 `trans_items`；`trans_items2` 暫列為下一版評估範圍，本版 API 不查詢、不合併、不回傳。 |
 | 共用參數調整 | 已移除 query `dataQualityCode`，並將 `transactionItemSourceCode`、`transactionCategory`、`hasMaterialItem` 分別改為 `transItemType`、`transItemCategory`、`hasLinkedItem`。 |
 | 欄位命名調整 | 已將 `transactionItemxxx` / `transactionxxx` 統一改為 `transItemxxx`，並將 `materialItemxxx` 改為 `itemxxx`。 |
-| 公司帳款資訊 | 已移除 `paymentSummaryCode`，改以 `receivableTerms` 與 `payableTerms` 回傳收款／付款條件；來源分別參照 `company.received_id` 與 `company.paid_id`。 |
+| 公司帳款資訊 | 已移除 `paymentSummaryCode`，並依 V2 回覆改以 `receivablePayment` 與 `payablePayment` 回傳收款／付款條件；來源分別參照 `company.received_id` 與 `company.paid_id`。 |
 | dataQualityIssues 拆分 | 已移除獨立 `dataQualityIssues[]`。第一版改由 `companies[].dataQualityCode`、`transactionItems[].dataQualityCode` 與 `transItem.dataQualityCode` 表示資料完整度，可達到畫面提示資料缺口的效果，也能避免額外維護一組非資料庫任務的 issue list。 |
 | transactionItems[] 與 contracts[] 是否合併 | 不建議合併。`transactionItems[]` 表示公司目前維護的交易品項主檔摘要；`contracts[]` 表示合約與交易條件清單。兩者雖有部分欄位相似，但生命週期與業務問題不同，因此第一版保留分離。 |
 | detail dataQualityCode 與 dataQualityIssues 差異 | `dataQualityCode` 是該筆公司或交易品項的整體資料完整度狀態；`dataQualityIssues[]` 原本是拆成多筆缺口事件。第一版只保留 `dataQualityCode`，由前端依 enum 顯示對應提示。 |
-v
 # Transaction Item Master API Proposal
 
 > Status: API Proposal / Pending Engineer Review  
@@ -132,15 +140,17 @@ v
       "contractCount": "Integer",
       "contactName": "String",
       "contactPhone": "String",
-      "receivableTerms": {
-        "settlementTypeCode": "String",
-        "closingDay": "Integer",
-        "accountDays": "Integer"
+      "receivablePayment": {
+        "paymentTypeCode": "String",
+        "paymentDate": "Integer",
+        "paymentPeriod": "Integer",
+        "paymentSource": "Integer"
       },
-      "payableTerms": {
-        "settlementTypeCode": "String",
-        "closingDay": "Integer",
-        "accountDays": "Integer"
+      "payablePayment": {
+        "paymentTypeCode": "String",
+        "paymentDate": "Integer",
+        "paymentPeriod": "Integer",
+        "paymentSource": "Integer"
       },
       "dataQualityCode": "String"
     }
@@ -193,12 +203,14 @@ v
 | `companies[].contractCount` | Integer | 此公司關聯的合約數。 | `contract.item_ref_no` |
 | `companies[].contactName` | String | 主要聯絡人。 | `company.contactName` |
 | `companies[].contactPhone` | String | 主要聯絡電話；若來源為 JSON 或 longtext，後端只回傳畫面使用的一個摘要字串。 | `company.contactPhone` |
-| `companies[].receivableTerms.settlementTypeCode` | String | 收款條件類型 code，例如現結、月結或未知。 | `company.received_id` 對應帳款條件資料 |
-| `companies[].receivableTerms.closingDay` | Integer | 收款月結結帳日；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
-| `companies[].receivableTerms.accountDays` | Integer | 收款帳款天數；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
-| `companies[].payableTerms.settlementTypeCode` | String | 付款條件類型 code，例如現結、月結或未知。 | `company.paid_id` 對應帳款條件資料 |
-| `companies[].payableTerms.closingDay` | Integer | 付款月結結帳日；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
-| `companies[].payableTerms.accountDays` | Integer | 付款帳款天數；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `companies[].receivablePayment.paymentTypeCode` | String | 收款條件類型 code，例如現結、月結或未知。 | `company.received_id` 對應帳款條件資料 |
+| `companies[].receivablePayment.paymentDate` | Integer | 收款月結結帳日；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `companies[].receivablePayment.paymentPeriod` | Integer | 收款帳款天數；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `companies[].receivablePayment.paymentSource` | Integer | 收款方式 code；現金(0)、匯款(1)、支票(2)，無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `companies[].payablePayment.paymentTypeCode` | String | 付款條件類型 code，例如現結、月結或未知。 | `company.paid_id` 對應帳款條件資料 |
+| `companies[].payablePayment.paymentDate` | Integer | 付款月結結帳日；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `companies[].payablePayment.paymentPeriod` | Integer | 付款帳款天數；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `companies[].payablePayment.paymentSource` | Integer | 付款方式 code；現金(0)、匯款(1)、支票(2)，無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
 | `companies[].dataQualityCode` | String | 公司主檔資料完整度 code，主要檢查聯絡資訊與收付款條件。 | `dataQualityCode` |
 | `transactionItems[].transItemNo` | String | 交易品項 no。 | `trans_items.no` |
 | `transactionItems[].transItemName` | String | 交易品項名稱。 | `trans_items.name` |
@@ -240,15 +252,17 @@ v
     "contactPhone": "String",
     "contactTitle": "String",
     "contactEmail": "String",
-    "receivableTerms": {
-      "settlementTypeCode": "String",
-      "closingDay": "Integer",
-      "accountDays": "Integer"
+    "receivablePayment": {
+      "paymentTypeCode": "String",
+      "paymentDate": "Integer",
+      "paymentPeriod": "Integer",
+      "paymentSource": "Integer"
     },
-    "payableTerms": {
-      "settlementTypeCode": "String",
-      "closingDay": "Integer",
-      "accountDays": "Integer"
+    "payablePayment": {
+      "paymentTypeCode": "String",
+      "paymentDate": "Integer",
+      "paymentPeriod": "Integer",
+      "paymentSource": "Integer"
     },
     "dataQualityCode": "String"
   },
@@ -295,12 +309,14 @@ v
 | `company.contactPhone` | String | 聯絡電話摘要。 | `company.contactPhone` |
 | `company.contactTitle` | String | 聯絡人職稱。 | `company.contactTitle` |
 | `company.contactEmail` | String | 聯絡人 email。 | `company.contactEmail` |
-| `company.receivableTerms.settlementTypeCode` | String | 收款條件類型 code，例如現結、月結或未知。 | `company.received_id` 對應帳款條件資料 |
-| `company.receivableTerms.closingDay` | Integer | 收款月結結帳日；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
-| `company.receivableTerms.accountDays` | Integer | 收款帳款天數；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
-| `company.payableTerms.settlementTypeCode` | String | 付款條件類型 code，例如現結、月結或未知。 | `company.paid_id` 對應帳款條件資料 |
-| `company.payableTerms.closingDay` | Integer | 付款月結結帳日；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
-| `company.payableTerms.accountDays` | Integer | 付款帳款天數；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `company.receivablePayment.paymentTypeCode` | String | 收款條件類型 code，例如現結、月結或未知。 | `company.received_id` 對應帳款條件資料 |
+| `company.receivablePayment.paymentDate` | Integer | 收款月結結帳日；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `company.receivablePayment.paymentPeriod` | Integer | 收款帳款天數；非月結或無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `company.receivablePayment.paymentSource` | Integer | 收款方式 code；現金(0)、匯款(1)、支票(2)，無資料時回傳 0。 | `company.received_id` 對應帳款條件資料 |
+| `company.payablePayment.paymentTypeCode` | String | 付款條件類型 code，例如現結、月結或未知。 | `company.paid_id` 對應帳款條件資料 |
+| `company.payablePayment.paymentDate` | Integer | 付款月結結帳日；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `company.payablePayment.paymentPeriod` | Integer | 付款帳款天數；非月結或無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
+| `company.payablePayment.paymentSource` | Integer | 付款方式 code；現金(0)、匯款(1)、支票(2)，無資料時回傳 0。 | `company.paid_id` 對應帳款條件資料 |
 | `company.dataQualityCode` | String | 公司主檔資料完整度 code。 | `dataQualityCode` |
 | `transactionItems[]` | Array | 此公司關聯的第一版交易品項摘要。 | `trans_items`、`contract` |
 | `transactionItems[].transItemNo` | String | 交易品項 no。 | `trans_items.no` |
@@ -408,7 +424,8 @@ v
 |---|---|---|
 | `transItemType` | `trans_items` | 交易品項來源。第一版僅回傳 `trans_items`；`trans_items2` 留待下一版評估後再納入。 |
 | `dataQualityCode` | `ready`、`missing_company`、`missing_linked_item`、`missing_contract_price`、`missing_payment_terms`、`unknown` | 公司或交易品項資料完整度狀態。 |
-| `settlementTypeCode` | `cash`、`monthly`、`unknown` | 收款或付款條件類型，由帳款條件資料推導，前端負責顯示文字與多國語言轉換。 |
+| `paymentTypeCode` | `cash`、`monthly`、`unknown` | 收款或付款條件類型，由帳款條件資料推導，前端負責顯示文字與多國語言轉換。 |
+| `paymentSource` | `0`、`1`、`2` | 收付款方式 code；0=現金、1=匯款、2=支票。 |
 
 ## 8. Database Tables Used
 
@@ -421,13 +438,13 @@ v
 | `inproduct` | 在製品主檔；用於交易品項對應內部料品。 |
 | `product` | 製成品主檔；用於交易品項對應內部料品。 |
 | `goods` | 貨品主檔；若合約或交易品項指向貨品時作為補充。 |
-| `payment` | 公司收款／付款條件資料，供 `receivableTerms` 與 `payableTerms` 摘要使用。 |
+| `payment` | 公司收款／付款條件資料，供 `receivablePayment` 與 `payablePayment` 摘要使用。 |
 
 ## 9. 備註
 
 1. 第一版交易品項主資料以 `trans_items` 為唯一資料來源；`trans_items2` 不納入本版查詢、統計或回傳欄位，以避免不同資料型態混合造成畫面與 API 語意不清。
 2. 本提案不顯示公司交易角色，也不回傳 `companyRoleCode`。若未來管理者需要區分客戶／廠商視角，建議另以合約類別或交易流程資料建立可驗證的篩選邏輯，再進入下一版提案。
-3. `receivableTerms` 與 `payableTerms` 只回傳帳款條件 code 與必要數值；現結／月結等顯示文字由前端依 enum 與多國語言字典轉換。
+3. `receivablePayment` 與 `payablePayment` 只回傳帳款條件 code 與必要數值；現結／月結、收付款方式等顯示文字由前端依 enum 與多國語言字典轉換。
 4. `dataQualityCode` 是 read-only 資料完整度提示，不代表 workflow task，也不建立待辦或部門轉交。第一版不再提供獨立 `dataQualityIssues[]`。
 5. `tradePrice` 與 `shippingPrice` 來源為 `contract`，若同一交易品項有多筆合約，第一版可優先回傳目前生效或最新生效日期的合約摘要；若無法唯一判定，應回傳空合約摘要並以 `dataQualityCode=missing_contract_price` 或 `unknown` 提示。
 6. 本提案不取代 `ItemCenterScreen` 既有料品 API；料品主資料仍由 `item_center_proposal.md` 維護。

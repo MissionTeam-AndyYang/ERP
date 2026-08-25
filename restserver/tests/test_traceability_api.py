@@ -427,6 +427,79 @@ def test_trace_batch_overview_finished_goods_traces_upstream_to_material_receipt
     assert {"B-WIP-001", "B-FG-001"}.issubset(set_output_batches)
 
 
+def test_trace_batch_overview_filters_unrelated_work_order_group():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 5 * 86400,
+            no="B-FG-OTHER",
+            ref_no="WO-002",
+            refCategory=2,
+            item_no="FG-OTHER",
+            item_name="製成品B",
+            itemCategory=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            itemType=1,
+            unit=1,
+            expectedCount=12,
+            checkedCount=12,
+            validDays=180,
+            validDate=n_now + 175 * 86400,
+            creationTime=n_now - 5 * 86400,
+        ),
+        CTableProductionDataInput(
+            work_order_no="WO-002",
+            process_order_no="PROC-OTHER",
+            group="G-OTHER",
+            time=n_now - 5 * 86400,
+            action=1,
+            item_no="RM-OTHER",
+            item_name="不相關原料",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-OTHER",
+            serial_no="S-IN-OTHER",
+            unit=1,
+            count=12,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-002",
+            process_order_no="PROC-OTHER",
+            group="G-OTHER",
+            time=n_now - 5 * 86400,
+            action=1,
+            item_no="FG-OTHER",
+            item_name="製成品B",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-OTHER",
+            serial_no="S-OUT-OTHER",
+            unit=1,
+            count=12,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-FG-001", "Asia/Taipei",
+    )
+
+    lst_steps = dict_payload["traceSteps"]
+    set_input_batches = {
+        dict_item["batchNo"]
+        for dict_step in lst_steps
+        for dict_item in dict_step["inputItems"]
+    }
+    set_output_batches = {
+        dict_item["batchNo"]
+        for dict_step in lst_steps
+        for dict_item in dict_step["outputItems"]
+    }
+    assert "B-RM-OTHER" not in set_input_batches
+    assert "B-FG-OTHER" not in set_output_batches
+
+
 def test_trace_dashboard_does_not_build_overview_steps(monkeypatch):
     obj_session = build_session()
     seed_traceability(obj_session)

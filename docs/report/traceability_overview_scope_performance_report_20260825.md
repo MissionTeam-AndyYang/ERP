@@ -1,10 +1,11 @@
-# Traceability Overview Scope and Performance Fix Report 20260825
+# Traceability Overview Scope and Algorithm Fix Report 20260825
 
 ## Scope
 
 - API: `GET /api/v2/trace/batches/{batch_no}/overview`
 - Issue 1: overview response time reported at about 1.8 seconds in engineer runtime environment.
-- Issue 2: `traceSteps[]` returned unrelated input items when querying finished goods batch numbers.
+- Issue 2: `traceSteps[]` returned unrelated input items or sibling output items when querying a finished goods or raw material batch number.
+- Issue 3: WIP batch numbers are not planned as V1 overview query roots, but the prior traversal still attempted to expand them.
 
 ## Changes
 
@@ -19,6 +20,14 @@
    - production data by work order
 4. Removed unused work-order-only helper functions to avoid future confusion.
 5. Added regression test for unrelated work-order group data.
+6. Overview now determines traversal direction from the root batch item category:
+   - raw material root: downstream path-focused traversal
+   - finished goods root: upstream path-focused traversal
+   - WIP root: no V1 expansion, empty `traceSteps[]`
+7. Production steps now filter the focused side of each step:
+   - upstream traversal keeps only the currently traced output batch in `outputItems[]`
+   - downstream traversal keeps only the currently traced input batch in `inputItems[]`
+8. Added regression tests for sibling output filtering, unrelated downstream input filtering, and WIP root non-expansion.
 
 ## Verification
 
@@ -31,7 +40,7 @@ python -m pytest restserver\tests\test_traceability_api.py
 Result:
 
 ```text
-6 passed in 0.69s
+9 passed in 4.28s
 ```
 
 ## Notes

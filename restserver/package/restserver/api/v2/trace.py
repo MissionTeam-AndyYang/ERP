@@ -162,7 +162,7 @@ class CTraceabilityService(object):
             "",
             str_batch_no,
         ).get(str_batch_no, {})
-        b_core_category = self.__is_trace_core_item_category(util_safe_int(obj_batch.itemCategory))
+        b_core_category = self.__is_trace_supported_root_category(util_safe_int(obj_batch.itemCategory))
         lst_trace_steps = []
         if b_core_category:
             lst_trace_steps = self.__build_trace_steps(obj_session, obj_batch)
@@ -506,6 +506,50 @@ class CTraceabilityService(object):
         return dict_result
 
     def __build_trace_steps(self, obj_session, obj_root_batch):
+        n_root_category = util_safe_int(obj_root_batch.itemCategory)
+        if n_root_category == EItemCategory.PRODUCT:
+            return self.__build_upstream_trace_steps(obj_session, obj_root_batch)
+        if n_root_category == EItemCategory.PM:
+            return self.__build_downstream_trace_steps(obj_session, obj_root_batch)
+        return []
+
+    def __build_upstream_trace_steps(self, obj_session, obj_root_batch):
+        dict_context = {
+            "batchHeaders": {obj_root_batch.no or "": obj_root_batch},
+            "inputsByBatch": {},
+            "outputsByBatch": {},
+            "inputsByScope": {},
+            "outputsByScope": {},
+            "productionData": {},
+        }
+        dict_steps = {}
+        obj_queue = deque([(obj_root_batch.no or "", 0)])
+        set_visited = set()
+        while obj_queue and len(set_visited) < self.MAX_TRACE_BATCH_COUNT and len(dict_steps) < self.MAX_TRACE_STEP_COUNT:
+            str_batch_no, n_depth = obj_queue.popleft()
+            if not str_batch_no or str_batch_no in set_visited or n_depth > self.MAX_TRACE_DEPTH:
+                continue
+            set_visited.add(str_batch_no)
+            obj_batch = self.__query_batch_header_cached(obj_session, dict_context, str_batch_no)
+            if not obj_batch or not self.__is_trace_core_item_category(util_safe_int(obj_batch.itemCategory)):
+                continue
+            self.__append_receipt_step(obj_session, obj_batch, dict_steps)
+            for obj_output in self.__query_outputs_by_batch_no_cached(obj_session, dict_context, str_batch_no):
+                self.__append_production_step_by_work_order(
+                    obj_session,
+                    dict_context,
+                    obj_output.work_order_no,
+                    obj_output.process_order_no,
+                    obj_output.group,
+                    [],
+                    [str_batch_no],
+                    dict_steps,
+                    obj_queue,
+                    n_depth,
+                )
+        return sorted(dict_steps.values(), key=lambda dict_row: (dict_row.get("eventTimestamp", 0), dict_row.get("stepId", "")))
+
+    def __build_downstream_trace_steps(self, obj_session, obj_root_batch):
         dict_context = {
             "batchHeaders": {obj_root_batch.no or "": obj_root_batch},
             "inputsByBatch": {},
@@ -533,17 +577,8 @@ class CTraceabilityService(object):
                     obj_input.work_order_no,
                     obj_input.process_order_no,
                     obj_input.group,
-                    dict_steps,
-                    obj_queue,
-                    n_depth,
-                )
-            for obj_output in self.__query_outputs_by_batch_no_cached(obj_session, dict_context, str_batch_no):
-                self.__append_production_step_by_work_order(
-                    obj_session,
-                    dict_context,
-                    obj_output.work_order_no,
-                    obj_output.process_order_no,
-                    obj_output.group,
+                    [str_batch_no],
+                    [],
                     dict_steps,
                     obj_queue,
                     n_depth,
@@ -592,6 +627,8 @@ class CTraceabilityService(object):
         str_work_order_no,
         str_process_order_no,
         str_group,
+        lst_focus_input_batch_nos,
+        lst_focus_output_batch_nos,
         dict_steps,
         obj_queue,
         n_depth,
@@ -616,6 +653,8 @@ class CTraceabilityService(object):
             str_process_order_no,
             str_group,
         )
+        lst_inputs = self.__filter_trace_rows_by_batch(lst_inputs, lst_focus_input_batch_nos)
+        lst_outputs = self.__filter_trace_rows_by_batch(lst_outputs, lst_focus_output_batch_nos)
         lst_input_items = self.__aggregate_trace_step_items(lst_inputs)
         lst_output_items = self.__aggregate_trace_step_items(lst_outputs)
         if not lst_input_items and not lst_output_items:
@@ -633,7 +672,7 @@ class CTraceabilityService(object):
             "inputItems": lst_input_items,
             "outputItems": lst_output_items,
         }
-        for obj_row in list(lst_inputs) + list(lst_outputs):
+        for obj_row in self.__next_trace_rows(lst_inputs, lst_outputs, lst_focus_input_batch_nos, lst_focus_output_batch_nos):
             str_batch_no = obj_row.batch_number or ""
             if str_batch_no and len(dict_steps) < self.MAX_TRACE_STEP_COUNT:
                 obj_queue.append((str_batch_no, n_depth + 1))
@@ -724,6 +763,20 @@ class CTraceabilityService(object):
             "unit": util_safe_int(obj_row.unit),
         }
 
+    def __filter_trace_rows_by_batch(self, lst_rows, lst_focus_batch_nos):
+        lst_focus_batch_nos = self.__clean_list(lst_focus_batch_nos)
+        if not lst_focus_batch_nos:
+            return lst_rows
+        set_focus_batch_nos = set(lst_focus_batch_nos)
+        return [obj_row for obj_row in lst_rows if (obj_row.batch_number or "") in set_focus_batch_nos]
+
+    def __next_trace_rows(self, lst_inputs, lst_outputs, lst_focus_input_batch_nos, lst_focus_output_batch_nos):
+        if self.__clean_list(lst_focus_output_batch_nos):
+            return lst_inputs
+        if self.__clean_list(lst_focus_input_batch_nos):
+            return lst_outputs
+        return list(lst_inputs) + list(lst_outputs)
+
     def __aggregate_trace_step_items(self, lst_rows):
         dict_items = {}
         for obj_row in lst_rows:
@@ -771,6 +824,12 @@ class CTraceabilityService(object):
         return util_safe_int(n_item_category) in [
             EItemCategory.PM,
             EItemCategory.INPRODUCT,
+            EItemCategory.PRODUCT,
+        ]
+
+    def __is_trace_supported_root_category(self, n_item_category):
+        return util_safe_int(n_item_category) in [
+            EItemCategory.PM,
             EItemCategory.PRODUCT,
         ]
 

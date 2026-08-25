@@ -246,7 +246,7 @@ None
 | payload.batch.validDays | Integer | 批號有效天數 |  |
 | payload.batch.refCategory | Integer | 批號建立時的來源單據類別 |  |
 | payload.batch.refNo | String | 批號建立時的來源單號 |  |
-| payload.batch.traceDirectionCode | String | 建議追溯方向 code；此欄位供前端聚焦視角使用，不限制 overview 回傳完整上下游投產流程 | upstream、downstream、both |
+| payload.batch.traceDirectionCode | String | 後端依查詢批號類別推導的追溯方向 code；原料為 downstream，製成品為 upstream，在製品或未展開類別為 both | upstream、downstream、both |
 | payload.batch.traceStatusCode | String | 此批號追溯流程狀態 code | complete、broken、unknown |
 | payload.batch.riskLevelCode | String | 此批號追溯風險等級 code | normal、attention、high_risk |
 | payload.batch.riskCode | String | 此批號追溯主要風險 code | normal、broken_chain、expired、quality_hold、unknown |
@@ -274,17 +274,18 @@ None
 
 1. 驗證 `batch_no` 並讀取 `batch_number` 批號主檔。
 2. 透過 Warehouse 庫存快照共用邏輯取得指定批號目前庫存與品檢保留數量。
-3. 若批號類別不是原料、在製品或製成品，回傳批號 header 與空 `traceSteps[]`，並以 `traceStatusCode=unknown`、`riskCode=unknown` 表示本版不展開。
-4. 以批號為入口受控展開投產流程，僅納入原料、在製品與製成品；物料與膠捲不列入 `traceSteps[]`。
+3. 若批號類別不是原料或製成品，回傳批號 header 與空 `traceSteps[]`，並以 `traceStatusCode=unknown`、`riskCode=unknown` 表示本版不展開；在製品第一版不作為查詢起點展開。
+4. 以批號為入口受控展開投產流程，僅納入與查詢批號路徑直接相關的原料、在製品與製成品；物料與膠捲不列入 `traceSteps[]`。
 5. 依 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 建立 `receipt` step，表示此批號何時採購或進貨。
-6. 依 root batch 所在的 `production_data_input` 或 `production_data_output` 找出相關工單，並以 `work_order_no + process_order_no + group` 作為 production step 範圍；不得只用 `work_order_no` 抓取整張工單所有投入與產出。
-7. 同一 production step 只合併相同 `work_order_no + process_order_no + group` 的投入與產出，避免同一工單下其他批次、其他製程群組或其他製成品被誤納入追溯鏈。
-8. `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一 production step 拆成多筆投入或產出，回傳時只保留一筆加總後資料。
-9. overview 建立過程需使用單次請求內的 batch header、batch input、batch output、work scope input/output 與 production data 快取，避免同一批號或同一工單群組重複查詢。
-10. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
-11. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。
-12. 依批號效期、品檢保留與追溯流程完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
-13. 回傳批號資訊與 `traceSteps[]`。
+6. 若查詢批號為製成品，從 `production_data_output.batch_number` 找出產出此批號的工單、製程單與群組，再以同一 `work_order_no + process_order_no + group` 取得投入批號；每個 production step 的 `outputItems[]` 只保留目前追溯中的製成品或在製品批號，下一層由投入批號繼續往上游展開。
+7. 若查詢批號為原料，從 `production_data_input.batch_number` 找出使用此批號的工單、製程單與群組，再以同一 `work_order_no + process_order_no + group` 取得產出批號；每個 production step 的 `inputItems[]` 只保留目前追溯中的原料或在製品批號，下一層由產出批號繼續往下游展開。
+8. 建立 production step 時，不得只以 `work_order_no` 查詢整張工單所有投入與產出，避免同一工單下其他批次、其他製程群組、旁支投入物或旁支製成品被誤納入追溯鏈。
+9. `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一 production step 拆成多筆投入或產出，回傳時只保留一筆加總後資料。
+10. overview 建立過程需使用單次請求內的 batch header、batch input、batch output、work scope input/output 與 production data 快取，避免同一批號或同一工單群組重複查詢。
+11. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
+12. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。
+13. 依批號效期、品檢保留與追溯流程完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
+14. 回傳批號資訊與 `traceSteps[]`。
 
 ### Database Tables Used
 

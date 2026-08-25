@@ -500,6 +500,123 @@ def test_trace_batch_overview_filters_unrelated_work_order_group():
     assert "B-FG-OTHER" not in set_output_batches
 
 
+def test_trace_batch_overview_finished_goods_filters_same_scope_sibling_output():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 5 * 86400,
+            no="B-FG-SIBLING",
+            ref_no="WO-002",
+            refCategory=2,
+            item_no="FG-SIBLING",
+            item_name="同製程旁支製成品",
+            itemCategory=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            itemType=1,
+            unit=1,
+            expectedCount=8,
+            checkedCount=8,
+            validDays=180,
+            validDate=n_now + 175 * 86400,
+            creationTime=n_now - 5 * 86400,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-002",
+            process_order_no="PROC-002",
+            group="G-001",
+            time=n_now - 5 * 86400,
+            action=1,
+            item_no="FG-SIBLING",
+            item_name="同製程旁支製成品",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-SIBLING",
+            serial_no="S-OUT-SIBLING",
+            unit=1,
+            count=8,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-FG-001", "Asia/Taipei",
+    )
+
+    set_output_batches = {
+        dict_item["batchNo"]
+        for dict_step in dict_payload["traceSteps"]
+        for dict_item in dict_step["outputItems"]
+    }
+    assert "B-FG-001" in set_output_batches
+    assert "B-FG-SIBLING" not in set_output_batches
+
+
+def test_trace_batch_overview_raw_material_filters_unrelated_downstream_inputs():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 7 * 86400,
+            no="B-RM-SIDE",
+            ref_no="GRN-SIDE",
+            refCategory=1,
+            item_no="RM-SIDE",
+            item_name="非查詢原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            itemType=1,
+            unit=1,
+            expectedCount=20,
+            checkedCount=20,
+            validDays=90,
+            validDate=n_now + 80 * 86400,
+            creationTime=n_now - 7 * 86400,
+        ),
+        CTableProductionDataInput(
+            work_order_no="WO-002",
+            process_order_no="PROC-002",
+            group="G-001",
+            time=n_now - 5 * 86400,
+            action=1,
+            item_no="RM-SIDE",
+            item_name="非查詢原料",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-SIDE",
+            serial_no="S-IN-SIDE",
+            unit=1,
+            count=3,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-001", "Asia/Taipei",
+    )
+
+    set_input_batches = {
+        dict_item["batchNo"]
+        for dict_step in dict_payload["traceSteps"]
+        for dict_item in dict_step["inputItems"]
+    }
+    assert "B-RM-001" in set_input_batches
+    assert "B-WIP-001" in set_input_batches
+    assert "B-RM-SIDE" not in set_input_batches
+
+
+def test_trace_batch_overview_wip_root_is_not_expanded_in_v1():
+    obj_session = build_session()
+    seed_traceability(obj_session)
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-WIP-001", "Asia/Taipei",
+    )
+
+    assert dict_payload["batch"]["batchNo"] == "B-WIP-001"
+    assert dict_payload["batch"]["traceStatusCode"] == ETraceStatusCode.UNKNOWN
+    assert dict_payload["traceSteps"] == []
+
+
 def test_trace_dashboard_does_not_build_overview_steps(monkeypatch):
     obj_session = build_session()
     seed_traceability(obj_session)

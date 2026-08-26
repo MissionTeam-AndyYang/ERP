@@ -1,3 +1,80 @@
+
+# 演算法修正V2
+1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[] 仍存在資料異常。
+    - 以查詢製成品批號 BN1526051503(摩卡杏仁肉鬆煎捲_2022中秋版) 為例，回傳結果中 outputItems[] 為空值，預期應顯示製成品    BN1526051503 的相關資料。以下為資料結構範例：
+    ```json
+      {
+          "stepId": "production:Z150515003::group_1",
+          "stepTypeCode": "production",
+          "eventTimestamp": 1778774400,
+          "refCategory": 0,
+          "refNo": "Z150515003",
+          "statusCode": "complete",
+          "riskLevelCode": "normal",
+          "inputItems": [
+              {
+                  "itemNo": "SFE0003012",
+                  "itemName": "摩卡杏仁肉鬆煎捲_2022中秋版",
+                  "itemCategory": 4,
+                  "batchNo": "BN1426050603",
+                  "quantity": 633.53,
+                  "unit": 3
+              }
+          ],
+          "outputItems": [ 預期應顯示 BN1526051503 的相關資料 ]
+      }
+      ```
+    - 以查詢原料批號 BN1126042901(糙米捲蛋黃味 (小) 2025年7月新價) 為例，回傳結果中 outputItems[] 為空值，預期應顯示製成品 BN1526051308 / BN1526051403 / BN1526051405  的相關資料。 以下為資料結構範例：
+    ```json
+       {
+          "stepId": "production:Z150514005::group_1",
+          "stepTypeCode": "production",
+          "eventTimestamp": 1778688000,
+          "refCategory": 0,
+          "refNo": "Z150514005",
+          "statusCode": "complete",
+          "riskLevelCode": "normal",
+          "inputItems": [
+              {
+                  "itemNo": "SFE0022004",
+                  "itemName": "肉酥起司捲",
+                  "itemCategory": 4,
+                  "batchNo": "BN1426051301",
+                  "quantity": 74.94,
+                  "unit": 3
+              }
+          ],
+          "outputItems": [預期應顯示製成品    BN1526051308 / BN1526051403 / BN1526051405  的相關資料]
+      },
+     ```
+      若回傳資料並非由原料批號直接關聯，則不需回傳。例如
+      ```json
+      {
+          "stepId": "production:Z150515004::group_2",
+          "stepTypeCode": "production",
+          "eventTimestamp": 1778774400,
+          "refCategory": 0,
+          "refNo": "Z150515004",
+          "statusCode": "complete",
+          "riskLevelCode": "normal",
+          "inputItems": [
+              {
+                  "itemNo": "SFE0022001",
+                  "itemName": "拌料_咖啡杏仁捲",
+                  "itemCategory": 4,
+                  "batchNo": "BN1426051505",
+                  "quantity": 22.71,
+                  "unit": 3
+              }
+          ],
+          "outputItems": []
+      },
+    ```
+   - 請參考 CBatchRecord 演算法，並評估是否可透過 work_order_no + process_order_no + group 的組合來限定 production step 範圍，以進行演算法修正。
+2. 針對 /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[] 
+   - 請檢視並評估目前的資料結構，確認其是否能支援前端畫面依製程階層方式展開顯示。
+   - 請檢視並評估當 traceStepTypeCode 為 receipt 或 sale 時，是否需要獨立存放於另一個陣列。
+   
 # 演算法修正
 1. 針對 /api/v2/trace/batches/{batch_no}/overview
    - 目前暫不規劃"在製品"批號的追溯功能 

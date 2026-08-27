@@ -685,3 +685,26 @@ class ETraceEventTypeCode(object):
     QUALITY_RELEASE = "quality_release"
     TASK = "task"
 
+
+# ------------------------------------------------------------
+# Transaction Item Master API enums
+# ------------------------------------------------------------
+
+class ETransItemTypeCode(object):
+    TRANS_ITEMS = "trans_items"
+
+
+class EDataQualityCode(object):
+    READY = "ready"
+    MISSING_COMPANY = "missing_company"
+    MISSING_LINKED_ITEM = "missing_linked_item"
+    MISSING_CONTRACT_PRICE = "missing_contract_price"
+    MISSING_PAYMENT_TERMS = "missing_payment_terms"
+    UNKNOWN = "unknown"
+
+
+class EPaymentTypeCode(object):
+    CASH = "cash"
+    MONTHLY = "monthly"
+    UNKNOWN = "unknown"
+

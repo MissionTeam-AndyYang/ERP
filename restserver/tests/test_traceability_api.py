@@ -552,6 +552,172 @@ def test_trace_batch_overview_finished_goods_filters_same_scope_sibling_output()
     assert "B-FG-SIBLING" not in set_output_batches
 
 
+def test_trace_batch_overview_keeps_output_when_process_order_is_missing_on_output():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 2 * 86400,
+            no="B-FG-NO-PROC",
+            ref_no="WO-NO-PROC",
+            refCategory=2,
+            item_no="FG-NO-PROC",
+            item_name="缺製程單製成品",
+            itemCategory=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            itemType=1,
+            unit=1,
+            expectedCount=18,
+            checkedCount=18,
+            validDays=180,
+            validDate=n_now + 178 * 86400,
+            creationTime=n_now - 2 * 86400,
+        ),
+        CTableProductionData(work_order_no="WO-NO-PROC", date=n_now - 2 * 86400, product_no="FG-NO-PROC", product_name="缺製程單製成品"),
+        CTableProductionDataInput(
+            work_order_no="WO-NO-PROC",
+            process_order_no="PROC-NO-PROC",
+            group="group_1",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="WIP-001",
+            item_name="半成品A",
+            category=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-001",
+            serial_no="S-IN-NO-PROC",
+            unit=1,
+            count=20,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-NO-PROC",
+            process_order_no="",
+            group="group_1",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="FG-NO-PROC",
+            item_name="缺製程單製成品",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-NO-PROC",
+            serial_no="S-OUT-NO-PROC",
+            unit=1,
+            count=18,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-FG-NO-PROC", "Asia/Taipei",
+    )
+
+    dict_step = next(
+        dict_step for dict_step in dict_payload["traceSteps"]
+        if dict_step["refNo"] == "WO-NO-PROC"
+    )
+    assert any(dict_item["batchNo"] == "B-WIP-001" for dict_item in dict_step["inputItems"])
+    assert any(dict_item["batchNo"] == "B-FG-NO-PROC" for dict_item in dict_step["outputItems"])
+
+
+def test_trace_batch_overview_raw_material_keeps_output_when_counterpart_process_order_is_missing():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 3 * 86400,
+            no="B-RM-PROC-MISMATCH",
+            ref_no="GRN-PROC-MISMATCH",
+            refCategory=1,
+            item_no="RM-PROC-MISMATCH",
+            item_name="製程單不一致原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            itemType=1,
+            unit=1,
+            expectedCount=30,
+            checkedCount=30,
+            validDays=90,
+            validDate=n_now + 87 * 86400,
+            creationTime=n_now - 3 * 86400,
+        ),
+        CTableGoodsReceiptNote(
+            no="GRN-PROC-MISMATCH",
+            purchase_order_no="PO-PROC-MISMATCH",
+            date=n_now - 3 * 86400,
+            category=1,
+            item_no="RM-PROC-MISMATCH",
+            item_name="製程單不一致原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            unit=1,
+            expectedCount=30,
+            checkedCount=30,
+            amount=300,
+            creationTime=n_now - 3 * 86400,
+        ),
+        CTableBatchNumber(
+            date=n_now - 2 * 86400,
+            no="B-FG-PROC-MISMATCH",
+            ref_no="WO-PROC-MISMATCH",
+            refCategory=2,
+            item_no="FG-PROC-MISMATCH",
+            item_name="製程單不一致製成品",
+            itemCategory=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            itemType=1,
+            unit=1,
+            expectedCount=25,
+            checkedCount=25,
+            validDays=180,
+            validDate=n_now + 178 * 86400,
+            creationTime=n_now - 2 * 86400,
+        ),
+        CTableProductionData(work_order_no="WO-PROC-MISMATCH", date=n_now - 2 * 86400, product_no="FG-PROC-MISMATCH", product_name="製程單不一致製成品"),
+        CTableProductionDataInput(
+            work_order_no="WO-PROC-MISMATCH",
+            process_order_no="PROC-PROC-MISMATCH",
+            group="group_2",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="RM-PROC-MISMATCH",
+            item_name="製程單不一致原料",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-PROC-MISMATCH",
+            serial_no="S-IN-PROC-MISMATCH",
+            unit=1,
+            count=28,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-PROC-MISMATCH",
+            process_order_no="",
+            group="group_2",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="FG-PROC-MISMATCH",
+            item_name="製程單不一致製成品",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-PROC-MISMATCH",
+            serial_no="S-OUT-PROC-MISMATCH",
+            unit=1,
+            count=25,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-PROC-MISMATCH", "Asia/Taipei",
+    )
+
+    dict_step = next(
+        dict_step for dict_step in dict_payload["traceSteps"]
+        if dict_step["refNo"] == "WO-PROC-MISMATCH"
+    )
+    assert any(dict_item["batchNo"] == "B-RM-PROC-MISMATCH" for dict_item in dict_step["inputItems"])
+    assert any(dict_item["batchNo"] == "B-FG-PROC-MISMATCH" for dict_item in dict_step["outputItems"])
+
+
 def test_trace_batch_overview_raw_material_filters_unrelated_downstream_inputs():
     obj_session = build_session()
     n_now = seed_traceability(obj_session)

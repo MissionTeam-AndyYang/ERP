@@ -6,6 +6,7 @@
 - Issue 1: overview response time reported at about 1.8 seconds in engineer runtime environment.
 - Issue 2: `traceSteps[]` returned unrelated input items or sibling output items when querying a finished goods or raw material batch number.
 - Issue 3: WIP batch numbers are not planned as V1 overview query roots, but the prior traversal still attempted to expand them.
+- Issue 4: `traceSteps[].outputItems[]` could become empty when input/output rows belonged to the same `work_order_no + group` but one side had an empty or mismatched `process_order_no`.
 
 ## Changes
 
@@ -28,6 +29,9 @@
    - upstream traversal keeps only the currently traced output batch in `outputItems[]`
    - downstream traversal keeps only the currently traced input batch in `inputItems[]`
 8. Added regression tests for sibling output filtering, unrelated downstream input filtering, and WIP root non-expansion.
+9. Added counterpart fallback query: strict `work_order_no + process_order_no + group` remains the first lookup, but if one side is empty and `group` is available, the service retries the missing side with `work_order_no + group`.
+10. Added batch number normalization before focus filtering to avoid whitespace differences dropping legitimate rows.
+11. Confirmed `receipt`, `production`, and future `sale` steps remain in `traceSteps[]`; no separate receipt/sale arrays are introduced for V1.
 
 ## Verification
 
@@ -40,7 +44,7 @@ python -m pytest restserver\tests\test_traceability_api.py
 Result:
 
 ```text
-9 passed in 4.28s
+11 passed in 1.87s
 ```
 
 ## Notes

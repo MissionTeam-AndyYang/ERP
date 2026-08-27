@@ -126,12 +126,14 @@
    - 產製資料建立 `production` step，範圍必須限定在同一 `work_order_no + process_order_no + group`。
    - 僅建立可由資料表支持的 step，不建立推測 step。
 7. 建立 production step 時，不得只以 `work_order_no` 查詢整張工單所有投入與產出，避免同一工單下其他批次、其他製程群組或其他製成品被誤納入追溯鏈。
-8. 製成品查詢採 upstream：`outputItems[]` 只保留目前追溯中的批號，下一層改由該 step 的 `inputItems[]` 繼續往上游展開。
-9. 原料查詢採 downstream：`inputItems[]` 只保留目前追溯中的批號，下一層改由該 step 的 `outputItems[]` 繼續往下游展開。
-10. 單次 overview 請求需快取已查詢的 batch header、batch input/output、work scope input/output 與 production data，降低重複查詢成本。
-11. `inputItems[]` 與 `outputItems[]` 依 `itemNo + batchNo + itemCategory + unit` 加總；物料與膠捲不列入第一版 trace step item。
-12. 回傳完整 payload。
-13. 若查詢批號為製成品，必須可由製成品產出工單往上游展開至在製品與原物料投入；若查詢批號為原料，必須可由採購/進貨來源往下游展開至使用此原料的工單與產出的在製品/製成品；若查詢批號為在製品，第一版回傳空 `traceSteps[]`。
+8. 若 `process_order_no` 在 input/output 單側為空或不一致，導致同一 `work_order_no + process_order_no + group` 查不到 counterpart rows，需補查同一 `work_order_no + group`；不得放寬到只有 `work_order_no`。
+9. 製成品查詢採 upstream：`outputItems[]` 只保留目前追溯中的批號，下一層改由該 step 的 `inputItems[]` 繼續往上游展開；第一層不得讓查詢製成品批號的 `outputItems[]` 為空。
+10. 原料查詢採 downstream：`inputItems[]` 只保留目前追溯中的批號，下一層改由該 step 的 `outputItems[]` 繼續往下游展開；若同一製程群組直接產出在製品或製成品，`outputItems[]` 不得為空。
+11. `receipt`、`production`、`sale` 維持在同一 `traceSteps[]`，不拆成獨立陣列；前端可用 `stepTypeCode` 判斷時間軸與製程階層呈現方式。
+12. 單次 overview 請求需快取已查詢的 batch header、batch input/output、work scope input/output 與 production data，降低重複查詢成本。
+13. `inputItems[]` 與 `outputItems[]` 依 `itemNo + batchNo + itemCategory + unit` 加總；物料與膠捲不列入第一版 trace step item。
+14. 回傳完整 payload。
+15. 若查詢批號為製成品，必須可由製成品產出工單往上游展開至在製品與原物料投入；若查詢批號為原料，必須可由採購/進貨來源往下游展開至使用此原料的工單與產出的在製品/製成品；若查詢批號為在製品，第一版回傳空 `traceSteps[]`。
 
 ## 9. 效能與重構要求
 
@@ -146,7 +148,9 @@
    - dashboard 欄位存在性。
    - dashboard 批號查詢、日期區間與分頁。
    - batch overview `traceSteps[]` 結構。
+   - 製成品查詢時，查詢批號所在 production step 的 `outputItems[]` 不可因過濾或 `process_order_no` 空值而漏失。
    - 原料批號由採購/進貨來源往下游追溯至直接相關的在製品/製成品，且不混入下游製成品的其他非查詢原料。
+   - 原料往下游查詢時，若 input/output 的 `process_order_no` 單側空值但 `work_order_no + group` 相同，仍需回傳直接產出的 `outputItems[]`。
    - 製成品批號由產出工單往上游追溯至直接相關的在製品/原物料投入，且不混入同 scope 其他非查詢製成品。
    - 在製品批號作為查詢起點時回傳空 `traceSteps[]`。
    - Dashboard 不建立完整 overview 流程、不逐批號呼叫 overview。

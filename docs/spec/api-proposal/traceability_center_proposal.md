@@ -75,6 +75,17 @@
    - 請檢視並評估目前的資料結構，確認其是否能支援前端畫面依製程階層方式展開顯示。
    - 請檢視並評估當 traceStepTypeCode 為 receipt 或 sale 時，是否需要獨立存放於另一個陣列。
    
+## 演算法修正V2回覆
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| `outputItems[]` 空值問題 | 已確認 V2 問題核心不是 `traceSteps[]` 結構不足，而是 production step 查詢與過濾需要更精準處理。後端維持以 `work_order_no + process_order_no + group` 作為優先 scope；若真實資料中 `process_order_no` 於 input/output 單側為空或不一致，導致同一 `group` 的 counterpart rows 查不到，則補查同一 `work_order_no + group`，避免合法產出被誤判為空。 |
+| 製成品批號查詢 | 製成品查詢仍採 upstream。第一層 production step 必須顯示查詢製成品批號於 `outputItems[]`，並顯示直接投入的在製品/原料於 `inputItems[]`；下一層只沿直接投入批號往上游展開，不反向擴散到其他非查詢製成品。 |
+| 原料批號查詢 | 原料查詢仍採 downstream。每層 production step 必須顯示目前追溯中的投入批號於 `inputItems[]`，並顯示同一製程群組直接產出的在製品或製成品於 `outputItems[]`；下一層只沿直接產出批號往下游展開，不混入下游製成品的其他非查詢原料。 |
+| 製程階層顯示 | 現有 `traceSteps[]` 可支援前端依製程階層展開顯示。每筆 `production` step 代表一個 `work_order_no + process_order_no + group` 製程群組，`inputItems[]` 與 `outputItems[]` 已在同一 step 中表達投入與產出關係；前端可依 step 順序與 input/output 批號關聯呈現階層。 |
+| `receipt` / `sale` 是否獨立陣列 | 第一版不建議拆成另一個陣列。`receipt`、`production`、`sale` 都是同一批號追溯流程中的 step，維持在 `traceSteps[]` 可讓前端用同一種排序、時間軸與階層展開邏輯處理；若未來需要文件完整性或召回評估，再另行設計補充 payload。 |
+| 測試補強 | 已新增 regression tests，覆蓋製成品 `outputItems[]` 不可空、原料往下游時 counterpart `process_order_no` 缺漏仍需回傳 `outputItems[]`、旁支投入/產出不可混入，以及在製品查詢起點不展開。 |
+
 # 演算法修正
 1. 針對 /api/v2/trace/batches/{batch_no}/overview
    - 目前暫不規劃"在製品"批號的追溯功能 

@@ -1,4 +1,10 @@
+# 演算法修正V3
+1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[] 仍存在資料異常，請參考 CBatchRecord 演算法進行修正。
+    - 案例一：查詢製成品批號 BN1526051503, stepId = "production:Z150515003::group_1",  回傳結果中 outputItems[] 為空值，預期應顯示製成品 BN1526051503 的相關資料。
 
+    - 案例二：查詢原料批號 BN1126042901, stepId = "production:Z150514005::group_1", 回傳結果中 outputItems[] 為空值，預期應顯示製成品 BN1526051308 / BN1526051403 / BN1526051405 的相關資料。
+      另有 stepId = "production:Z150515004::group_2"，此回傳資料並非由原料批號直接關聯，因此不需回傳。
+   
 # 演算法修正V2
 1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[] 仍存在資料異常。
     - 以查詢製成品批號 BN1526051503(摩卡杏仁肉鬆煎捲_2022中秋版) 為例，回傳結果中 outputItems[] 為空值，預期應顯示製成品    BN1526051503 的相關資料。以下為資料結構範例：

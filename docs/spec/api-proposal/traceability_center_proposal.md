@@ -9,11 +9,11 @@
 
 | 項目 | 回覆與文件調整 |
 |---|---|
-| CBatchRecord 演算法參考 | 已參考 `CBatchRecord` 以製程群組建立投入/產出關係的方式；新版 overview 仍優先以 `work_order_no + process_order_no + group` 定位 production step，並在 input/output 單側 `process_order_no` 空值或不一致時，補查同一 `work_order_no + group` 的 counterpart rows。 |
-| 案例一 outputItems 空值 | 後端已補強：查詢製成品批號時，產出該製成品的 production step 必須保留查詢批號於 `outputItems[]`，不可因 counterpart 查詢或 focus filtering 造成空陣列。 |
-| 案例二 outputItems 空值 | 後端已補強：查詢原料批號時，若該原料或其直接產出的在製品被投入下一層 production step，同一製程群組直接產出的製成品需回傳於 `outputItems[]`。 |
-| 非直接關聯資料排除 | `production:Z150515004::group_2` 這類非由查詢原料批號路徑直接展開而來的 step 不應回傳。後端只將目前 trace queue 中的批號作為下一層展開來源，不從下游製成品反向展開其他非查詢原料或旁支在製品。 |
-| 測試補強 | 已新增與保留 regression tests，確認製成品 step 的 `outputItems[]` 不空、原料往下游 step 可取得直接製成品 output、同工單其他 group 或旁支資料不混入。 |
+| CBatchRecord 演算法參考 | 已參考 `CBatchRecord` 以製程群組建立投入/產出關係的方式；新版 overview 仍優先以 `work_order_no + process_order_no + group` 定位 production step。實作上已補強為先以 `work_order_no` 取回同工單資料，再於程式端正規化比對 `process_order_no` 與 `group`，避免資料表中單側空值或前後空白造成 counterpart rows 查不到。 |
+| 案例一 outputItems 空值 | 後端已補強：查詢製成品批號時，產出該製成品的 production step 必須保留查詢批號於 `outputItems[]`，不可因 counterpart 查詢、`group` 空白差異或 focus filtering 造成空陣列。 |
+| 案例二 outputItems 空值 | 後端已補強：查詢原料批號時，若該原料或其直接產出的在製品被投入下一層 production step，同一製程群組直接產出的製成品需回傳於 `outputItems[]`；若 `process_order_no` 單側空值或不一致，會補查同一 `work_order_no + group` 的 counterpart rows。 |
+| 非直接關聯資料排除 | `production:Z150515004::group_2` 這類非由查詢原料批號路徑直接展開而來的 step 不應回傳。後端只將目前 trace queue 中的原料或在製品批號作為下一層展開來源；原料 downstream 追到製成品時，製成品只保留於 `outputItems[]`，不再把製成品放回 queue 展開下一層，因此不會從下游製成品反向展開其他非查詢原料或旁支在製品。 |
+| 測試補強 | 已新增與保留 regression tests，確認製成品 step 的 `outputItems[]` 不空、原料往下游 step 可取得直接製成品 output、同工單其他 group 或旁支資料不混入、`group` 前後空白不會造成 counterpart rows 遺失，以及原料 downstream 追到製成品後不再展開下一層非直接 production step。 |
 
 # 演算法修正V2
 1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[] 仍存在資料異常。

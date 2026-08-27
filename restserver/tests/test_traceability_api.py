@@ -771,6 +771,118 @@ def test_trace_batch_overview_raw_material_filters_unrelated_downstream_inputs()
     assert "B-RM-SIDE" not in set_input_batches
 
 
+def test_trace_batch_overview_keeps_output_when_group_has_extra_spaces():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 2 * 86400,
+            no="B-FG-GROUP-SPACE",
+            ref_no="WO-GROUP-SPACE",
+            refCategory=2,
+            item_no="FG-GROUP-SPACE",
+            item_name="群組空白製成品",
+            itemCategory=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            itemType=1,
+            unit=1,
+            expectedCount=18,
+            checkedCount=18,
+            validDays=180,
+            validDate=n_now + 178 * 86400,
+            creationTime=n_now - 2 * 86400,
+        ),
+        CTableProductionData(work_order_no="WO-GROUP-SPACE", date=n_now - 2 * 86400, product_no="FG-GROUP-SPACE", product_name="群組空白製成品"),
+        CTableProductionDataInput(
+            work_order_no="WO-GROUP-SPACE",
+            process_order_no="",
+            group=" group_1 ",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="WIP-GROUP-SPACE",
+            item_name="群組空白半成品",
+            category=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-GROUP-SPACE",
+            serial_no="S-IN-GROUP-SPACE",
+            unit=1,
+            count=20,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-GROUP-SPACE",
+            process_order_no="",
+            group="group_1",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="FG-GROUP-SPACE",
+            item_name="群組空白製成品",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-GROUP-SPACE",
+            serial_no="S-OUT-GROUP-SPACE",
+            unit=1,
+            count=18,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-FG-GROUP-SPACE", "Asia/Taipei",
+    )
+
+    dict_step = next(
+        dict_step for dict_step in dict_payload["traceSteps"]
+        if dict_step["stepId"] == "production:WO-GROUP-SPACE::group_1"
+    )
+    assert any(dict_item["batchNo"] == "B-WIP-GROUP-SPACE" for dict_item in dict_step["inputItems"])
+    assert any(dict_item["batchNo"] == "B-FG-GROUP-SPACE" for dict_item in dict_step["outputItems"])
+
+
+def test_trace_batch_overview_raw_material_does_not_expand_after_finished_goods_output():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableProductionDataInput(
+            work_order_no="WO-AFTER-FG",
+            process_order_no="PROC-AFTER-FG",
+            group="group_2",
+            time=n_now - 1 * 86400,
+            action=1,
+            item_no="FG-001",
+            item_name="製成品A",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-001",
+            serial_no="S-IN-AFTER-FG",
+            unit=1,
+            count=5,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-AFTER-FG",
+            process_order_no="PROC-AFTER-FG",
+            group="group_2",
+            time=n_now - 1 * 86400,
+            action=1,
+            item_no="FG-AFTER-FG",
+            item_name="不應展開製成品",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-AFTER-FG",
+            serial_no="S-OUT-AFTER-FG",
+            unit=1,
+            count=5,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-001", "Asia/Taipei",
+    )
+
+    set_step_ids = {dict_step["stepId"] for dict_step in dict_payload["traceSteps"]}
+    assert "production:WO-AFTER-FG:PROC-AFTER-FG:group_2" not in set_step_ids
+
+
 def test_trace_batch_overview_wip_root_is_not_expanded_in_v1():
     obj_session = build_session()
     seed_traceability(obj_session)

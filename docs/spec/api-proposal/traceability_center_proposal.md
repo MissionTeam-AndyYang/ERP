@@ -1,3 +1,8 @@
+# 程式修正V2
+1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[]
+   - 追溯投入物過程需參照 production_data_input 資料表的 action 欄位（領料=1、退料=2）。投入數量應以 action=1 的加總扣除 action=2 的加總，才是該批號的實際投入數量。請依此邏輯修正後端程式碼。
+   - 原料批號 A 投入後，產製出在製品批號 B 與在製品批號 C。同一派工單中，在製品批號 B 與在製品批號 C 進一步包裝，產出製成品 D。由於 stepId 重複，程式僅會保留最後一筆資料，導致僅儲存『投入物在製品批號 B 對應產出物製成品 D』或『投入物在製品批號 C 對應產出物製成品 D』其中一組關聯。請修正後端程式碼邏輯，確保所有投入物與產出物的對應關係均能正確保存。
+
 # 程式修正
 1. 針對 "新版 overview 仍以 work_order_no + process_order_no + group 作為定位 production step 的優先依據。"
    - 請說明為何需要加入 process_order_no 作為判斷條件，目前資料表中的 process_order_no 欄位尚未建立關聯，僅為預留的擴充欄位。

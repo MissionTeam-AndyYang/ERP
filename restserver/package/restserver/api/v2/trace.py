@@ -9,6 +9,7 @@ from package.common.common import (
     EErrorCode,
     EInventoryCategory,
     EItemCategory,
+    EOutputCategory,
     ETraceDirectionCode,
     ETracePartnerTypeCode,
     ETraceRiskCode,
@@ -782,15 +783,23 @@ class CTraceabilityService(object):
             lst_result.append(obj_row)
         return lst_result
 
-    def __build_trace_step_item(self, obj_row):
+    def __build_trace_step_item(self, obj_row, n_item_category):
         return {
             "itemNo": obj_row.item_no or "",
             "itemName": obj_row.item_name or "",
-            "itemCategory": util_safe_int(obj_row.category),
+            "itemCategory": util_safe_int(n_item_category),
             "batchNo": obj_row.batch_number or "",
             "quantity": util_round_quantity(obj_row.count),
             "unit": util_safe_int(obj_row.unit),
         }
+
+    def __trace_row_item_category(self, obj_row):
+        if isinstance(obj_row, CTableProductionDataOutput):
+            if util_safe_int(obj_row.category) == EOutputCategory.INPRODUCT:
+                return EItemCategory.INPRODUCT
+            if util_safe_int(obj_row.category) == EOutputCategory.PRODUCT:
+                return EItemCategory.PRODUCT
+        return util_safe_int(obj_row.category)
 
     def __filter_trace_rows_by_batch(self, lst_rows, lst_focus_batch_nos):
         lst_focus_batch_nos = self.__clean_list(lst_focus_batch_nos)
@@ -803,15 +812,16 @@ class CTraceabilityService(object):
         if self.__clean_list(lst_focus_output_batch_nos):
             return lst_inputs
         if self.__clean_list(lst_focus_input_batch_nos):
-            return [obj_row for obj_row in lst_outputs if util_safe_int(obj_row.category) != EItemCategory.PRODUCT]
+            return [obj_row for obj_row in lst_outputs if self.__trace_row_item_category(obj_row) != EItemCategory.PRODUCT]
         return list(lst_inputs) + list(lst_outputs)
 
     def __aggregate_trace_step_items(self, lst_rows):
         dict_items = {}
         for obj_row in lst_rows:
-            if not self.__is_trace_core_item_category(util_safe_int(obj_row.category)):
+            n_item_category = self.__trace_row_item_category(obj_row)
+            if not self.__is_trace_core_item_category(n_item_category):
                 continue
-            dict_item = self.__build_trace_step_item(obj_row)
+            dict_item = self.__build_trace_step_item(obj_row, n_item_category)
             str_key = "%s|%s|%s|%s" % (
                 dict_item.get("itemNo", ""),
                 dict_item.get("batchNo", ""),

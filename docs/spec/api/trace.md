@@ -282,7 +282,7 @@ None
 8. 若 input/output 單側 `process_order_no` 為空或不一致，或 `group` 存在前後空白差異，導致同一 `work_order_no + process_order_no + group` 查不到 counterpart rows，後端以 `work_order_no` 取回同工單資料後於程式端正規化比對 `process_order_no` 與 `group`；必要時補查同一 `work_order_no + group`。不得放寬到只以 `work_order_no` 建立整張工單的 production step。
 9. 建立 production step 時，不得只以 `work_order_no` 查詢整張工單所有投入與產出，避免同一工單下其他批次、其他製程群組、旁支投入物或旁支製成品被誤納入追溯鏈。
 10. `receipt`、`production`、`sale` 均維持於 `traceSteps[]`，前端依 `stepTypeCode` 判斷流程類型；第一版不另拆獨立 receipt/sale 陣列。
-11. `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一 production step 拆成多筆投入或產出，回傳時只保留一筆加總後資料。
+11. `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一 production step 拆成多筆投入或產出，回傳時只保留一筆加總後資料。`production_data_input.category` 使用 `EItemCategory`；`production_data_output.category` 使用 `EOutputCategory`，後端回傳 `traceSteps[].outputItems[].itemCategory` 前需轉為 API 統一使用的 `EItemCategory`。
 12. overview 建立過程需使用單次請求內的 batch header、batch input、batch output、work scope input/output 與 production data 快取，避免同一批號或同一工單群組重複查詢。
 13. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
 14. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。

@@ -1,3 +1,10 @@
+# 程式修正
+1. 針對 "新版 overview 仍以 work_order_no + process_order_no + group 作為定位 production step 的優先依據。"
+   - 請說明為何需要加入 process_order_no 作為判斷條件，目前資料表中的 process_order_no 欄位尚未建立關聯，僅為預留的擴充欄位。
+   - 派工單的一個投入物可能對應多個批號，而不同批號會有不同效期。由於不同批號的投入物所產出的成品也必須具備相應的批號，因此 group 的設計目的在於對應並管理此類關係。然而，目前資料庫的資料尚未完整建立，暫時不考慮以 group 進行分組。請依此情境修正後端程式碼，確保邏輯正確。
+2. 請在程式碼中補充註解，明確描述函式或欄位的用途、邏輯流程與限制條件，以利工程師後續維護與除錯。
+
+
 # 演算法修正V3
 1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[] 仍存在資料異常，請參考 CBatchRecord 演算法進行修正。
     - 案例一：查詢製成品批號 BN1526051503, stepId = "production:Z150515003::group_1",  回傳結果中 outputItems[] 為空值，預期應顯示製成品 BN1526051503 的相關資料。

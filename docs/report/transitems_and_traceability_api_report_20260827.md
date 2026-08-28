@@ -39,7 +39,7 @@ Command:
 .\.venv\Scripts\python.exe -m pytest restserver\tests
 ```
 
-Result: PASS, 56 tests passed in 2.71s.
+Result: PASS, 57 tests passed in 2.64s.
 
 ## Field Logic Review
 
@@ -58,7 +58,7 @@ After engineer runtime feedback, the traceability overview algorithm was recheck
 - Work-scope rows are now loaded by `work_order_no` and filtered in code with normalized `process_order_no` and `group`, preventing single-side blanks or surrounding spaces from dropping valid counterpart rows.
 - Finished-goods overview keeps the queried finished-goods batch in `outputItems[]`.
 - Production output item category is resolved from `production_data_output.batch_number -> batch_number.itemCategory` first, then falls back to `EOutputCategory`, so old or inconsistent output category values do not drop finished-goods outputs or keep expanding them as non-finished items.
-- Raw-material downstream tracing does not enqueue finished-goods output rows for further expansion. Finished goods are returned as terminal `outputItems[]`, preventing unrelated steps such as another downstream `group_2` production from appearing.
+- Raw-material downstream tracing only enqueues output rows confirmed as `EItemCategory.INPRODUCT`. Finished goods, unknown outputs and other non-inproduct outputs are returned only in the current step, preventing unrelated steps such as another downstream `group_2` production from appearing.
 - Added regression tests for normalized group matching and stopping downstream expansion after finished-goods output.
 
 ## Remaining External Verification

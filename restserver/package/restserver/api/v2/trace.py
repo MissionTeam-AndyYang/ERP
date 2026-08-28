@@ -817,7 +817,7 @@ class CTraceabilityService(object):
         if self.__clean_list(lst_focus_input_batch_nos):
             return [
                 obj_row for obj_row in lst_outputs
-                if self.__trace_row_item_category(obj_session, dict_context, obj_row) != EItemCategory.PRODUCT
+                if self.__trace_row_item_category(obj_session, dict_context, obj_row) == EItemCategory.INPRODUCT
             ]
         return list(lst_inputs) + list(lst_outputs)
 

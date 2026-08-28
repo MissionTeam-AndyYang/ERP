@@ -278,7 +278,7 @@ None
 4. 以批號為入口受控展開投產流程，僅納入與查詢批號路徑直接相關的原料、在製品與製成品；物料與膠捲不列入 `traceSteps[]`。
 5. 依 `batch_number.refCategory/ref_no` 與 `goods_receipt_note` 建立 `receipt` step，表示此批號何時採購或進貨。
 6. 若查詢批號為製成品，從 `production_data_output.batch_number` 找出產出此批號的工單、製程單與群組，再以同一 `work_order_no + process_order_no + group` 取得投入批號；每個 production step 的 `outputItems[]` 只保留目前追溯中的製成品或在製品批號，下一層由投入批號繼續往上游展開。
-7. 若查詢批號為原料，從 `production_data_input.batch_number` 找出使用此批號的工單、製程單與群組，再以同一 `work_order_no + process_order_no + group` 取得產出批號；每個 production step 的 `inputItems[]` 只保留目前追溯中的原料或在製品批號，`outputItems[]` 保留同一製程群組的直接產出。下一層只由在製品批號繼續往下游展開；若直接產出已是製成品，製成品只列為終點 `outputItems[]`，不再放回 trace queue 展開下一層 production step。
+7. 若查詢批號為原料，從 `production_data_input.batch_number` 找出使用此批號的工單、製程單與群組，再以同一 `work_order_no + process_order_no + group` 取得產出批號；每個 production step 的 `inputItems[]` 只保留目前追溯中的原料或在製品批號，`outputItems[]` 保留同一製程群組的直接產出。下一層只能由已確認為 `EItemCategory.INPRODUCT` 的 output 批號繼續往下游展開；若直接產出是製成品、未知類別或其他非在製品資料，該 output 只列為目前 step 的終點，不再放回 trace queue 展開下一層 production step。
 8. 若 input/output 單側 `process_order_no` 為空或不一致，或 `group` 存在前後空白差異，導致同一 `work_order_no + process_order_no + group` 查不到 counterpart rows，後端以 `work_order_no` 取回同工單資料後於程式端正規化比對 `process_order_no` 與 `group`；必要時補查同一 `work_order_no + group`。不得放寬到只以 `work_order_no` 建立整張工單的 production step。
 9. 建立 production step 時，不得只以 `work_order_no` 查詢整張工單所有投入與產出，避免同一工單下其他批次、其他製程群組、旁支投入物或旁支製成品被誤納入追溯鏈。
 10. `receipt`、`production`、`sale` 均維持於 `traceSteps[]`，前端依 `stepTypeCode` 判斷流程類型；第一版不另拆獨立 receipt/sale 陣列。

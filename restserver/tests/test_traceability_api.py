@@ -1002,6 +1002,85 @@ def test_trace_batch_overview_uses_batch_header_category_for_output_rows():
     assert "production:WO-AFTER-OUTPUT-ZERO:PROC-AFTER-OUTPUT-ZERO:group_2" not in set_step_ids
 
 
+def test_trace_batch_overview_downstream_only_enqueues_inproduct_outputs():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 3 * 86400,
+            no="B-RM-UNKNOWN-OUTPUT",
+            ref_no="GRN-UNKNOWN-OUTPUT",
+            refCategory=1,
+            item_no="RM-UNKNOWN-OUTPUT",
+            item_name="未知產出原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            itemType=1,
+            unit=1,
+            expectedCount=30,
+            checkedCount=30,
+            validDays=90,
+            validDate=n_now + 87 * 86400,
+            creationTime=n_now - 3 * 86400,
+        ),
+        CTableProductionData(work_order_no="WO-UNKNOWN-OUTPUT", date=n_now - 2 * 86400, product_no="FG-UNKNOWN-OUTPUT", product_name="未知產出"),
+        CTableProductionDataInput(
+            work_order_no="WO-UNKNOWN-OUTPUT",
+            process_order_no="PROC-UNKNOWN-OUTPUT",
+            group="group_1",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="RM-UNKNOWN-OUTPUT",
+            item_name="未知產出原料",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-UNKNOWN-OUTPUT",
+            serial_no="S-IN-UNKNOWN-OUTPUT",
+            unit=1,
+            count=28,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-UNKNOWN-OUTPUT",
+            process_order_no="PROC-UNKNOWN-OUTPUT",
+            group="group_1",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="UNKNOWN-OUTPUT",
+            item_name="未知產出",
+            category=0,
+            itemSubCategory=0,
+            batch_number="B-UNKNOWN-OUTPUT",
+            serial_no="S-OUT-UNKNOWN-OUTPUT",
+            unit=1,
+            count=25,
+        ),
+        CTableProductionDataInput(
+            work_order_no="WO-AFTER-UNKNOWN-OUTPUT",
+            process_order_no="PROC-AFTER-UNKNOWN-OUTPUT",
+            group="group_2",
+            time=n_now - 1 * 86400,
+            action=1,
+            item_no="UNKNOWN-OUTPUT",
+            item_name="未知產出",
+            category=0,
+            itemSubCategory=0,
+            batch_number="B-UNKNOWN-OUTPUT",
+            serial_no="S-IN-AFTER-UNKNOWN-OUTPUT",
+            unit=1,
+            count=5,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-UNKNOWN-OUTPUT", "Asia/Taipei",
+    )
+
+    set_step_ids = {dict_step["stepId"] for dict_step in dict_payload["traceSteps"]}
+    assert "production:WO-UNKNOWN-OUTPUT:PROC-UNKNOWN-OUTPUT:group_1" in set_step_ids
+    assert "production:WO-AFTER-UNKNOWN-OUTPUT:PROC-AFTER-UNKNOWN-OUTPUT:group_2" not in set_step_ids
+
+
 def test_trace_batch_overview_wip_root_is_not_expanded_in_v1():
     obj_session = build_session()
     seed_traceability(obj_session)

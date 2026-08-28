@@ -521,8 +521,6 @@ class CTraceabilityService(object):
             "outputsByBatch": {},
             "inputsByWorkOrder": {},
             "outputsByWorkOrder": {},
-            "inputsByScope": {},
-            "outputsByScope": {},
             "productionData": {},
         }
         dict_steps = {}
@@ -559,8 +557,6 @@ class CTraceabilityService(object):
             "outputsByBatch": {},
             "inputsByWorkOrder": {},
             "outputsByWorkOrder": {},
-            "inputsByScope": {},
-            "outputsByScope": {},
             "productionData": {},
         }
         dict_steps = {}
@@ -641,15 +637,16 @@ class CTraceabilityService(object):
         str_work_order_no = str_work_order_no or ""
         if not str_work_order_no:
             return
-        str_step_id = self.__trace_production_step_id(str_work_order_no, str_process_order_no, str_group)
+        # V1 追溯先以工單作為 production step 範圍。
+        # process_order_no 目前尚未建立穩定關聯，group 資料也未完整，
+        # 因此僅保留參數相容性，不用於本版 step 分組與查詢過濾。
+        str_step_id = self.__trace_production_step_id(str_work_order_no)
         if str_step_id in dict_steps:
             return
-        lst_inputs, lst_outputs = self.__query_production_rows_by_work_scope(
+        lst_inputs, lst_outputs = self.__query_production_rows_by_work_order(
             obj_session,
             dict_context,
             str_work_order_no,
-            str_process_order_no,
-            str_group,
         )
         lst_inputs = self.__filter_trace_rows_by_batch(lst_inputs, lst_focus_input_batch_nos)
         lst_outputs = self.__filter_trace_rows_by_batch(lst_outputs, lst_focus_output_batch_nos)
@@ -725,17 +722,11 @@ class CTraceabilityService(object):
         )
         return dict_context["productionData"].get(str_work_order_no)
 
-    def __query_production_rows_by_work_scope(self, obj_session, dict_context, str_work_order_no, str_process_order_no, str_group):
-        lst_inputs = self.__query_inputs_by_work_scope(obj_session, dict_context, str_work_order_no, str_process_order_no, str_group)
-        lst_outputs = self.__query_outputs_by_work_scope(obj_session, dict_context, str_work_order_no, str_process_order_no, str_group)
-        if str_group and str_process_order_no and (not lst_inputs or not lst_outputs):
-            lst_relaxed_inputs = self.__query_inputs_by_work_scope(obj_session, dict_context, str_work_order_no, "", str_group)
-            lst_relaxed_outputs = self.__query_outputs_by_work_scope(obj_session, dict_context, str_work_order_no, "", str_group)
-            if not lst_inputs:
-                lst_inputs = lst_relaxed_inputs
-            if not lst_outputs:
-                lst_outputs = lst_relaxed_outputs
-        return lst_inputs, lst_outputs
+    def __query_production_rows_by_work_order(self, obj_session, dict_context, str_work_order_no):
+        return (
+            self.__query_inputs_by_work_order_cached(obj_session, dict_context, str_work_order_no),
+            self.__query_outputs_by_work_order_cached(obj_session, dict_context, str_work_order_no),
+        )
 
     def __query_inputs_by_batch_no(self, obj_session, str_batch_no):
         return (
@@ -750,38 +741,6 @@ class CTraceabilityService(object):
             .filter(CTableProductionDataOutput.batch_number == str_batch_no)
             .all()
         )
-
-    def __query_inputs_by_work_scope(self, obj_session, dict_context, str_work_order_no, str_process_order_no, str_group):
-        tpl_scope = self.__work_scope_key(str_work_order_no, str_process_order_no, str_group)
-        if tpl_scope not in dict_context["inputsByScope"]:
-            dict_context["inputsByScope"][tpl_scope] = self.__filter_rows_by_work_scope(
-                self.__query_inputs_by_work_order_cached(obj_session, dict_context, str_work_order_no),
-                str_process_order_no,
-                str_group,
-            )
-        return dict_context["inputsByScope"].get(tpl_scope, [])
-
-    def __query_outputs_by_work_scope(self, obj_session, dict_context, str_work_order_no, str_process_order_no, str_group):
-        tpl_scope = self.__work_scope_key(str_work_order_no, str_process_order_no, str_group)
-        if tpl_scope not in dict_context["outputsByScope"]:
-            dict_context["outputsByScope"][tpl_scope] = self.__filter_rows_by_work_scope(
-                self.__query_outputs_by_work_order_cached(obj_session, dict_context, str_work_order_no),
-                str_process_order_no,
-                str_group,
-            )
-        return dict_context["outputsByScope"].get(tpl_scope, [])
-
-    def __filter_rows_by_work_scope(self, lst_rows, str_process_order_no, str_group):
-        str_process_order_no = self.__normalize_scope_value(str_process_order_no)
-        str_group = self.__normalize_scope_value(str_group)
-        lst_result = []
-        for obj_row in lst_rows:
-            if str_process_order_no and self.__normalize_scope_value(obj_row.process_order_no) != str_process_order_no:
-                continue
-            if str_group and self.__normalize_scope_value(obj_row.group) != str_group:
-                continue
-            lst_result.append(obj_row)
-        return lst_result
 
     def __build_trace_step_item(self, obj_row, n_item_category):
         return {
@@ -881,16 +840,13 @@ class CTraceabilityService(object):
     def __trace_step_id(self, str_step_type_code, str_ref_no, str_batch_no):
         return "%s:%s:%s" % (str_step_type_code or "", str_ref_no or "", str_batch_no or "")
 
-    def __trace_production_step_id(self, str_work_order_no, str_process_order_no, str_group):
+    def __trace_production_step_id(self, str_work_order_no, str_process_order_no="", str_group=""):
         return "%s:%s:%s:%s" % (
             ETraceStepTypeCode.PRODUCTION,
             str_work_order_no or "",
             str_process_order_no or "",
             str_group or "",
         )
-
-    def __work_scope_key(self, str_work_order_no, str_process_order_no, str_group):
-        return (str_work_order_no or "", str_process_order_no or "", str_group or "")
 
     def __build_trace_state(self, obj_batch, dict_stock, lst_inputs, lst_outputs, lst_holds, n_query_timestamp):
         b_has_connection = bool(obj_batch.ref_no or lst_inputs or lst_outputs or dict_stock.get("currentQuantity"))
@@ -969,9 +925,6 @@ class CTraceabilityService(object):
 
     def __normalize_batch_no(self, str_batch_no):
         return (str_batch_no or "").strip()
-
-    def __normalize_scope_value(self, str_value):
-        return (str_value or "").strip()
 
     def __normalize_page(self, n_start, n_count):
         n_start = max(util_safe_int(n_start), 0)

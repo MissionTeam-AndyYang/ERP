@@ -13,7 +13,7 @@
 | `GET /api/v2/transitems/dashboard` | PASS | Returns company summary, transaction item list, contract linkage, payment summary and data quality codes. |
 | `GET /api/v2/transitems/companies/{company_no}/detail` | PASS | Returns company detail, payment terms, related transaction items and contracts. |
 | `GET /api/v2/transitems/transitems/{transaction_item_no}/detail` | PASS | Returns transaction item detail, linked internal item, contract data and quality status. |
-| `GET /api/v2/trace/batches/{batch_no}/overview` | PASS | Keeps direct production output items when input/output `process_order_no` or `group` is blank, inconsistent or padded with spaces; stops downstream expansion after finished-goods output. |
+| `GET /api/v2/trace/batches/{batch_no}/overview` | PASS | Uses `work_order_no` as the V1 production step scope, keeps focused input/output batches, and stops downstream expansion after finished-goods output. |
 
 ## Verification
 
@@ -49,17 +49,35 @@ Result: PASS, 57 tests passed in 2.64s.
 | Transaction item summary | `customerCount` and `supplierCount` are derived from contract category instead of a shared generic contract count. |
 | Linked internal item category | Material categories are returned from `material.category`; inproduct, product and goods keep their own source category mapping. |
 | Payment code | Backend returns enum-like `paymentTypeCode`; display text remains frontend/i18n responsibility. |
-| Trace production output | Production steps retain direct output rows, normalize `process_order_no/group` scope comparison, and avoid unrelated downstream finished-goods expansion. |
+| Trace production output | Production steps retain direct output rows by `work_order_no`, keep focused input/output batches, and avoid unrelated downstream finished-goods expansion. |
 
 ## 2026-08-27 Traceability V3 Retest Fix
 
 After engineer runtime feedback, the traceability overview algorithm was rechecked and strengthened:
 
-- Work-scope rows are now loaded by `work_order_no` and filtered in code with normalized `process_order_no` and `group`, preventing single-side blanks or surrounding spaces from dropping valid counterpart rows.
+- Production rows are now loaded by `work_order_no`. `process_order_no` and `group` are retained as data fields but are not used as V1 grouping filters because their relationships are not yet complete.
 - Finished-goods overview keeps the queried finished-goods batch in `outputItems[]`.
 - Production output item category is resolved from `production_data_output.batch_number -> batch_number.itemCategory` first, then falls back to `EOutputCategory`, so old or inconsistent output category values do not drop finished-goods outputs or keep expanding them as non-finished items.
-- Raw-material downstream tracing only enqueues output rows confirmed as `EItemCategory.INPRODUCT`. Finished goods, unknown outputs and other non-inproduct outputs are returned only in the current step, preventing unrelated steps such as another downstream `group_2` production from appearing.
-- Added regression tests for normalized group matching and stopping downstream expansion after finished-goods output.
+- Raw-material downstream tracing only enqueues output rows confirmed as `EItemCategory.INPRODUCT`. Finished goods, unknown outputs and other non-inproduct outputs are returned only in the current step, preventing downstream finished-goods branches from expanding.
+- Added regression tests for work-order scoped counterpart rows and stopping downstream expansion after finished-goods output.
+
+## 2026-08-28 Traceability Program Correction
+
+After engineer review of `traceability_center_proposal.md` 「程式修正」:
+
+- `/api/v2/trace/batches/{batch_no}/overview` now uses `work_order_no` as the V1 production step scope.
+- `process_order_no` and `group` remain source fields but are not used for V1 production step grouping or input/output filtering because their relationships are not yet complete.
+- Production step comments were added in `trace.py` to make this limitation explicit for future maintenance.
+- Proposal, flow algorithm and formal API documents were updated to match the implementation.
+
+Verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m py_compile restserver\package\restserver\api\v2\trace.py
+.\.venv\Scripts\python.exe -m pytest restserver\tests
+```
+
+Result: PASS, 57 tests passed in 6.09s.
 
 ## Remaining External Verification
 

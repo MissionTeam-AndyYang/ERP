@@ -428,7 +428,7 @@ def test_trace_batch_overview_finished_goods_traces_upstream_to_material_receipt
     assert {"B-WIP-001", "B-FG-001"}.issubset(set_output_batches)
 
 
-def test_trace_batch_overview_filters_unrelated_work_order_group():
+def test_trace_batch_overview_keeps_focus_output_when_work_order_has_sibling_outputs():
     obj_session = build_session()
     n_now = seed_traceability(obj_session)
     obj_session.add_all([
@@ -487,17 +487,12 @@ def test_trace_batch_overview_filters_unrelated_work_order_group():
     )
 
     lst_steps = dict_payload["traceSteps"]
-    set_input_batches = {
-        dict_item["batchNo"]
-        for dict_step in lst_steps
-        for dict_item in dict_step["inputItems"]
-    }
     set_output_batches = {
         dict_item["batchNo"]
         for dict_step in lst_steps
         for dict_item in dict_step["outputItems"]
     }
-    assert "B-RM-OTHER" not in set_input_batches
+    assert "B-FG-001" in set_output_batches
     assert "B-FG-OTHER" not in set_output_batches
 
 
@@ -833,7 +828,7 @@ def test_trace_batch_overview_keeps_output_when_group_has_extra_spaces():
 
     dict_step = next(
         dict_step for dict_step in dict_payload["traceSteps"]
-        if dict_step["stepId"] == "production:WO-GROUP-SPACE::group_1"
+        if dict_step["stepId"] == "production:WO-GROUP-SPACE::"
     )
     assert any(dict_item["batchNo"] == "B-WIP-GROUP-SPACE" for dict_item in dict_step["inputItems"])
     assert any(dict_item["batchNo"] == "B-FG-GROUP-SPACE" for dict_item in dict_step["outputItems"])
@@ -881,7 +876,7 @@ def test_trace_batch_overview_raw_material_does_not_expand_after_finished_goods_
     )
 
     set_step_ids = {dict_step["stepId"] for dict_step in dict_payload["traceSteps"]}
-    assert "production:WO-AFTER-FG:PROC-AFTER-FG:group_2" not in set_step_ids
+    assert "production:WO-AFTER-FG::" not in set_step_ids
 
 
 def test_trace_batch_overview_uses_batch_header_category_for_output_rows():
@@ -999,7 +994,7 @@ def test_trace_batch_overview_uses_batch_header_category_for_output_rows():
         for dict_item in dict_step["outputItems"]
     )
     set_step_ids = {dict_step["stepId"] for dict_step in dict_payload["traceSteps"]}
-    assert "production:WO-AFTER-OUTPUT-ZERO:PROC-AFTER-OUTPUT-ZERO:group_2" not in set_step_ids
+    assert "production:WO-AFTER-OUTPUT-ZERO::" not in set_step_ids
 
 
 def test_trace_batch_overview_downstream_only_enqueues_inproduct_outputs():
@@ -1077,8 +1072,8 @@ def test_trace_batch_overview_downstream_only_enqueues_inproduct_outputs():
     )
 
     set_step_ids = {dict_step["stepId"] for dict_step in dict_payload["traceSteps"]}
-    assert "production:WO-UNKNOWN-OUTPUT:PROC-UNKNOWN-OUTPUT:group_1" in set_step_ids
-    assert "production:WO-AFTER-UNKNOWN-OUTPUT:PROC-AFTER-UNKNOWN-OUTPUT:group_2" not in set_step_ids
+    assert "production:WO-UNKNOWN-OUTPUT::" in set_step_ids
+    assert "production:WO-AFTER-UNKNOWN-OUTPUT::" not in set_step_ids
 
 
 def test_trace_batch_overview_wip_root_is_not_expanded_in_v1():

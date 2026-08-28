@@ -13,7 +13,7 @@
 | 案例一 outputItems 空值 | 後端已補強：查詢製成品批號時，產出該製成品的 production step 必須保留查詢批號於 `outputItems[]`，不可因 counterpart 查詢、`group` 空白差異或 focus filtering 造成空陣列。 |
 | 案例二 outputItems 空值 | 後端已補強：查詢原料批號時，若該原料或其直接產出的在製品被投入下一層 production step，同一製程群組直接產出的製成品需回傳於 `outputItems[]`；若 `process_order_no` 單側空值或不一致，會補查同一 `work_order_no + group` 的 counterpart rows。 |
 | 非直接關聯資料排除 | `production:Z150515004::group_2` 這類非由查詢原料批號路徑直接展開而來的 step 不應回傳。後端只將目前 trace queue 中的原料或在製品批號作為下一層展開來源；原料 downstream 追到製成品時，製成品只保留於 `outputItems[]`，不再把製成品放回 queue 展開下一層，因此不會從下游製成品反向展開其他非查詢原料或旁支在製品。 |
-| production output 類別轉換 | 已補強：`production_data_input.category` 使用 `EItemCategory`，但 `production_data_output.category` 使用 `EOutputCategory`。後端建立 `traceSteps[].outputItems[]` 時需先將 output category 轉為 API 使用的 `EItemCategory`，其中 `EOutputCategory.INPRODUCT(1)` 對應 `EItemCategory.INPRODUCT(4)`，`EOutputCategory.PRODUCT(2)` 對應 `EItemCategory.PRODUCT(5)`；否則製成品 output 會被誤判為非核心資料而被濾掉。 |
+| production output 類別轉換 | 已補強：`production_data_input.category` 使用 `EItemCategory`，但 `production_data_output.category` 使用 `EOutputCategory` 或舊資料值，不可直接拿來與 `EItemCategory` 比對。後端建立 `traceSteps[].outputItems[]` 與判斷是否繼續 downstream 展開時，需優先以 output row 的 `batch_number` 查詢 `batch_number.itemCategory` 作為 API 使用的 `EItemCategory`；若批號主檔缺漏，才以 `EOutputCategory.INPRODUCT(1) -> EItemCategory.INPRODUCT(4)`、`EOutputCategory.PRODUCT(2) -> EItemCategory.PRODUCT(5)` 作為 fallback。 |
 | 測試補強 | 已新增與保留 regression tests，確認製成品 step 的 `outputItems[]` 不空、原料往下游 step 可取得直接製成品 output、同工單其他 group 或旁支資料不混入、`group` 前後空白不會造成 counterpart rows 遺失，以及原料 downstream 追到製成品後不再展開下一層非直接 production step。 |
 
 # 演算法修正V2

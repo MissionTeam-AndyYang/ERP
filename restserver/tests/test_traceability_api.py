@@ -884,6 +884,124 @@ def test_trace_batch_overview_raw_material_does_not_expand_after_finished_goods_
     assert "production:WO-AFTER-FG:PROC-AFTER-FG:group_2" not in set_step_ids
 
 
+def test_trace_batch_overview_uses_batch_header_category_for_output_rows():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 3 * 86400,
+            no="B-RM-OUTPUT-ZERO",
+            ref_no="GRN-OUTPUT-ZERO",
+            refCategory=1,
+            item_no="RM-OUTPUT-ZERO",
+            item_name="產出類別異常原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            itemType=1,
+            unit=1,
+            expectedCount=30,
+            checkedCount=30,
+            validDays=90,
+            validDate=n_now + 87 * 86400,
+            creationTime=n_now - 3 * 86400,
+        ),
+        CTableBatchNumber(
+            date=n_now - 2 * 86400,
+            no="B-FG-OUTPUT-ZERO",
+            ref_no="WO-OUTPUT-ZERO",
+            refCategory=2,
+            item_no="FG-OUTPUT-ZERO",
+            item_name="產出類別異常製成品",
+            itemCategory=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            itemType=1,
+            unit=1,
+            expectedCount=25,
+            checkedCount=25,
+            validDays=180,
+            validDate=n_now + 178 * 86400,
+            creationTime=n_now - 2 * 86400,
+        ),
+        CTableProductionData(work_order_no="WO-OUTPUT-ZERO", date=n_now - 2 * 86400, product_no="FG-OUTPUT-ZERO", product_name="產出類別異常製成品"),
+        CTableProductionDataInput(
+            work_order_no="WO-OUTPUT-ZERO",
+            process_order_no="PROC-OUTPUT-ZERO",
+            group="group_1",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="RM-OUTPUT-ZERO",
+            item_name="產出類別異常原料",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-OUTPUT-ZERO",
+            serial_no="S-IN-OUTPUT-ZERO",
+            unit=1,
+            count=28,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-OUTPUT-ZERO",
+            process_order_no="PROC-OUTPUT-ZERO",
+            group="group_1",
+            time=n_now - 2 * 86400,
+            action=1,
+            item_no="FG-OUTPUT-ZERO",
+            item_name="產出類別異常製成品",
+            category=0,
+            itemSubCategory=51,
+            batch_number="B-FG-OUTPUT-ZERO",
+            serial_no="S-OUT-OUTPUT-ZERO",
+            unit=1,
+            count=25,
+        ),
+        CTableProductionDataInput(
+            work_order_no="WO-AFTER-OUTPUT-ZERO",
+            process_order_no="PROC-AFTER-OUTPUT-ZERO",
+            group="group_2",
+            time=n_now - 1 * 86400,
+            action=1,
+            item_no="FG-OUTPUT-ZERO",
+            item_name="產出類別異常製成品",
+            category=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-OUTPUT-ZERO",
+            serial_no="S-IN-AFTER-OUTPUT-ZERO",
+            unit=1,
+            count=5,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-AFTER-OUTPUT-ZERO",
+            process_order_no="PROC-AFTER-OUTPUT-ZERO",
+            group="group_2",
+            time=n_now - 1 * 86400,
+            action=1,
+            item_no="FG-SHOULD-NOT-EXPAND",
+            item_name="不應展開",
+            category=0,
+            itemSubCategory=51,
+            batch_number="B-FG-SHOULD-NOT-EXPAND",
+            serial_no="S-OUT-AFTER-OUTPUT-ZERO",
+            unit=1,
+            count=5,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-OUTPUT-ZERO", "Asia/Taipei",
+    )
+
+    dict_step = next(
+        dict_step for dict_step in dict_payload["traceSteps"]
+        if dict_step["refNo"] == "WO-OUTPUT-ZERO"
+    )
+    assert any(
+        dict_item["batchNo"] == "B-FG-OUTPUT-ZERO" and dict_item["itemCategory"] == EItemCategory.PRODUCT
+        for dict_item in dict_step["outputItems"]
+    )
+    set_step_ids = {dict_step["stepId"] for dict_step in dict_payload["traceSteps"]}
+    assert "production:WO-AFTER-OUTPUT-ZERO:PROC-AFTER-OUTPUT-ZERO:group_2" not in set_step_ids
+
+
 def test_trace_batch_overview_wip_root_is_not_expanded_in_v1():
     obj_session = build_session()
     seed_traceability(obj_session)

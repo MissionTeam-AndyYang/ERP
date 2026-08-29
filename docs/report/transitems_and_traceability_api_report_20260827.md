@@ -79,6 +79,24 @@ Verification:
 
 Result: PASS, 57 tests passed in 6.09s.
 
+## 2026-08-29 Traceability Program Correction V2
+
+After engineer review of `traceability_center_proposal.md` 「程式修正V2」:
+
+- `traceSteps[].inputItems[].quantity` now uses net input quantity: `production_data_input.action=1` issue quantity minus `action=2` return quantity.
+- Duplicate production step hits now merge focus input/output items into the existing step instead of skipping the later relationship.
+- Existing output items are deduplicated by `itemNo + batchNo + itemCategory + unit`, so shared output batches are not counted twice when multiple input batches point to the same output.
+- Proposal, flow algorithm and formal API documents were updated to match the implementation.
+
+Verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m py_compile restserver\package\restserver\api\v2\trace.py
+.\.venv\Scripts\python.exe -m pytest restserver\tests
+```
+
+Result: PASS, 59 tests passed in 2.93s.
+
 ## Remaining External Verification
 
 - Engineer should run the same API endpoints against MariaDB with current EWDB data to confirm real-data distribution and runtime behavior.

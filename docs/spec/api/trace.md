@@ -261,7 +261,7 @@ None
 | payload.traceSteps[].inputItems[].itemName | String | 此步驟投入料品名稱；無資料時回傳空字串 |  |
 | payload.traceSteps[].inputItems[].itemCategory | Integer | 此步驟投入料品品項類別 code |  |
 | payload.traceSteps[].inputItems[].batchNo | String | 此步驟投入批號；無批號時回傳空字串 |  |
-| payload.traceSteps[].inputItems[].quantity | Float | 此步驟投入數量，取至小數點第 2 位；若同一批號拆成多筆投入資料，後端加總後回傳單筆 |  |
+| payload.traceSteps[].inputItems[].quantity | Float | 此步驟實際投入數量，取至小數點第 2 位；以 `production_data_input.action=1` 領料數量加總扣除 `action=2` 退料數量加總後回傳 |  |
 | payload.traceSteps[].inputItems[].unit | Integer | 此步驟投入單位 code |  |
 | payload.traceSteps[].outputItems[].itemNo | String | 此步驟產出或銷貨料品 no；同一 step 內相同料品、批號、品項類別與單位會加總為單筆 |  |
 | payload.traceSteps[].outputItems[].itemName | String | 此步驟產出或銷貨料品名稱；無資料時回傳空字串 |  |
@@ -282,12 +282,13 @@ None
 8. `process_order_no` 目前尚未建立穩定關聯，`group` 資料也尚未完整，因此第一版 production step 暫不以這兩個欄位分組或過濾。若同一 `work_order_no` 同時混有多組尚未透過資料欄位可靠區隔的投入與產出，需待未來資料治理完成後再提升至更細粒度分組。
 9. 建立 production step 時，以目前追溯批號過濾顯示重點：製成品 upstream 保留 focus output、原料 downstream 保留 focus input；不得讓製成品 output 再被放回 downstream queue 造成旁支展開。
 10. `receipt`、`production`、`sale` 均維持於 `traceSteps[]`，前端依 `stepTypeCode` 判斷流程類型；第一版不另拆獨立 receipt/sale 陣列。
-11. `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 加總；同一批號若於同一 production step 拆成多筆投入或產出，回傳時只保留一筆加總後資料。`production_data_input.category` 使用 `EItemCategory`；`production_data_output.category` 不可直接與 `EItemCategory` 比對。後端回傳 `traceSteps[].outputItems[].itemCategory` 或判斷 output 是否為 downstream 終點時，需優先以 `production_data_output.batch_number` 對應的 `batch_number.itemCategory` 作為 API 統一使用的 `EItemCategory`，批號主檔缺漏時才用 `EOutputCategory` fallback。
-12. overview 建立過程需使用單次請求內的 batch header、batch input、batch output、work order input/output 與 production data 快取，避免同一批號或同一工單重複查詢。
-13. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
-14. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。
-15. 依批號效期、品檢保留與追溯流程完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
-16. 回傳批號資訊與 `traceSteps[]`。
+11. `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 彙整。`inputItems[].quantity` 需依 `production_data_input.action` 計算淨投入量：`action=1` 領料為正數、`action=2` 退料為負數；`outputItems[].quantity` 依 `production_data_output.count` 加總。`production_data_input.category` 使用 `EItemCategory`；`production_data_output.category` 不可直接與 `EItemCategory` 比對。後端回傳 `traceSteps[].outputItems[].itemCategory` 或判斷 output 是否為 downstream 終點時，需優先以 `production_data_output.batch_number` 對應的 `batch_number.itemCategory` 作為 API 統一使用的 `EItemCategory`，批號主檔缺漏時才用 `EOutputCategory` fallback。
+12. 若同一 `work_order_no` 因多個追溯批號被重複命中同一 `stepId`，需將新的 focus `inputItems[]` / `outputItems[]` 合併至既有 step；相同 `itemNo + batchNo + itemCategory + unit` 的既有 output 不可重複加總。
+13. overview 建立過程需使用單次請求內的 batch header、batch input、batch output、work order input/output 與 production data 快取，避免同一批號或同一工單重複查詢。
+14. 使用 visited batch 集合、最大展開層數、最大批號數與最大 step 數避免循環或過大 payload；遇到缺漏來源時停止展開，不推測不存在的流程。
+15. 若正式資料庫文件尚未提供穩定銷貨或出貨批號來源，本版不建立 `sale` step。
+16. 依批號效期、品檢保留與追溯流程完整性判斷 `traceStatusCode`、`riskLevelCode` 與 `riskCode`。
+17. 回傳批號資訊與 `traceSteps[]`。
 
 ### Database Tables Used
 

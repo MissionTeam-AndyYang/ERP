@@ -7,6 +7,7 @@ from sqlalchemy import case, func, or_
 
 from package.common.common import (
     EErrorCode,
+    EInputAction,
     EInventoryCategory,
     EItemCategory,
     EOutputCategory,
@@ -641,8 +642,6 @@ class CTraceabilityService(object):
         # process_order_no 目前尚未建立穩定關聯，group 資料也未完整，
         # 因此僅保留參數相容性，不用於本版 step 分組與查詢過濾。
         str_step_id = self.__trace_production_step_id(str_work_order_no)
-        if str_step_id in dict_steps:
-            return
         lst_inputs, lst_outputs = self.__query_production_rows_by_work_order(
             obj_session,
             dict_context,
@@ -656,17 +655,20 @@ class CTraceabilityService(object):
             return
         obj_data = self.__query_production_data_cached(obj_session, dict_context, str_work_order_no)
         n_timestamp = self.__production_step_timestamp(obj_data, lst_inputs, lst_outputs)
-        dict_steps[str_step_id] = {
-            "stepId": str_step_id,
-            "stepTypeCode": ETraceStepTypeCode.PRODUCTION,
-            "eventTimestamp": n_timestamp,
-            "refCategory": 0,
-            "refNo": str_work_order_no,
-            "statusCode": ETraceStatusCode.COMPLETE,
-            "riskLevelCode": ETraceRiskLevelCode.NORMAL,
-            "inputItems": lst_input_items,
-            "outputItems": lst_output_items,
-        }
+        if str_step_id in dict_steps:
+            self.__merge_trace_step_items(dict_steps[str_step_id], lst_input_items, lst_output_items)
+        else:
+            dict_steps[str_step_id] = {
+                "stepId": str_step_id,
+                "stepTypeCode": ETraceStepTypeCode.PRODUCTION,
+                "eventTimestamp": n_timestamp,
+                "refCategory": 0,
+                "refNo": str_work_order_no,
+                "statusCode": ETraceStatusCode.COMPLETE,
+                "riskLevelCode": ETraceRiskLevelCode.NORMAL,
+                "inputItems": lst_input_items,
+                "outputItems": lst_output_items,
+            }
         for obj_row in self.__next_trace_rows(obj_session, dict_context, lst_inputs, lst_outputs, lst_focus_input_batch_nos, lst_focus_output_batch_nos):
             str_batch_no = obj_row.batch_number or ""
             if str_batch_no and len(dict_steps) < self.MAX_TRACE_STEP_COUNT:
@@ -748,9 +750,17 @@ class CTraceabilityService(object):
             "itemName": obj_row.item_name or "",
             "itemCategory": util_safe_int(n_item_category),
             "batchNo": obj_row.batch_number or "",
-            "quantity": util_round_quantity(obj_row.count),
+            "quantity": util_round_quantity(self.__trace_step_item_quantity(obj_row)),
             "unit": util_safe_int(obj_row.unit),
         }
+
+    def __trace_step_item_quantity(self, obj_row):
+        # production_data_input.action: 1=領料、2=退料。
+        # trace step 的實際投入量需以領料扣除退料；產出列維持原產出數量。
+        f_count = util_safe_float(obj_row.count)
+        if isinstance(obj_row, CTableProductionDataInput) and util_safe_int(obj_row.action) == EInputAction.RETURN:
+            return -f_count
+        return f_count
 
     def __trace_row_item_category(self, obj_session, dict_context, obj_row):
         obj_batch = self.__query_batch_header_cached(obj_session, dict_context, obj_row.batch_number or "")
@@ -817,6 +827,40 @@ class CTraceabilityService(object):
                 util_safe_int(dict_row.get("unit")),
             ))
         ]
+
+    def __merge_trace_step_items(self, dict_step, lst_input_items, lst_output_items):
+        # 同一工單可能因多個追溯批號被重複命中。既有 step 需保留全部
+        # focus input/output 關係，但相同 output 不可因重複命中而再次累加。
+        dict_step["inputItems"] = self.__merge_unique_trace_items(
+            dict_step.get("inputItems", []),
+            lst_input_items,
+        )
+        dict_step["outputItems"] = self.__merge_unique_trace_items(
+            dict_step.get("outputItems", []),
+            lst_output_items,
+        )
+
+    def __merge_unique_trace_items(self, lst_existing_items, lst_new_items):
+        dict_items = {
+            self.__trace_item_key(dict_item): dict(dict_item)
+            for dict_item in lst_existing_items
+        }
+        for dict_item in lst_new_items:
+            str_key = self.__trace_item_key(dict_item)
+            if str_key not in dict_items:
+                dict_items[str_key] = dict(dict_item)
+        return [
+            dict_items[str_key]
+            for str_key in sorted(dict_items.keys())
+        ]
+
+    def __trace_item_key(self, dict_item):
+        return "%s|%s|%s|%s" % (
+            dict_item.get("itemNo", ""),
+            dict_item.get("batchNo", ""),
+            util_safe_int(dict_item.get("itemCategory")),
+            util_safe_int(dict_item.get("unit")),
+        )
 
     def __production_step_timestamp(self, obj_data, lst_inputs, lst_outputs):
         lst_timestamps = [util_safe_int(getattr(obj_data, "date", 0))]

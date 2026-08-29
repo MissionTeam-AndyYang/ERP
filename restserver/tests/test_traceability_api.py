@@ -714,6 +714,237 @@ def test_trace_batch_overview_raw_material_keeps_output_when_counterpart_process
     assert any(dict_item["batchNo"] == "B-FG-PROC-MISMATCH" for dict_item in dict_step["outputItems"])
 
 
+def test_trace_batch_overview_input_quantity_subtracts_return_action():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableProductionDataInput(
+            work_order_no="WO-001",
+            process_order_no="PROC-001",
+            group="G-001",
+            time=n_now - 10 * 86400,
+            action=2,
+            item_no="RM-001",
+            item_name="原料A",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-001",
+            serial_no="S-IN-RETURN-001",
+            unit=1,
+            count=8,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-001", "Asia/Taipei",
+    )
+
+    dict_step = next(
+        dict_step for dict_step in dict_payload["traceSteps"]
+        if dict_step["refNo"] == "WO-001"
+    )
+    dict_input = next(dict_item for dict_item in dict_step["inputItems"] if dict_item["batchNo"] == "B-RM-001")
+    assert dict_input["quantity"] == 52.0
+
+
+def test_trace_batch_overview_merges_duplicate_work_order_step_focus_inputs():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableBatchNumber(
+            date=n_now - 6 * 86400,
+            no="B-RM-MERGE",
+            ref_no="GRN-MERGE",
+            refCategory=1,
+            item_no="RM-MERGE",
+            item_name="合併測試原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            itemType=1,
+            unit=1,
+            expectedCount=100,
+            checkedCount=100,
+            validDays=90,
+            validDate=n_now + 84 * 86400,
+            creationTime=n_now - 6 * 86400,
+        ),
+        CTableGoodsReceiptNote(
+            no="GRN-MERGE",
+            purchase_order_no="PO-MERGE",
+            date=n_now - 6 * 86400,
+            category=1,
+            item_no="RM-MERGE",
+            item_name="合併測試原料",
+            itemCategory=EItemCategory.PM,
+            itemSubCategory=11,
+            unit=1,
+            expectedCount=100,
+            checkedCount=100,
+            amount=1000,
+            creationTime=n_now - 6 * 86400,
+        ),
+        CTableBatchNumber(
+            date=n_now - 5 * 86400,
+            no="B-WIP-MERGE-B",
+            ref_no="WO-MERGE-1",
+            refCategory=2,
+            item_no="WIP-MERGE-B",
+            item_name="合併測試在製品B",
+            itemCategory=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            itemType=1,
+            unit=1,
+            expectedCount=30,
+            checkedCount=30,
+            validDays=30,
+            validDate=n_now + 25 * 86400,
+            creationTime=n_now - 5 * 86400,
+        ),
+        CTableBatchNumber(
+            date=n_now - 5 * 86400,
+            no="B-WIP-MERGE-C",
+            ref_no="WO-MERGE-1",
+            refCategory=2,
+            item_no="WIP-MERGE-C",
+            item_name="合併測試在製品C",
+            itemCategory=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            itemType=1,
+            unit=1,
+            expectedCount=40,
+            checkedCount=40,
+            validDays=30,
+            validDate=n_now + 25 * 86400,
+            creationTime=n_now - 5 * 86400,
+        ),
+        CTableBatchNumber(
+            date=n_now - 4 * 86400,
+            no="B-FG-MERGE-D",
+            ref_no="WO-MERGE-2",
+            refCategory=2,
+            item_no="FG-MERGE-D",
+            item_name="合併測試製成品D",
+            itemCategory=EItemCategory.PRODUCT,
+            itemSubCategory=51,
+            itemType=1,
+            unit=1,
+            expectedCount=60,
+            checkedCount=60,
+            validDays=180,
+            validDate=n_now + 176 * 86400,
+            creationTime=n_now - 4 * 86400,
+        ),
+        CTableProductionData(work_order_no="WO-MERGE-1", date=n_now - 5 * 86400, product_no="WIP-MERGE", product_name="合併測試在製品"),
+        CTableProductionDataInput(
+            work_order_no="WO-MERGE-1",
+            process_order_no="PROC-MERGE-1",
+            group="G-1",
+            time=n_now - 5 * 86400,
+            action=1,
+            item_no="RM-MERGE",
+            item_name="合併測試原料",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-MERGE",
+            serial_no="S-IN-MERGE-RM",
+            unit=1,
+            count=80,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-MERGE-1",
+            process_order_no="PROC-MERGE-1",
+            group="G-1",
+            time=n_now - 5 * 86400,
+            action=1,
+            item_no="WIP-MERGE-B",
+            item_name="合併測試在製品B",
+            category=EOutputCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-MERGE-B",
+            serial_no="S-OUT-MERGE-B",
+            unit=1,
+            count=30,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-MERGE-1",
+            process_order_no="PROC-MERGE-1",
+            group="G-1",
+            time=n_now - 5 * 86400,
+            action=1,
+            item_no="WIP-MERGE-C",
+            item_name="合併測試在製品C",
+            category=EOutputCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-MERGE-C",
+            serial_no="S-OUT-MERGE-C",
+            unit=1,
+            count=40,
+        ),
+        CTableProductionData(work_order_no="WO-MERGE-2", date=n_now - 4 * 86400, product_no="FG-MERGE-D", product_name="合併測試製成品D"),
+        CTableProductionDataInput(
+            work_order_no="WO-MERGE-2",
+            process_order_no="PROC-MERGE-2",
+            group="G-1",
+            time=n_now - 4 * 86400,
+            action=1,
+            item_no="WIP-MERGE-B",
+            item_name="合併測試在製品B",
+            category=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-MERGE-B",
+            serial_no="S-IN-MERGE-B",
+            unit=1,
+            count=30,
+        ),
+        CTableProductionDataInput(
+            work_order_no="WO-MERGE-2",
+            process_order_no="PROC-MERGE-2",
+            group="G-2",
+            time=n_now - 4 * 86400,
+            action=1,
+            item_no="WIP-MERGE-C",
+            item_name="合併測試在製品C",
+            category=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-MERGE-C",
+            serial_no="S-IN-MERGE-C",
+            unit=1,
+            count=40,
+        ),
+        CTableProductionDataOutput(
+            work_order_no="WO-MERGE-2",
+            process_order_no="PROC-MERGE-2",
+            group="G-1",
+            time=n_now - 4 * 86400,
+            action=1,
+            item_no="FG-MERGE-D",
+            item_name="合併測試製成品D",
+            category=EOutputCategory.PRODUCT,
+            itemSubCategory=51,
+            batch_number="B-FG-MERGE-D",
+            serial_no="S-OUT-MERGE-D",
+            unit=1,
+            count=60,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-MERGE", "Asia/Taipei",
+    )
+
+    dict_step = next(
+        dict_step for dict_step in dict_payload["traceSteps"]
+        if dict_step["refNo"] == "WO-MERGE-2"
+    )
+    set_input_batches = {dict_item["batchNo"] for dict_item in dict_step["inputItems"]}
+    lst_output_items = [dict_item for dict_item in dict_step["outputItems"] if dict_item["batchNo"] == "B-FG-MERGE-D"]
+    assert {"B-WIP-MERGE-B", "B-WIP-MERGE-C"}.issubset(set_input_batches)
+    assert len(lst_output_items) == 1
+    assert lst_output_items[0]["quantity"] == 60.0
+
+
 def test_trace_batch_overview_raw_material_filters_unrelated_downstream_inputs():
     obj_session = build_session()
     n_now = seed_traceability(obj_session)

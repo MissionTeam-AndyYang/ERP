@@ -131,9 +131,10 @@
 10. 原料查詢採 downstream：`inputItems[]` 只保留目前追溯中的批號，`outputItems[]` 顯示同一工單可確認的核心產出；下一層只由已確認為 `EItemCategory.INPRODUCT` 的 output 批號繼續往下游展開，製成品 output 只作為目前 step 的終點。
 11. `receipt`、`production`、`sale` 維持在同一 `traceSteps[]`，不拆成獨立陣列；前端可用 `stepTypeCode` 判斷時間軸與製程階層呈現方式。
 12. 單次 overview 請求需快取已查詢的 batch header、batch input/output、work order input/output 與 production data，降低重複查詢成本。
-13. `inputItems[]` 與 `outputItems[]` 依 `itemNo + batchNo + itemCategory + unit` 加總；物料與膠捲不列入第一版 trace step item。
-14. 回傳完整 payload。
-15. 若查詢批號為製成品，必須可由製成品產出工單往上游展開至在製品與原物料投入；若查詢批號為原料，必須可由採購/進貨來源往下游展開至使用此原料的工單與產出的在製品/製成品；若查詢批號為在製品，第一版回傳空 `traceSteps[]`。
+13. `inputItems[]` 與 `outputItems[]` 依 `itemNo + batchNo + itemCategory + unit` 彙整；投入物需依 `production_data_input.action` 計算淨投入量：`action=1` 領料為正數、`action=2` 退料為負數，最後加總為 `inputItems[].quantity`。物料與膠捲不列入第一版 trace step item。
+14. 若同一 `work_order_no` 因多個追溯批號被重複命中同一 `stepId`，需合併新的 focus `inputItems[]` / `outputItems[]` 至既有 step；相同 `itemNo + batchNo + itemCategory + unit` 的既有 output 不可重複加總。
+15. 回傳完整 payload。
+16. 若查詢批號為製成品，必須可由製成品產出工單往上游展開至在製品與原物料投入；若查詢批號為原料，必須可由採購/進貨來源往下游展開至使用此原料的工單與產出的在製品/製成品；若查詢批號為在製品，第一版回傳空 `traceSteps[]`。
 
 ## 9. 效能與重構要求
 
@@ -152,6 +153,8 @@
    - 原料批號由採購/進貨來源往下游追溯至直接相關的在製品/製成品，且不混入下游製成品的其他非查詢原料。
    - 原料往下游查詢時，若 input/output 的 `process_order_no` 或 `group` 單側空值，仍需依 `work_order_no` 回傳可確認的 `outputItems[]`。
    - 製成品批號由產出工單往上游追溯至在製品/原物料投入，且 `outputItems[]` 只保留目前追溯批號。
+   - 投入物數量需扣除 `production_data_input.action=2` 退料數量。
+   - 同一 `stepId` 被多個追溯批號命中時，需保留所有 focus input 關係，且共同 output 不重複加總。
    - 在製品批號作為查詢起點時回傳空 `traceSteps[]`。
    - Dashboard 不建立完整 overview 流程、不逐批號呼叫 overview。
    - 追溯斷點對 `traceStatusCode`、`riskLevelCode`、`riskCode` 的影響。

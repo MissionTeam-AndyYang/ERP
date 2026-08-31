@@ -748,6 +748,73 @@ def test_trace_batch_overview_input_quantity_subtracts_return_action():
     assert dict_input["quantity"] == 52.0
 
 
+def test_trace_batch_overview_stops_when_input_quantity_is_zero():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableProductionDataInput(
+            work_order_no="WO-001",
+            process_order_no="PROC-001",
+            group="G-001",
+            time=n_now - 10 * 86400,
+            action=2,
+            item_no="RM-001",
+            item_name="原料A",
+            category=EItemCategory.PM,
+            itemSubCategory=11,
+            batch_number="B-RM-001",
+            serial_no="S-IN-RETURN-ZERO",
+            unit=1,
+            count=60,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-RM-001", "Asia/Taipei",
+    )
+
+    set_step_ids = {dict_step["stepId"] for dict_step in dict_payload["traceSteps"]}
+    assert "production:WO-001::" not in set_step_ids
+    assert "production:WO-002::" not in set_step_ids
+
+
+def test_trace_batch_overview_upstream_does_not_enqueue_zero_net_input():
+    obj_session = build_session()
+    n_now = seed_traceability(obj_session)
+    obj_session.add_all([
+        CTableProductionDataInput(
+            work_order_no="WO-002",
+            process_order_no="PROC-002",
+            group="G-001",
+            time=n_now - 3 * 86400,
+            action=2,
+            item_no="WIP-001",
+            item_name="半成品A",
+            category=EItemCategory.INPRODUCT,
+            itemSubCategory=41,
+            batch_number="B-WIP-001",
+            serial_no="S-IN-WIP-RETURN-ZERO",
+            unit=1,
+            count=40,
+        ),
+    ])
+    obj_session.commit()
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_batch_overview_with_session(
+        obj_session, "B-FG-001", "Asia/Taipei",
+    )
+
+    dict_production_steps = {
+        dict_step["refNo"]: dict_step
+        for dict_step in dict_payload["traceSteps"]
+        if dict_step["stepTypeCode"] == ETraceStepTypeCode.PRODUCTION
+    }
+    assert "WO-002" in dict_production_steps
+    assert "WO-001" not in dict_production_steps
+    assert dict_production_steps["WO-002"]["inputItems"] == []
+
+
 def test_trace_batch_overview_merges_duplicate_work_order_step_focus_inputs():
     obj_session = build_session()
     n_now = seed_traceability(obj_session)

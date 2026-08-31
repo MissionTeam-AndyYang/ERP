@@ -651,6 +651,10 @@ class CTraceabilityService(object):
         lst_outputs = self.__filter_trace_rows_by_batch(lst_outputs, lst_focus_output_batch_nos)
         lst_input_items = self.__aggregate_trace_step_items(obj_session, dict_context, lst_inputs)
         lst_output_items = self.__aggregate_trace_step_items(obj_session, dict_context, lst_outputs)
+        if self.__clean_list(lst_focus_input_batch_nos) and not lst_input_items:
+            return
+        if self.__clean_list(lst_focus_output_batch_nos) and not lst_output_items:
+            return
         if not lst_input_items and not lst_output_items:
             return
         obj_data = self.__query_production_data_cached(obj_session, dict_context, str_work_order_no)
@@ -782,7 +786,7 @@ class CTraceabilityService(object):
 
     def __next_trace_rows(self, obj_session, dict_context, lst_inputs, lst_outputs, lst_focus_input_batch_nos, lst_focus_output_batch_nos):
         if self.__clean_list(lst_focus_output_batch_nos):
-            return lst_inputs
+            return self.__filter_nonzero_trace_rows(obj_session, dict_context, lst_inputs)
         if self.__clean_list(lst_focus_input_batch_nos):
             return [
                 obj_row for obj_row in lst_outputs
@@ -826,6 +830,25 @@ class CTraceabilityService(object):
                 dict_row.get("batchNo", ""),
                 util_safe_int(dict_row.get("unit")),
             ))
+            if util_round_quantity(dict_row.get("quantity")) != 0
+        ]
+
+    def __filter_nonzero_trace_rows(self, obj_session, dict_context, lst_rows):
+        dict_rows = {}
+        dict_quantities = defaultdict(float)
+        for obj_row in lst_rows:
+            n_item_category = self.__trace_row_item_category(obj_session, dict_context, obj_row)
+            if not self.__is_trace_core_item_category(n_item_category):
+                continue
+            dict_item = self.__build_trace_step_item(obj_row, n_item_category)
+            str_key = self.__trace_item_key(dict_item)
+            if str_key not in dict_rows:
+                dict_rows[str_key] = obj_row
+            dict_quantities[str_key] += util_safe_float(dict_item.get("quantity"))
+        return [
+            dict_rows[str_key]
+            for str_key in sorted(dict_rows.keys())
+            if util_round_quantity(dict_quantities.get(str_key)) != 0
         ]
 
     def __merge_trace_step_items(self, dict_step, lst_input_items, lst_output_items):

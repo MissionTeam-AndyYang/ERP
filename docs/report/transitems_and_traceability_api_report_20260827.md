@@ -97,6 +97,27 @@ Verification:
 
 Result: PASS, 59 tests passed in 2.93s.
 
+## 2026-08-31 Traceability Program Correction V3 and TransItems Correction
+
+After engineer review of `traceability_center_proposal.md` 「程式修正V3」 and `transaction_item_master_proposal.md` 「程式修正」:
+
+- `traceSteps[].inputItems[].quantity` continues to use net input quantity, and input items with net quantity `0` are now excluded from `inputItems[]`.
+- When a zero-net input batch is the current trace focus, the production step is not created and its outputs are not enqueued for further trace expansion.
+- Finished-goods upstream tracing no longer follows input batches whose net input quantity is `0`.
+- `/api/v2/transitems/dashboard` no longer returns the combined `summary.dataQualityIssueCount`.
+- `/api/v2/transitems/dashboard` now returns `summary.companyDataQualityIssueCount` and `summary.transItemDataQualityIssueCount` as independent counts.
+- `start` / `count` are clarified as applying only to `transactionItems[]`; `companies[]` remains the company summary for the filtered transaction item set.
+- Proposal, flow algorithm and formal API documents were updated to match the implementation.
+
+Verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m py_compile restserver\package\restserver\api\v2\trace.py restserver\package\restserver\api\v2\transitems.py
+.\.venv\Scripts\python.exe -m pytest restserver\tests
+```
+
+Result: PASS, 61 tests passed in 3.91s.
+
 ## Remaining External Verification
 
 - Engineer should run the same API endpoints against MariaDB with current EWDB data to confirm real-data distribution and runtime behavior.

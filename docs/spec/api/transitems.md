@@ -60,7 +60,8 @@ None
       "transItemCount": "Integer",
       "linkedItemCount": "Integer",
       "contractLinkedTransItemCount": "Integer",
-      "dataQualityIssueCount": "Integer"
+      "companyDataQualityIssueCount": "Integer",
+      "transItemDataQualityIssueCount": "Integer"
     },
     "companies": [
       {
@@ -125,7 +126,8 @@ None
 | payload.summary.transItemCount | Integer | 套用篩選後的第一版交易品項總數 |  |
 | payload.summary.linkedItemCount | Integer | 已關聯內部料品的交易品項數 |  |
 | payload.summary.contractLinkedTransItemCount | Integer | 已被合約引用的交易品項數 |  |
-| payload.summary.dataQualityIssueCount | Integer | 公司與交易品項中 `dataQualityCode` 不為 `ready` 的總數 |  |
+| payload.summary.companyDataQualityIssueCount | Integer | 公司主檔中 `dataQualityCode` 不為 `ready` 的筆數 |  |
+| payload.summary.transItemDataQualityIssueCount | Integer | 交易品項主檔中 `dataQualityCode` 不為 `ready` 的筆數 |  |
 | payload.companies[].companyNo | String | 公司 no |  |
 | payload.companies[].companyDisplayName | String | 公司簡稱 |  |
 | payload.companies[].companyName | String | 公司名稱 |  |
@@ -162,8 +164,8 @@ None
 | payload.transactionItems[].unitConversion | Float | 交易單位與料品盤點單位的規格轉換 |  |
 | payload.transactionItems[].dataQualityCode | String | 此交易品項資料完整度 code | ready、missing_company、missing_linked_item、missing_contract_price、unknown |
 | payload.total | Integer | 套用篩選後的交易品項筆數 |  |
-| payload.start | Integer | 本次分頁起點 |  |
-| payload.count | Integer | 本次回傳筆數 |  |
+| payload.start | Integer | 本次交易品項分頁起點；僅套用於 `transactionItems[]` |  |
+| payload.count | Integer | 本次交易品項回傳筆數；僅套用於 `transactionItems[]` |  |
 
 ### Processing Flow
 
@@ -173,7 +175,7 @@ None
 4. 依交易品項集合批次查詢 `company`、`payment`、`contract` 與內部料品主檔。
 5. 每個交易品項選取目前可明確關聯的最新合約摘要；單價與物流價格取至小數點第 4 位。
 6. 依公司聯絡、帳款條件、交易品項公司關聯、內部料品關聯與合約價格計算 `dataQualityCode`。
-7. 回傳摘要、公司清單、交易品項分頁清單與分頁資訊。
+7. 回傳摘要、公司清單、交易品項分頁清單與分頁資訊；`companies[]` 不套用 `start` / `count`，`start` / `count` 僅套用於 `transactionItems[]`。
 
 ### Database Tables Used
 

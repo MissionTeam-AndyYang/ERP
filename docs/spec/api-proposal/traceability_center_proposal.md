@@ -2,6 +2,15 @@
 1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[]
    - 投入數量 action=1 的加總扣除 action=2 的加總作為計算依據。若其結果為零，則不需繼續追溯。請依此邏輯修正後端程式碼
 
+## 程式修正V3回覆
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| 淨投入數量判斷 | 已依「程式修正V3」補強。`traceSteps[].inputItems[].quantity` 先依 `production_data_input.action` 計算：`action=1` 領料加總扣除 `action=2` 退料加總，再依 `itemNo + batchNo + itemCategory + unit` 彙總。 |
+| 淨投入為 0 的處理 | 若投入批號彙總後淨投入量為 0，該投入項目不回傳於 `inputItems[]`；若該批號是本次追溯路徑的 focus input，該 production step 不建立，也不將其產出批號加入下一層 trace queue。 |
+| 製成品 upstream 展開 | 查詢製成品批號往上游追溯時，若某投入批號的淨投入量為 0，該投入項目不回傳，也不再往該投入批號的上游展開。 |
+| 測試補強 | 已新增 regression tests，確認原料 downstream 在淨投入為 0 時不建立後續 production step，且製成品 upstream 不會沿著淨投入為 0 的投入批號繼續追溯。 |
+
 # 程式修正V2
 1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[]
    - 追溯投入物過程需參照 production_data_input 資料表的 action 欄位（領料=1、退料=2）。投入數量應以 action=1 的加總扣除 action=2 的加總，才是該批號的實際投入數量。請依此邏輯修正後端程式碼。
@@ -11,7 +20,7 @@
 
 | 項目 | 回覆與文件調整 |
 |---|---|
-| 投入數量計算 | 已修正。`traceSteps[].inputItems[].quantity` 需依 `production_data_input.action` 計算實際投入量：`action=1` 領料列為正數、`action=2` 退料列為負數，最後依 `itemNo + batchNo + itemCategory + unit` 加總並取至小數點第 2 位。 |
+| 投入數量計算 | 已修正。`traceSteps[].inputItems[].quantity` 需依 `production_data_input.action` 計算實際投入量：`action=1` 領料列為正數、`action=2` 退料列為負數，最後依 `itemNo + batchNo + itemCategory + unit` 加總並取至小數點第 2 位；淨投入量為 0 的投入項目不回傳、不繼續追溯。 |
 | 產出數量計算 | `traceSteps[].outputItems[].quantity` 維持依 `production_data_output.count` 加總；本次修正僅針對投入物的領料/退料淨額。 |
 | stepId 重複合併 | 已修正。當同一 `work_order_no` 因多個追溯批號被重複命中時，不再直接跳過既有 step，而是將新的 focus `inputItems[]` / `outputItems[]` 合併至既有 `traceSteps[]`。 |
 | 重複 output 防護 | 合併既有 step 時，以 `itemNo + batchNo + itemCategory + unit` 作為唯一鍵；已存在的 output item 不再次累加，避免在製品 B 與在製品 C 同時指向製成品 D 時，製成品 D 被重複加總。 |
@@ -477,7 +486,7 @@
 | `traceSteps[].inputItems[].itemName` | String | 此步驟投入料品名稱；無資料時回傳空字串。 | 來源資料表 |
 | `traceSteps[].inputItems[].itemCategory` | Integer | 此步驟投入料品品項類別 code。 | `EItemCategory` |
 | `traceSteps[].inputItems[].batchNo` | String | 此步驟投入批號；無批號時回傳空字串。 | 來源資料表 |
-| `traceSteps[].inputItems[].quantity` | Float | 此步驟實際投入數量，取至小數點第 2 位；以 `production_data_input.action=1` 領料數量加總扣除 `action=2` 退料數量加總後回傳。 | 來源資料表 |
+| `traceSteps[].inputItems[].quantity` | Float | 此步驟實際投入數量，取至小數點第 2 位；以 `production_data_input.action=1` 領料數量加總扣除 `action=2` 退料數量加總後回傳，若淨投入量為 0 則不回傳該投入項目。 | 來源資料表 |
 | `traceSteps[].inputItems[].unit` | Integer | 此步驟投入單位 code。 | 來源資料表 |
 | `traceSteps[].outputItems[].itemNo` | String | 此步驟產出或銷貨料品 no。 | 來源資料表 |
 | `traceSteps[].outputItems[].itemName` | String | 此步驟產出或銷貨料品名稱；無資料時回傳空字串。 | 來源資料表 |
@@ -566,7 +575,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 4. 以流程步驟彙整資料：採購/進貨來源建立 `receipt` step；同一 `work_order_no` 的投入與產出合併為一筆 `production` step；已確認的銷貨/出貨來源建立 `sale` step。
 5. 製成品往上游追溯時，`production` step 的 `outputItems[]` 只保留目前追溯中的批號，下一層 queue 只加入該 step 的核心 `inputItems[]`。
 6. 原料往下游追溯時，`production` step 的 `inputItems[]` 只保留目前追溯中的批號，下一層 queue 只加入該 step 的核心 `outputItems[]`。
-7. `production` step 的 `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 彙整；投入物需以 `production_data_input.action=1` 領料加總扣除 `action=2` 退料加總後回傳，產出物依 `production_data_output.count` 加總。
+7. `production` step 的 `inputItems[]` 與 `outputItems[]` 需依 `itemNo + batchNo + itemCategory + unit` 彙整；投入物需以 `production_data_input.action=1` 領料加總扣除 `action=2` 退料加總後回傳，淨投入量為 0 的投入項目不回傳、不加入下一層 trace queue，產出物依 `production_data_output.count` 加總。
 8. 若同一 `work_order_no` 因多個追溯批號被重複命中同一 `stepId`，需將新的 focus `inputItems[]` / `outputItems[]` 合併至既有 step；相同 key 的 output 不再次累加，避免共同產出製成品被重複計算。
 9. overview 建立過程需使用單次請求內快取，避免同一批號、同一 work order 或同一 production data 重複查詢。
 10. 庫存與品檢資料僅用於判斷 `traceStatusCode`、`riskLevelCode`、`riskCode`，不再作為獨立 step 回傳。

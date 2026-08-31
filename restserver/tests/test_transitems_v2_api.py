@@ -126,6 +126,9 @@ def test_transitems_dashboard_returns_confirmed_fields():
     assert dict_payload["summary"]["transItemCount"] == 2
     assert dict_payload["summary"]["linkedItemCount"] == 1
     assert dict_payload["summary"]["contractLinkedTransItemCount"] == 1
+    assert "dataQualityIssueCount" not in dict_payload["summary"]
+    assert dict_payload["summary"]["companyDataQualityIssueCount"] == 0
+    assert dict_payload["summary"]["transItemDataQualityIssueCount"] == 1
     assert dict_payload["companies"][0]["receivablePayment"]["paymentTypeCode"] == "monthly"
     assert dict_payload["companies"][0]["receivablePayment"]["paymentSource"] == EPaymentSource.TRANSFER
     dict_rows = {dict_row["transItemNo"]: dict_row for dict_row in dict_payload["transactionItems"]}

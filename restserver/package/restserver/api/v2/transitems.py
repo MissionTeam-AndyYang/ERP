@@ -295,6 +295,14 @@ class CTransItemsMasterService(object):
     def __build_summary(self, lst_company_rows, lst_trans_items, dict_contracts):
         n_linked_count = len([obj_row for obj_row in lst_trans_items if obj_row.item_no])
         n_contract_linked_count = len([obj_row for obj_row in lst_trans_items if dict_contracts.get(obj_row.no or "")])
+        n_company_data_quality_issue_count = len([
+            dict_row for dict_row in lst_company_rows
+            if dict_row.get("dataQualityCode") != EDataQualityCode.READY
+        ])
+        n_trans_item_data_quality_issue_count = len([
+            obj_row for obj_row in lst_trans_items
+            if self.__trans_item_data_quality_code(obj_row, dict_contracts.get(obj_row.no or "", [])) != EDataQualityCode.READY
+        ])
         set_customer_company_nos = set()
         set_supplier_company_nos = set()
         for lst_contracts in dict_contracts.values():
@@ -313,9 +321,8 @@ class CTransItemsMasterService(object):
             "transItemCount": len(lst_trans_items),
             "linkedItemCount": n_linked_count,
             "contractLinkedTransItemCount": n_contract_linked_count,
-            "dataQualityIssueCount": len([dict_row for dict_row in lst_company_rows if dict_row.get("dataQualityCode") != EDataQualityCode.READY]) + len([
-                obj_row for obj_row in lst_trans_items if self.__trans_item_data_quality_code(obj_row, dict_contracts.get(obj_row.no or "", [])) != EDataQualityCode.READY
-            ]),
+            "companyDataQualityIssueCount": n_company_data_quality_issue_count,
+            "transItemDataQualityIssueCount": n_trans_item_data_quality_issue_count,
         }
 
     def __build_trans_item_row(self, obj_trans_item, obj_company, obj_contract, dict_items):

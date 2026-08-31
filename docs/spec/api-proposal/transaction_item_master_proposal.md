@@ -3,6 +3,15 @@
   - 將公司與交易品項中 dataQualityCode 不為 ready 的總數，請分別獨立存放，不合併加總至 dataQualityIssueCount。
   - 當查詢條件未傳遞 start 與 count 參數時，系統預設會回傳 companies 的 0～50 筆資料，還是 transactionItems 的 0～50 筆資料？是否應將其拆分為兩個 API，並搭配 start 與 count 參數使用，以使查詢邏輯更為明確？
   
+## 程式修正回覆
+
+| 項目 | 回覆與文件調整 |
+|---|---|
+| 資料品質缺口計數 | 已依本次「程式修正」調整。`summary.dataQualityIssueCount` 不再回傳，改由 `summary.companyDataQualityIssueCount` 與 `summary.transItemDataQualityIssueCount` 分別表示公司主檔與交易品項主檔中 `dataQualityCode != ready` 的筆數。 |
+| 公司清單分頁 | 第一版 `/api/v2/transitems/dashboard` 的 `companies[]` 為「套用交易品項篩選後關聯公司摘要」，不套用 `start` / `count` 分頁。原因是畫面需要同時看到目前查詢集合中的公司摘要與交易品項分頁，若 companies 也分頁，會使 dashboard 摘要與交易品項分頁的關聯不直觀。 |
+| 交易品項清單分頁 | `start` / `count` 僅套用於 `transactionItems[]`。若前端未傳遞 `start` 與 `count`，後端預設回傳 `transactionItems[]` 的第 0～50 筆資料；`total` 表示套用篩選後的交易品項總筆數。 |
+| 是否拆分 API | 第一版暫不拆分為兩個 API。若未來公司主檔與交易品項主檔各自需要獨立大量查詢、排序或分頁，再拆成 `companies` 與 `transitems` 明細 API；目前 dashboard 保持單一 read-only 聚合 API，方便前端一次取得同一查詢情境下的 KPI、公司摘要與交易品項清單。 |
+
 
 
 
@@ -137,7 +146,8 @@
     "transItemCount": "Integer",
     "linkedItemCount": "Integer",
     "contractLinkedTransItemCount": "Integer",
-    "dataQualityIssueCount": "Integer"
+    "companyDataQualityIssueCount": "Integer",
+    "transItemDataQualityIssueCount": "Integer"
   },
   "companies": [
     {
@@ -203,7 +213,8 @@
 | `summary.transItemCount` | Integer | 第一版交易品項總數。 | `trans_items` |
 | `summary.linkedItemCount` | Integer | 已關聯內部料品的交易品項數。 | `trans_items.item_no` |
 | `summary.contractLinkedTransItemCount` | Integer | 已被合約引用的交易品項數。 | `contract.item_no` |
-| `summary.dataQualityIssueCount` | Integer | 公司與交易品項中 `dataQualityCode` 不為 `ready` 的總數。 | 後端資料完整度規則 |
+| `summary.companyDataQualityIssueCount` | Integer | 公司主檔中 `dataQualityCode` 不為 `ready` 的筆數。 | 後端資料完整度規則 |
+| `summary.transItemDataQualityIssueCount` | Integer | 交易品項主檔中 `dataQualityCode` 不為 `ready` 的筆數。 | 後端資料完整度規則 |
 | `companies[].companyNo` | String | 公司 no。 | `company.no` |
 | `companies[].companyDisplayName` | String | 公司簡稱。 | `company.displayName` |
 | `companies[].companyName` | String | 公司名稱。 | `company.name` |
@@ -240,8 +251,8 @@
 | `transactionItems[].unitConversion` | Float | 交易單位與料品盤點單位的規格轉換。 | `contract.unitConversion` |
 | `transactionItems[].dataQualityCode` | String | 此交易品項資料完整度 code。 | `dataQualityCode` |
 | `total` | Integer | 套用篩選後的交易品項筆數。 |  |
-| `start` | Integer | 本次分頁起點。 |  |
-| `count` | Integer | 本次回傳筆數。 |  |
+| `start` | Integer | 本次交易品項分頁起點；僅套用於 `transactionItems[]`。 |  |
+| `count` | Integer | 本次交易品項回傳筆數；僅套用於 `transactionItems[]`。 |  |
 
 ## 5. GET `/api/v2/transitems/companies/{company_no}/detail`
 

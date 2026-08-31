@@ -708,3 +708,27 @@ class EPaymentTypeCode(object):
     MONTHLY = "monthly"
     UNKNOWN = "unknown"
 
+
+# ------------------------------------------------------------
+# Item Center API enums
+# ------------------------------------------------------------
+
+class EItemMasterStatusCode(object):
+    READY = "ready"
+    MAINTENANCE_NEEDED = "maintenance_needed"
+    UNKNOWN = "unknown"
+
+
+class EItemMaintenanceRiskCode(object):
+    NORMAL = "normal"
+    MISSING_UNIT = "missing_unit"
+    MISSING_BOM = "missing_bom"
+    MISSING_STOCK_SIGNAL = "missing_stock_signal"
+    UNKNOWN = "unknown"
+
+
+class EItemMaintenanceSuggestionTypeCode(object):
+    MISSING_UNIT = "missing_unit"
+    MISSING_BOM = "missing_bom"
+    MISSING_STOCK_SIGNAL = "missing_stock_signal"
+

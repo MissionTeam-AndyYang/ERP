@@ -2,6 +2,321 @@
 
 > Source: `restserver/package/restserver/api/item_uri.py`
 
+## V2 Item Center APIs
+
+> Source: `restserver/package/restserver/api/v2/items_uri.py`
+> Proposal basis: `docs/spec/api-proposal/item_center_proposal.md`
+
+## V2 API Summary
+
+| URL | Method | Description | Status | Review Note |
+|----------|----------|----------------|------|------|
+| [/api/v2/items/dashboard](#get-api-v2-items-dashboard) | GET | 查詢品項中心 KPI、分類摘要、品項清單與主檔待維護事項 | OK | 已依工程師確認提案實作 |
+| [/api/v2/items/{item_no}/detail](#get-api-v2-items-item_no-detail) | GET | 查詢單一品項主檔、庫存摘要、批號摘要、BOM 使用情形與主檔維護建議 | OK | 已依工程師確認提案實作 |
+
+## GET /api/v2/items/dashboard
+
+<a id="get-api-v2-items-dashboard"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/items/dashboard | GET | 查詢品項中心 KPI、分類摘要、品項清單與主檔待維護事項 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-timezone | 前端顯示偏好的 IANA timezone；後端不改寫資料庫 UTC timestamp |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準時間 UTC timestamp；未提供時使用系統時間 |
+| keyword | String | NO | 料品 no 或料品名稱關鍵字 |
+| itemCategory | Integer | NO | 料品品項類別 code |
+| itemSubCategory | Integer | NO | 料品品項子類別 code |
+| itemType | Integer | NO | 品項型態 code |
+| masterStatusCode | String | NO | 主檔狀態 code；ready、maintenance_needed、unknown |
+| hasStock | Boolean | NO | 是否只查詢目前仍有庫存的料品 |
+| hasBom | Boolean | NO | 是否只查詢已關聯 BOM 或被 BOM 使用的料品 |
+| start | Integer | NO | 分頁起點，預設 0；負值視為 0 |
+| count | Integer | NO | 回傳筆數，預設 50，最大 100 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "summary": {
+      "totalItemCount": "Integer",
+      "activeItemCount": "Integer",
+      "finishedGoodsCount": "Integer",
+      "maintenanceItemCount": "Integer"
+    },
+    "categorySummary": [
+      {
+        "itemCategory": "Integer",
+        "itemCount": "Integer",
+        "stockItemCount": "Integer",
+        "bomLinkedItemCount": "Integer",
+        "maintenanceItemCount": "Integer"
+      }
+    ],
+    "items": [
+      {
+        "itemNo": "String",
+        "itemName": "String",
+        "itemCategory": "Integer",
+        "itemSubCategory": "Integer",
+        "itemType": "Integer",
+        "unitWarehouse": "Integer",
+        "unitProduct": "Integer",
+        "masterStatusCode": "String",
+        "maintenanceRiskCode": "String",
+        "hasStock": "Boolean",
+        "currentQuantity": "Float",
+        "batchCount": "Integer",
+        "bomCount": "Integer"
+      }
+    ],
+    "maintenanceSuggestions": [
+      {
+        "suggestionId": "String",
+        "itemNo": "String",
+        "suggestionTypeCode": "String",
+        "riskLevelCode": "String"
+      }
+    ],
+    "total": "Integer",
+    "start": "Integer",
+    "count": "Integer"
+  }
+}
+```
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 回傳代碼 |  |
+| message | String | API 回傳訊息 |  |
+| payload.serverTimestamp | Integer | API 回應建立時間，UTC timestamp |  |
+| payload.summary.totalItemCount | Integer | 套用篩選後可納入品項中心的料品總數 |  |
+| payload.summary.activeItemCount | Integer | 主檔可被業務流程引用的料品數；第一版以可查得主檔者視為 active |  |
+| payload.summary.finishedGoodsCount | Integer | 製成品品項數 | itemCategory=5 |
+| payload.summary.maintenanceItemCount | Integer | 主檔狀態為 maintenance_needed 的料品數 |  |
+| payload.categorySummary[].itemCategory | Integer | 料品品項類別 code | EItemCategory |
+| payload.categorySummary[].itemCount | Integer | 此品項類別的料品數 |  |
+| payload.categorySummary[].stockItemCount | Integer | 此品項類別目前仍有庫存的料品數 |  |
+| payload.categorySummary[].bomLinkedItemCount | Integer | 此品項類別已與 BOM 或產品規格建立關聯的料品數 |  |
+| payload.categorySummary[].maintenanceItemCount | Integer | 此品項類別需要維護的料品數 |  |
+| payload.items[].itemNo | String | 料品 no |  |
+| payload.items[].itemName | String | 料品名稱 |  |
+| payload.items[].itemCategory | Integer | 料品品項類別 code | EItemCategory |
+| payload.items[].itemSubCategory | Integer | 料品品項子類別 code；主檔無此欄位時回傳 0 |  |
+| payload.items[].itemType | Integer | 品項型態 code；第一版主檔無穩定來源時回傳 0 |  |
+| payload.items[].unitWarehouse | Integer | 倉庫庫存單位 code |  |
+| payload.items[].unitProduct | Integer | 生產用量單位 code |  |
+| payload.items[].masterStatusCode | String | 主檔狀態 code | ready、maintenance_needed、unknown |
+| payload.items[].maintenanceRiskCode | String | 主檔主要維護風險 code | normal、missing_unit、missing_bom、missing_stock_signal、unknown |
+| payload.items[].hasStock | Boolean | 此料品目前是否仍有庫存量大於 0 |  |
+| payload.items[].currentQuantity | Float | 此料品目前庫存數量總和，取至小數點第 2 位 |  |
+| payload.items[].batchCount | Integer | 此料品目前仍有庫存或近期建立的不重複批號數 |  |
+| payload.items[].bomCount | Integer | 此料品已關聯或被使用的 BOM / 產品規格數 |  |
+| payload.maintenanceSuggestions[].suggestionId | String | 主檔維護建議識別值；不是 workflow task id |  |
+| payload.maintenanceSuggestions[].itemNo | String | 維護建議對應料品 no |  |
+| payload.maintenanceSuggestions[].suggestionTypeCode | String | 維護建議類型 code | missing_unit、missing_bom、missing_stock_signal |
+| payload.maintenanceSuggestions[].riskLevelCode | String | 維護建議風險等級 code | normal、attention、high_risk |
+| payload.total | Integer | 套用篩選後的料品筆數 |  |
+| payload.start | Integer | 本次分頁起點 |  |
+| payload.count | Integer | 本次回傳筆數 |  |
+
+### Processing Flow
+
+1. 讀取 query parameters 並轉換為後端型別。
+2. 從 `material`、`inproduct`、`product`、`goods` 建立料品主檔候選集合。
+3. 使用 Warehouse 庫存快照共用邏輯取得目前庫存，並依 `itemNo` 彙總 `hasStock`、`currentQuantity` 與批號數。
+4. 查詢 `bom_item`、`product_spec`、`product_bom_spec`、`inproduct_bom_spec`，彙總每個料品的 `bomCount`。
+5. 依缺單位、製成品/在製品缺 BOM、原料/物料/膠捲缺庫存與近期批號訊號，判斷 `masterStatusCode` 與 `maintenanceRiskCode`。
+6. 套用篩選、排序與分頁，建立 `summary`、`categorySummary`、`items[]` 與 read-only `maintenanceSuggestions[]`。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| material | 原料、物料、膠捲主檔 |
+| inproduct | 在製品主檔 |
+| product | 製成品主檔 |
+| goods | 貨品主檔 |
+| batch_number | 料品近期批號 |
+| inventory_record | Warehouse 庫存快照共用邏輯使用的庫存異動來源 |
+| inventory_item_month_statistic | Warehouse 庫存快照共用邏輯使用的庫存月結基準 |
+| inventory_delta | Warehouse 庫存快照共用邏輯使用的庫存異動補算 |
+| bom | BOM 版本與有效日期 |
+| bom_item | BOM 直接配方明細 |
+| product_spec | 製成品與 BOM / 料品規格關聯 |
+| product_bom_spec | 製成品 BOM 階層關聯 |
+| inproduct_bom_spec | 在製品 BOM 關聯 |
+
+## GET /api/v2/items/{item_no}/detail
+
+<a id="get-api-v2-items-item_no-detail"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/items/{item_no}/detail | GET | 查詢單一品項主檔、庫存摘要、批號摘要、BOM 使用情形與主檔維護建議 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-timezone | 前端顯示偏好的 IANA timezone；後端不改寫資料庫 UTC timestamp |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| date | Integer | NO | 查詢基準時間 UTC timestamp；未提供時使用系統時間 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "item": {
+      "itemNo": "String",
+      "itemName": "String",
+      "itemCategory": "Integer",
+      "itemSubCategory": "Integer",
+      "itemType": "Integer",
+      "unitWarehouse": "Integer",
+      "unitProduct": "Integer",
+      "masterStatusCode": "String",
+      "maintenanceRiskCode": "String",
+      "creationTime": "Integer"
+    },
+    "inventorySummary": {
+      "hasStock": "Boolean",
+      "currentQuantity": "Float",
+      "availableQuantity": "Float",
+      "reservedQuantity": "Float",
+      "qualityHoldQuantity": "Float",
+      "warehouseCount": "Integer",
+      "batchCount": "Integer"
+    },
+    "bomUsage": [
+      {
+        "bomNo": "String",
+        "bomVersion": "Integer",
+        "quantity": "Float",
+        "unit": "Integer",
+        "effectiveTimestamp": "Integer"
+      }
+    ],
+    "recentBatches": [
+      {
+        "batchNo": "String",
+        "refCategory": "Integer",
+        "refNo": "String",
+        "currentQuantity": "Float",
+        "unit": "Integer",
+        "validDate": "Integer",
+        "riskLevelCode": "String"
+      }
+    ],
+    "maintenanceSuggestions": [
+      {
+        "suggestionId": "String",
+        "suggestionTypeCode": "String",
+        "riskLevelCode": "String"
+      }
+    ]
+  }
+}
+```
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 回傳代碼 |  |
+| message | String | API 回傳訊息 |  |
+| payload.serverTimestamp | Integer | API 回應建立時間，UTC timestamp |  |
+| payload.item.itemNo | String | 查詢料品 no |  |
+| payload.item.itemName | String | 料品名稱 |  |
+| payload.item.itemCategory | Integer | 料品品項類別 code | EItemCategory |
+| payload.item.itemSubCategory | Integer | 料品品項子類別 code；主檔無此欄位時回傳 0 |  |
+| payload.item.itemType | Integer | 品項型態 code；第一版主檔無穩定來源時回傳 0 |  |
+| payload.item.unitWarehouse | Integer | 倉庫庫存單位 code |  |
+| payload.item.unitProduct | Integer | 生產用量單位 code |  |
+| payload.item.masterStatusCode | String | 主檔狀態 code | ready、maintenance_needed、unknown |
+| payload.item.maintenanceRiskCode | String | 主檔主要維護風險 code | normal、missing_unit、missing_bom、missing_stock_signal、unknown |
+| payload.item.creationTime | Integer | 主檔建立時間 UTC timestamp；無資料時回傳 0 |  |
+| payload.inventorySummary.hasStock | Boolean | 此料品目前是否仍有庫存量大於 0 |  |
+| payload.inventorySummary.currentQuantity | Float | 此料品目前庫存數量總和，取至小數點第 2 位 |  |
+| payload.inventorySummary.availableQuantity | Float | 此料品目前可用數量總和，取至小數點第 2 位 |  |
+| payload.inventorySummary.reservedQuantity | Float | 此料品目前預留數量總和，取至小數點第 2 位 |  |
+| payload.inventorySummary.qualityHoldQuantity | Float | 此料品目前品檢保留數量總和，取至小數點第 2 位 |  |
+| payload.inventorySummary.warehouseCount | Integer | 此料品目前庫存所在的不重複倉庫數 |  |
+| payload.inventorySummary.batchCount | Integer | 此料品目前仍有庫存的不重複批號數 |  |
+| payload.bomUsage[].bomNo | String | 關聯 BOM no |  |
+| payload.bomUsage[].bomVersion | Integer | 關聯 BOM 版本 |  |
+| payload.bomUsage[].quantity | Float | 此 BOM 關聯用量，取至小數點第 2 位 |  |
+| payload.bomUsage[].unit | Integer | 此 BOM 關聯單位 code |  |
+| payload.bomUsage[].effectiveTimestamp | Integer | BOM 版本有效日期 UTC timestamp；無資料時回傳 0 |  |
+| payload.recentBatches[].batchNo | String | 此料品近期批號 |  |
+| payload.recentBatches[].refCategory | Integer | 批號來源單據類別 |  |
+| payload.recentBatches[].refNo | String | 批號來源單號 |  |
+| payload.recentBatches[].currentQuantity | Float | 此批號目前庫存數量，取至小數點第 2 位 |  |
+| payload.recentBatches[].unit | Integer | 批號單位 code |  |
+| payload.recentBatches[].validDate | Integer | 批號有效期限 UTC timestamp |  |
+| payload.recentBatches[].riskLevelCode | String | 批號風險等級 code | normal、attention、high_risk |
+| payload.maintenanceSuggestions[].suggestionId | String | 主檔維護建議識別值；不是 workflow task id |  |
+| payload.maintenanceSuggestions[].suggestionTypeCode | String | 維護建議類型 code | missing_unit、missing_bom、missing_stock_signal |
+| payload.maintenanceSuggestions[].riskLevelCode | String | 維護建議風險等級 code | normal、attention、high_risk |
+
+### Processing Flow
+
+1. 驗證 `item_no`，若空字串或查無主檔則回傳錯誤。
+2. 從 `material`、`inproduct`、`product`、`goods` 讀取單一料品主檔。
+3. 使用 Warehouse 庫存快照共用邏輯彙總庫存摘要。
+4. 查詢 BOM 相關資料表建立 `bomUsage[]`。
+5. 查詢 `batch_number` 建立最多 20 筆近期批號摘要。
+6. 使用 dashboard 同一套規則建立 read-only `maintenanceSuggestions[]`。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| material | 原料、物料、膠捲主檔 |
+| inproduct | 在製品主檔 |
+| product | 製成品主檔 |
+| goods | 貨品主檔 |
+| batch_number | 料品近期批號、來源單據與效期 |
+| inventory_record | Warehouse 庫存快照共用邏輯使用的庫存異動來源 |
+| inventory_item_month_statistic | Warehouse 庫存快照共用邏輯使用的庫存月結基準 |
+| inventory_delta | Warehouse 庫存快照共用邏輯使用的庫存異動補算 |
+| bom | BOM 版本與有效日期 |
+| bom_item | BOM 直接配方明細 |
+| product_spec | 製成品與 BOM / 料品規格關聯 |
+| product_bom_spec | 製成品 BOM 階層關聯 |
+| inproduct_bom_spec | 在製品 BOM 關聯 |
+
 ## API Summary
 
 | URL | Method | Description | Status | Review Note |

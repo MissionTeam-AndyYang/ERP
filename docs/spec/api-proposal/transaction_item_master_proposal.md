@@ -1,3 +1,12 @@
+# 程式修正
+1. 針對 /api/v2/transitems/dashboard
+  - 將公司與交易品項中 dataQualityCode 不為 ready 的總數，請分別獨立存放，不合併加總至 dataQualityIssueCount。
+  - 當查詢條件未傳遞 start 與 count 參數時，系統預設會回傳 companies 的 0～50 筆資料，還是 transactionItems 的 0～50 筆資料？是否應將其拆分為兩個 API，並搭配 start 與 count 參數使用，以使查詢邏輯更為明確？
+  
+
+
+
+
 # 工程師提問V2
 1. 針對 /api/v2/item-trade-master/companies/{company_no}/detail
   - receivableTerms 更名 receivablePayment ; payableTerms 更名 payablelePayment 

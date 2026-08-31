@@ -1,3 +1,7 @@
+# 程式修正V3
+1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[]
+   - 投入數量 action=1 的加總扣除 action=2 的加總作為計算依據。若其結果為零，則不需繼續追溯。請依此邏輯修正後端程式碼
+
 # 程式修正V2
 1. /api/v2/trace/batches/{batch_no}/overview 的 traceSteps[]
    - 追溯投入物過程需參照 production_data_input 資料表的 action 欄位（領料=1、退料=2）。投入數量應以 action=1 的加總扣除 action=2 的加總，才是該批號的實際投入數量。請依此邏輯修正後端程式碼。

@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { traceabilityDashboardMock } from "@/mock/traceability";
-import { getTraceabilityDashboard } from "@/services/traceability-api";
+import {
+  emptyTraceabilityDashboardData,
+  getTraceabilityDashboard,
+  type TraceabilityDashboardQuery
+} from "@/services/traceability-api";
 import type { TraceabilityDashboardData, TraceabilityDataSource } from "@/types/traceability";
 
 export type TraceabilityDashboardState = {
@@ -12,17 +17,20 @@ export type TraceabilityDashboardState = {
   error?: string;
 };
 
-export function useTraceabilityDashboard(): TraceabilityDashboardState {
+export function useTraceabilityDashboard(
+  dataSourceMode: DataSourceMode = "api",
+  query: TraceabilityDashboardQuery = {}
+): TraceabilityDashboardState {
   const [state, setState] = useState<TraceabilityDashboardState>({
-    data: traceabilityDashboardMock,
-    source: "mock",
+    data: dataSourceMode === "mock" ? traceabilityDashboardMock : emptyTraceabilityDashboardData,
+    source: dataSourceMode === "mock" ? "mock" : "api",
     isLoading: true
   });
 
   useEffect(() => {
     let isMounted = true;
 
-    getTraceabilityDashboard().then((result) => {
+    getTraceabilityDashboard(query, dataSourceMode).then((result) => {
       if (!isMounted) {
         return;
       }
@@ -38,7 +46,7 @@ export function useTraceabilityDashboard(): TraceabilityDashboardState {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dataSourceMode, query]);
 
   return state;
 }

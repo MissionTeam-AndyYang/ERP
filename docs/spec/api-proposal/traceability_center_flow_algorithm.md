@@ -39,7 +39,7 @@
 ### 4.1 批號主檔
 
 1. 查詢 `batch_number` 作為批號主索引。
-2. 依 `batchNo`、`itemNo`、`itemCategory`、`keyword` 與日期區間篩選。
+2. 第一版 Dashboard 預設只查詢 `itemCategory in (1, 5)` 的原料與製成品批號；若指定其他 `itemCategory`，回傳空清單，再依 `batchNo`、`itemNo`、`keyword` 與日期區間篩選。
 3. 若同一批號有多筆主檔資料，以 `date desc`、`creationTime desc`、`id desc` 取最新一筆作為 header。
 4. 回填 `batchNo`、`itemNo`、`itemName`、`itemCategory`、`itemSubCategory`、`itemType`、`unit`、`validDate`、`validDays`、`refCategory`、`refNo`。
 

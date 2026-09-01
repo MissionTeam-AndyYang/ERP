@@ -70,7 +70,6 @@
 | `keyword` | String | No | 料品 no、料品名稱、BOM no、批號、供應商或備註關鍵字。 |
 | `itemCategory` | Integer | No | 料品品項類別 code。 |
 | `itemSubCategory` | Integer | No | 料品品項子類別 code。 |
-| `itemType` | Integer | No | 品項型態 code。 |
 | `masterStatusCode` | String | No | 主檔狀態 code；第一版支援 `ready`、`maintenance_needed`、`unknown`。 |
 | `hasStock` | Boolean | No | 是否只查詢目前仍有庫存的料品。 |
 | `hasBom` | Boolean | No | 是否只查詢已關聯 BOM 或被 BOM 使用的料品。 |
@@ -106,7 +105,6 @@
       "itemName": "String",
       "itemCategory": "Integer",
       "itemSubCategory": "Integer",
-      "itemType": "Integer",
       "unitWarehouse": "Integer",
       "unitProduct": "Integer",
       "masterStatusCode": "String",
@@ -142,20 +140,19 @@
 | `summary.maintenanceItemCount` | Integer | `masterStatusCode=maintenance_needed` 的料品數，對應畫面 KPI「待維護」。 | 後端規則 |
 | `categorySummary[].itemCategory` | Integer | 料品品項類別 code。 | `EItemCategory` |
 | `categorySummary[].itemCount` | Integer | 此品項類別的料品數。 | 主檔彙總 |
-| `categorySummary[].stockItemCount` | Integer | 此品項類別目前仍有庫存的料品數。 | Warehouse 庫存快照共用邏輯 |
+| `categorySummary[].stockItemCount` | Integer | 此品項類別目前仍有庫存的料品數。 | Warehouse 輕量品項庫存摘要共用邏輯 |
 | `categorySummary[].bomLinkedItemCount` | Integer | 此品項類別已與 BOM 或產品規格建立關聯的料品數。 | `bom_item`、`product_spec`、`product_bom_spec`、`inproduct_bom_spec` |
 | `categorySummary[].maintenanceItemCount` | Integer | 此品項類別需要維護的料品數，計算來源為 `masterStatusCode=maintenance_needed`。 | 後端規則 |
 | `items[].itemNo` | String | 料品 no。 | 各料品主檔 |
 | `items[].itemName` | String | 料品名稱。 | 各料品主檔 |
 | `items[].itemCategory` | Integer | 料品品項類別 code。 | `EItemCategory` |
 | `items[].itemSubCategory` | Integer | 料品品項子類別 code；主檔無此欄位時回傳 0。 | 各料品主檔 |
-| `items[].itemType` | Integer | 品項型態 code；主檔無此欄位時回傳 0。 | 主檔或批號/庫存資料補充 |
 | `items[].unitWarehouse` | Integer | 倉庫庫存單位 code；前端負責顯示文字。 | 各料品主檔 |
 | `items[].unitProduct` | Integer | 生產用量單位 code；前端負責顯示文字。 | 各料品主檔 |
 | `items[].masterStatusCode` | String | 主檔狀態 code。 | ready、maintenance_needed、unknown |
 | `items[].maintenanceRiskCode` | String | 主檔主要維護風險 code。 | normal、missing_unit、missing_bom、missing_stock_signal、unknown |
-| `items[].hasStock` | Boolean | 此料品目前是否仍有庫存量大於 0。 | Warehouse 庫存快照共用邏輯 |
-| `items[].currentQuantity` | Float | 此料品目前庫存數量總和，取至小數點第 2 位；混合單位風險由前端以單位 code 輔助呈現。 | Warehouse 庫存快照共用邏輯 |
+| `items[].hasStock` | Boolean | 此料品目前是否仍有庫存量大於 0。 | Warehouse 輕量品項庫存摘要共用邏輯 |
+| `items[].currentQuantity` | Float | 此料品目前庫存數量總和，取至小數點第 2 位；混合單位風險由前端以單位 code 輔助呈現。 | Warehouse 輕量品項庫存摘要共用邏輯 |
 | `items[].batchCount` | Integer | 此料品目前仍有庫存或近期建立的不重複批號數。 | `batch_number`、庫存快照 |
 | `items[].bomCount` | Integer | 此料品已關聯或被使用的 BOM / 產品規格數。 | BOM 相關資料表 |
 | `maintenanceSuggestions[].suggestionId` | String | 主檔維護建議識別值，供前端列表 key 使用；此欄位不是 workflow task id。 | 後端組合 |
@@ -178,7 +175,6 @@
     "itemName": "String",
     "itemCategory": "Integer",
     "itemSubCategory": "Integer",
-    "itemType": "Integer",
     "unitWarehouse": "Integer",
     "unitProduct": "Integer",
     "masterStatusCode": "String",
@@ -233,19 +229,18 @@
 | `item.itemName` | String | 料品名稱。 | 各料品主檔 |
 | `item.itemCategory` | Integer | 料品品項類別 code。 | `EItemCategory` |
 | `item.itemSubCategory` | Integer | 料品品項子類別 code；主檔無此欄位時回傳 0。 | 各料品主檔 |
-| `item.itemType` | Integer | 品項型態 code；主檔無此欄位時回傳 0。 | 主檔或批號/庫存資料補充 |
 | `item.unitWarehouse` | Integer | 倉庫庫存單位 code。 | 各料品主檔 |
 | `item.unitProduct` | Integer | 生產用量單位 code。 | 各料品主檔 |
 | `item.masterStatusCode` | String | 主檔狀態 code。 | ready、maintenance_needed、unknown |
 | `item.maintenanceRiskCode` | String | 主檔主要維護風險 code。 | normal、missing_unit、missing_bom、missing_stock_signal、unknown |
 | `item.creationTime` | Integer | 主檔建立時間 UTC timestamp；無資料時回傳 0。 | 各料品主檔 |
-| `inventorySummary.hasStock` | Boolean | 此料品目前是否仍有庫存量大於 0。 | Warehouse 庫存快照共用邏輯 |
-| `inventorySummary.currentQuantity` | Float | 此料品目前庫存數量總和，取至小數點第 2 位。 | Warehouse 庫存快照共用邏輯 |
-| `inventorySummary.availableQuantity` | Float | 此料品目前可用數量總和。 | Warehouse 庫存快照共用邏輯 |
-| `inventorySummary.reservedQuantity` | Float | 此料品目前預留數量總和。 | Warehouse 庫存快照共用邏輯 |
-| `inventorySummary.qualityHoldQuantity` | Float | 此料品目前品檢保留數量總和。 | Warehouse 庫存快照共用邏輯 |
-| `inventorySummary.warehouseCount` | Integer | 此料品目前庫存所在的不重複倉庫數。 | Warehouse 庫存快照共用邏輯 |
-| `inventorySummary.batchCount` | Integer | 此料品目前仍有庫存的不重複批號數。 | Warehouse 庫存快照共用邏輯 |
+| `inventorySummary.hasStock` | Boolean | 此料品目前是否仍有庫存量大於 0。 | Warehouse 輕量品項庫存摘要共用邏輯 |
+| `inventorySummary.currentQuantity` | Float | 此料品目前庫存數量總和，取至小數點第 2 位。 | Warehouse 輕量品項庫存摘要共用邏輯 |
+| `inventorySummary.availableQuantity` | Float | 此料品目前可用數量總和。 | Warehouse 輕量品項庫存摘要共用邏輯 |
+| `inventorySummary.reservedQuantity` | Float | 此料品目前預留數量總和。 | Warehouse 輕量品項庫存摘要共用邏輯 |
+| `inventorySummary.qualityHoldQuantity` | Float | 此料品目前品檢保留數量總和。 | Warehouse 輕量品項庫存摘要共用邏輯 |
+| `inventorySummary.warehouseCount` | Integer | 此料品目前庫存所在的不重複倉庫數。 | Warehouse 輕量品項庫存摘要共用邏輯 |
+| `inventorySummary.batchCount` | Integer | 此料品目前仍有庫存的不重複批號數。 | Warehouse 輕量品項庫存摘要共用邏輯 |
 | `bomUsage[].bomNo` | String | 關聯 BOM no。 | BOM 相關資料表 |
 | `bomUsage[].bomVersion` | Integer | 關聯 BOM 版本。 | BOM 相關資料表 |
 | `bomUsage[].quantity` | Float | 此 BOM 關聯用量，取至小數點第 2 位。 | BOM 相關資料表 |
@@ -254,7 +249,7 @@
 | `recentBatches[].batchNo` | String | 此料品近期批號。 | `batch_number.no` |
 | `recentBatches[].refCategory` | Integer | 批號來源單據類別。 | `batch_number.refCategory` |
 | `recentBatches[].refNo` | String | 批號來源單號。 | `batch_number.ref_no` |
-| `recentBatches[].currentQuantity` | Float | 此批號目前庫存數量，取至小數點第 2 位。 | Warehouse 庫存快照共用邏輯 |
+| `recentBatches[].currentQuantity` | Float | 此批號目前庫存數量，取至小數點第 2 位。 | Warehouse 輕量品項庫存摘要共用邏輯 |
 | `recentBatches[].unit` | Integer | 批號單位 code。 | `batch_number.unit` |
 | `recentBatches[].validDate` | Integer | 批號有效期限 UTC timestamp。 | `batch_number.validDate` |
 | `recentBatches[].riskLevelCode` | String | 批號風險等級 code。 | normal、attention、high_risk |
@@ -279,9 +274,9 @@
 | `product` | 製成品主檔 |
 | `goods` | 貨品主檔 |
 | `batch_number` | 料品近期批號、來源單據與效期 |
-| `inventory_record` | 料品近期庫存活動與 fallback |
-| `inventory_item_month_statistic` | Warehouse 庫存快照共用邏輯使用的庫存月結基準 |
-| `inventory_delta` | Warehouse 庫存快照共用邏輯使用的庫存異動補算 |
+| `inventory_record` | Warehouse 輕量品項庫存摘要共用邏輯使用的庫存異動來源 |
+| `warehouse_inventory_reservation` | Warehouse 輕量品項庫存摘要共用邏輯使用的預留數量來源 |
+| `warehouse_quality_hold` | Warehouse 輕量品項庫存摘要共用邏輯使用的品檢保留數量來源 |
 | `bom` | BOM 版本與有效日期 |
 | `bom_item` | BOM 直接配方明細 |
 | `product_spec` | 製成品與 BOM / 料品規格關聯 |
@@ -292,6 +287,6 @@
 
 1. 第一版 `items[]` 應以資料表可確認的主檔資料為準，不推測不存在的品項。
 2. 若 `material.category` 對應 `EItemCategory.PM / MA / AF`，後端需保持原始 code；中文類別名稱由前端轉換。
-3. `hasStock`、`currentQuantity`、`batchCount` 應使用 Warehouse 庫存快照共用邏輯，避免與 Warehouse / Batch Center 數字不一致。
+3. `hasStock`、`currentQuantity`、`batchCount` 應使用 Warehouse 輕量品項庫存摘要共用邏輯，避免為品項中心查詢建立完整 Warehouse Dashboard payload。
 4. `maintenanceSuggestions[]` 是後端依缺漏規則產生的 read-only 維護建議，不代表 workflow task 寫入、待辦建立或部門轉交。
 5. 現有主檔停用／啟用功能第一版暫不規劃，因此本版不回傳 `inactive` 狀態；若後續新增停用欄位，再另行擴充 enum 與查詢條件。

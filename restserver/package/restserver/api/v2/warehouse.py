@@ -1514,6 +1514,15 @@ class CWarehouseDashboardService(object):
 
 
 class CWarehouseInventoryContextBuilder(object):
+    ITEM_INVENTORY_CATEGORIES = [
+        EItemCategory.PM,
+        EItemCategory.MA,
+        EItemCategory.AF,
+        EItemCategory.INPRODUCT,
+        EItemCategory.PRODUCT,
+        EItemCategory.GOODS,
+    ]
+
     def build(
         self,
         obj_session,
@@ -1566,6 +1575,49 @@ class CWarehouseInventoryContextBuilder(object):
             ) if b_include_open_tasks else {},
         }
 
+    def query_item_inventory_summary(
+        self,
+        obj_session,
+        n_query_timestamp,
+        str_item_no="",
+        n_item_category=0,
+    ):
+        dict_result = self.__query_item_current_stock(
+            obj_session,
+            n_query_timestamp,
+            str_item_no,
+            n_item_category,
+        )
+        self.__append_item_reserved_quantities(
+            obj_session,
+            n_query_timestamp,
+            dict_result,
+            str_item_no,
+            n_item_category,
+        )
+        self.__append_item_quality_hold_quantities(
+            obj_session,
+            n_query_timestamp,
+            dict_result,
+            str_item_no,
+            n_item_category,
+        )
+        for dict_item in dict_result.values():
+            dict_item["availableQuantity"] = util_round_quantity(
+                max(
+                    util_safe_float(dict_item.get("currentQuantity"))
+                    - util_safe_float(dict_item.get("reservedQuantity"))
+                    - util_safe_float(dict_item.get("qualityHoldQuantity")),
+                    0.0,
+                )
+            )
+            dict_item["currentQuantity"] = util_round_quantity(dict_item.get("currentQuantity"))
+            dict_item["reservedQuantity"] = util_round_quantity(dict_item.get("reservedQuantity"))
+            dict_item["qualityHoldQuantity"] = util_round_quantity(dict_item.get("qualityHoldQuantity"))
+            dict_item["batchCount"] = len(dict_item.pop("_batches"))
+            dict_item["warehouseCount"] = len(dict_item.pop("_warehouses"))
+        return dict_result
+
     def filter_inventory_rows(self, lst_inventory, str_item_no="", str_batch_no=""):
         lst_results = []
         for dict_row in lst_inventory:
@@ -1588,6 +1640,117 @@ class CWarehouseInventoryContextBuilder(object):
 
     def stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
         return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
+
+    def __query_item_current_stock(self, obj_session, n_query_timestamp, str_item_no, n_item_category):
+        lst_filters = [
+            CTableInventoryRec.itemCategory.in_(self.ITEM_INVENTORY_CATEGORIES),
+            CTableInventoryRec.date <= n_query_timestamp,
+        ]
+        if str_item_no:
+            lst_filters.append(CTableInventoryRec.item_no == str_item_no)
+        if n_item_category:
+            lst_filters.append(CTableInventoryRec.itemCategory == n_item_category)
+
+        obj_signed_count = func.sum(
+            case(
+                (CTableInventoryRec.category == EInventoryCategory.IN, CTableInventoryRec.count),
+                (CTableInventoryRec.category == EInventoryCategory.OUT, -CTableInventoryRec.count),
+                else_=0,
+            )
+        ).label("currentQuantity")
+
+        lst_rows = (
+            obj_session.query(
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.warehouse_no,
+                obj_signed_count,
+            )
+            .filter(*lst_filters)
+            .group_by(
+                CTableInventoryRec.item_no,
+                CTableInventoryRec.batchNumber,
+                CTableInventoryRec.warehouse_no,
+            )
+            .all()
+        )
+
+        dict_result = {}
+        for obj_row in lst_rows:
+            f_quantity = util_safe_float(obj_row.currentQuantity)
+            if f_quantity <= 0:
+                continue
+            str_stock_item_no = obj_row.item_no or ""
+            if not str_stock_item_no:
+                continue
+            dict_item = dict_result.setdefault(str_stock_item_no, {
+                "currentQuantity": 0.0,
+                "availableQuantity": 0.0,
+                "reservedQuantity": 0.0,
+                "qualityHoldQuantity": 0.0,
+                "batchCount": 0,
+                "warehouseCount": 0,
+                "_batches": set(),
+                "_warehouses": set(),
+                "_batchQuantities": defaultdict(float),
+            })
+            dict_item["currentQuantity"] += f_quantity
+            if obj_row.batchNumber:
+                dict_item["_batches"].add(obj_row.batchNumber)
+                dict_item["_batchQuantities"][obj_row.batchNumber] += f_quantity
+            if obj_row.warehouse_no:
+                dict_item["_warehouses"].add(obj_row.warehouse_no)
+        return dict_result
+
+    def __append_item_reserved_quantities(self, obj_session, n_query_timestamp, dict_result, str_item_no, n_item_category):
+        lst_filters = [
+            CTableWarehouseInventoryReservation.status == CWarehouseDashboardService.RESERVATION_STATUS_ACTIVE,
+            CTableWarehouseInventoryReservation.date <= n_query_timestamp,
+            (CTableWarehouseInventoryReservation.releaseTime == None)
+            | (CTableWarehouseInventoryReservation.releaseTime > n_query_timestamp),
+        ]
+        if str_item_no:
+            lst_filters.append(CTableWarehouseInventoryReservation.item_no == str_item_no)
+        if n_item_category:
+            lst_filters.append(CTableWarehouseInventoryReservation.itemCategory == n_item_category)
+
+        lst_rows = (
+            obj_session.query(
+                CTableWarehouseInventoryReservation.item_no,
+                func.sum(CTableWarehouseInventoryReservation.reservedQuantity).label("reservedQuantity"),
+            )
+            .filter(*lst_filters)
+            .group_by(CTableWarehouseInventoryReservation.item_no)
+            .all()
+        )
+        for obj_row in lst_rows:
+            dict_item = dict_result.get(obj_row.item_no or "")
+            if dict_item is not None:
+                dict_item["reservedQuantity"] += util_safe_float(obj_row.reservedQuantity)
+
+    def __append_item_quality_hold_quantities(self, obj_session, n_query_timestamp, dict_result, str_item_no, n_item_category):
+        lst_filters = [
+            CTableWarehouseQualityHold.status == CWarehouseDashboardService.QUALITY_HOLD_STATUS_ACTIVE,
+            CTableWarehouseQualityHold.date <= n_query_timestamp,
+        ]
+        if str_item_no:
+            lst_filters.append(CTableWarehouseQualityHold.item_no == str_item_no)
+        if n_item_category:
+            lst_filters.append(CTableWarehouseQualityHold.itemCategory == n_item_category)
+
+        lst_rows = (
+            obj_session.query(
+                CTableWarehouseQualityHold.item_no,
+                func.sum(CTableWarehouseQualityHold.holdQuantity).label("holdQuantity"),
+            )
+            .filter(*lst_filters)
+            .group_by(CTableWarehouseQualityHold.item_no)
+            .all()
+        )
+        for obj_row in lst_rows:
+            dict_item = dict_result.get(obj_row.item_no or "")
+            if dict_item is not None:
+                dict_item["qualityHoldQuantity"] += util_safe_float(obj_row.holdQuantity)
 
     def group_risks(self, lst_risks):
         dict_result = defaultdict(lambda: {"riskTypes": [], "safetyStock": 0.0})

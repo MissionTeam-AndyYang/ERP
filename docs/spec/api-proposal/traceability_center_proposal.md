@@ -306,7 +306,7 @@
 | Parameter / Header | Type | Required | Description |
 |---|---|---:|---|
 | `keyword` | String | No | 批號、料號、品名、來源單號、工單號、供應商或客戶關鍵字。 |
-| `itemCategory` | Integer | No | 料品品項類別 code；前端負責顯示文字。 |
+| `itemCategory` | Integer | No | 料品品項類別 code；第一版 Dashboard 僅支援原料(1)與製成品(5)，未提供時預設查詢原料與製成品；前端負責顯示文字。 |
 | `itemNo` | String | No | 料品 no。 |
 | `batchNo` | String | No | 批號。若提供，dashboard 以此批號為主要查詢條件。 |
 | `startDate` | String | No | 批號建立日期查詢起日，格式 `YYYY-MM-DD`；需與 `endDate` 同時提供。 |
@@ -549,7 +549,7 @@ GET /api/v2/trace/batches/FG-BATCH-001/overview
 
 `GET /api/v2/trace/dashboard` 第一版需避免做完整追溯圖展開。建議後端實作以以下流程為準：
 
-1. 以 `batch_number` 作為主查詢來源，先套用 `keyword`、`itemCategory`、`itemNo`、`batchNo`、`startDate`、`endDate`。
+1. 以 `batch_number` 作為主查詢來源，第一版 Dashboard 預設先限定 `itemCategory in (1, 5)` 的原料與製成品批號；若指定其他 `itemCategory`，回傳空清單，再套用 `keyword`、`itemNo`、`batchNo`、`startDate`、`endDate`。
 2. 在 DB 層完成初步排序與分頁，先取得本頁批號集合。
 3. 僅針對本頁批號集合批次查詢：
    - `inventory_record` 最新事件與入出庫存在性。

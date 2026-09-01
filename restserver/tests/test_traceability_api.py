@@ -365,7 +365,10 @@ def test_trace_dashboard_returns_confirmed_fields():
 
     assert dict_payload["summary"]["traceableBatchCount"] >= 3
     assert dict_payload["summary"]["highRiskTraceCount"] >= 1
-    assert dict_payload["total"] == 4
+    assert dict_payload["total"] == 3
+    assert {
+        dict_row["itemCategory"] for dict_row in dict_payload["records"]
+    } == {EItemCategory.PM, EItemCategory.PRODUCT}
     dict_records = {dict_row["batchNo"]: dict_row for dict_row in dict_payload["records"]}
     assert dict_records["B-RM-001"]["traceStatusCode"] == ETraceStatusCode.COMPLETE
     assert dict_records["B-RM-001"]["riskCode"] == ETraceRiskCode.QUALITY_HOLD
@@ -1398,7 +1401,7 @@ def test_trace_dashboard_does_not_build_overview_steps(monkeypatch):
         obj_session, "Asia/Taipei", "", 0, "", "", "", "", 0, 2,
     )
 
-    assert dict_payload["total"] == 4
+    assert dict_payload["total"] == 3
     assert dict_payload["count"] == 2
     assert "nodes" not in dict_payload["records"][0]
 

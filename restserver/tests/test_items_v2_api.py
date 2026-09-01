@@ -181,7 +181,7 @@ def test_items_dashboard_returns_confirmed_fields():
     n_now = seed_item_center(obj_session)
 
     dict_payload = CItemCenterService()._CItemCenterService__get_dashboard_with_session(
-        obj_session, n_now, "Asia/Taipei", "", 0, 0, 0, "", False, False, 0, 50,
+        obj_session, n_now, "Asia/Taipei", "", 0, 0, "", False, False, 0, 50,
     )
 
     assert dict_payload["summary"]["totalItemCount"] == 6
@@ -190,6 +190,7 @@ def test_items_dashboard_returns_confirmed_fields():
     assert dict_payload["summary"]["maintenanceItemCount"] == 3
     dict_items = {dict_row["itemNo"]: dict_row for dict_row in dict_payload["items"]}
     assert dict_items["RM-001"]["hasStock"] is True
+    assert "itemType" not in dict_items["RM-001"]
     assert dict_items["RM-001"]["currentQuantity"] == 80.0
     assert dict_items["RM-001"]["batchCount"] == 1
     assert dict_items["RM-001"]["bomCount"] == 2
@@ -204,7 +205,7 @@ def test_items_dashboard_filters_and_paginates_items():
     n_now = seed_item_center(obj_session)
 
     dict_payload = CItemCenterService()._CItemCenterService__get_dashboard_with_session(
-        obj_session, n_now, "Asia/Taipei", "", EItemCategory.PM, 0, 0, EItemMasterStatusCode.MAINTENANCE_NEEDED, False, False, 0, 10,
+        obj_session, n_now, "Asia/Taipei", "", EItemCategory.PM, 0, EItemMasterStatusCode.MAINTENANCE_NEEDED, False, False, 0, 10,
     )
 
     assert dict_payload["total"] == 1
@@ -216,7 +217,7 @@ def test_items_dashboard_has_stock_filter():
     n_now = seed_item_center(obj_session)
 
     dict_payload = CItemCenterService()._CItemCenterService__get_dashboard_with_session(
-        obj_session, n_now, "Asia/Taipei", "", 0, 0, 0, "", True, False, 0, 10,
+        obj_session, n_now, "Asia/Taipei", "", 0, 0, "", True, False, 0, 10,
     )
 
     assert dict_payload["total"] == 1
@@ -232,6 +233,7 @@ def test_items_detail_returns_inventory_bom_batches_and_suggestions():
     )
 
     assert dict_payload["item"]["itemNo"] == "RM-001"
+    assert "itemType" not in dict_payload["item"]
     assert dict_payload["item"]["masterStatusCode"] == EItemMasterStatusCode.READY
     assert dict_payload["inventorySummary"]["currentQuantity"] == 80.0
     assert dict_payload["inventorySummary"]["batchCount"] == 1

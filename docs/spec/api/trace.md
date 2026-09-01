@@ -30,7 +30,7 @@
 | Parameter | Type | Required | Description |
 |----------|----------|------|-----|
 | keyword | String | NO | 批號、料號、料品名稱、來源單號、工單號、倉庫 no 或倉庫名稱關鍵字 |
-| itemCategory | Integer | NO | 料品品項類別 code |
+| itemCategory | Integer | NO | 料品品項類別 code；第一版 Dashboard 僅支援原料(1)與製成品(5)，未提供時預設查詢原料與製成品 |
 | itemNo | String | NO | 料品 no |
 | batchNo | String | NO | 批號 |
 | startDate | String | NO | 批號建立日期查詢起日，格式 `YYYY-MM-DD`；需與 `endDate` 同時提供 |
@@ -125,7 +125,7 @@ None
 ### Processing Flow
 
 1. 讀取查詢條件並轉換為後端型別。
-2. 以 `batch_number` 作為批號主清單來源，套用料品類別、料號、批號、關鍵字與日期區間條件。
+2. 以 `batch_number` 作為批號主清單來源，第一版 Dashboard 預設只查詢 `itemCategory in (1, 5)` 的原料與製成品批號；若指定其他 `itemCategory`，回傳空清單，不再掃描非本版畫面所需批號。
 3. Dashboard 僅建立批號摘要列，不建立 `traceSteps[]`，也不逐批號呼叫 overview。
 4. 以批號集合限定的庫存摘要查詢取得目前庫存、主要倉庫、品檢保留與最新庫存事件；不重新建立第二套月結/delta 庫存演算法。
 5. 批次查詢批號關聯的生產投入、產出生產資料、品檢保留與 workflow event 最新時間。

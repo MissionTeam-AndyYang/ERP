@@ -41,7 +41,6 @@ class CItemCenterService(object):
         str_keyword="",
         n_item_category=0,
         n_item_sub_category=0,
-        n_item_type=0,
         str_master_status_code="",
         b_has_stock=False,
         b_has_bom=False,
@@ -56,7 +55,6 @@ class CItemCenterService(object):
                 str_keyword,
                 n_item_category,
                 n_item_sub_category,
-                n_item_type,
                 str_master_status_code,
                 b_has_stock,
                 b_has_bom,
@@ -76,7 +74,6 @@ class CItemCenterService(object):
         str_keyword,
         n_item_category,
         n_item_sub_category,
-        n_item_type,
         str_master_status_code,
         b_has_stock,
         b_has_bom,
@@ -98,7 +95,6 @@ class CItemCenterService(object):
             str_keyword,
             n_item_category,
             n_item_sub_category,
-            n_item_type,
             str_master_status_code,
             b_has_stock,
             b_has_bom,
@@ -175,7 +171,6 @@ class CItemCenterService(object):
             "itemName": obj_row.name or "",
             "itemCategory": util_safe_int(n_item_category),
             "itemSubCategory": util_safe_int(n_item_sub_category),
-            "itemType": 0,
             "unitWarehouse": util_safe_int(getattr(obj_row, "unitWarehouse", 0)),
             "unitProduct": util_safe_int(getattr(obj_row, "unitProduct", 0)),
             "creationTime": util_safe_int(getattr(obj_row, "creationTime", 0)),
@@ -183,53 +178,12 @@ class CItemCenterService(object):
 
     def __build_inventory_summary_by_item(self, obj_session, n_query_timestamp, str_timezone, str_item_no=""):
         obj_context_builder = CWarehouseInventoryContextBuilder()
-        dict_context = obj_context_builder.build(
+        return obj_context_builder.query_item_inventory_summary(
             obj_session=obj_session,
             n_query_timestamp=n_query_timestamp,
-            str_timezone=str_timezone,
-            str_warehouse_no="",
             n_item_category=0,
             str_item_no=str_item_no,
-            str_batch_no="",
-            b_include_open_tasks=True,
         )
-        dict_result = {}
-        for dict_inventory in dict_context.get("inventoryRows", []):
-            if util_safe_float(dict_inventory.get("currentQuantity")) <= 0:
-                continue
-            str_item_no = dict_inventory.get("itemNo") or ""
-            if not str_item_no:
-                continue
-            dict_item = dict_result.setdefault(str_item_no, {
-                "currentQuantity": 0.0,
-                "availableQuantity": 0.0,
-                "reservedQuantity": 0.0,
-                "qualityHoldQuantity": 0.0,
-                "batchCount": 0,
-                "warehouseCount": 0,
-                "_batches": set(),
-                "_warehouses": set(),
-                "_batchQuantities": defaultdict(float),
-            })
-            str_batch_no = dict_inventory.get("batchNo") or ""
-            str_warehouse_no = dict_inventory.get("warehouseNo") or ""
-            dict_item["currentQuantity"] += util_safe_float(dict_inventory.get("currentQuantity"))
-            dict_item["availableQuantity"] += util_safe_float(dict_inventory.get("availableQuantity"))
-            dict_item["reservedQuantity"] += util_safe_float(dict_inventory.get("reservedQuantity"))
-            dict_item["qualityHoldQuantity"] += util_safe_float(dict_inventory.get("qualityHoldQuantity"))
-            if str_batch_no:
-                dict_item["_batches"].add(str_batch_no)
-                dict_item["_batchQuantities"][str_batch_no] += util_safe_float(dict_inventory.get("currentQuantity"))
-            if str_warehouse_no:
-                dict_item["_warehouses"].add(str_warehouse_no)
-        for dict_item in dict_result.values():
-            dict_item["currentQuantity"] = util_round_quantity(dict_item.get("currentQuantity"))
-            dict_item["availableQuantity"] = util_round_quantity(dict_item.get("availableQuantity"))
-            dict_item["reservedQuantity"] = util_round_quantity(dict_item.get("reservedQuantity"))
-            dict_item["qualityHoldQuantity"] = util_round_quantity(dict_item.get("qualityHoldQuantity"))
-            dict_item["batchCount"] = len(dict_item.pop("_batches"))
-            dict_item["warehouseCount"] = len(dict_item.pop("_warehouses"))
-        return dict_result
 
     def __build_bom_summary_by_item(self, obj_session, str_item_no=""):
         lst_item_nos = [str_item_no] if str_item_no else None
@@ -315,7 +269,6 @@ class CItemCenterService(object):
             "itemName": dict_item.get("itemName", ""),
             "itemCategory": util_safe_int(dict_item.get("itemCategory")),
             "itemSubCategory": util_safe_int(dict_item.get("itemSubCategory")),
-            "itemType": util_safe_int(dict_item.get("itemType")),
             "unitWarehouse": util_safe_int(dict_item.get("unitWarehouse")),
             "unitProduct": util_safe_int(dict_item.get("unitProduct")),
             "masterStatusCode": dict_status.get("masterStatusCode"),
@@ -347,7 +300,6 @@ class CItemCenterService(object):
         str_keyword,
         n_item_category,
         n_item_sub_category,
-        n_item_type,
         str_master_status_code,
         b_has_stock,
         b_has_bom,
@@ -358,8 +310,6 @@ class CItemCenterService(object):
             if n_item_category and util_safe_int(dict_row.get("itemCategory")) != n_item_category:
                 continue
             if n_item_sub_category and util_safe_int(dict_row.get("itemSubCategory")) != n_item_sub_category:
-                continue
-            if n_item_type and util_safe_int(dict_row.get("itemType")) != n_item_type:
                 continue
             if str_master_status_code and dict_row.get("masterStatusCode") != str_master_status_code:
                 continue
@@ -458,7 +408,6 @@ class CItemCenterService(object):
             "itemName": dict_row.get("itemName", ""),
             "itemCategory": util_safe_int(dict_row.get("itemCategory")),
             "itemSubCategory": util_safe_int(dict_row.get("itemSubCategory")),
-            "itemType": util_safe_int(dict_row.get("itemType")),
             "unitWarehouse": util_safe_int(dict_row.get("unitWarehouse")),
             "unitProduct": util_safe_int(dict_row.get("unitProduct")),
             "masterStatusCode": dict_row.get("masterStatusCode", EItemMasterStatusCode.UNKNOWN),
@@ -582,7 +531,6 @@ class CItemCenterDashboard(object):
                 str_keyword=request.args.get("keyword", "", type=str),
                 n_item_category=request.args.get("itemCategory", 0, type=int),
                 n_item_sub_category=request.args.get("itemSubCategory", 0, type=int),
-                n_item_type=request.args.get("itemType", 0, type=int),
                 str_master_status_code=request.args.get("masterStatusCode", "", type=str),
                 b_has_stock=request.args.get("hasStock", "false", type=str).lower() == "true",
                 b_has_bom=request.args.get("hasBom", "false", type=str).lower() == "true",

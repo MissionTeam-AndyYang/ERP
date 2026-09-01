@@ -8,7 +8,7 @@
 
 1. 以料品主檔為核心，僅回傳目前畫面需要的欄位。
 2. 不產生寫入行為，不建立主檔維護 task，不修改 workflow。
-3. 庫存數字統一使用 Warehouse 庫存快照共用邏輯，不另行重算。
+3. 庫存數字統一使用 Warehouse 輕量品項庫存摘要共用邏輯，不建立完整 Warehouse Dashboard payload。
 4. BOM 關聯只回傳已能由 BOM 資料表確認的關係，不推測未建立的 BOM。
 5. 後端回傳 enum code；前端負責中文與多國語言顯示。
 6. `maintenanceSuggestions[]` 僅代表 read-only 主檔維護建議，不是 workflow task，不設定下一步轉交部門。
@@ -31,12 +31,13 @@
 | 移除 `unitShipping` | 主檔候選內部結構移除 `unitShipping`，僅保留目前品項中心畫面使用的 `unitWarehouse` 與 `unitProduct`。 |
 | `masterTasks` 更名 | 所有流程步驟中的 `masterTasks[]` 改為 `maintenanceSuggestions[]`，欄位改為 `suggestionId`、`itemNo`、`suggestionTypeCode`、`riskLevelCode`。 |
 | 欄位收斂 | 流程不再產生目前畫面未使用的下一步負責部門、處理期限、來源單據、BOM 角色、出貨單位或停用狀態。 |
+| 移除 `itemType` | `itemType` 代表新料品、餘料品、廢料品，需依採購與產製期間的實際流程判斷，無法在新增品項主檔時直接決定；第一版 `/api/v2/items/dashboard` 與 `/api/v2/items/{item_no}/detail` 不回傳此欄位，也不提供此查詢條件。 |
 
 ## 2. GET `/api/v2/items/dashboard`
 
 ### Step 1：解析查詢條件
 
-- 讀取 `keyword`、`itemCategory`、`itemSubCategory`、`itemType`、`masterStatusCode`、`hasStock`、`hasBom`、`start`、`count`。
+- 讀取 `keyword`、`itemCategory`、`itemSubCategory`、`masterStatusCode`、`hasStock`、`hasBom`、`start`、`count`。
 - `start` 小於 0 時視為 0。
 - `count` 預設 50，最大 100。
 
@@ -54,7 +55,6 @@
   "itemName": "String",
   "itemCategory": "Integer",
   "itemSubCategory": "Integer",
-  "itemType": "Integer",
   "unitWarehouse": "Integer",
   "unitProduct": "Integer",
   "creationTime": "Integer"
@@ -63,7 +63,8 @@
 
 ### Step 3：補充庫存摘要
 
-- 呼叫 Warehouse 庫存快照共用邏輯取得目前庫存列。
+- 呼叫 Warehouse 輕量品項庫存摘要共用邏輯取得目前庫存列。
+- 此流程只查詢 `inventory_record`、`warehouse_inventory_reservation`、`warehouse_quality_hold` 的品項層級彙總資料，不建立完整 Warehouse Dashboard payload，以降低 `/api/v2/items/dashboard` 與其他共用查詢的負擔。
 - 依 `itemNo` 彙總：
   - `hasStock`
   - `currentQuantity`
@@ -124,7 +125,7 @@
 
 ### Step 3：建立庫存摘要
 
-- 使用 Warehouse 庫存快照共用邏輯，強制套用 `itemNo=item_no`。
+- 使用 Warehouse 輕量品項庫存摘要共用邏輯，強制套用 `itemNo=item_no`。
 - 彙總目前庫存、可用量、預留量、品檢保留量、倉庫數與批號數。
 
 ### Step 4：建立 BOM 使用清單

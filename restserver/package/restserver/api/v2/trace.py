@@ -43,6 +43,10 @@ class CTraceabilityService(object):
     MAX_TRACE_DEPTH = 5
     MAX_TRACE_BATCH_COUNT = 100
     MAX_TRACE_STEP_COUNT = 150
+    DASHBOARD_ITEM_CATEGORIES = [
+        EItemCategory.PM,
+        EItemCategory.PRODUCT,
+    ]
 
     def get_dashboard(
         self,
@@ -207,7 +211,11 @@ class CTraceabilityService(object):
     def __query_batch_headers(self, obj_session, str_keyword, n_item_category, str_item_no, str_batch_no, dict_range):
         obj_query = obj_session.query(CTableBatchNumber)
         if n_item_category:
+            if n_item_category not in self.DASHBOARD_ITEM_CATEGORIES:
+                return []
             obj_query = obj_query.filter(CTableBatchNumber.itemCategory == n_item_category)
+        else:
+            obj_query = obj_query.filter(CTableBatchNumber.itemCategory.in_(self.DASHBOARD_ITEM_CATEGORIES))
         if str_item_no:
             obj_query = obj_query.filter(CTableBatchNumber.item_no == str_item_no)
         if str_batch_no:

@@ -38,7 +38,6 @@
 | keyword | String | NO | 料品 no 或料品名稱關鍵字 |
 | itemCategory | Integer | NO | 料品品項類別 code |
 | itemSubCategory | Integer | NO | 料品品項子類別 code |
-| itemType | Integer | NO | 品項型態 code |
 | masterStatusCode | String | NO | 主檔狀態 code；ready、maintenance_needed、unknown |
 | hasStock | Boolean | NO | 是否只查詢目前仍有庫存的料品 |
 | hasBom | Boolean | NO | 是否只查詢已關聯 BOM 或被 BOM 使用的料品 |
@@ -78,7 +77,6 @@ None
         "itemName": "String",
         "itemCategory": "Integer",
         "itemSubCategory": "Integer",
-        "itemType": "Integer",
         "unitWarehouse": "Integer",
         "unitProduct": "Integer",
         "masterStatusCode": "String",
@@ -122,7 +120,6 @@ None
 | payload.items[].itemName | String | 料品名稱 |  |
 | payload.items[].itemCategory | Integer | 料品品項類別 code | EItemCategory |
 | payload.items[].itemSubCategory | Integer | 料品品項子類別 code；主檔無此欄位時回傳 0 |  |
-| payload.items[].itemType | Integer | 品項型態 code；第一版主檔無穩定來源時回傳 0 |  |
 | payload.items[].unitWarehouse | Integer | 倉庫庫存單位 code |  |
 | payload.items[].unitProduct | Integer | 生產用量單位 code |  |
 | payload.items[].masterStatusCode | String | 主檔狀態 code | ready、maintenance_needed、unknown |
@@ -143,7 +140,7 @@ None
 
 1. 讀取 query parameters 並轉換為後端型別。
 2. 從 `material`、`inproduct`、`product`、`goods` 建立料品主檔候選集合。
-3. 使用 Warehouse 庫存快照共用邏輯取得目前庫存，並依 `itemNo` 彙總 `hasStock`、`currentQuantity` 與批號數。
+3. 使用 Warehouse 輕量品項庫存摘要共用邏輯取得目前庫存、可用數量、預留數量、品檢保留數量、批號數與倉庫數；此流程只查詢品項庫存摘要所需欄位，不建立完整 Warehouse Dashboard payload。
 4. 查詢 `bom_item`、`product_spec`、`product_bom_spec`、`inproduct_bom_spec`，彙總每個料品的 `bomCount`。
 5. 依缺單位、製成品/在製品缺 BOM、原料/物料/膠捲缺庫存與近期批號訊號，判斷 `masterStatusCode` 與 `maintenanceRiskCode`。
 6. 套用篩選、排序與分頁，建立 `summary`、`categorySummary`、`items[]` 與 read-only `maintenanceSuggestions[]`。
@@ -157,9 +154,9 @@ None
 | product | 製成品主檔 |
 | goods | 貨品主檔 |
 | batch_number | 料品近期批號 |
-| inventory_record | Warehouse 庫存快照共用邏輯使用的庫存異動來源 |
-| inventory_item_month_statistic | Warehouse 庫存快照共用邏輯使用的庫存月結基準 |
-| inventory_delta | Warehouse 庫存快照共用邏輯使用的庫存異動補算 |
+| inventory_record | Warehouse 輕量品項庫存摘要共用邏輯使用的庫存異動來源 |
+| warehouse_inventory_reservation | Warehouse 輕量品項庫存摘要共用邏輯使用的預留數量來源 |
+| warehouse_quality_hold | Warehouse 輕量品項庫存摘要共用邏輯使用的品檢保留數量來源 |
 | bom | BOM 版本與有效日期 |
 | bom_item | BOM 直接配方明細 |
 | product_spec | 製成品與 BOM / 料品規格關聯 |
@@ -205,7 +202,6 @@ None
       "itemName": "String",
       "itemCategory": "Integer",
       "itemSubCategory": "Integer",
-      "itemType": "Integer",
       "unitWarehouse": "Integer",
       "unitProduct": "Integer",
       "masterStatusCode": "String",
@@ -261,7 +257,6 @@ None
 | payload.item.itemName | String | 料品名稱 |  |
 | payload.item.itemCategory | Integer | 料品品項類別 code | EItemCategory |
 | payload.item.itemSubCategory | Integer | 料品品項子類別 code；主檔無此欄位時回傳 0 |  |
-| payload.item.itemType | Integer | 品項型態 code；第一版主檔無穩定來源時回傳 0 |  |
 | payload.item.unitWarehouse | Integer | 倉庫庫存單位 code |  |
 | payload.item.unitProduct | Integer | 生產用量單位 code |  |
 | payload.item.masterStatusCode | String | 主檔狀態 code | ready、maintenance_needed、unknown |
@@ -294,7 +289,7 @@ None
 
 1. 驗證 `item_no`，若空字串或查無主檔則回傳錯誤。
 2. 從 `material`、`inproduct`、`product`、`goods` 讀取單一料品主檔。
-3. 使用 Warehouse 庫存快照共用邏輯彙總庫存摘要。
+3. 使用 Warehouse 輕量品項庫存摘要共用邏輯彙總庫存摘要。
 4. 查詢 BOM 相關資料表建立 `bomUsage[]`。
 5. 查詢 `batch_number` 建立最多 20 筆近期批號摘要。
 6. 使用 dashboard 同一套規則建立 read-only `maintenanceSuggestions[]`。
@@ -308,9 +303,9 @@ None
 | product | 製成品主檔 |
 | goods | 貨品主檔 |
 | batch_number | 料品近期批號、來源單據與效期 |
-| inventory_record | Warehouse 庫存快照共用邏輯使用的庫存異動來源 |
-| inventory_item_month_statistic | Warehouse 庫存快照共用邏輯使用的庫存月結基準 |
-| inventory_delta | Warehouse 庫存快照共用邏輯使用的庫存異動補算 |
+| inventory_record | Warehouse 輕量品項庫存摘要共用邏輯使用的庫存異動來源 |
+| warehouse_inventory_reservation | Warehouse 輕量品項庫存摘要共用邏輯使用的預留數量來源 |
+| warehouse_quality_hold | Warehouse 輕量品項庫存摘要共用邏輯使用的品檢保留數量來源 |
 | bom | BOM 版本與有效日期 |
 | bom_item | BOM 直接配方明細 |
 | product_spec | 製成品與 BOM / 料品規格關聯 |

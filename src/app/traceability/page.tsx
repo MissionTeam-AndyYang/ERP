@@ -2,11 +2,11 @@
 
 import {
   AlertTriangle,
-  ArrowDownUp,
   Boxes,
   ChevronLeft,
   ChevronRight,
   Filter,
+  GitBranch,
   LoaderCircle,
   Network,
   Search
@@ -30,6 +30,7 @@ import type {
 import { matchesSupportSearch, normalizeSupportSearch } from "@/utils/support-search";
 
 const pageSize = 50;
+const finishedGoodsCategory = 5;
 
 const tabs: { id: TraceabilityWorkspaceTab; label: string }[] = [
   { id: "search", label: "溯源查詢" },
@@ -39,7 +40,7 @@ const tabs: { id: TraceabilityWorkspaceTab; label: string }[] = [
 
 const tabDescriptions: Record<TraceabilityWorkspaceTab, string> = {
   search: "以批號、料號、來源單據或工單查詢追溯紀錄。",
-  chain: "查看選取批號的投入與產出關係，直接對應後端 traceSteps。",
+  chain: "由製成品或主要產出批號自上而下展開投入來源，呈現清楚的上下階層關係。",
   timeline: "依事件時間檢視進貨、產製與銷貨流程。"
 };
 
@@ -225,6 +226,163 @@ function TraceStepItems({ title, items }: { title: string; items: TraceStepItem[
   );
 }
 
+type TraceHierarchyNode = {
+  key: string;
+  item: TraceStepItem;
+  sourceStep?: TraceStep;
+  children: TraceHierarchyNode[];
+};
+
+function hierarchyKey(item: Pick<TraceStepItem, "batchNo" | "itemNo" | "itemCategory">) {
+  return `${item.batchNo || "no-batch"}|${item.itemNo || "no-item"}|${item.itemCategory}`;
+}
+
+function batchToTraceItem(batch: TraceBatchOverview["batch"]): TraceStepItem {
+  return {
+    itemNo: batch.itemNo,
+    itemName: batch.itemName,
+    itemCategory: batch.itemCategory,
+    itemCategoryLabel: batch.itemCategoryLabel,
+    batchNo: batch.batchNo,
+    quantity: 0,
+    unit: batch.unit,
+    unitLabel: batch.unitLabel
+  };
+}
+
+function buildTraceHierarchy(overview: TraceBatchOverview): TraceHierarchyNode[] {
+  const childKeys = new Set<string>();
+  const parentToChildren = new Map<string, { parent: TraceStepItem; child: TraceStepItem; step: TraceStep }[]>();
+  const itemsByKey = new Map<string, TraceStepItem>();
+
+  overview.traceSteps.forEach((step) => {
+    step.outputItems.forEach((output) => {
+      const parentKey = hierarchyKey(output);
+      itemsByKey.set(parentKey, output);
+
+      step.inputItems.forEach((input) => {
+        const childKey = hierarchyKey(input);
+        childKeys.add(childKey);
+        itemsByKey.set(childKey, input);
+        const existing = parentToChildren.get(parentKey) ?? [];
+        existing.push({ parent: output, child: input, step });
+        parentToChildren.set(parentKey, existing);
+      });
+    });
+  });
+
+  const rootItem = batchToTraceItem(overview.batch);
+  const rootKey = hierarchyKey(rootItem);
+  const productRoots = [...itemsByKey.entries()]
+    .filter(([, item]) => item.itemCategory === finishedGoodsCategory)
+    .filter(([key]) => !childKeys.has(key))
+    .map(([, item]) => item);
+  const roots = productRoots.length ? productRoots : [itemsByKey.get(rootKey) ?? rootItem];
+
+  function buildNode(item: TraceStepItem, visited: Set<string>): TraceHierarchyNode {
+    const key = hierarchyKey(item);
+    if (visited.has(key)) {
+      return { key, item, children: [] };
+    }
+
+    const nextVisited = new Set(visited);
+    nextVisited.add(key);
+    const relations = parentToChildren.get(key) ?? [];
+
+    return {
+      key,
+      item,
+      sourceStep: relations[0]?.step,
+      children: relations.map((relation) => buildNode(relation.child, nextVisited))
+    };
+  }
+
+  return roots.map((item) => buildNode(item, new Set()));
+}
+
+function TraceHierarchyNodeCard({ node, depth = 0 }: { node: TraceHierarchyNode; depth?: number }) {
+  const hasChildren = node.children.length > 0;
+
+  return (
+    <div className="relative">
+      {depth > 0 ? <span className="absolute -left-4 top-0 h-full border-l border-border" aria-hidden="true" /> : null}
+      <article className={`rounded-lg border bg-white p-4 shadow-card ${depth === 0 ? "border-primary/40" : "border-border"}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge tone={depth === 0 ? "info" : "neutral"}>
+                {depth === 0 ? "上層產出" : `第 ${formatNumber(depth + 1)} 層投入`}
+              </StatusBadge>
+              <StatusBadge tone="neutral">{node.item.itemCategoryLabel}</StatusBadge>
+            </div>
+            <h3 className="mt-2 text-lg font-semibold text-textPrimary">{node.item.batchNo || "未提供批號"}</h3>
+            <p className="mt-1 text-sm text-textSecondary">
+              {node.item.itemName || "未命名料品"} · {node.item.itemNo || "未提供料號"}
+            </p>
+          </div>
+          <div className="text-right text-sm">
+            <p className="font-semibold text-textPrimary">
+              {node.item.quantity ? formatNumber(node.item.quantity, 2) : "-"} {node.item.unitLabel}
+            </p>
+            <p className="mt-1 text-xs text-textSecondary">{node.sourceStep?.refNo || "查詢批號"}</p>
+          </div>
+        </div>
+
+        {node.sourceStep ? (
+          <div className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-textSecondary">
+            {node.sourceStep.stepTypeLabel} · {node.sourceStep.eventDate || "未提供日期"} · {node.sourceStep.statusLabel}
+          </div>
+        ) : null}
+      </article>
+
+      {hasChildren ? (
+        <div className="ml-6 mt-3 space-y-3 border-l border-border pl-4">
+          {node.children.map((child, index) => (
+            <TraceHierarchyNodeCard
+              key={`${child.key}-${depth}-${index}`}
+              node={child}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TraceHierarchyView({ overview }: { overview: TraceBatchOverview }) {
+  const hierarchy = buildTraceHierarchy(overview);
+
+  if (!overview.traceSteps.length || !hierarchy.length) {
+    return (
+      <EmptyState
+        title="此批號尚無可展開流程"
+        description="第一版只展開原料與製成品批號；若後端回傳空 traceSteps，畫面會如實顯示。"
+      />
+    );
+  }
+
+  return (
+    <section className="rounded-lg border border-border bg-slate-50 p-4">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-textSecondary">上下階層關係</p>
+          <h3 className="mt-1 text-xl font-semibold text-textPrimary">{overview.batch.batchNo}</h3>
+          <p className="mt-1 text-sm text-textSecondary">
+            由成品或主要產出批號開始，逐層往下展開投入來源與對應製程。
+          </p>
+        </div>
+        <StatusBadge tone={overview.batch.tone}>{overview.batch.traceStatusLabel}</StatusBadge>
+      </div>
+      <div className="space-y-3">
+        {hierarchy.map((node, index) => (
+          <TraceHierarchyNodeCard key={`${node.key}-${index}`} node={node} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function TraceStepCard({ step, index }: { step: TraceStep; index: number }) {
   return (
     <article className="rounded-lg border border-border bg-white p-4 shadow-card">
@@ -250,7 +408,7 @@ function TraceStepCard({ step, index }: { step: TraceStep; index: number }) {
       <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         <TraceStepItems title="投入批號" items={step.inputItems} />
         <div className="hidden items-center justify-center text-textSecondary lg:flex">
-          <ArrowDownUp className="h-5 w-5 rotate-90" aria-hidden="true" />
+          <GitBranch className="h-5 w-5" aria-hidden="true" />
         </div>
         <TraceStepItems title="產出 / 銷貨批號" items={step.outputItems} />
       </div>
@@ -275,10 +433,11 @@ function ChainView({
     return <EmptyState title="尚未載入批號鏈路" description="請先從溯源清單選擇一個批號。" />;
   }
 
-  const steps =
-    activeTab === "timeline"
-      ? [...overview.traceSteps].sort((a, b) => a.eventTimestamp - b.eventTimestamp)
-      : overview.traceSteps;
+  if (activeTab === "chain") {
+    return <TraceHierarchyView overview={overview} />;
+  }
+
+  const steps = [...overview.traceSteps].sort((a, b) => a.eventTimestamp - b.eventTimestamp);
 
   return (
     <div className="space-y-3">

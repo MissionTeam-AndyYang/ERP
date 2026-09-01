@@ -157,7 +157,7 @@ Naming rules:
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0 | V1 Core | `TraceabilityWorkspaceScreen` | Screen | 溯源中心 | `/traceability` | 已有第一版，已串接 Trace Dashboard 與 Batch Overview API | `GET /api/v2/trace/dashboard`、`GET /api/v2/trace/batches/{batch_no}/overview` | 以批號為核心檢視來源、進貨、庫存、生產投入、產出、品檢與 workflow 節點；不包含寫入操作、召回評估或文件完整性。 |
 | P0.1 | V1 Core | `TraceabilitySearchView` | View | 溯源查詢視圖 | `TraceabilityWorkspaceScreen` 內的「溯源查詢」頁籤 | 已有第一版，已串接 dashboard API | `GET /api/v2/trace/dashboard` | 以批號、料號、來源單號、工單號、供應商或客戶關鍵字查詢追溯紀錄清單；查詢狀態由前端自行保存。 |
-| P0.2 | V1 Core | `TraceabilityChainView` | View | 批號鏈路視圖 | `TraceabilityWorkspaceScreen` 內的「批號鏈路」頁籤 | 已有第一版，已串接 selected batch overview API | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的 `traceSteps[]` 追溯流程，協助檢視進貨、產製、銷貨，以及各步驟投入物與產出物關係。 |
+| P0.2 | V1 Core | `TraceabilityChainView` | View | 批號鏈路視圖 | `TraceabilityWorkspaceScreen` 內的「批號鏈路」頁籤 | 已有第一版，已串接 selected batch overview API | `GET /api/v2/trace/batches/{batch_no}/overview` | 依 `traceSteps[]` 建立「產出批號 -> 投入批號」上下階層，由製成品或主要產出批號自上而下逐層展開投入來源。 |
 | P0.3 | V2 Deferred | `TraceabilityRecallScopeView` | View | 召回範圍視圖 | `TraceabilityWorkspaceScreen` 內的下一版頁籤 | Deferred to V2；第一版暫不實作 | TBD | 召回範圍、已出貨數量、受影響客戶與庫存鎖定需另行規劃，不納入第一版 read-only API。 |
 | P0.4 | V2 Deferred | `TraceabilityDocumentView` | View | 文件完整性視圖 | `TraceabilityWorkspaceScreen` 內的下一版頁籤 | Deferred to V2；第一版暫不實作 | TBD | COA、溫度紀錄、收貨、品檢、生產、出貨等文件狀態需待文件/附件資料來源確認後再規劃。 |
 | P1 | V1 Core | `TraceabilityDetailPanel` | Panel | 溯源明細面板 | `TraceabilityWorkspaceScreen` 右側 panel；窄版可作 drawer | 已有第一版，已串接 selected batch overview API | `GET /api/v2/trace/batches/{batch_no}/overview` | 顯示選取批號的批號資訊、追溯鏈、時間軸、追溯狀態與主要風險 code。 |

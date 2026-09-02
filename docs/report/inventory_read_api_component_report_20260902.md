@@ -162,6 +162,48 @@ Safe Stop:
 - Required completion path: Engineering A/B should either provide a usable non-secret connection method for this participant lane or execute the same four real HTTP requests in the environment where the synchronized DB credentials and synthetic package are valid.
 - Boundaries preserved: no new endpoint, mutating endpoint, security boundary expansion, Production API, Production credential, migration, source mutation, Cutover, or ERP2.0 Go-Live.
 
+## NEXT-013 Backend DB / Service Closure Addendum
+
+Closure assignment:
+
+- Authority: `ERP2-CTO-BACKLOG-ORCH-NEXT-013`
+- Work item: `ERP2-NONPROD-PARTICIPANT-RUNTIME-ACCESS-001`
+- Expected response package: `Backend-API-Response-ERP2-NONPROD-PARTICIPANT-RUNTIME-ACCESS-001-Backend-DB-Service-Closure-20260902-001.md`
+
+Driver / service result:
+
+| Check | Result |
+|---|---|
+| MariaDB Python driver | Available |
+| SQLAlchemy | Available |
+| Flask | Available |
+| Backend local service | Started at `http://127.0.0.1:5012` |
+| Backend -> DB direct probe | Failed: DB auth / driver credential error |
+
+Sanitized real HTTP retest:
+
+| Request | HTTP Status | API Code | Sanitized Result |
+|---|---:|---:|---|
+| `GET /api/v2/inventory/balances?count=5` | 400 | 1001 | DB auth / driver credential error |
+| `GET /api/v2/inventory/movements?count=5` | 400 | 1001 | DB auth / driver credential error |
+| `GET /api/v2/lots?count=5` | 400 | 1001 | DB auth / driver credential error |
+| `GET /api/v2/lots/INVALID-LOT/trace` | 400 | 1001 | DB auth / driver credential error |
+| `GET /api/v2/inventory/balances?count=1` without token | 400 | 2101 | Missing token parameter |
+| `POST /api/v2/inventory/balances` | 405 | N/A | Method not allowed; read-only route preserved |
+
+Closure classification:
+
+`C - ACCESS REMEDIATION STILL REQUIRED`
+
+Backend participant-side root cause:
+
+`PARTICIPANT_CONSUMABLE_NONPRODUCTION_DB_CREDENTIAL_INJECTION_STILL_NOT_AVAILABLE_FOR_BACKEND_PROCESS`
+
+UX real-backend smoke:
+
+- UX should not run a real-backend PASS smoke test against this Backend service yet.
+- UX may only validate unavailable/error UI behavior until Backend -> DB real HTTP payload evidence passes.
+
 Command:
 
 ```powershell

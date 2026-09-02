@@ -204,6 +204,51 @@ UX real-backend smoke:
 - UX should not run a real-backend PASS smoke test against this Backend service yet.
 - UX may only validate unavailable/error UI behavior until Backend -> DB real HTTP payload evidence passes.
 
+## NEXT-013 Wrapper-Based Final Retest Addendum
+
+Wrapper evidence:
+
+| Check | Result |
+|---|---|
+| Wrapper SHA-256 | `24E612EE32DB5F73D3F5CD11B7A6E97E5054DBC3C953FC8E68878B5AC88C0675` |
+| Credential class | `WH_INV_FIRST_SLICE_NP_APP_CONNECTIVITY` |
+| Backend -> DB direct probe | `PASS`, DB version `11.4.10-MariaDB` |
+| Backend service | Started at `http://127.0.0.1:5013` through wrapper-injected child process |
+| Backend service listener | Reachable |
+
+Read-only staging object check:
+
+| Check | Result |
+|---|---|
+| Current visible table count in wrapper-injected `test` DB context | `0` |
+| Seven authorized Warehouse / Inventory `np_*` objects | Missing or inaccessible |
+
+HTTP boundary evidence:
+
+| Request | HTTP Status | API Code | Result |
+|---|---:|---:|---|
+| `GET /api/v2/inventory/balances?count=1` without token | 400 | 2101 | Missing token parameter |
+| `POST /api/v2/inventory/balances` | 405 | N/A | Method not allowed; read-only route preserved |
+
+DB-backed HTTP GET result:
+
+- The four authenticated DB-backed GET requests were not executed after the staging object check.
+- Safe Stop reason: the seven authorized `np_*` staging/crosswalk/validation objects were not present or not visible, and the current restserver DB manager can initialize ORM metadata on first DB-backed session creation.
+- Executing DB-backed GET requests under this empty DB context could create non-authorized ORM tables and violate the retest boundary.
+
+Wrapper-based retest classification:
+
+`C - SAFE STOP / STAGING OBJECTS NOT PRESENT OR NOT ACCESSIBLE`
+
+Exact blocker:
+
+`AUTHORIZED_WH_INV_STAGING_OBJECTS_NOT_PRESENT_OR_NOT_ACCESSIBLE_TO_WRAPPER_INJECTED_BACKEND_DB_CONTEXT`
+
+UX real-backend smoke:
+
+- UX should not run real-backend PASS smoke yet.
+- UX may only validate unavailable/error UI behavior until Backend reruns the four DB-backed GET requests against a visible seven-object staging set and obtains payload evidence.
+
 Command:
 
 ```powershell

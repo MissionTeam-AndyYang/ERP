@@ -539,7 +539,7 @@ export default function BomPage() {
 
         {error ? (
           <p className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-            BOM 中心資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            BOM 中心資料取得失敗，畫面未改用示範資料。可切換資料來源為示範資料檢視畫面格式。{error}
           </p>
         ) : null}
 

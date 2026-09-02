@@ -820,7 +820,7 @@ export default function PurchasingPage() {
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">採購單主視角工作區</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
                 以採購單為主資料列，查詢任意歷史區間內的採購金額、交易單位、預計到貨、分批進貨、
-                入庫交接、請購關聯與來源影響。資料取得錯誤會明確顯示，不自動改用預覽資料。
+                入庫交接、請購關聯與來源影響。資料取得錯誤會明確顯示，不自動改用示範資料。
               </p>
             </div>
             <div className="grid gap-2 md:grid-cols-[auto_auto_auto] xl:grid-cols-[auto_auto_auto_auto]">
@@ -876,7 +876,7 @@ export default function PurchasingPage() {
 
         {error ? (
           <p className="rounded-lg border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-            採購資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            採購資料取得失敗，畫面未改用示範資料。可切換資料來源為示範資料檢視畫面格式。{error}
           </p>
         ) : null}
 

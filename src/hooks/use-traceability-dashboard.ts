@@ -15,16 +15,19 @@ export type TraceabilityDashboardState = {
   source: TraceabilityDataSource;
   isLoading: boolean;
   error?: string;
+  requestKey?: string;
 };
 
 export function useTraceabilityDashboard(
   dataSourceMode: DataSourceMode = "api",
   query: TraceabilityDashboardQuery = {}
 ): TraceabilityDashboardState {
+  const requestKey = JSON.stringify({ dataSourceMode, query });
   const [state, setState] = useState<TraceabilityDashboardState>({
     data: dataSourceMode === "mock" ? traceabilityDashboardMock : emptyTraceabilityDashboardData,
     source: dataSourceMode === "mock" ? "mock" : "api",
-    isLoading: true
+    isLoading: true,
+    requestKey
   });
 
   useEffect(() => {
@@ -39,14 +42,19 @@ export function useTraceabilityDashboard(
         data: result.data,
         source: result.source,
         isLoading: false,
-        error: result.error
+        error: result.error,
+        requestKey
       });
     });
 
     return () => {
       isMounted = false;
     };
-  }, [dataSourceMode, query]);
+  }, [dataSourceMode, query, requestKey]);
 
-  return state;
+  return {
+    ...state,
+    source: dataSourceMode === "mock" ? "mock" : "api",
+    isLoading: state.isLoading || state.requestKey !== requestKey
+  };
 }

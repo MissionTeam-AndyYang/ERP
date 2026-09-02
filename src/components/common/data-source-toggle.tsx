@@ -17,7 +17,7 @@ export function DataSourceToggle({ value, onChange }: DataSourceToggleProps) {
           onClick={() => onChange(mode)}
           type="button"
         >
-          {mode === "api" ? "API" : "Mock"}
+          {mode === "api" ? "後端資料" : "示範資料"}
         </button>
       ))}
     </div>

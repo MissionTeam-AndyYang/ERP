@@ -13,14 +13,14 @@ function dataSourceStatus(source: "api" | "mock", isLoading = false, hasError = 
   }
 
   if (source === "mock") {
-    return { label: "預覽資料", tone: "warning" };
+    return { label: "示範資料", tone: "warning" };
   }
 
   if (hasError) {
-    return { label: "API 錯誤", tone: "danger" };
+    return { label: "資料取得失敗", tone: "danger" };
   }
 
-  return { label: "後端 API", tone: "success" };
+  return { label: "後端資料", tone: "success" };
 }
 
 export function DataSourceStatusBadge({ source, isLoading = false, hasError = false }: DataSourceStatusBadgeProps) {

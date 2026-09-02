@@ -690,7 +690,7 @@ export default function OrdersPage() {
 
         {error ? (
           <p className="rounded-lg border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
-            訂單資料取得失敗，畫面未改用預覽資料。可切換資料來源為 Mock 進行前端預覽。{error}
+            訂單資料取得失敗，畫面未改用示範資料。可切換資料來源為示範資料檢視畫面格式。{error}
           </p>
         ) : null}
 

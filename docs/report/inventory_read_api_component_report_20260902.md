@@ -99,6 +99,69 @@ Required external completion:
 - Engineering A/B must provide a usable non-secret connection method or execute the four authorized HTTP checks inside the environment that holds the synthetic package `SYNTHETIC-WH-INV-INT-TEST-001`.
 - Expected staging/crosswalk row counts during that window remain: balance snapshot 2, movement 3, lot snapshot 2, item crosswalk 2, lot crosswalk 2, UOM crosswalk 1, validation result 10.
 
+## NEXT-012 Synchronized Real HTTP Retest Addendum
+
+Retest window:
+
+- Window ID: `ERP2-WH-INV-RTW-001-20260902`
+- Authority: `ERP2-CTO-BACKLOG-ORCH-NEXT-012`
+- Backend work item: `ERP2-WH-INV-RTW-001-BACKEND`
+- API baseline in current main history: `5c81213 Implement read-only inventory APIs`
+- UX minimum baseline in current main history: `e4a928a Align warehouse inventory API integration`
+
+Active-work collision check:
+
+- The synchronized Warehouse / Inventory retest remained limited to the four authorized read-only endpoints.
+- No Product acceptance, next Product slice execution, local candidate integration, Engineering Pull, Test Engineering activation, migration, source-of-truth transition, Cutover, or ERP2.0 Go-Live action was performed.
+
+Non-production runtime relationship:
+
+- Backend API process was started locally at `http://127.0.0.1:5012`.
+- Backend process was configured to target non-production MariaDB `127.0.0.1:3307`, database `test`.
+- Engineering A reported the synchronized DB/staging window open with synthetic package `SYNTHETIC-WH-INV-INT-TEST-001` and expected row counts: balance snapshot 2, movement 3, lot snapshot 2, item crosswalk 2, lot crosswalk 2, UOM crosswalk 1, validation result 10.
+
+Connectivity evidence:
+
+| Probe | Result |
+|---|---|
+| DB TCP listener `127.0.0.1:3307` | Reachable |
+| API TCP listener `127.0.0.1:5012` | Reachable |
+| Direct MariaDB connection using configured non-production environment | Blocked by DB auth / driver credential error |
+
+Sanitized real HTTP evidence:
+
+| Request | HTTP Status | API Code | Sanitized Result |
+|---|---:|---:|---|
+| `GET /api/v2/inventory/balances?count=5` | 400 | 1001 | DB auth / driver credential error |
+| `GET /api/v2/inventory/movements?count=5` | 400 | 1001 | DB auth / driver credential error |
+| `GET /api/v2/lots?count=5` | 400 | 1001 | DB auth / driver credential error |
+| `GET /api/v2/lots/INVALID-LOT/trace` | 400 | 1001 | DB auth / driver credential error |
+| `POST /api/v2/inventory/balances` | 405 | N/A | Method not allowed; read-only route preserved |
+
+Authentication / permission evidence:
+
+| Request | HTTP Status | API Code | Result |
+|---|---:|---:|---|
+| `GET /api/v2/inventory/balances?count=1` without `x-auth-token` | 400 | 2101 | Missing token parameter |
+
+Bounded response evidence:
+
+- All four authorized GET endpoints were reached through the real Flask HTTP service.
+- The responses did not reach the payload contract validation layer because DB authentication failed before staging data could be read.
+- No-data, invalid identifier, upstream incomplete, UOM Option B, and bounded row-count assertions could not be completed in this participant lane because the backend process could not authenticate to the synchronized non-production MariaDB runtime.
+
+Observability evidence:
+
+- `restserver.log` recorded request receipt for `CInventoryBalancesURI`, `CInventoryMovementsURI`, `CInventoryLotsURI`, and `CInventoryLotTraceURI`.
+- `restserver.log` recorded the DB auth / driver credential error for the four GET requests.
+- `restserver.log` recorded `missing token parameter` for the missing-token authentication check.
+
+Safe Stop:
+
+- Classification for this real HTTP retest lane remains `SAFE_STOP_DB_AUTH_OR_DRIVER_CREDENTIAL_BLOCKED`.
+- Required completion path: Engineering A/B should either provide a usable non-secret connection method for this participant lane or execute the same four real HTTP requests in the environment where the synchronized DB credentials and synthetic package are valid.
+- Boundaries preserved: no new endpoint, mutating endpoint, security boundary expansion, Production API, Production credential, migration, source mutation, Cutover, or ERP2.0 Go-Live.
+
 Command:
 
 ```powershell

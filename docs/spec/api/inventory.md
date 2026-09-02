@@ -12,10 +12,10 @@
 | [/api/v1/inventory/months](#get-api-v1-inventory-months) | GET | 查詢庫存 / 月資料 | OK | OK |
 | [/api/v1/inventory/price](#get-api-v1-inventory-price) | GET | 查詢庫存 / 價格 | OK | OK |
 | [/api/v1/inventory/statistics](#get-api-v1-inventory-statistics) | GET | 查詢庫存 / 統計 | OK | OK |
-| [/api/v2/inventory/balances](#get-api-v2-inventory-balances) | GET | 查詢倉庫目前庫存餘額 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；保留 UOM Option B，不進行單位換算。 |
-| [/api/v2/inventory/movements](#get-api-v2-inventory-movements) | GET | 查詢倉庫庫存異動紀錄 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；來源為 `inventory_record`。 |
-| [/api/v2/lots](#get-api-v2-lots) | GET | 查詢目前仍有庫存的批號清單 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；批號庫存量為 0 的列不回傳。 |
-| [/api/v2/lots/{lot_code}/trace](#get-api-v2-lots-lot-code-trace) | GET | 查詢指定批號溯源資料 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；重用既有 Traceability Center 溯源邏輯。 |
+| [/api/v2/inventory/balances](#get-api-v2-inventory-balances) | GET | 查詢倉庫目前庫存餘額 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-STAGING-ALIGN-001` controlled staging path 已支援七張授權 `np_*` 物件；保留 UOM Option B，不進行單位換算。 |
+| [/api/v2/inventory/movements](#get-api-v2-inventory-movements) | GET | 查詢倉庫庫存異動紀錄 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-STAGING-ALIGN-001` controlled staging path 已支援 `np_stg_inventory_movement`。 |
+| [/api/v2/lots](#get-api-v2-lots) | GET | 查詢目前仍有庫存的批號清單 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-STAGING-ALIGN-001` controlled staging path 已支援 `np_stg_lot_snapshot`；批號庫存量為 0 的列不回傳。 |
+| [/api/v2/lots/{lot_code}/trace](#get-api-v2-lots-lot-code-trace) | GET | 查詢指定批號溯源資料 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-STAGING-ALIGN-001` controlled staging path 僅以授權 `np_*` 批號、料品與異動關聯回傳受控溯源資料。 |
 
 ## GET /api/v1/inventory
 
@@ -166,6 +166,10 @@ None
 
 None
 
+### Controlled Staging Mode Note
+
+本 API 在一般模式下維持既有正式 ERP 查詢邏輯；於 `ERP2_WH_INV_STAGING_MODE=1` 時，啟用 `ERP2-API-WH-INV-STAGING-ALIGN-001` 受控非正式測試路徑。此路徑僅讀取授權七張 `np_*` 物件，不建立、不要求、也不寫入正式 ERP operational tables。因 `np_*` 物件未提供正式料品類別欄位，controlled staging path 若收到 `itemCategory` 條件，會回傳空集合以避免錯誤分類。
+
 ### Success Response Data
 
 ```json
@@ -193,14 +197,16 @@ None
       "reservedQuantity": "Float",
       "qualityHoldQuantity": "Float",
       "availableQuantity": "Float",
-      "unit": "Integer",
+      "unit": "Integer | String",
+      "candidateCanonicalUomCode": "String",
       "unitCost": "Float",
       "inventoryValue": "Integer",
       "availableValue": "Integer",
       "sourceRefCategory": "Integer",
       "sourceNo": "String",
       "qualityStatus": "String",
-      "riskTypes": ["String"]
+      "riskTypes": ["String"],
+      "sourceProvenanceRef": "String"
     }]
   }
 }
@@ -229,7 +235,8 @@ None
 | payload.balances[].reservedQuantity | Float | 目前有效預留數量，取至小數點第 2 位。 |  |
 | payload.balances[].qualityHoldQuantity | Float | 目前品檢保留數量，取至小數點第 2 位。 |  |
 | payload.balances[].availableQuantity | Float | 可用數量，計算為目前庫存扣除預留與品檢保留，取至小數點第 2 位。 |  |
-| payload.balances[].unit | Integer | 原始庫存單位 code；保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.balances[].unit | Integer \| String | 一般模式回傳原始庫存單位 code；controlled staging path 回傳來源顯示單位，例如 `公斤`。保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.balances[].candidateCanonicalUomCode | String | controlled staging path 的候選標準單位代碼，例如 `KG`；僅作為對照 metadata，不代表已換算。 |  |
 | payload.balances[].unitCost | Float | 單價，依庫存價值除以目前庫存數量推算，取至小數點第 4 位。 |  |
 | payload.balances[].inventoryValue | Integer | 目前庫存價值，四捨五入取整數。 |  |
 | payload.balances[].availableValue | Integer | 可用庫存價值，四捨五入取整數。 |  |
@@ -237,6 +244,7 @@ None
 | payload.balances[].sourceNo | String | 批號來源單號，來源為 `batch_number.ref_no`。 |  |
 | payload.balances[].qualityStatus | String | 品檢狀態代碼；後端僅回傳代碼，顯示文字由前端轉換。 | `hold`, `released` |
 | payload.balances[].riskTypes | Array | 庫存風險類型代碼清單；顯示文字由前端轉換。 | `EWarehouseRiskType` |
+| payload.balances[].sourceProvenanceRef | String | controlled staging path 的非正式測試來源證據識別；一般模式不回傳此欄位。 |  |
 
 ### Failed Response Data
 
@@ -250,12 +258,12 @@ None
 
 1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
 2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
-3. 依查詢條件呼叫既有 Warehouse 庫存快照計算邏輯。
-4. 以 `inventory_item_month_statistic`、`inventory_delta` 與必要時 `inventory_record` 補算目前庫存數量與庫存價值。
-5. 以 `warehouse_inventory_reservation` 與 `warehouse_quality_hold` 計算預留、品檢保留與可用數量。
-6. 以 `batch_number` 取得批號來源單據類別與來源單號。
-7. 過濾目前庫存數量小於等於 0 的列。
-8. 回傳符合 UOM Option B 的庫存餘額資料，不進行單位換算。
+3. 一般模式依查詢條件呼叫既有 Warehouse 庫存快照計算邏輯。
+4. 一般模式以 `inventory_item_month_statistic`、`inventory_delta` 與必要時 `inventory_record` 補算目前庫存數量與庫存價值，並以 `batch_number` 取得批號來源單據。
+5. controlled staging path 僅在環境旗標 `ERP2_WH_INV_STAGING_MODE=1` 時啟用，直接讀取授權 `np_*` staging/crosswalk 物件，不初始化正式 ERP ORM 自動建表流程。
+6. controlled staging path 從 `np_stg_inventory_balance_snapshot` 讀取庫存餘額，並以 `np_xwalk_item_identity`、`np_xwalk_lot_identity`、`np_xwalk_uom` 補足料品、批號與 UOM 對照資訊。
+7. controlled staging path 僅回傳 `validation_state = READY_FOR_READ_ONLY_API` 且來源或顯示數量大於 0 的資料列。
+8. 回傳符合 UOM Option B 的庫存餘額資料，保留來源數量與來源顯示單位，不進行單位換算。
 
 ### Database Tables Used
 
@@ -269,6 +277,10 @@ None
 | warehouse_quality_hold | 品檢保留數量與保留價值。 |
 | warehouse_pallet_movement | 板位佔用資訊。 |
 | warehouse_risk_rule | 庫存風險規則。 |
+| np_stg_inventory_balance_snapshot | controlled staging path 的目前庫存餘額來源。 |
+| np_xwalk_item_identity | controlled staging path 的料品 identity 對照來源。 |
+| np_xwalk_lot_identity | controlled staging path 的批號 identity 對照來源。 |
+| np_xwalk_uom | controlled staging path 的來源單位、顯示單位與候選標準單位 metadata。 |
 
 ## GET /api/v2/inventory/movements
 
@@ -306,6 +318,10 @@ None
 
 None
 
+### Controlled Staging Mode Note
+
+本 API 在一般模式下維持既有正式 ERP 查詢邏輯；於 `ERP2_WH_INV_STAGING_MODE=1` 時，啟用 `ERP2-API-WH-INV-STAGING-ALIGN-001` 受控非正式測試路徑。此路徑僅讀取授權七張 `np_*` 物件，不建立、不要求、也不寫入正式 ERP operational tables。因 `np_*` 物件未提供正式料品類別欄位，controlled staging path 若收到 `itemCategory` 條件，會回傳空集合以避免錯誤分類。
+
 ### Success Response Data
 
 ```json
@@ -321,7 +337,7 @@ None
     "permissionCode": "String",
     "range": {"period": "String", "startDate": "String", "endDate": "String", "startTimestamp": "Integer", "endTimestamp": "Integer"},
     "movements": [{
-      "movementId": "Integer",
+      "movementId": "Integer | String",
       "groupNo": "String",
       "warehouseNo": "String",
       "warehouseName": "String",
@@ -331,16 +347,18 @@ None
       "lotCode": "String",
       "serialNo": "String",
       "movementTimestamp": "Integer",
-      "category": "Integer",
-      "source": "Integer",
+      "category": "Integer | String",
+      "source": "Integer | String",
       "quantity": "Float",
-      "unit": "Integer",
+      "unit": "Integer | String",
+      "candidateCanonicalUomCode": "String",
       "unitCost": "Float",
       "amount": "Integer",
-      "refCategory": "Integer",
+      "refCategory": "Integer | String",
       "refNo": "String",
       "comment": "String",
-      "creationTime": "Integer"
+      "creationTime": "Integer",
+      "sourceProvenanceRef": "String"
     }]
   }
 }
@@ -352,7 +370,7 @@ None
 |---|---|---|---|
 | payload.permissionCode | String | 此 read-only API 對應的權限代碼。 | `WH_INV_READ` |
 | payload.range | Object | 提供 `startDate` 與 `endDate` 時回傳實際查詢區間；未提供時為空物件。 |  |
-| payload.movements[].movementId | Integer | 庫存異動資料列 ID，來源為 `inventory_record.id`。 |  |
+| payload.movements[].movementId | Integer \| String | 一般模式來源為 `inventory_record.id`；controlled staging path 來源為 `np_stg_inventory_movement.stg_inventory_movement_id`。 |  |
 | payload.movements[].groupNo | String | 庫存異動群組編號，來源為 `inventory_record.group`。 |  |
 | payload.movements[].warehouseNo | String | 倉庫 no。 |  |
 | payload.movements[].warehouseName | String | 倉庫顯示名稱。 |  |
@@ -362,31 +380,39 @@ None
 | payload.movements[].lotCode | String | 批號，來源為 `inventory_record.batchNumber`。 |  |
 | payload.movements[].serialNo | String | 序號；無序號時回傳空字串。 |  |
 | payload.movements[].movementTimestamp | Integer | 庫存異動時間，UTC timestamp。 |  |
-| payload.movements[].category | Integer | 庫存異動方向；入庫或出庫。 | `EInventoryCategory` |
-| payload.movements[].source | Integer | 庫存異動來源類型。 | `EInventorySrc` |
+| payload.movements[].category | Integer \| String | 一般模式為庫存異動方向；controlled staging path 回傳來源異動類型，例如 `RECEIPT`、`ISSUE`、`TRANSFER`。 | `EInventoryCategory` |
+| payload.movements[].source | Integer \| String | 一般模式為庫存異動來源類型；controlled staging path 固定為 `NP_STAGING`。 | `EInventorySrc` |
 | payload.movements[].quantity | Float | 異動數量，保留原始單位，取至小數點第 2 位。 |  |
-| payload.movements[].unit | Integer | 原始異動單位 code；保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.movements[].unit | Integer \| String | 一般模式回傳原始異動單位 code；controlled staging path 回傳來源顯示單位，例如 `公斤`。保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.movements[].candidateCanonicalUomCode | String | controlled staging path 的候選標準單位代碼，例如 `KG`；僅作為對照 metadata，不代表已換算。 |  |
 | payload.movements[].unitCost | Float | 單價，依金額除以數量推算，取至小數點第 4 位。 |  |
 | payload.movements[].amount | Integer | 異動金額，四捨五入取整數。 |  |
-| payload.movements[].refCategory | Integer | 來源單據類別。 |  |
+| payload.movements[].refCategory | Integer \| String | 一般模式為來源單據類別；controlled staging path 固定為 `NP_STAGING_SOURCE_DOCUMENT`。 |  |
 | payload.movements[].refNo | String | 來源單號。 |  |
 | payload.movements[].comment | String | 備註。 |  |
 | payload.movements[].creationTime | Integer | 資料建立時間。 |  |
+| payload.movements[].sourceProvenanceRef | String | controlled staging path 的非正式測試來源證據識別；一般模式不回傳此欄位。 |  |
 
 ### Processing Flow
 
 1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
 2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
 3. 若提供 `startDate` 與 `endDate`，依 `x-timezone` 轉為 UTC 查詢區間；否則查詢 `date` 以前的資料。
-4. 依倉庫、料品類別、料品 no、批號與關鍵字篩選 `inventory_record`。
-5. 依異動時間與資料 ID 倒序分頁。
-6. 回傳異動紀錄；數量保留來源單位，不進行單位換算。
+4. 一般模式依倉庫、料品類別、料品 no、批號與關鍵字篩選 `inventory_record`。
+5. controlled staging path 僅在環境旗標 `ERP2_WH_INV_STAGING_MODE=1` 時啟用，從 `np_stg_inventory_movement` 讀取庫存異動，並以 `np_xwalk_item_identity`、`np_xwalk_lot_identity`、`np_xwalk_uom` 補足料品、批號與 UOM 對照資訊。
+6. controlled staging path 僅回傳 `validation_state = READY_FOR_READ_ONLY_API` 的資料列，並支援日期區間、倉庫、料品 no、批號與關鍵字篩選。
+7. controlled staging path 若收到 `itemCategory` 篩選，因授權 `np_*` 欄位未提供正式料品類別，回傳空集合以避免錯誤分類。
+8. 依異動日期與資料識別值倒序分頁；數量保留來源單位，不進行單位換算。
 
 ### Database Tables Used
 
 | Table | Purpose |
 |---|---|
 | inventory_record | 庫存異動紀錄來源。 |
+| np_stg_inventory_movement | controlled staging path 的庫存異動紀錄來源。 |
+| np_xwalk_item_identity | controlled staging path 的料品 identity 對照來源。 |
+| np_xwalk_lot_identity | controlled staging path 的批號 identity 對照來源。 |
+| np_xwalk_uom | controlled staging path 的來源單位、顯示單位與候選標準單位 metadata。 |
 
 ## GET /api/v2/lots
 
@@ -422,6 +448,10 @@ None
 
 None
 
+### Controlled Staging Mode Note
+
+本 API 在一般模式下維持既有正式 ERP 查詢邏輯；於 `ERP2_WH_INV_STAGING_MODE=1` 時，啟用 `ERP2-API-WH-INV-STAGING-ALIGN-001` 受控非正式測試路徑。此路徑僅讀取授權七張 `np_*` 物件，不建立、不要求、也不寫入正式 ERP operational tables。因 `np_*` 物件未提供正式料品類別欄位，controlled staging path 若收到 `itemCategory` 條件，會回傳空集合以避免錯誤分類。
+
 ### Success Response Data
 
 ```json
@@ -448,7 +478,8 @@ None
       "reservedQuantity": "Float",
       "qualityHoldQuantity": "Float",
       "availableQuantity": "Float",
-      "unit": "Integer",
+      "unit": "Integer | String",
+      "candidateCanonicalUomCode": "String",
       "unitCost": "Float",
       "inventoryValue": "Integer",
       "palletCount": "Float",
@@ -460,7 +491,9 @@ None
       "riskTypes": ["String"],
       "openTaskCount": "Integer",
       "refCategory": "Integer",
-      "refNo": "String"
+      "refNo": "String",
+      "qualityStatus": "String",
+      "sourceProvenanceRef": "String"
     }]
   }
 }
@@ -483,7 +516,8 @@ None
 | payload.lots[].reservedQuantity | Float | 目前有效預留數量，取至小數點第 2 位。 |  |
 | payload.lots[].qualityHoldQuantity | Float | 目前品檢保留數量，取至小數點第 2 位。 |  |
 | payload.lots[].availableQuantity | Float | 可用數量，取至小數點第 2 位。 |  |
-| payload.lots[].unit | Integer | 原始庫存單位 code；保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.lots[].unit | Integer \| String | 一般模式回傳原始庫存單位 code；controlled staging path 回傳來源顯示單位，例如 `公斤`。保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.lots[].candidateCanonicalUomCode | String | controlled staging path 的候選標準單位代碼，例如 `KG`；僅作為對照 metadata，不代表已換算。 |  |
 | payload.lots[].unitCost | Float | 單價，取至小數點第 4 位。 |  |
 | payload.lots[].inventoryValue | Integer | 批號庫存價值，四捨五入取整數。 |  |
 | payload.lots[].palletCount | Float | 批號佔用板數，取至小數點第 2 位。 |  |
@@ -496,14 +530,18 @@ None
 | payload.lots[].openTaskCount | Integer | 與此批號庫存相關的未完成倉庫任務數。 |  |
 | payload.lots[].refCategory | Integer | 批號來源單據類別，來源為 `batch_number.refCategory`。 |  |
 | payload.lots[].refNo | String | 批號來源單號，來源為 `batch_number.ref_no`。 |  |
+| payload.lots[].qualityStatus | String | controlled staging path 的來源批號狀態代碼；一般模式不回傳此欄位。 |  |
+| payload.lots[].sourceProvenanceRef | String | controlled staging path 的非正式測試來源證據識別；一般模式不回傳此欄位。 |  |
 
 ### Processing Flow
 
 1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
 2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
-3. 依查詢條件呼叫既有 Warehouse 庫存批號服務。
-4. 只回傳目前庫存數量大於 0 的批號庫存列。
-5. 保留批號原始單位 code，不進行單位換算或顯示文字轉換。
+3. 一般模式依查詢條件呼叫既有 Warehouse 庫存批號服務。
+4. controlled staging path 僅在環境旗標 `ERP2_WH_INV_STAGING_MODE=1` 時啟用，從 `np_stg_lot_snapshot` 讀取批號庫存，並以 `np_xwalk_item_identity`、`np_xwalk_lot_identity`、`np_xwalk_uom` 補足料品、批號與 UOM 對照資訊。
+5. controlled staging path 僅回傳 `validation_state = READY_FOR_READ_ONLY_API` 且來源或顯示數量大於 0 的資料列。
+6. controlled staging path 若收到 `itemCategory` 篩選，因授權 `np_*` 欄位未提供正式料品類別，回傳空集合以避免錯誤分類。
+7. 保留批號來源顯示單位，不進行單位換算或顯示文字轉換。
 
 ### Database Tables Used
 
@@ -517,6 +555,10 @@ None
 | warehouse_quality_hold | 品檢保留數量與保留價值。 |
 | warehouse_pallet_movement | 板位佔用資訊。 |
 | workflow_task_state | 未完成倉庫任務數。 |
+| np_stg_lot_snapshot | controlled staging path 的批號庫存快照來源。 |
+| np_xwalk_item_identity | controlled staging path 的料品 identity 對照來源。 |
+| np_xwalk_lot_identity | controlled staging path 的批號 identity 對照來源。 |
+| np_xwalk_uom | controlled staging path 的來源單位、顯示單位與候選標準單位 metadata。 |
 
 ## GET /api/v2/lots/{lot_code}/trace
 
@@ -543,6 +585,10 @@ None
 
 None
 
+### Controlled Staging Mode Note
+
+本 API 在一般模式下維持既有 Traceability Center 查詢邏輯；於 `ERP2_WH_INV_STAGING_MODE=1` 時，啟用 `ERP2-API-WH-INV-STAGING-ALIGN-001` 受控非正式測試路徑。此路徑僅讀取授權七張 `np_*` 物件，不建立、不要求、也不寫入正式 ERP operational tables。
+
 ### Success Response Data
 
 ```json
@@ -552,8 +598,30 @@ None
   "payload": {
     "serverTimestamp": "Integer",
     "permissionCode": "String",
-    "batch": {},
-    "traceSteps": []
+    "batch": {
+      "batchNo": "String",
+      "candidateBatchNo": "String",
+      "itemNo": "String",
+      "itemName": "String",
+      "candidateItemNo": "String",
+      "currentQuantity": "Float",
+      "unit": "String",
+      "status": "String",
+      "snapshotBusinessDate": "String",
+      "sourceProvenanceRef": "String"
+    },
+    "traceSteps": [{
+      "stepId": "String",
+      "stepType": "String",
+      "refNo": "String",
+      "eventTimestamp": "Integer",
+      "warehouseNo": "String",
+      "locationNo": "String",
+      "quantity": "Float",
+      "unit": "String",
+      "validationState": "String",
+      "sourceProvenanceRef": "String"
+    }]
   }
 }
 ```
@@ -564,8 +632,26 @@ None
 |---|---|---|---|
 | payload.serverTimestamp | Integer | Response 產生時間，UTC timestamp。 |  |
 | payload.permissionCode | String | 此 read-only API 對應的權限代碼。 | `WH_INV_READ` |
-| payload.batch | Object | 指定批號的批號主檔、來源與溯源狀態；欄位定義沿用 `GET /api/v2/trace/batches/{batch_no}/overview`。 |  |
-| payload.traceSteps | Array | 指定批號的溯源步驟；欄位定義沿用 `GET /api/v2/trace/batches/{batch_no}/overview`。 |  |
+| payload.batch.batchNo | String | 查詢批號，controlled staging path 來源為 `np_xwalk_lot_identity.source_lot_code`。 |  |
+| payload.batch.candidateBatchNo | String | 候選批號，controlled staging path 來源為 `np_xwalk_lot_identity.candidate_lot_code`。 |  |
+| payload.batch.itemNo | String | 來源料品 no。 |  |
+| payload.batch.itemName | String | 來源料品名稱。 |  |
+| payload.batch.candidateItemNo | String | 候選標準料品 no。 |  |
+| payload.batch.currentQuantity | Float | 批號目前來源庫存數量，取至小數點第 2 位。 |  |
+| payload.batch.unit | String | 批號來源顯示單位；保留 UOM Option B，不進行換算。 |  |
+| payload.batch.status | String | 來源批號狀態或 identity 對照狀態。 |  |
+| payload.batch.snapshotBusinessDate | String | 批號快照業務日期，格式 `YYYY-MM-DD`。 |  |
+| payload.batch.sourceProvenanceRef | String | controlled staging path 的非正式測試來源證據識別。 |  |
+| payload.traceSteps[].stepId | String | 批號關聯 staging 異動識別值。 |  |
+| payload.traceSteps[].stepType | String | 來源異動類型，例如 `RECEIPT`、`ISSUE`、`TRANSFER`。 |  |
+| payload.traceSteps[].refNo | String | 來源文件識別值。 |  |
+| payload.traceSteps[].eventTimestamp | Integer | 來源異動時間，UTC timestamp；無時間時回傳 0。 |  |
+| payload.traceSteps[].warehouseNo | String | 倉庫代碼。 |  |
+| payload.traceSteps[].locationNo | String | 來源或目的庫位代碼。 |  |
+| payload.traceSteps[].quantity | Float | 異動來源數量，取至小數點第 2 位。 |  |
+| payload.traceSteps[].unit | String | 異動來源顯示單位；保留 UOM Option B，不進行換算。 |  |
+| payload.traceSteps[].validationState | String | staging 異動資料驗證狀態。 |  |
+| payload.traceSteps[].sourceProvenanceRef | String | controlled staging path 的非正式測試來源證據識別。 |  |
 
 ### Failed Response Data
 
@@ -579,9 +665,11 @@ None
 
 1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
 2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
-3. 以 `{lot_code}` 作為批號查詢條件，呼叫既有 Traceability Center 批號總覽服務。
-4. 若查無批號，回傳既有錯誤合約。
-5. 若查詢成功，回傳批號主檔與溯源步驟；不新增交易、調整或任何資料異動。
+3. 一般模式以 `{lot_code}` 作為批號查詢條件，呼叫既有 Traceability Center 批號總覽服務。
+4. controlled staging path 僅在環境旗標 `ERP2_WH_INV_STAGING_MODE=1` 時啟用，從 `np_xwalk_lot_identity` 查詢指定批號，並以 `np_stg_lot_snapshot`、`np_xwalk_item_identity`、`np_xwalk_uom` 補足批號總覽。
+5. controlled staging path 從 `np_stg_inventory_movement` 查詢同一批號的 `READY_FOR_READ_ONLY_API` 異動資料，組成受控溯源步驟。
+6. 若查無批號，回傳既有錯誤合約。
+7. 若查詢成功，回傳批號主檔與溯源步驟；不新增交易、調整或任何資料異動。
 
 ### Database Tables Used
 
@@ -594,6 +682,11 @@ None
 | production_data_output | 生產產出批號。 |
 | warehouse_quality_hold | 品檢保留狀態。 |
 | workflow_task_event | 批號相關事件時間。 |
+| np_xwalk_lot_identity | controlled staging path 的批號 identity 對照來源。 |
+| np_xwalk_item_identity | controlled staging path 的料品 identity 對照來源。 |
+| np_stg_lot_snapshot | controlled staging path 的批號庫存快照來源。 |
+| np_stg_inventory_movement | controlled staging path 的批號異動與溯源步驟來源。 |
+| np_xwalk_uom | controlled staging path 的來源單位、顯示單位與候選標準單位 metadata。 |
 
 ## GET /api/v1/inventory/items
 

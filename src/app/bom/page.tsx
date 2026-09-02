@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  GitBranch,
   Search
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -261,6 +263,130 @@ function PaginationControls({
   );
 }
 
+function BomRootTree({ detail, language }: { detail?: BomDetail; language: string }) {
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(["root-0", "root-0-content-0"]));
+
+  if (!detail) {
+    return <EmptyList title="尚未載入產品樹" description="請先選取 BOM 版本並等待明細載入。" />;
+  }
+
+  const roots = detail.linkedProducts.length
+    ? detail.linkedProducts
+    : [
+        {
+          productNo: detail.bom.bomNo,
+          productName: detail.bom.bomName,
+          productVersion: detail.bom.version,
+          productCategory: 0,
+          productCategoryLabel: "未關聯產品",
+          contents: []
+        }
+      ];
+
+  function toggle(key: string) {
+    setExpandedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      {roots.map((product, rootIndex) => {
+        const rootKey = `root-${rootIndex}`;
+        const isRootExpanded = expandedKeys.has(rootKey);
+        const contents = product.contents.length
+          ? product.contents
+          : [
+              {
+                itemType: 0,
+                itemTypeLabel: "配方基準",
+                itemNo: detail.bom.bomNo,
+                itemName: detail.bom.bomName,
+                count: 1,
+                unit: detail.bom.unit,
+                unitCode: detail.bom.unitCode,
+                weight: detail.bom.weight
+              }
+            ];
+
+        return (
+          <div className="rounded-md border border-border bg-white" key={`${product.productNo}-${product.productVersion}`}>
+            <button
+              className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left"
+              onClick={() => toggle(rootKey)}
+              type="button"
+            >
+              <span className="min-w-0">
+                <span className="text-xs font-medium text-textSecondary">製成品 root</span>
+                <span className="mt-1 block font-semibold text-textPrimary">
+                  {product.productNo || "未提供產品 no"} / V{formatInteger(product.productVersion, language)}
+                </span>
+                <span className="mt-1 block text-xs text-textSecondary">{product.productName || product.productCategoryLabel}</span>
+              </span>
+              {isRootExpanded ? <ChevronDown className="h-4 w-4 text-textSecondary" /> : <ChevronRight className="h-4 w-4 text-textSecondary" />}
+            </button>
+
+            {isRootExpanded ? (
+              <div className="space-y-3 border-t border-border px-3 py-3">
+                {contents.map((content, contentIndex) => {
+                  const contentKey = `${rootKey}-content-${contentIndex}`;
+                  const isContentExpanded = expandedKeys.has(contentKey);
+                  return (
+                    <div className="border-l-2 border-primary/30 pl-3" key={`${contentKey}-${content.itemNo}`}>
+                      <button
+                        className="flex w-full items-start justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-left"
+                        onClick={() => toggle(contentKey)}
+                        type="button"
+                      >
+                        <span className="min-w-0">
+                          <span className="text-xs font-medium text-textSecondary">{content.itemTypeLabel}</span>
+                          <span className="mt-1 block font-medium text-textPrimary">
+                            {content.itemNo || "未提供品項 no"} · {content.itemName || "未命名內容物"}
+                          </span>
+                          <span className="mt-1 block text-xs text-textSecondary">
+                            {formatInteger(content.count, language)} 份 · {formatNumber(content.weight, language)} {content.unit}
+                          </span>
+                        </span>
+                        {isContentExpanded ? <ChevronDown className="h-4 w-4 text-textSecondary" /> : <ChevronRight className="h-4 w-4 text-textSecondary" />}
+                      </button>
+
+                      {isContentExpanded ? (
+                        <div className="mt-2 space-y-2 pl-3">
+                          {detail.items.length ? (
+                            detail.items.map((material) => (
+                              <div className="rounded-md border border-border px-3 py-2" key={`${contentKey}-${material.itemNo}`}>
+                                <p className="text-xs font-medium text-textSecondary">原料明細</p>
+                                <p className="mt-1 font-medium text-textPrimary">
+                                  {material.itemNo || "未提供料號"} · {material.itemName || "未命名原料"}
+                                </p>
+                                <p className="mt-1 text-xs text-textSecondary">
+                                  {formatNumber(material.weight, language)} {material.unit}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-textSecondary">目前沒有原料明細可展開。</p>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function BomDetailPanel({
   item,
   detail,
@@ -346,6 +472,14 @@ function BomDetailPanel({
           </div>
         </div>
       ) : null}
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4 text-primary" />
+          <p className="text-sm font-semibold text-textPrimary">製成品根節點樹</p>
+        </div>
+        <BomRootTree detail={detail} language={language} />
+      </div>
 
       <div className="space-y-2">
         <p className="text-sm font-semibold text-textPrimary">直接配方明細</p>

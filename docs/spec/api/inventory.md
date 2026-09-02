@@ -1,6 +1,7 @@
 # inventory API Group
 
 > Source: `restserver/package/restserver/api/inventory_uri.py`
+> V2 Source: `restserver/package/restserver/api/v2/inventory_uri.py`
 
 ## API Summary
 
@@ -11,6 +12,10 @@
 | [/api/v1/inventory/months](#get-api-v1-inventory-months) | GET | 查詢庫存 / 月資料 | OK | OK |
 | [/api/v1/inventory/price](#get-api-v1-inventory-price) | GET | 查詢庫存 / 價格 | OK | OK |
 | [/api/v1/inventory/statistics](#get-api-v1-inventory-statistics) | GET | 查詢庫存 / 統計 | OK | OK |
+| [/api/v2/inventory/balances](#get-api-v2-inventory-balances) | GET | 查詢倉庫目前庫存餘額 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；保留 UOM Option B，不進行單位換算。 |
+| [/api/v2/inventory/movements](#get-api-v2-inventory-movements) | GET | 查詢倉庫庫存異動紀錄 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；來源為 `inventory_record`。 |
+| [/api/v2/lots](#get-api-v2-lots) | GET | 查詢目前仍有庫存的批號清單 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；批號庫存量為 0 的列不回傳。 |
+| [/api/v2/lots/{lot_code}/trace](#get-api-v2-lots-lot-code-trace) | GET | 查詢指定批號溯源資料 | Implemented / Pending Runtime Review | `ERP2-API-WH-INV-READ-001` read-only endpoint；重用既有 Traceability Center 溯源邏輯。 |
 
 ## GET /api/v1/inventory
 
@@ -127,6 +132,468 @@ None
 | batch_number | 提供庫存查詢、統計或紀錄資料 |
 | inventory_record | 提供庫存查詢、統計或紀錄資料 |
 | process_order | 提供庫存查詢、統計或紀錄資料 |
+
+## GET /api/v2/inventory/balances
+
+<a id="get-api-v2-inventory-balances"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| /api/v2/inventory/balances | GET | 查詢倉庫目前庫存餘額 |
+
+### Request Header
+
+| Header | Description |
+|---|---|
+| x-auth-token | 存取金鑰。 |
+| x-timezone | 時區代碼，例如 `Asia/Taipei`；未提供時使用 `UTC`。 |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| date | Integer | NO | 查詢基準 UTC timestamp；未提供時使用伺服器目前時間。 |
+| warehouse_no | String | NO | 倉庫 no，對應 `inventory_record.warehouse_no`。 |
+| itemCategory | Integer | NO | 料品類別，對應 `inventory_record.itemCategory`。 |
+| item_no | String | NO | 料品 no，對應 `inventory_record.item_no`。 |
+| lotCode | String | NO | 批號，對應 `inventory_record.batchNumber`。 |
+| start | Integer | NO | 分頁起始位置，預設 0。 |
+| count | Integer | NO | 分頁筆數，預設 50，上限 100。 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "total": "Integer",
+    "start": "Integer",
+    "count": "Integer",
+    "permissionCode": "String",
+    "balances": [{
+      "balanceId": "String",
+      "warehouseNo": "String",
+      "warehouseName": "String",
+      "itemNo": "String",
+      "itemName": "String",
+      "itemCategory": "Integer",
+      "itemSubCategory": "Integer",
+      "lotCode": "String",
+      "serialNo": "String",
+      "currentQuantity": "Float",
+      "reservedQuantity": "Float",
+      "qualityHoldQuantity": "Float",
+      "availableQuantity": "Float",
+      "unit": "Integer",
+      "unitCost": "Float",
+      "inventoryValue": "Integer",
+      "availableValue": "Integer",
+      "sourceRefCategory": "Integer",
+      "sourceNo": "String",
+      "qualityStatus": "String",
+      "riskTypes": ["String"]
+    }]
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|---|---|---|---|
+| payload.serverTimestamp | Integer | Response 產生時間，UTC timestamp。 |  |
+| payload.timezone | String | 本次查詢採用的時區代碼。 |  |
+| payload.total | Integer | 符合查詢條件的庫存餘額總筆數。 |  |
+| payload.start | Integer | 本次分頁起始位置。 |  |
+| payload.count | Integer | 本次實際回傳筆數。 |  |
+| payload.permissionCode | String | 此 read-only API 對應的權限代碼。 | `WH_INV_READ` |
+| payload.balances[].balanceId | String | 庫存餘額識別值，由倉庫、料品、批號與序號組成。 |  |
+| payload.balances[].warehouseNo | String | 倉庫 no。 |  |
+| payload.balances[].warehouseName | String | 倉庫顯示名稱。 |  |
+| payload.balances[].itemNo | String | 料品 no。 |  |
+| payload.balances[].itemName | String | 料品名稱。 |  |
+| payload.balances[].itemCategory | Integer | 料品類別。 | `EItemCategory` |
+| payload.balances[].itemSubCategory | Integer | 料品子類別。 |  |
+| payload.balances[].lotCode | String | 批號，來源為 `inventory_record.batchNumber`，並以 `batch_number.no` 補足來源單據。 |  |
+| payload.balances[].serialNo | String | 序號；無序號時回傳空字串。 |  |
+| payload.balances[].currentQuantity | Float | 目前庫存數量，入庫數量扣除出庫數量，取至小數點第 2 位。 |  |
+| payload.balances[].reservedQuantity | Float | 目前有效預留數量，取至小數點第 2 位。 |  |
+| payload.balances[].qualityHoldQuantity | Float | 目前品檢保留數量，取至小數點第 2 位。 |  |
+| payload.balances[].availableQuantity | Float | 可用數量，計算為目前庫存扣除預留與品檢保留，取至小數點第 2 位。 |  |
+| payload.balances[].unit | Integer | 原始庫存單位 code；保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.balances[].unitCost | Float | 單價，依庫存價值除以目前庫存數量推算，取至小數點第 4 位。 |  |
+| payload.balances[].inventoryValue | Integer | 目前庫存價值，四捨五入取整數。 |  |
+| payload.balances[].availableValue | Integer | 可用庫存價值，四捨五入取整數。 |  |
+| payload.balances[].sourceRefCategory | Integer | 批號來源單據類別，來源為 `batch_number.refCategory`。 |  |
+| payload.balances[].sourceNo | String | 批號來源單號，來源為 `batch_number.ref_no`。 |  |
+| payload.balances[].qualityStatus | String | 品檢狀態代碼；後端僅回傳代碼，顯示文字由前端轉換。 | `hold`, `released` |
+| payload.balances[].riskTypes | Array | 庫存風險類型代碼清單；顯示文字由前端轉換。 | `EWarehouseRiskType` |
+
+### Failed Response Data
+
+| Field Path | Type | Description | Enum |
+|---|---|---|---|
+| code | Integer | API 錯誤代碼。 | `EErrorCode` |
+| message | String | API 錯誤訊息。 |  |
+| payload | Object | 錯誤時多為空物件。 |  |
+
+### Processing Flow
+
+1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
+2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
+3. 依查詢條件呼叫既有 Warehouse 庫存快照計算邏輯。
+4. 以 `inventory_item_month_statistic`、`inventory_delta` 與必要時 `inventory_record` 補算目前庫存數量與庫存價值。
+5. 以 `warehouse_inventory_reservation` 與 `warehouse_quality_hold` 計算預留、品檢保留與可用數量。
+6. 以 `batch_number` 取得批號來源單據類別與來源單號。
+7. 過濾目前庫存數量小於等於 0 的列。
+8. 回傳符合 UOM Option B 的庫存餘額資料，不進行單位換算。
+
+### Database Tables Used
+
+| Table | Purpose |
+|---|---|
+| inventory_record | 庫存異動與防護性補算依據。 |
+| inventory_item_month_statistic | 月結庫存快照。 |
+| inventory_delta | 月結後庫存異動。 |
+| batch_number | 批號主檔與來源單據。 |
+| warehouse_inventory_reservation | 預留數量與預留價值。 |
+| warehouse_quality_hold | 品檢保留數量與保留價值。 |
+| warehouse_pallet_movement | 板位佔用資訊。 |
+| warehouse_risk_rule | 庫存風險規則。 |
+
+## GET /api/v2/inventory/movements
+
+<a id="get-api-v2-inventory-movements"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| /api/v2/inventory/movements | GET | 查詢倉庫庫存異動紀錄 |
+
+### Request Header
+
+| Header | Description |
+|---|---|
+| x-auth-token | 存取金鑰。 |
+| x-timezone | 時區代碼，例如 `Asia/Taipei`；未提供時使用 `UTC`。 |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| date | Integer | NO | 查詢基準 UTC timestamp；未提供日期區間時，查詢此時間以前的異動。 |
+| startDate | String | NO | 查詢起始日，格式 `YYYY-MM-DD`；需與 `endDate` 同時提供。 |
+| endDate | String | NO | 查詢結束日，格式 `YYYY-MM-DD`；包含當日。 |
+| warehouse_no | String | NO | 倉庫 no，對應 `inventory_record.warehouse_no`。 |
+| itemCategory | Integer | NO | 料品類別，對應 `inventory_record.itemCategory`。 |
+| item_no | String | NO | 料品 no，對應 `inventory_record.item_no`。 |
+| lotCode | String | NO | 批號，對應 `inventory_record.batchNumber`。 |
+| keyword | String | NO | 搜尋來源單號、料品 no、料品名稱、批號、倉庫 no 或倉庫名稱。 |
+| start | Integer | NO | 分頁起始位置，預設 0。 |
+| count | Integer | NO | 分頁筆數，預設 50，上限 100。 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "total": "Integer",
+    "start": "Integer",
+    "count": "Integer",
+    "permissionCode": "String",
+    "range": {"period": "String", "startDate": "String", "endDate": "String", "startTimestamp": "Integer", "endTimestamp": "Integer"},
+    "movements": [{
+      "movementId": "Integer",
+      "groupNo": "String",
+      "warehouseNo": "String",
+      "warehouseName": "String",
+      "itemNo": "String",
+      "itemName": "String",
+      "itemCategory": "Integer",
+      "lotCode": "String",
+      "serialNo": "String",
+      "movementTimestamp": "Integer",
+      "category": "Integer",
+      "source": "Integer",
+      "quantity": "Float",
+      "unit": "Integer",
+      "unitCost": "Float",
+      "amount": "Integer",
+      "refCategory": "Integer",
+      "refNo": "String",
+      "comment": "String",
+      "creationTime": "Integer"
+    }]
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|---|---|---|---|
+| payload.permissionCode | String | 此 read-only API 對應的權限代碼。 | `WH_INV_READ` |
+| payload.range | Object | 提供 `startDate` 與 `endDate` 時回傳實際查詢區間；未提供時為空物件。 |  |
+| payload.movements[].movementId | Integer | 庫存異動資料列 ID，來源為 `inventory_record.id`。 |  |
+| payload.movements[].groupNo | String | 庫存異動群組編號，來源為 `inventory_record.group`。 |  |
+| payload.movements[].warehouseNo | String | 倉庫 no。 |  |
+| payload.movements[].warehouseName | String | 倉庫顯示名稱。 |  |
+| payload.movements[].itemNo | String | 料品 no。 |  |
+| payload.movements[].itemName | String | 料品名稱。 |  |
+| payload.movements[].itemCategory | Integer | 料品類別。 | `EItemCategory` |
+| payload.movements[].lotCode | String | 批號，來源為 `inventory_record.batchNumber`。 |  |
+| payload.movements[].serialNo | String | 序號；無序號時回傳空字串。 |  |
+| payload.movements[].movementTimestamp | Integer | 庫存異動時間，UTC timestamp。 |  |
+| payload.movements[].category | Integer | 庫存異動方向；入庫或出庫。 | `EInventoryCategory` |
+| payload.movements[].source | Integer | 庫存異動來源類型。 | `EInventorySrc` |
+| payload.movements[].quantity | Float | 異動數量，保留原始單位，取至小數點第 2 位。 |  |
+| payload.movements[].unit | Integer | 原始異動單位 code；保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.movements[].unitCost | Float | 單價，依金額除以數量推算，取至小數點第 4 位。 |  |
+| payload.movements[].amount | Integer | 異動金額，四捨五入取整數。 |  |
+| payload.movements[].refCategory | Integer | 來源單據類別。 |  |
+| payload.movements[].refNo | String | 來源單號。 |  |
+| payload.movements[].comment | String | 備註。 |  |
+| payload.movements[].creationTime | Integer | 資料建立時間。 |  |
+
+### Processing Flow
+
+1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
+2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
+3. 若提供 `startDate` 與 `endDate`，依 `x-timezone` 轉為 UTC 查詢區間；否則查詢 `date` 以前的資料。
+4. 依倉庫、料品類別、料品 no、批號與關鍵字篩選 `inventory_record`。
+5. 依異動時間與資料 ID 倒序分頁。
+6. 回傳異動紀錄；數量保留來源單位，不進行單位換算。
+
+### Database Tables Used
+
+| Table | Purpose |
+|---|---|
+| inventory_record | 庫存異動紀錄來源。 |
+
+## GET /api/v2/lots
+
+<a id="get-api-v2-lots"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| /api/v2/lots | GET | 查詢目前仍有庫存的批號清單 |
+
+### Request Header
+
+| Header | Description |
+|---|---|
+| x-auth-token | 存取金鑰。 |
+| x-timezone | 時區代碼，例如 `Asia/Taipei`；未提供時使用 `UTC`。 |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| date | Integer | NO | 查詢基準 UTC timestamp；未提供時使用伺服器目前時間。 |
+| warehouse_no | String | NO | 倉庫 no。 |
+| itemCategory | Integer | NO | 料品類別。 |
+| item_no | String | NO | 料品 no。 |
+| lotCode | String | NO | 批號。 |
+| keyword | String | NO | 搜尋料品 no、料品名稱、批號、來源單號或倉庫名稱。 |
+| start | Integer | NO | 分頁起始位置，預設 0。 |
+| count | Integer | NO | 分頁筆數，預設 50，上限 100。 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "timezone": "String",
+    "total": "Integer",
+    "start": "Integer",
+    "count": "Integer",
+    "permissionCode": "String",
+    "summary": {},
+    "lots": [{
+      "lotKey": "String",
+      "lotCode": "String",
+      "warehouseNo": "String",
+      "warehouseName": "String",
+      "itemCategory": "Integer",
+      "itemNo": "String",
+      "itemName": "String",
+      "currentQuantity": "Float",
+      "reservedQuantity": "Float",
+      "qualityHoldQuantity": "Float",
+      "availableQuantity": "Float",
+      "unit": "Integer",
+      "unitCost": "Float",
+      "inventoryValue": "Integer",
+      "palletCount": "Float",
+      "firstInboundTimestamp": "Integer",
+      "daysInStock": "Integer",
+      "validDate": "Integer",
+      "validDays": "Integer",
+      "safetyStock": "Float",
+      "riskTypes": ["String"],
+      "openTaskCount": "Integer",
+      "refCategory": "Integer",
+      "refNo": "String"
+    }]
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|---|---|---|---|
+| payload.permissionCode | String | 此 read-only API 對應的權限代碼。 | `WH_INV_READ` |
+| payload.summary | Object | 批號清單摘要，沿用 Warehouse 庫存批號服務的彙總結果。 |  |
+| payload.lots[].lotKey | String | 批號庫存識別值，由倉庫、料品與批號組成。 |  |
+| payload.lots[].lotCode | String | 批號。 |  |
+| payload.lots[].warehouseNo | String | 倉庫 no。 |  |
+| payload.lots[].warehouseName | String | 倉庫顯示名稱。 |  |
+| payload.lots[].itemCategory | Integer | 料品類別。 | `EItemCategory` |
+| payload.lots[].itemNo | String | 料品 no。 |  |
+| payload.lots[].itemName | String | 料品名稱。 |  |
+| payload.lots[].currentQuantity | Float | 目前批號庫存數量，取至小數點第 2 位。 |  |
+| payload.lots[].reservedQuantity | Float | 目前有效預留數量，取至小數點第 2 位。 |  |
+| payload.lots[].qualityHoldQuantity | Float | 目前品檢保留數量，取至小數點第 2 位。 |  |
+| payload.lots[].availableQuantity | Float | 可用數量，取至小數點第 2 位。 |  |
+| payload.lots[].unit | Integer | 原始庫存單位 code；保留 UOM Option B，不於後端換算或翻譯。 | `EUnit` |
+| payload.lots[].unitCost | Float | 單價，取至小數點第 4 位。 |  |
+| payload.lots[].inventoryValue | Integer | 批號庫存價值，四捨五入取整數。 |  |
+| payload.lots[].palletCount | Float | 批號佔用板數，取至小數點第 2 位。 |  |
+| payload.lots[].firstInboundTimestamp | Integer | 首次入庫時間，UTC timestamp。 |  |
+| payload.lots[].daysInStock | Integer | 存放天數。 |  |
+| payload.lots[].validDate | Integer | 批號效期時間，UTC timestamp。 |  |
+| payload.lots[].validDays | Integer | 批號有效天數。 |  |
+| payload.lots[].safetyStock | Float | 安全水位數量，取至小數點第 2 位。 |  |
+| payload.lots[].riskTypes | Array | 庫存風險類型代碼清單；顯示文字由前端轉換。 | `EWarehouseRiskType` |
+| payload.lots[].openTaskCount | Integer | 與此批號庫存相關的未完成倉庫任務數。 |  |
+| payload.lots[].refCategory | Integer | 批號來源單據類別，來源為 `batch_number.refCategory`。 |  |
+| payload.lots[].refNo | String | 批號來源單號，來源為 `batch_number.ref_no`。 |  |
+
+### Processing Flow
+
+1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
+2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
+3. 依查詢條件呼叫既有 Warehouse 庫存批號服務。
+4. 只回傳目前庫存數量大於 0 的批號庫存列。
+5. 保留批號原始單位 code，不進行單位換算或顯示文字轉換。
+
+### Database Tables Used
+
+| Table | Purpose |
+|---|---|
+| inventory_record | 批號庫存數量與入出庫紀錄。 |
+| inventory_item_month_statistic | 月結庫存快照。 |
+| inventory_delta | 月結後庫存異動。 |
+| batch_number | 批號主檔與來源單據。 |
+| warehouse_inventory_reservation | 預留數量與預留價值。 |
+| warehouse_quality_hold | 品檢保留數量與保留價值。 |
+| warehouse_pallet_movement | 板位佔用資訊。 |
+| workflow_task_state | 未完成倉庫任務數。 |
+
+## GET /api/v2/lots/{lot_code}/trace
+
+<a id="get-api-v2-lots-lot-code-trace"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|---|---|---|
+| /api/v2/lots/{lot_code}/trace | GET | 查詢指定批號溯源資料 |
+
+### Request Header
+
+| Header | Description |
+|---|---|
+| x-auth-token | 存取金鑰。 |
+| x-timezone | 時區代碼，例如 `Asia/Taipei`；未提供時使用 `UTC`。 |
+
+### Query Parameters
+
+None
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "permissionCode": "String",
+    "batch": {},
+    "traceSteps": []
+  }
+}
+```
+
+### Field Description
+
+| Field Path | Type | Description | Enum |
+|---|---|---|---|
+| payload.serverTimestamp | Integer | Response 產生時間，UTC timestamp。 |  |
+| payload.permissionCode | String | 此 read-only API 對應的權限代碼。 | `WH_INV_READ` |
+| payload.batch | Object | 指定批號的批號主檔、來源與溯源狀態；欄位定義沿用 `GET /api/v2/trace/batches/{batch_no}/overview`。 |  |
+| payload.traceSteps | Array | 指定批號的溯源步驟；欄位定義沿用 `GET /api/v2/trace/batches/{batch_no}/overview`。 |  |
+
+### Failed Response Data
+
+| Field Path | Type | Description | Enum |
+|---|---|---|---|
+| code | Integer | API 錯誤代碼。 | `EErrorCode` |
+| message | String | API 錯誤訊息；查無批號時回傳 `record not found`。 |  |
+| payload | Object | 錯誤時多為空物件。 |  |
+
+### Processing Flow
+
+1. 檢查 request header 是否提供 `x-auth-token`，並套用既有 API token 流程。
+2. 宣告本 API read-only 權限代碼為 `WH_INV_READ`。
+3. 以 `{lot_code}` 作為批號查詢條件，呼叫既有 Traceability Center 批號總覽服務。
+4. 若查無批號，回傳既有錯誤合約。
+5. 若查詢成功，回傳批號主檔與溯源步驟；不新增交易、調整或任何資料異動。
+
+### Database Tables Used
+
+| Table | Purpose |
+|---|---|
+| batch_number | 批號主檔與來源單據。 |
+| inventory_record | 批號庫存與異動證據。 |
+| production_data | 生產工單與批號關聯。 |
+| production_data_input | 生產投入批號。 |
+| production_data_output | 生產產出批號。 |
+| warehouse_quality_hold | 品檢保留狀態。 |
+| workflow_task_event | 批號相關事件時間。 |
 
 ## GET /api/v1/inventory/items
 

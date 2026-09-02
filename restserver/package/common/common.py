@@ -732,3 +732,11 @@ class EItemMaintenanceSuggestionTypeCode(object):
     MISSING_BOM = "missing_bom"
     MISSING_STOCK_SIGNAL = "missing_stock_signal"
 
+
+# ------------------------------------------------------------
+# Warehouse / Inventory read API permission enums
+# ------------------------------------------------------------
+
+class EInventoryReadPermissionCode(object):
+    WH_INV_READ = "WH_INV_READ"
+

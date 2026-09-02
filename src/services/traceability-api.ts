@@ -19,6 +19,7 @@ import type {
   TraceBatchOverview,
   TraceKpiItem,
   TraceRecord,
+  TraceRiskCode,
   TraceRiskLevelCode,
   TraceStep,
   TraceStepItem,
@@ -29,35 +30,29 @@ import type {
 
 type ApiTraceSummary = Partial<TraceSummary>;
 
-type ApiTraceRecord = {
-  traceId?: string;
-  traceDirectionCode?: string;
-  itemNo?: string;
-  itemName?: string;
-  itemCategory?: number;
-  itemSubCategory?: number;
-  itemType?: number;
-  batchNo?: string;
-  refCategory?: number;
-  refNo?: string;
-  partnerTypeCode?: string;
-  partnerNo?: string;
-  partnerName?: string;
-  workOrderNo?: string;
+type ApiTraceLot = {
+  lotKey?: string;
+  lotCode?: string;
   warehouseNo?: string;
   warehouseName?: string;
-  currentQuantity?: number;
+  itemCategory?: number;
+  itemNo?: string;
+  itemName?: string;
+  batchNo?: string;
   unit?: number;
-  traceStatusCode?: string;
-  riskLevelCode?: string;
-  riskCode?: string;
-  latestEventTimestamp?: number;
+  currentQuantity?: number;
+  refNo?: string;
+  refCategory?: number;
+  sourceRefCategory?: number;
+  riskTypes?: string[];
+  validDate?: number;
 };
 
-type ApiTraceDashboardPayload = {
+type ApiTraceLotsPayload = {
   serverTimestamp?: number;
   summary?: ApiTraceSummary;
-  records?: ApiTraceRecord[];
+  lots?: ApiTraceLot[];
+  results?: ApiTraceLot[];
   total?: number;
   start?: number;
   count?: number;
@@ -88,6 +83,7 @@ type ApiTraceOverviewPayload = {
   serverTimestamp?: number;
   batch?: {
     batchNo?: string;
+    lotCode?: string;
     itemNo?: string;
     itemName?: string;
     itemCategory?: number;
@@ -217,54 +213,70 @@ function kpisFromSummary(summary: TraceSummary): TraceKpiItem[] {
   ];
 }
 
-function mapTraceRecord(record: ApiTraceRecord, index = 0): TraceRecord {
-  const riskLevelCode = normalizeRiskLevel(record.riskLevelCode);
-  const riskCode = record.riskCode ?? "unknown";
-  const traceStatusCode = record.traceStatusCode === "complete" || record.traceStatusCode === "broken"
-    ? record.traceStatusCode
-    : "unknown";
-  const traceDirectionCode =
-    record.traceDirectionCode === "upstream" || record.traceDirectionCode === "downstream" || record.traceDirectionCode === "both"
-      ? record.traceDirectionCode
-      : "unknown";
-  const partnerTypeCode =
-    record.partnerTypeCode === "supplier" || record.partnerTypeCode === "customer" || record.partnerTypeCode === "internal"
-      ? record.partnerTypeCode
-      : "unknown";
-  const traceId = record.traceId || record.batchNo || `${record.itemNo ?? "trace"}-${index}`;
+function traceRiskFromLot(riskTypes?: string[]): { riskCode: TraceRiskCode; riskLevelCode: TraceRiskLevelCode } {
+  const risks = withFallbackArray<string>(riskTypes, []);
+  if (risks.includes("QUALITY_HOLD")) {
+    return { riskCode: "quality_hold", riskLevelCode: "high_risk" as const };
+  }
+  if (risks.includes("SHELF_LIFE_LT_ONE_THIRD")) {
+    return { riskCode: "expired", riskLevelCode: "high_risk" as const };
+  }
+  if (risks.length > 0) {
+    return { riskCode: "unknown", riskLevelCode: "attention" as const };
+  }
+  return { riskCode: "unknown", riskLevelCode: "normal" as const };
+}
+
+function traceDirectionFromCategory(itemCategory?: number) {
+  if (itemCategory === 1) {
+    return "downstream";
+  }
+  if (itemCategory === 5) {
+    return "upstream";
+  }
+  return "unknown";
+}
+
+function mapTraceLot(lot: ApiTraceLot, index = 0): TraceRecord {
+  const batchNo = lot.batchNo ?? lot.lotCode ?? "";
+  const traceId = lot.lotKey || batchNo || `${lot.itemNo ?? "lot"}-${index}`;
+  const traceDirectionCode = traceDirectionFromCategory(lot.itemCategory);
+  const traceStatusCode = traceDirectionCode === "unknown" ? "unknown" : "complete";
+  const { riskCode, riskLevelCode } = traceRiskFromLot(lot.riskTypes);
+  const refCategory = lot.refCategory ?? lot.sourceRefCategory;
 
   return {
     traceId,
     traceDirectionCode,
     traceDirectionLabel: traceDirectionLabel(traceDirectionCode, locale),
-    itemNo: record.itemNo ?? "",
-    itemName: record.itemName ?? "",
-    itemCategory: asNumber(record.itemCategory),
-    itemCategoryLabel: traceItemCategoryLabel(record.itemCategory, locale),
-    itemSubCategory: asNumber(record.itemSubCategory),
-    itemType: asNumber(record.itemType),
-    batchNo: record.batchNo ?? "",
-    refCategory: asNumber(record.refCategory),
-    refCategoryLabel: traceRefCategoryLabel(record.refCategory, locale),
-    refNo: record.refNo ?? "",
-    partnerTypeCode,
-    partnerTypeLabel: tracePartnerTypeLabel(partnerTypeCode, locale),
-    partnerNo: record.partnerNo ?? "",
-    partnerName: record.partnerName ?? "",
-    workOrderNo: record.workOrderNo ?? "",
-    warehouseNo: record.warehouseNo ?? "",
-    warehouseName: record.warehouseName ?? "",
-    currentQuantity: asNumber(record.currentQuantity),
-    unit: asNumber(record.unit),
-    unitLabel: traceUnitLabel(record.unit, locale),
+    itemNo: lot.itemNo ?? "",
+    itemName: lot.itemName ?? "",
+    itemCategory: asNumber(lot.itemCategory),
+    itemCategoryLabel: traceItemCategoryLabel(lot.itemCategory, locale),
+    itemSubCategory: 0,
+    itemType: 0,
+    batchNo,
+    refCategory: asNumber(refCategory),
+    refCategoryLabel: traceRefCategoryLabel(refCategory, locale),
+    refNo: lot.refNo ?? "",
+    partnerTypeCode: "unknown",
+    partnerTypeLabel: tracePartnerTypeLabel("unknown", locale),
+    partnerNo: "",
+    partnerName: "",
+    workOrderNo: "",
+    warehouseNo: lot.warehouseNo ?? "",
+    warehouseName: lot.warehouseName ?? "",
+    currentQuantity: asNumber(lot.currentQuantity),
+    unit: asNumber(lot.unit),
+    unitLabel: traceUnitLabel(lot.unit, locale),
     traceStatusCode,
     traceStatusLabel: traceStatusLabel(traceStatusCode, locale),
     riskLevelCode,
     riskLevelLabel: traceRiskLevelLabel(riskLevelCode, locale),
-    riskCode: riskCode as TraceRecord["riskCode"],
+    riskCode,
     riskLabel: traceRiskLabel(riskCode, locale),
-    latestEventTimestamp: asNumber(record.latestEventTimestamp),
-    latestEventDate: timestampToDate(record.latestEventTimestamp),
+    latestEventTimestamp: asNumber(lot.validDate),
+    latestEventDate: timestampToDate(lot.validDate),
     tone: traceRiskTone(riskLevelCode, riskCode)
   };
 }
@@ -317,7 +329,8 @@ function mapTraceStep(step: ApiTraceStep, index = 0): TraceStep {
 
 function mapOverviewPayload(payload: ApiTraceOverviewPayload): TraceBatchOverview | undefined {
   const batch = payload.batch;
-  if (!batch?.batchNo) {
+  const batchNo = batch?.batchNo ?? batch?.lotCode;
+  if (!batch || !batchNo) {
     return undefined;
   }
 
@@ -332,7 +345,7 @@ function mapOverviewPayload(payload: ApiTraceOverviewPayload): TraceBatchOvervie
 
   return {
     batch: {
-      batchNo: batch.batchNo,
+      batchNo,
       itemNo: batch.itemNo ?? "",
       itemName: batch.itemName ?? "",
       itemCategory: asNumber(batch.itemCategory),
@@ -361,9 +374,15 @@ function mapOverviewPayload(payload: ApiTraceOverviewPayload): TraceBatchOvervie
   };
 }
 
-function mapDashboardPayload(payload: ApiTraceDashboardPayload): TraceabilityDashboardData {
-  const summary = normalizeSummary(payload.summary);
-  const records = withFallbackArray<ApiTraceRecord>(payload.records, []).map(mapTraceRecord);
+function mapLotsPayloadToTraceDashboard(payload: ApiTraceLotsPayload): TraceabilityDashboardData {
+  const records = withFallbackArray<ApiTraceLot>(payload.lots ?? payload.results, []).map(mapTraceLot);
+  const summary = normalizeSummary({
+    traceableBatchCount: payload.summary?.traceableBatchCount ?? payload.total ?? records.length,
+    completeTraceRate: payload.summary?.completeTraceRate ?? (records.length > 0 ? 100 : 0),
+    brokenTraceCount: payload.summary?.brokenTraceCount ?? 0,
+    highRiskTraceCount:
+      payload.summary?.highRiskTraceCount ?? records.filter((record) => record.riskLevelCode === "high_risk").length
+  });
 
   return {
     summary,
@@ -377,14 +396,21 @@ function mapDashboardPayload(payload: ApiTraceDashboardPayload): TraceabilityDas
 
 function buildDashboardPath(query: TraceabilityDashboardQuery = {}) {
   const params = new URLSearchParams();
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") {
-      params.set(key, String(value));
-    }
-  });
+  if (query.keyword) {
+    params.set("keyword", query.keyword);
+  }
+  if (query.batchNo) {
+    params.set("lotCode", query.batchNo);
+  }
+  if (query.itemCategory !== undefined) {
+    params.set("itemCategory", String(query.itemCategory));
+  }
+  if (query.itemNo) {
+    params.set("item_no", query.itemNo);
+  }
   params.set("start", String(query.start ?? 0));
   params.set("count", String(query.count ?? 50));
-  return `/api/v2/trace/dashboard?${params.toString()}`;
+  return `/api/v2/lots?${params.toString()}`;
 }
 
 export async function getTraceabilityDashboard(
@@ -399,9 +425,9 @@ export async function getTraceabilityDashboard(
   }
 
   try {
-    const payload = await apiGet<ApiTraceDashboardPayload>(buildDashboardPath(query));
+    const payload = await apiGet<ApiTraceLotsPayload>(buildDashboardPath(query));
     return {
-      data: mapDashboardPayload(payload),
+      data: mapLotsPayloadToTraceDashboard(payload),
       source: "api"
     };
   } catch (error) {
@@ -431,7 +457,7 @@ export async function getTraceabilityOverview(
   }
 
   try {
-    const payload = await apiGet<ApiTraceOverviewPayload>(`/api/v2/trace/batches/${encodeURIComponent(batchNo)}/overview`);
+    const payload = await apiGet<ApiTraceOverviewPayload>(`/api/v2/lots/${encodeURIComponent(batchNo)}/trace`);
     return {
       overview: mapOverviewPayload(payload),
       source: "api"

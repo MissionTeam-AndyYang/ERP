@@ -164,6 +164,7 @@ type ApiWarehouseValueTrend = {
 };
 
 type ApiWarehouseInventory = {
+  balanceId?: string;
   warehouseNo?: string;
   warehouseName?: string;
   itemCategory?: number;
@@ -172,7 +173,10 @@ type ApiWarehouseInventory = {
   itemNo?: string;
   itemName?: string;
   batchNo?: string;
+  lotCode?: string;
+  serialNo?: string;
   unit?: number;
+  unitCost?: number;
   currentQuantity?: number;
   reservedQuantity?: number;
   availableQuantity?: number;
@@ -186,6 +190,7 @@ type ApiWarehouseInventory = {
   validDate?: number;
   sourceNo?: string;
   sourceRefCategory?: number;
+  riskTypes?: string[];
 };
 
 type ApiWarehouseInventoryLotSummary = {
@@ -201,6 +206,7 @@ type ApiWarehouseInventoryLotSummary = {
 
 type ApiWarehouseInventoryLot = {
   lotKey?: string;
+  lotCode?: string;
   warehouseNo?: string;
   warehouseName?: string;
   itemCategory?: number;
@@ -236,16 +242,52 @@ type ApiWarehouseInventoryLotListPayload = {
   start?: number;
   summary?: ApiWarehouseInventoryLotSummary;
   results?: ApiWarehouseInventoryLot[];
+  lots?: ApiWarehouseInventoryLot[];
 };
 
 type ApiWarehouseInventoryRecordLine = {
+  movementId?: number;
+  groupNo?: string;
   refCategory?: number;
   refNo?: string;
   refSubNo?: string;
   date?: number;
+  movementTimestamp?: number;
+  warehouseNo?: string;
+  warehouseName?: string;
+  itemNo?: string;
+  itemName?: string;
+  itemCategory?: number;
+  lotCode?: string;
+  serialNo?: string;
   category?: number;
+  source?: number;
   quantity?: number;
+  unit?: number;
+  unitCost?: number;
   amount?: number;
+  comment?: string;
+  creationTime?: number;
+};
+
+type ApiInventoryBalancesPayload = {
+  serverTimestamp?: number;
+  timezone?: string;
+  total?: number;
+  start?: number;
+  count?: number;
+  permissionCode?: string;
+  balances?: ApiWarehouseInventory[];
+};
+
+type ApiInventoryMovementsPayload = {
+  serverTimestamp?: number;
+  timezone?: string;
+  total?: number;
+  start?: number;
+  count?: number;
+  permissionCode?: string;
+  movements?: ApiWarehouseInventoryRecordLine[];
 };
 
 type ApiWarehouseReservationLine = {
@@ -1004,18 +1046,19 @@ function mapRecords(payload: ApiWarehousePayload, risks: WarehouseRisk[], tasks:
   const taskByBatch = new Map(tasks.map((task) => [task.batchNo, task]));
 
   return withFallbackArray<ApiWarehouseInventory>(payload.inventory, []).filter((item) => (item.currentQuantity ?? 0) > 0).map((item) => {
-    const risk = riskByBatch.get(item.batchNo ?? "");
-    const task = taskByBatch.get(item.batchNo ?? "");
+    const batchNo = item.batchNo ?? item.lotCode ?? "";
+    const risk = riskByBatch.get(batchNo);
+    const task = taskByBatch.get(batchNo);
     const sourceLabel = sourceRefCategoryLabel(item.sourceRefCategory);
     const workflow = buildWorkflow(item, task);
     return {
-      id: `${item.warehouseNo ?? ""}-${item.itemNo ?? ""}-${item.batchNo ?? ""}`,
+      id: `${item.warehouseNo ?? ""}-${item.itemNo ?? ""}-${batchNo}`,
       itemNo: item.itemNo ?? "",
       itemName: item.itemName ?? "",
       category: categoryLabel(item.itemCategory),
       warehouseNo: item.warehouseNo ?? "",
       warehouseName: item.warehouseName ?? "",
-      batchNo: item.batchNo ?? "",
+      batchNo,
       sourceLabel,
       sourceNo: item.sourceNo ?? "",
       quantity: item.currentQuantity ?? 0,
@@ -1055,14 +1098,15 @@ function mapLotSummary(summary?: ApiWarehouseInventoryLotSummary): WarehouseInve
 function mapLot(item: ApiWarehouseInventoryLot): WarehouseInventoryLot {
   const currentQuantity = item.currentQuantity ?? 0;
   const inventoryValue = item.inventoryValue ?? 0;
+  const batchNo = item.batchNo ?? item.lotCode ?? "";
   return {
-    lotKey: item.lotKey ?? `${item.warehouseNo ?? ""}|${item.itemNo ?? ""}|${item.batchNo ?? ""}`,
+    lotKey: item.lotKey ?? `${item.warehouseNo ?? ""}|${item.itemNo ?? ""}|${batchNo}`,
     warehouseNo: item.warehouseNo ?? "",
     warehouseName: item.warehouseName ?? "",
     category: categoryLabel(item.itemCategory),
     itemNo: item.itemNo ?? "",
     itemName: item.itemName ?? "",
-    batchNo: item.batchNo ?? "",
+    batchNo,
     unit: unitLabel(item.unit),
     currentQuantity,
     reservedQuantity: item.reservedQuantity ?? 0,
@@ -1090,13 +1134,122 @@ function mapLot(item: ApiWarehouseInventoryLot): WarehouseInventoryLot {
 }
 
 function mapLotListPayload(payload: ApiWarehouseInventoryLotListPayload): WarehouseInventoryLotListData {
-  const lots = withFallbackArray<ApiWarehouseInventoryLot>(payload.results, []).map(mapLot);
+  const lots = withFallbackArray<ApiWarehouseInventoryLot>(payload.lots ?? payload.results, []).map(mapLot);
   return {
     summary: mapLotSummary(payload.summary),
     lots,
     total: payload.total ?? lots.length,
     count: payload.count ?? lots.length,
     start: payload.start ?? 0
+  };
+}
+
+function mapInventoryBalanceToLot(item: ApiWarehouseInventory): ApiWarehouseInventoryLot {
+  const batchNo = item.batchNo ?? item.lotCode ?? "";
+  return {
+    lotKey: item.balanceId ?? `${item.warehouseNo ?? ""}|${item.itemNo ?? ""}|${batchNo}`,
+    lotCode: batchNo,
+    warehouseNo: item.warehouseNo,
+    warehouseName: item.warehouseName,
+    itemCategory: item.itemCategory,
+    itemNo: item.itemNo,
+    itemName: item.itemName,
+    batchNo,
+    unit: item.unit,
+    currentQuantity: item.currentQuantity,
+    reservedQuantity: item.reservedQuantity,
+    qualityHoldQuantity: item.qualityHoldQuantity,
+    availableQuantity: item.availableQuantity,
+    unitCost: item.unitCost,
+    inventoryValue: item.inventoryValue,
+    availableValue: item.availableValue,
+    refNo: item.sourceNo,
+    refCategory: item.sourceRefCategory,
+    riskTypes: item.riskTypes ?? [],
+    firstInboundTimestamp: item.firstInboundTimestamp,
+    validDays: item.validDays,
+    validDate: item.validDate
+  };
+}
+
+function mapBalancesToWarehousePayload(payload: ApiInventoryBalancesPayload): ApiWarehousePayload {
+  const inventory = withFallbackArray<ApiWarehouseInventory>(payload.balances, []).map((item) => ({
+    ...item,
+    batchNo: item.batchNo ?? item.lotCode
+  }));
+  const totalInventoryValue = inventory.reduce((sum, item) => sum + (item.inventoryValue ?? 0), 0);
+  const availableInventoryValue = inventory.reduce((sum, item) => sum + (item.availableValue ?? 0), 0);
+  const reservedInventoryValue = inventory.reduce((sum, item) => sum + (item.reservedQuantity ?? 0) * (item.unitCost ?? 0), 0);
+  const qualityHoldInventoryValue = inventory.reduce(
+    (sum, item) => sum + (item.qualityHoldQuantity ?? 0) * (item.unitCost ?? 0),
+    0
+  );
+  const categoryMap = new Map<number, ApiWarehouseCategory>();
+
+  inventory.forEach((item) => {
+    const itemCategory = item.itemCategory ?? 0;
+    const existing = categoryMap.get(itemCategory) ?? {
+      itemCategory,
+      inventoryValue: 0,
+      reservedValue: 0,
+      availableValue: 0,
+      qualityHoldValue: 0,
+      quantity: 0,
+      palletCount: 0,
+      itemCount: 0,
+      valueRatio: 0,
+      trend7Days: 0
+    };
+    existing.inventoryValue = (existing.inventoryValue ?? 0) + (item.inventoryValue ?? 0);
+    existing.reservedValue = (existing.reservedValue ?? 0) + (item.reservedQuantity ?? 0) * (item.unitCost ?? 0);
+    existing.availableValue = (existing.availableValue ?? 0) + (item.availableValue ?? 0);
+    existing.qualityHoldValue = (existing.qualityHoldValue ?? 0) + (item.qualityHoldQuantity ?? 0) * (item.unitCost ?? 0);
+    existing.quantity = (existing.quantity ?? 0) + (item.currentQuantity ?? 0);
+    existing.itemCount = (existing.itemCount ?? 0) + 1;
+    categoryMap.set(itemCategory, existing);
+  });
+
+  return {
+    serverTimestamp: payload.serverTimestamp,
+    summary: {
+      totalInventoryValue,
+      reservedInventoryValue,
+      availableInventoryValue,
+      qualityHoldInventoryValue,
+      totalPallets: 0,
+      usedPallets: 0,
+      reservedPallets: 0,
+      availablePallets: 0,
+      riskAlertCount: inventory.filter((item) => (item.riskTypes ?? []).length > 0).length,
+      pendingInboundCount: 0,
+      pendingOutboundCount: 0
+    },
+    inventoryValueByCategory: [...categoryMap.values()].map((item) => ({
+      ...item,
+      valueRatio: totalInventoryValue ? ((item.inventoryValue ?? 0) / totalInventoryValue) * 100 : 0
+    })),
+    capacityByWarehouse: [],
+    riskAlerts: inventory.flatMap((item) =>
+      (item.riskTypes ?? []).map((riskType) => ({
+        alertId: `${item.warehouseNo ?? ""}-${item.itemNo ?? ""}-${item.batchNo ?? ""}-${riskType}`,
+        riskType,
+        riskLevel: riskType === "BELOW_SAFETY_STOCK" || riskType === "SHELF_LIFE_LT_ONE_THIRD" ? 3 : 2,
+        itemNo: item.itemNo,
+        itemName: item.itemName,
+        itemCategory: item.itemCategory,
+        batchNo: item.batchNo,
+        warehouseNo: item.warehouseNo,
+        warehouseName: item.warehouseName,
+        quantity: item.currentQuantity,
+        unit: item.unit,
+        inventoryValue: item.inventoryValue,
+        recommendedActionCode: riskType === "BELOW_SAFETY_STOCK"
+          ? "warehouse.action.reviewSafetyStock"
+          : "warehouse.action.reviewExpiryRisk"
+      }))
+    ),
+    pendingTasks: [],
+    inventory
   };
 }
 
@@ -1126,12 +1279,13 @@ const emptyWarehouseAnalyticsTaskSlaData: WarehouseAnalyticsTaskSlaData = mapAna
 
 function mapInventoryRecordLine(item: ApiWarehouseInventoryRecordLine, index: number): WarehouseInventoryRecordLine {
   const categoryLabel = inventoryRecordCategoryLabel(item.category);
+  const timestamp = item.date ?? item.movementTimestamp;
   return {
-    id: `${item.refNo ?? "record"}-${item.date ?? index}-${index}`,
+    id: `${item.movementId ?? item.refNo ?? "record"}-${timestamp ?? index}-${index}`,
     refCategoryLabel: sourceRefCategoryLabel(item.refCategory),
     refNo: item.refNo ?? "",
     refSubNo: item.refSubNo ?? "",
-    date: timestampToDateTime(item.date),
+    date: timestampToDateTime(timestamp),
     categoryLabel,
     quantity: item.quantity ?? 0,
     amount: item.amount ?? 0,
@@ -1900,6 +2054,96 @@ function mapAnalyticsTaskSlaPayload(payload: ApiWarehouseAnalyticsTaskSlaPayload
   };
 }
 
+function buildAnalyticsPayloadFromBalances(
+  payload: ApiInventoryBalancesPayload,
+  query: WarehouseAnalyticsQuery = {}
+): ApiWarehouseAnalyticsOverviewPayload {
+  const period = query.period ?? "30d";
+  const bucket = query.bucket ?? "day";
+  const now = payload.serverTimestamp ?? Math.floor(Date.now() / 1000);
+  const start = now - periodDays(period) * 86400;
+  const balances = withFallbackArray<ApiWarehouseInventory>(payload.balances, []);
+  const totalInventoryValue = balances.reduce((sum, item) => sum + (item.inventoryValue ?? 0), 0);
+  const availableValue = balances.reduce((sum, item) => sum + (item.availableValue ?? 0), 0);
+  const reservedValue = balances.reduce((sum, item) => sum + (item.reservedQuantity ?? 0) * (item.unitCost ?? 0), 0);
+  const qualityHoldValue = balances.reduce((sum, item) => sum + (item.qualityHoldQuantity ?? 0) * (item.unitCost ?? 0), 0);
+  const categoryMap = new Map<number, ApiWarehouseAnalyticsValueTrendPoint>();
+  const warehouseMap = new Map<string, ApiWarehouseAnalyticsSpaceTrendPoint>();
+  const riskMap = new Map<string, ApiWarehouseAnalyticsRiskBreakdownItem>();
+
+  balances.forEach((item) => {
+    const itemCategory = item.itemCategory ?? 0;
+    const category = categoryMap.get(itemCategory) ?? {
+      bucketStart: start,
+      bucketLabel: categoryLabel(itemCategory),
+      itemCategory,
+      inventoryValue: 0,
+      availableValue: 0,
+      reservedValue: 0,
+      qualityHoldValue: 0
+    };
+    category.inventoryValue = (category.inventoryValue ?? 0) + (item.inventoryValue ?? 0);
+    category.availableValue = (category.availableValue ?? 0) + (item.availableValue ?? 0);
+    category.reservedValue = (category.reservedValue ?? 0) + (item.reservedQuantity ?? 0) * (item.unitCost ?? 0);
+    category.qualityHoldValue = (category.qualityHoldValue ?? 0) + (item.qualityHoldQuantity ?? 0) * (item.unitCost ?? 0);
+    categoryMap.set(itemCategory, category);
+
+    const warehouseNo = item.warehouseNo ?? "";
+    const warehouse = warehouseMap.get(warehouseNo) ?? {
+      bucketStart: now,
+      warehouseNo,
+      warehouseName: item.warehouseName ?? warehouseNo,
+      usedPallets: 0,
+      reservedPallets: 0,
+      availablePallets: 0,
+      utilizationRate: 0
+    };
+    warehouse.usedPallets = (warehouse.usedPallets ?? 0) + 1;
+    warehouse.availablePallets = (warehouse.availablePallets ?? 0) + Math.max((item.availableQuantity ?? 0) > 0 ? 1 : 0, 0);
+    warehouseMap.set(warehouseNo, warehouse);
+
+    (item.riskTypes ?? []).forEach((riskType) => {
+      const risk = riskMap.get(riskType) ?? {
+        riskType,
+        riskLevel: riskType === "BELOW_SAFETY_STOCK" || riskType === "SHELF_LIFE_LT_ONE_THIRD" ? 3 : 2,
+        lotCount: 0,
+        inventoryValue: 0,
+        quantity: 0
+      };
+      risk.lotCount = (risk.lotCount ?? 0) + 1;
+      risk.inventoryValue = (risk.inventoryValue ?? 0) + (item.inventoryValue ?? 0);
+      risk.quantity = (risk.quantity ?? 0) + (item.currentQuantity ?? 0);
+      riskMap.set(riskType, risk);
+    });
+  });
+
+  const riskBreakdown = [...riskMap.values()];
+
+  return {
+    serverTimestamp: now,
+    timezone: payload.timezone ?? "Asia/Taipei",
+    range: {
+      period,
+      bucket,
+      startTimestamp: start,
+      endTimestamp: now
+    },
+    kpi: {
+      totalInventoryValue,
+      valueChangeRate: 0,
+      usedPallets: balances.length,
+      spaceUtilizationRate: 0,
+      riskLotCount: balances.filter((item) => (item.riskTypes ?? []).length > 0).length,
+      openTaskCount: 0,
+      overdueTaskRate: 0
+    },
+    valueTrend: [...categoryMap.values()],
+    spaceTrend: [...warehouseMap.values()],
+    riskBreakdown,
+    taskSla: []
+  };
+}
+
 function periodDays(period: WarehouseAnalyticsPeriod) {
   if (period === "7d") {
     return 7;
@@ -2167,11 +2411,9 @@ export async function getWarehouseDashboard(dataSourceMode: DataSourceMode = "ap
   }
 
   try {
-    const payload = await apiGet<ApiWarehousePayload>(
-      "/api/v2/warehouse/dashboard?trendDays=7"
-    );
+    const payload = await apiGet<ApiInventoryBalancesPayload>("/api/v2/inventory/balances?count=100");
     return {
-      data: normalizeWarehouseDashboard(payload),
+      data: normalizeWarehouseDashboard(mapBalancesToWarehousePayload(payload)),
       source: "api"
     };
   } catch (error) {
@@ -2192,15 +2434,9 @@ export async function getWarehouseInventory(dataSourceMode: DataSourceMode = "ap
   }
 
   try {
-    const payload = await apiGet<ApiWarehousePayload & { results?: ApiWarehouseInventory[] }>(
-      "/api/v2/warehouse/inventory?count=100"
-    );
-    const inventoryPayload: ApiWarehousePayload = {
-      ...payload,
-      inventory: payload.results ?? payload.inventory ?? []
-    };
+    const payload = await apiGet<ApiInventoryBalancesPayload>("/api/v2/inventory/balances?count=100");
     return {
-      records: mapRecords(inventoryPayload, [], []),
+      records: mapRecords(mapBalancesToWarehousePayload(payload), [], []),
       source: "api"
     };
   } catch (error) {
@@ -2220,58 +2456,10 @@ export async function getWarehouseTasks(dataSourceMode: DataSourceMode = "api"):
     };
   }
 
-  try {
-    const payload = await apiGet<ApiWarehousePayload & { results?: ApiWarehouseTask[] }>(
-      "/api/v2/warehouse/tasks?count=100"
-    );
-    return {
-      tasks: mapTasks({
-        pendingTasks: payload.results ?? payload.pendingTasks ?? []
-      }),
-      source: "api"
-    };
-  } catch (error) {
-    return {
-      tasks: [],
-      source: "api",
-      error: error instanceof Error ? error.message : "Warehouse tasks API unavailable"
-    };
-  }
-}
-
-function buildTaskWorkbenchPath(query: WarehouseTaskWorkbenchQuery = {}) {
-  const params = new URLSearchParams();
-  if (query.dateRange) {
-    params.set("dateRange", query.dateRange);
-  }
-  if (query.warehouseNo) {
-    params.set("warehouse_no", query.warehouseNo);
-  }
-  if (query.taskType !== undefined) {
-    params.set("taskType", String(query.taskType));
-  }
-  if (query.status !== undefined) {
-    params.set("status", String(query.status));
-  }
-  if (query.ownerDepartment !== undefined) {
-    params.set("ownerDepartment", String(query.ownerDepartment));
-  }
-  if (query.riskOnly !== undefined) {
-    params.set("riskOnly", String(query.riskOnly));
-  }
-  if (query.keyword) {
-    params.set("keyword", query.keyword);
-  }
-  if (query.sort) {
-    params.set("sort", query.sort);
-  }
-  if (query.order) {
-    params.set("order", query.order);
-  }
-  params.set("start", String(query.start ?? 0));
-  params.set("count", String(query.count ?? 50));
-
-  return `/api/v2/warehouse/task-workbench?${params.toString()}`;
+  return {
+    tasks: [],
+    source: "api"
+  };
 }
 
 export async function getWarehouseTaskWorkbench(
@@ -2285,19 +2473,17 @@ export async function getWarehouseTaskWorkbench(
     };
   }
 
-  try {
-    const payload = await apiGet<ApiWarehouseTaskWorkbenchPayload>(buildTaskWorkbenchPath(query));
-    return {
-      data: mapTaskWorkbenchPayload(payload),
-      source: "api"
-    };
-  } catch (error) {
-    return {
-      data: emptyWarehouseTaskWorkbenchData,
-      source: "api",
-      error: error instanceof Error ? error.message : "Warehouse task workbench API unavailable"
-    };
-  }
+  return {
+    data: mapTaskWorkbenchPayload({
+      summary: {},
+      lanes: [],
+      total: 0,
+      count: 0,
+      start: query.start ?? 0,
+      results: []
+    }),
+    source: "api"
+  };
 }
 
 export async function getWarehouseTaskDetail(
@@ -2311,46 +2497,10 @@ export async function getWarehouseTaskDetail(
     };
   }
 
-  try {
-    const payload = await apiGet<ApiWarehouseTaskDetailPayload>(
-      `/api/v2/warehouse/task-workbench/tasks/${encodeURIComponent(taskId)}`
-    );
-    return {
-      detail: mapTaskDetailPayload(payload),
-      source: "api"
-    };
-  } catch (error) {
-    return {
-      detail: undefined,
-      source: "api",
-      error: error instanceof Error ? error.message : "Warehouse task detail API unavailable"
-    };
-  }
-}
-
-function buildWarehouseAnalyticsPath(endpoint: string, query: WarehouseAnalyticsQuery = {}) {
-  const params = new URLSearchParams();
-  if (query.date !== undefined) {
-    params.set("date", String(query.date));
-  }
-  if (query.period) {
-    params.set("period", query.period);
-  }
-  if (query.bucket) {
-    params.set("bucket", query.bucket);
-  }
-  if (query.warehouseNo) {
-    params.set("warehouse_no", query.warehouseNo);
-  }
-  if (query.itemCategory !== undefined) {
-    params.set("itemCategory", String(query.itemCategory));
-  }
-  if (query.taskType !== undefined) {
-    params.set("taskType", String(query.taskType));
-  }
-
-  const queryString = params.toString();
-  return `/api/v2/warehouse/analytics/${endpoint}${queryString ? `?${queryString}` : ""}`;
+  return {
+    detail: undefined,
+    source: "api"
+  };
 }
 
 export async function getWarehouseAnalyticsOverview(
@@ -2365,11 +2515,9 @@ export async function getWarehouseAnalyticsOverview(
   }
 
   try {
-    const payload = await apiGet<ApiWarehouseAnalyticsOverviewPayload>(
-      buildWarehouseAnalyticsPath("overview", query)
-    );
+    const payload = await apiGet<ApiInventoryBalancesPayload>("/api/v2/inventory/balances?count=100");
     return {
-      data: mapAnalyticsOverviewPayload(payload),
+      data: mapAnalyticsOverviewPayload(buildAnalyticsPayloadFromBalances(payload, query)),
       source: "api"
     };
   } catch (error) {
@@ -2393,11 +2541,14 @@ export async function getWarehouseAnalyticsValueTrend(
   }
 
   try {
-    const payload = await apiGet<ApiWarehouseAnalyticsValueTrendPayload>(
-      buildWarehouseAnalyticsPath("value-trend", query)
-    );
+    const payload = await apiGet<ApiInventoryBalancesPayload>("/api/v2/inventory/balances?count=100");
+    const analyticsPayload = buildAnalyticsPayloadFromBalances(payload, query);
     return {
-      data: mapAnalyticsValueTrendPayload(payload),
+      data: mapAnalyticsValueTrendPayload({
+        range: analyticsPayload.range,
+        summaryByCategory: analyticsPayload.valueTrend,
+        valueTrend: analyticsPayload.valueTrend
+      }),
       source: "api"
     };
   } catch (error) {
@@ -2421,11 +2572,14 @@ export async function getWarehouseAnalyticsSpaceUtilization(
   }
 
   try {
-    const payload = await apiGet<ApiWarehouseAnalyticsSpaceUtilizationPayload>(
-      buildWarehouseAnalyticsPath("space-utilization", query)
-    );
+    const payload = await apiGet<ApiInventoryBalancesPayload>("/api/v2/inventory/balances?count=100");
+    const analyticsPayload = buildAnalyticsPayloadFromBalances(payload, query);
     return {
-      data: mapAnalyticsSpaceUtilizationPayload(payload),
+      data: mapAnalyticsSpaceUtilizationPayload({
+        range: analyticsPayload.range,
+        summaryByWarehouse: analyticsPayload.spaceTrend,
+        spaceTrend: analyticsPayload.spaceTrend
+      }),
       source: "api"
     };
   } catch (error) {
@@ -2449,11 +2603,39 @@ export async function getWarehouseAnalyticsRiskBreakdown(
   }
 
   try {
-    const payload = await apiGet<ApiWarehouseAnalyticsRiskBreakdownPayload>(
-      buildWarehouseAnalyticsPath("risk-breakdown", query)
-    );
+    const [balancesPayload, lotsPayload] = await Promise.all([
+      apiGet<ApiInventoryBalancesPayload>("/api/v2/inventory/balances?count=100"),
+      apiGet<ApiWarehouseInventoryLotListPayload>("/api/v2/lots?count=100")
+    ]);
+    const analyticsPayload = buildAnalyticsPayloadFromBalances(balancesPayload, query);
+    const lots = withFallbackArray<ApiWarehouseInventoryLot>(lotsPayload.lots ?? lotsPayload.results, []).map(mapLot);
+    const topRiskLots = lots
+      .filter((lot) => lot.riskTypes.length > 0)
+      .slice(0, 10)
+      .map((lot) => ({
+        lotKey: lot.lotKey,
+        warehouseNo: lot.warehouseNo,
+        warehouseName: lot.warehouseName,
+        itemNo: lot.itemNo,
+        itemName: lot.itemName,
+        batchNo: lot.batchNo,
+        riskType: lot.riskTypes[0] ?? "UNKNOWN",
+        riskLevel: lot.riskTone === "danger" ? 3 : lot.riskTone === "warning" ? 2 : 1,
+        inventoryValue: lot.inventoryValue,
+        quantity: lot.currentQuantity
+      }));
     return {
-      data: mapAnalyticsRiskBreakdownPayload(payload),
+      data: mapAnalyticsRiskBreakdownPayload({
+        range: analyticsPayload.range,
+        riskSummary: {
+          riskLotCount: topRiskLots.length,
+          highRiskLotCount: topRiskLots.filter((lot) => (lot.riskLevel ?? 0) >= 3).length,
+          inventoryValue: topRiskLots.reduce((sum, lot) => sum + lot.inventoryValue, 0),
+          quantity: topRiskLots.reduce((sum, lot) => sum + lot.quantity, 0)
+        },
+        riskBreakdown: analyticsPayload.riskBreakdown,
+        topRiskLots
+      }),
       source: "api"
     };
   } catch (error) {
@@ -2477,11 +2659,20 @@ export async function getWarehouseAnalyticsTaskSla(
   }
 
   try {
-    const payload = await apiGet<ApiWarehouseAnalyticsTaskSlaPayload>(
-      buildWarehouseAnalyticsPath("task-sla", query)
-    );
+    const payload = await apiGet<ApiInventoryMovementsPayload>("/api/v2/inventory/movements?count=100");
+    const now = payload.serverTimestamp ?? Math.floor(Date.now() / 1000);
     return {
-      data: mapAnalyticsTaskSlaPayload(payload),
+      data: mapAnalyticsTaskSlaPayload({
+        range: {
+          period: query.period ?? "30d",
+          bucket: query.bucket ?? "day",
+          startTimestamp: now - periodDays(query.period ?? "30d") * 86400,
+          endTimestamp: now
+        },
+        summaryByTaskType: [],
+        summaryByDepartment: [],
+        overdueTrend: []
+      }),
       source: "api"
     };
   } catch (error) {
@@ -2505,7 +2696,7 @@ function buildLotListPath(query: WarehouseInventoryLotsQuery = {}) {
     params.set("item_no", query.itemNo);
   }
   if (query.batchNo) {
-    params.set("batchNo", query.batchNo);
+    params.set("lotCode", query.batchNo);
   }
   if (query.riskType) {
     params.set("riskType", query.riskType);
@@ -2528,7 +2719,7 @@ function buildLotListPath(query: WarehouseInventoryLotsQuery = {}) {
   params.set("start", String(query.start ?? 0));
   params.set("count", String(query.count ?? 50));
 
-  return `/api/v2/warehouse/inventory/lots?${params.toString()}`;
+  return `/api/v2/lots?${params.toString()}`;
 }
 
 export async function getWarehouseInventoryLots(
@@ -2571,12 +2762,28 @@ export async function getWarehouseInventoryLotDetail(
     };
   }
 
-  const path = `/api/v2/warehouse/inventory/lots/wh/${encodeURIComponent(lot.warehouseNo)}/item/${encodeURIComponent(
-    lot.itemNo
-  )}/batch/${encodeURIComponent(lot.batchNo)}`;
+  const params = new URLSearchParams({
+    warehouse_no: lot.warehouseNo,
+    item_no: lot.itemNo,
+    lotCode: lot.batchNo,
+    count: "100"
+  });
 
   try {
-    const payload = await apiGet<ApiWarehouseInventoryLotDetailPayload>(path);
+    const [balancesPayload, movementsPayload] = await Promise.all([
+      apiGet<ApiInventoryBalancesPayload>(`/api/v2/inventory/balances?${params.toString()}`),
+      apiGet<ApiInventoryMovementsPayload>(`/api/v2/inventory/movements?${params.toString()}`)
+    ]);
+    const balance = withFallbackArray<ApiWarehouseInventory>(balancesPayload.balances, [])[0];
+    const lotPayload = balance ? mapInventoryBalanceToLot(balance) : undefined;
+    const payload: ApiWarehouseInventoryLotDetailPayload = {
+      lot: lotPayload,
+      inventoryRecords: movementsPayload.movements ?? [],
+      reservations: [],
+      qualityHolds: [],
+      palletMovements: [],
+      workflowTasks: []
+    };
     return {
       detail: mapLotDetailPayload(payload),
       source: "api"

@@ -26,6 +26,7 @@ Implemented read-only endpoint ceiling:
 | `restserver/package/restserver/api/v2/inventory.py` | Added bounded read-only service and endpoint executors. |
 | `restserver/package/restserver/api/v2/inventory_uri.py` | Added GET-only v2 route definitions. |
 | `restserver/package/restserver/app.py` | Registered `inventory_v2` blueprint. |
+| `restserver/package/dbwrapper/dbmgr.py` | Bounded remediation: prevent failed DB initialization from leaving poisoned shared session state. |
 | `docs/spec/api/inventory.md` | Added formal v2 API contract sections. |
 | `restserver/tests/test_inventory_read_api.py` | Added component tests for read-only inventory branch. |
 
@@ -54,6 +55,49 @@ Result:
 ```text
 73 passed
 ```
+
+## NEXT-011 Bounded Retest Addendum
+
+Retest window:
+
+- Work item: `ERP2-ENG-CROSS-LAYER-VS-WH-INV-INT-TEST-001`
+- Authority: `ERP2-CTO-BACKLOG-ORCH-NEXT-011`
+- Non-production listener supplied by Engineering Office A: `127.0.0.1:3307`, database `test`
+
+Connectivity result:
+
+- TCP listener probe: reachable.
+- SQLAlchemy / MariaDB authentication: blocked by driver-level SSPI credential error in this participant environment.
+- Real API -> DB/staging validation: Safe Stop, because usable non-production DB credentials or connection method were not available to the Backend participant.
+
+Bounded remediation performed:
+
+- `CDBMgr` and `CDBMgrTrans` now assign shared engine/session state only after engine creation and metadata initialization complete.
+- This prevents a failed first DB connection from poisoning subsequent endpoint calls with a secondary `NoneType` session error.
+- The remediation does not change endpoint contract, route ceiling, security boundary, UOM behavior, schema, migration state, or data.
+
+Sanitized HTTP retest after remediation:
+
+| Endpoint | HTTP Status | API Code | Sanitized Result |
+|---|---:|---:|---|
+| `GET /api/v2/inventory/balances` | 400 | 1001 | DB auth / SSPI credential error |
+| `GET /api/v2/inventory/movements` | 400 | 1001 | DB auth / SSPI credential error |
+| `GET /api/v2/lots` | 400 | 1001 | DB auth / SSPI credential error |
+| `GET /api/v2/lots/INVALID-LOT/trace` | 400 | 1001 | DB auth / SSPI credential error |
+| `POST /api/v2/inventory/balances` | 405 | N/A | Method not allowed; read-only route preserved |
+
+Retest evidence:
+
+```text
+restserver/tests/test_inventory_read_api.py: 6 passed
+restserver/tests/test_inventory_read_api.py + test_warehouse_dashboard.py + test_traceability_api.py: 42 passed
+restserver/tests: 73 passed
+```
+
+Required external completion:
+
+- Engineering A/B must provide a usable non-secret connection method or execute the four authorized HTTP checks inside the environment that holds the synthetic package `SYNTHETIC-WH-INV-INT-TEST-001`.
+- Expected staging/crosswalk row counts during that window remain: balance snapshot 2, movement 3, lot snapshot 2, item crosswalk 2, lot crosswalk 2, UOM crosswalk 1, validation result 10.
 
 Command:
 

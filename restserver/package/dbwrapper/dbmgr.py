@@ -13,16 +13,17 @@ class CDBMgrTrans():
     def __init__(self, obj_db=CMaria()):
         if not CDBMgr.__m_obj_engine:
             str_db_url = obj_db.gen_connection_str()
-            CDBMgr.__m_obj_engine = create_engine(str_db_url,
-                                                  pool_size=10,  # 連線池大小
-                                                  max_overflow=20,  # 額外允許的連線數
-                                                  pool_timeout=30,  # 等待可用連線的秒數
-                                                  pool_recycle=3600,  # 超過一小時就回收連線
-                                                  pool_pre_ping=True,  # 查詢前先 ping 測試連線
-                                                  echo=False
-                                                  )
-            obj_base.metadata.create_all(CDBMgr.__m_obj_engine)
-            CDBMgr.__m_session = orm.sessionmaker(bind=CDBMgr.__m_obj_engine)
+            obj_engine = create_engine(str_db_url,
+                                       pool_size=10,  # 連線池大小
+                                       max_overflow=20,  # 額外允許的連線數
+                                       pool_timeout=30,  # 等待可用連線的秒數
+                                       pool_recycle=3600,  # 超過一小時就回收連線
+                                       pool_pre_ping=True,  # 查詢前先 ping 測試連線
+                                       echo=False
+                                       )
+            obj_base.metadata.create_all(obj_engine)
+            CDBMgr.__m_obj_engine = obj_engine
+            CDBMgr.__m_session = orm.sessionmaker(bind=obj_engine)
             #print("__init__")
 
     def __enter__(self):
@@ -96,16 +97,17 @@ class CDBMgr():
     def __init__(self, obj_db=CMaria()):
         if not CDBMgr.__m_obj_engine:
             str_db_url = obj_db.gen_connection_str()
-            CDBMgr.__m_obj_engine = create_engine(str_db_url,
-                                                  pool_size=10,  # 連線池大小
-                                                  max_overflow=20,  # 額外允許的連線數
-                                                  pool_timeout=30,  # 等待可用連線的秒數
-                                                  pool_recycle=3600,  # 超過一小時就回收連線
-                                                  pool_pre_ping=True,  # 查詢前先 ping 測試連線
-                                                  echo=False
-                                                  )
-            obj_base.metadata.create_all(CDBMgr.__m_obj_engine)
-            CDBMgr.__m_session = orm.sessionmaker(bind=CDBMgr.__m_obj_engine)
+            obj_engine = create_engine(str_db_url,
+                                       pool_size=10,  # 連線池大小
+                                       max_overflow=20,  # 額外允許的連線數
+                                       pool_timeout=30,  # 等待可用連線的秒數
+                                       pool_recycle=3600,  # 超過一小時就回收連線
+                                       pool_pre_ping=True,  # 查詢前先 ping 測試連線
+                                       echo=False
+                                       )
+            obj_base.metadata.create_all(obj_engine)
+            CDBMgr.__m_obj_engine = obj_engine
+            CDBMgr.__m_session = orm.sessionmaker(bind=obj_engine)
             #print("__init__")
 
     def __enter__(self):

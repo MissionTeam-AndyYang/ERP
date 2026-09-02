@@ -117,7 +117,7 @@ type ApiWarehouseRisk = {
   warehouseNo?: string;
   warehouseName?: string;
   quantity?: number;
-  unit?: number;
+  unit?: number | string;
   inventoryValue?: number;
   daysInStock?: number;
   validDate?: number;
@@ -147,7 +147,7 @@ type ApiWarehouseTask = {
   expectedQuantity?: number;
   processedQuantity?: number;
   remainingQuantity?: number;
-  unit?: number;
+  unit?: number | string;
   palletCount?: number;
   warehouseNo?: string;
   warehouseName?: string;
@@ -175,7 +175,7 @@ type ApiWarehouseInventory = {
   batchNo?: string;
   lotCode?: string;
   serialNo?: string;
-  unit?: number;
+  unit?: number | string;
   unitCost?: number;
   currentQuantity?: number;
   reservedQuantity?: number;
@@ -213,7 +213,7 @@ type ApiWarehouseInventoryLot = {
   itemNo?: string;
   itemName?: string;
   batchNo?: string;
-  unit?: number;
+  unit?: number | string;
   currentQuantity?: number;
   reservedQuantity?: number;
   qualityHoldQuantity?: number;
@@ -263,7 +263,7 @@ type ApiWarehouseInventoryRecordLine = {
   category?: number;
   source?: number;
   quantity?: number;
-  unit?: number;
+  unit?: number | string;
   unitCost?: number;
   amount?: number;
   comment?: string;
@@ -368,7 +368,7 @@ type ApiWarehouseTaskWorkbenchItem = {
   itemNo?: string;
   itemName?: string;
   batchNo?: string;
-  unit?: number;
+  unit?: number | string;
   expectedQuantity?: number;
   processedQuantity?: number;
   remainingQuantity?: number;
@@ -772,8 +772,14 @@ function categoryLabel(value?: number): InventoryCategory {
   return CATEGORY_LABELS[value ?? 0] ?? ("原料" as InventoryCategory);
 }
 
-function unitLabel(value?: number) {
-  return value === undefined || value === null ? "" : warehouseEnumLabel("unit", value, "zh-TW");
+function unitLabel(value?: number | string) {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  if (typeof value === "string" && value.trim() && !/^\d+$/.test(value.trim())) {
+    return value;
+  }
+  return warehouseEnumLabel("unit", value, "zh-TW");
 }
 
 function sourceRefCategoryLabel(value?: number): WarehouseSourceType {

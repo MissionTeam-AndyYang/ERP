@@ -253,7 +253,10 @@ export function traceRefCategoryLabel(value?: number, language: LanguageCode = d
   return warehouseEnumLabel("refCategory", value, language);
 }
 
-export function traceUnitLabel(value?: number, language: LanguageCode = defaultLanguage) {
+export function traceUnitLabel(value?: number | string, language: LanguageCode = defaultLanguage) {
+  if (typeof value === "string" && value.trim() && !/^\d+$/.test(value.trim())) {
+    return value;
+  }
   return warehouseEnumLabel("unit", value, language);
 }
 

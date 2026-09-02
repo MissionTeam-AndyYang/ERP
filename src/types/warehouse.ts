@@ -273,7 +273,7 @@ export type WarehouseTaskWorkbenchItem = {
   itemNo: string;
   itemName: string;
   batchNo: string;
-  unit?: number;
+  unit?: number | string;
   expectedQuantity: number;
   processedQuantity: number;
   remainingQuantity: number;

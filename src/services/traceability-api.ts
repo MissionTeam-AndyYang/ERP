@@ -39,7 +39,7 @@ type ApiTraceLot = {
   itemNo?: string;
   itemName?: string;
   batchNo?: string;
-  unit?: number;
+  unit?: number | string;
   currentQuantity?: number;
   refNo?: string;
   refCategory?: number;
@@ -64,7 +64,7 @@ type ApiTraceStepItem = {
   itemCategory?: number;
   batchNo?: string;
   quantity?: number;
-  unit?: number;
+  unit?: number | string;
 };
 
 type ApiTraceStep = {
@@ -89,7 +89,7 @@ type ApiTraceOverviewPayload = {
     itemCategory?: number;
     itemSubCategory?: number;
     itemType?: number;
-    unit?: number;
+    unit?: number | string;
     validDate?: number;
     validDays?: number;
     refCategory?: number;
@@ -146,8 +146,9 @@ export const emptyTraceabilityDashboardData: TraceabilityDashboardData = {
   count: 0
 };
 
-function asNumber(value?: number) {
-  return Number.isFinite(value) ? Number(value) : 0;
+function asNumber(value?: number | string) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
 function formatInteger(value?: number) {

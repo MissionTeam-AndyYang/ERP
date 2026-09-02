@@ -357,7 +357,7 @@ function TraceHierarchyView({ overview }: { overview: TraceBatchOverview }) {
     return (
       <EmptyState
         title="此批號尚無可展開流程"
-        description="第一版只展開原料與製成品批號；若後端回傳空 traceSteps，畫面會如實顯示。"
+        description="目前只展開原料與製成品批號；若後端沒有回傳追溯流程，畫面會如實顯示。"
       />
     );
   }
@@ -426,7 +426,7 @@ function ChainView({
   activeTab: TraceabilityWorkspaceTab;
 }) {
   if (isLoading) {
-    return <LoadingState title="正在載入批號鏈路" description="系統正在取得單一批號的 traceSteps 追溯流程。" />;
+    return <LoadingState title="正在載入批號鏈路" description="系統正在取得單一批號的追溯流程。" />;
   }
 
   if (!overview) {
@@ -446,7 +446,7 @@ function ChainView({
       ) : (
         <EmptyState
           title="此批號尚無可展開流程"
-          description="第一版只展開原料與製成品批號；若後端回傳空 traceSteps，畫面會如實顯示。"
+          description="目前只展開原料與製成品批號；若後端沒有回傳追溯流程，畫面會如實顯示。"
         />
       )}
     </div>
@@ -520,7 +520,7 @@ function DetailPanel({
           ))
         ) : (
           <p className="rounded-md border border-dashed border-border px-3 py-3 text-xs text-textSecondary">
-            尚無 traceSteps 可顯示。
+            尚無追溯流程可顯示。
           </p>
         )}
       </section>
@@ -613,7 +613,7 @@ export default function TraceabilityPage() {
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-textPrimary">批號追溯與投產流程</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
-                以批號為入口，檢視可確認的進貨、產製與銷貨流程；單批號明細由後端 traceSteps 直接提供投入物與產出物關係。
+                以批號為入口，檢視可確認的進貨、產製與銷貨流程；單批號明細由後端提供投入物與產出物關係。
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-3">

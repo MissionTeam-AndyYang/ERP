@@ -33,7 +33,7 @@
 
 # ItemCenterScreen API 提案
 
-> Status: API Proposal / Pending Engineer Review  
+> Status: Engineer Confirmed / Backend API Implemented / Pending Engineer Runtime Review  
 > Screen: `ItemCenterScreen`  
 > Route: `/items`  
 > Scope: V1 read-only Core  

@@ -176,13 +176,13 @@ Naming rules:
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P0 | V1 Core | `ItemAndTransactionMasterScreen` | Screen | 品項與交易主資料中心 | `/items` | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/items/dashboard`、`GET /api/v2/transitems/dashboard` | 同一入口整合客戶／廠商、料品品項與交易品項三個 read-only 視角，提供主資料查詢、關聯檢查與資料缺口辨識。 |
 | P0.1 | V1 Core | `CompanyMasterView` | View | 客戶／廠商主檔視圖 | `ItemAndTransactionMasterScreen` 內的「客戶／廠商」頁籤 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/transitems/dashboard`、`GET /api/v2/transitems/companies/{company_no}/detail` | 顯示 `company` 主檔、交易角色、聯絡資訊、付款/收款基礎資訊，以及與交易品項、合約、採購/訂購流程的摘要關聯。 |
-| P0.2 | V1 Core | `MaterialItemMasterView` | View | 料品品項視圖 | `ItemAndTransactionMasterScreen` 內的「料品品項」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard`、`GET /api/v2/items/{item_no}/detail` | 延續既有料品主資料範圍，檢視原料、物料、膠捲、在製品、製成品與貨品主檔，包含主檔完整度、庫存訊號、BOM 關聯與維護風險。 |
+| P0.2 | V1 Core | `MaterialItemMasterView` | View | 料品品項視圖 | `ItemAndTransactionMasterScreen` 內的「料品品項」頁籤 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/items/dashboard`、`GET /api/v2/items/{item_no}/detail` | 延續既有料品主資料範圍，檢視原料、物料、膠捲、在製品、製成品與貨品主檔，包含主檔完整度、庫存訊號、BOM 關聯與維護風險。 |
 | P0.3 | V1 Core | `TransactionItemMasterView` | View | 交易品項視圖 | `ItemAndTransactionMasterScreen` 內的「交易品項」頁籤 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/transitems/dashboard`、`GET /api/v2/transitems/transitems/{transaction_item_no}/detail` | 顯示由客戶／廠商合約或交易條件產生的交易品項，包含交易品項、所屬公司、對應料品、交易單位、交易單價、物流成本與合約來源。 |
-| P0.4 | V1 Core | `ItemCategorySummaryView` | View | 品項分類摘要視圖 | `MaterialItemMasterView` 內的分類摘要與 KPI | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 依料品品項類別彙總品項數、目前有庫存品項數、BOM 關聯數與需注意品項數。 |
-| P0.5 | V1 Core | `ItemMasterListView` | View | 料品主檔清單視圖 | `MaterialItemMasterView` 主要清單 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 支援關鍵字、類別、主檔狀態、是否有庫存、是否有 BOM 關聯與分頁。 |
-| P0.6 | V1 Core | `ItemMaintenanceSuggestionView` | View | 主檔維護建議視圖 | `MaterialItemMasterView` 右側待維護面板 | API proposal，Pending Engineer Review | `GET /api/v2/items/dashboard` | 顯示缺單位、缺 BOM、缺庫存訊號等 read-only 維護建議；不代表 workflow task 或部門轉交。 |
+| P0.4 | V1 Core | `ItemCategorySummaryView` | View | 品項分類摘要視圖 | `MaterialItemMasterView` 內的分類摘要與 KPI | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/items/dashboard` | 依料品品項類別彙總品項數、目前有庫存品項數、BOM 關聯數與需注意品項數。 |
+| P0.5 | V1 Core | `ItemMasterListView` | View | 料品主檔清單視圖 | `MaterialItemMasterView` 主要清單 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/items/dashboard` | 支援關鍵字、類別、主檔狀態、是否有庫存、是否有 BOM 關聯與分頁。 |
+| P0.6 | V1 Core | `ItemMaintenanceSuggestionView` | View | 主檔維護建議視圖 | `MaterialItemMasterView` 右側待維護面板 | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/items/dashboard` | 顯示缺單位、缺 BOM、缺庫存訊號等 read-only 維護建議；不代表 workflow task 或部門轉交。 |
 | P1 | V1 Core | `CompanyDetailPanel` | Panel | 客戶／廠商明細面板 | `CompanyMasterView` 右側 panel；窄版可作 drawer | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/transitems/companies/{company_no}/detail` | 顯示單一公司主檔、交易角色、聯絡與帳款摘要、交易品項清單及近期合約摘要。 |
-| P1.1 | V1 Core | `ItemDetailPanel` | Panel | 料品明細面板 | `MaterialItemMasterView` 右側 panel；窄版可作 drawer | API proposal，Pending Engineer Review | `GET /api/v2/items/{item_no}/detail` | 顯示單一料品主檔、庫存摘要、BOM 使用、近期批號與主檔維護建議。 |
+| P1.1 | V1 Core | `ItemDetailPanel` | Panel | 料品明細面板 | `MaterialItemMasterView` 右側 panel；窄版可作 drawer | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/items/{item_no}/detail` | 顯示單一料品主檔、庫存摘要、BOM 使用、近期批號與主檔維護建議。 |
 | P1.2 | V1 Core | `TransactionItemDetailPanel` | Panel | 交易品項明細面板 | `TransactionItemMasterView` 右側 panel；窄版可作 drawer | 後端 API 已實作，待工程師 runtime review | `GET /api/v2/transitems/transitems/{transaction_item_no}/detail` | 顯示單一交易品項的公司、對應料品、交易單位、交易單價、物流成本、規格與合約來源。 |
 
 ### Item And Transaction Master Scope Boundary

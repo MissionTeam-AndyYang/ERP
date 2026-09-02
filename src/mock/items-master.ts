@@ -1,0 +1,210 @@
+import type { ItemAndTransactionMasterData } from "@/types/items-master";
+
+export const itemAndTransactionMasterMock: ItemAndTransactionMasterData = {
+  summary: {
+    totalItemCount: 6,
+    activeItemCount: 6,
+    finishedGoodsCount: 2,
+    maintenanceItemCount: 3,
+    companyCount: 2,
+    transItemCount: 4,
+    linkedItemCount: 3,
+    contractLinkedTransItemCount: 2,
+    companyDataQualityIssueCount: 1,
+    transItemDataQualityIssueCount: 1
+  },
+  categorySummary: [
+    { itemCategory: 1, itemCategoryLabel: "原料", itemCount: 2, stockItemCount: 1, bomLinkedItemCount: 1, maintenanceItemCount: 1 },
+    { itemCategory: 4, itemCategoryLabel: "在製品", itemCount: 1, stockItemCount: 0, bomLinkedItemCount: 1, maintenanceItemCount: 0 },
+    { itemCategory: 5, itemCategoryLabel: "製成品", itemCount: 2, stockItemCount: 0, bomLinkedItemCount: 1, maintenanceItemCount: 1 },
+    { itemCategory: 6, itemCategoryLabel: "貨品", itemCount: 1, stockItemCount: 0, bomLinkedItemCount: 0, maintenanceItemCount: 1 }
+  ],
+  items: [
+    {
+      id: "RM-001",
+      itemNo: "RM-001",
+      itemName: "冷凍玉米粒",
+      itemCategory: 1,
+      itemCategoryLabel: "原料",
+      itemSubCategory: 11,
+      unitWarehouse: 2,
+      unitWarehouseLabel: "公斤",
+      unitProduct: 2,
+      unitProductLabel: "公斤",
+      masterStatusCode: "ready",
+      masterStatusLabel: "可使用",
+      maintenanceRiskCode: "normal",
+      maintenanceRiskLabel: "資料完整",
+      hasStock: true,
+      currentQuantity: 80,
+      batchCount: 1,
+      bomCount: 2,
+      tone: "success"
+    },
+    {
+      id: "FG-MISSING-BOM",
+      itemNo: "FG-MISSING-BOM",
+      itemName: "缺 BOM 製成品",
+      itemCategory: 5,
+      itemCategoryLabel: "製成品",
+      itemSubCategory: 51,
+      unitWarehouse: 109,
+      unitWarehouseLabel: "盒",
+      unitProduct: 109,
+      unitProductLabel: "盒",
+      masterStatusCode: "maintenance_needed",
+      masterStatusLabel: "待維護",
+      maintenanceRiskCode: "missing_bom",
+      maintenanceRiskLabel: "缺少 BOM 關聯",
+      hasStock: false,
+      currentQuantity: 0,
+      batchCount: 0,
+      bomCount: 0,
+      tone: "warning"
+    }
+  ],
+  maintenanceSuggestions: [
+    {
+      suggestionId: "suggestion-RM-NOSTOCK",
+      itemNo: "RM-NOSTOCK",
+      suggestionTypeCode: "missing_stock_signal",
+      suggestionTypeLabel: "缺少庫存訊號",
+      riskLevelCode: "attention",
+      riskLevelLabel: "注意",
+      tone: "warning"
+    },
+    {
+      suggestionId: "suggestion-GOODS-001",
+      itemNo: "GOODS-001",
+      suggestionTypeCode: "missing_unit",
+      suggestionTypeLabel: "缺少單位設定",
+      riskLevelCode: "high_risk",
+      riskLevelLabel: "高風險",
+      tone: "danger"
+    }
+  ],
+  companies: [
+    {
+      id: "CUST-001",
+      companyNo: "CUST-001",
+      companyDisplayName: "中區量販",
+      companyName: "中區量販股份有限公司",
+      businessNo: "12345678",
+      transItemCount: 2,
+      contractCount: 1,
+      contactName: "王小明",
+      contactPhone: "0912000000",
+      receivablePayment: {
+        paymentTypeCode: "monthly",
+        paymentTypeLabel: "月結",
+        paymentDate: 25,
+        paymentPeriod: 30,
+        paymentSource: 1,
+        paymentSourceLabel: "匯款"
+      },
+      payablePayment: {
+        paymentTypeCode: "cash",
+        paymentTypeLabel: "現結",
+        paymentDate: 0,
+        paymentPeriod: 0,
+        paymentSource: 0,
+        paymentSourceLabel: "現金"
+      },
+      dataQualityCode: "ready",
+      dataQualityLabel: "資料完整",
+      tone: "success"
+    },
+    {
+      id: "SUP-001",
+      companyNo: "SUP-001",
+      companyDisplayName: "綠田食品",
+      companyName: "綠田食品有限公司",
+      businessNo: "87654321",
+      transItemCount: 2,
+      contractCount: 1,
+      contactName: "林小姐",
+      contactPhone: "04-22220000",
+      receivablePayment: {
+        paymentTypeCode: "unknown",
+        paymentTypeLabel: "未設定",
+        paymentDate: 0,
+        paymentPeriod: 0,
+        paymentSource: 0,
+        paymentSourceLabel: "現金"
+      },
+      payablePayment: {
+        paymentTypeCode: "monthly",
+        paymentTypeLabel: "月結",
+        paymentDate: 20,
+        paymentPeriod: 30,
+        paymentSource: 1,
+        paymentSourceLabel: "匯款"
+      },
+      dataQualityCode: "missing_payment",
+      dataQualityLabel: "帳款條件待補",
+      tone: "warning"
+    }
+  ],
+  transactionItems: [
+    {
+      id: "TI-001",
+      transItemNo: "TI-001",
+      transItemName: "交易冷凍玉米粒",
+      transItemType: "trans_items",
+      transItemTypeLabel: "交易品項",
+      transItemCategory: 1,
+      transItemCategoryLabel: "採購品項",
+      transItemAttribute: 2,
+      companyNo: "SUP-001",
+      companyDisplayName: "綠田食品",
+      itemNo: "RM-001",
+      itemName: "冷凍玉米粒",
+      itemCategory: 1,
+      itemCategoryLabel: "原料",
+      contractNo: "CON-001",
+      contractCategory: 1,
+      contractCategoryLabel: "採購合約",
+      contractType: 2,
+      tradeUnit: 2,
+      tradeUnitLabel: "公斤",
+      tradePrice: 12.3457,
+      shippingPrice: 1.2346,
+      unitConversion: 1,
+      dataQualityCode: "ready",
+      dataQualityLabel: "資料完整",
+      tone: "success"
+    },
+    {
+      id: "TI-MISSING",
+      transItemNo: "TI-MISSING",
+      transItemName: "未關聯料品交易項",
+      transItemType: "trans_items",
+      transItemTypeLabel: "交易品項",
+      transItemCategory: 1,
+      transItemCategoryLabel: "採購品項",
+      transItemAttribute: 1,
+      companyNo: "SUP-001",
+      companyDisplayName: "綠田食品",
+      itemNo: "",
+      itemName: "",
+      itemCategory: 0,
+      itemCategoryLabel: "其他",
+      contractNo: "",
+      contractCategory: 0,
+      contractCategoryLabel: "未關聯合約",
+      contractType: 0,
+      tradeUnit: 0,
+      tradeUnitLabel: "其他",
+      tradePrice: 0,
+      shippingPrice: 0,
+      unitConversion: 0,
+      dataQualityCode: "missing_linked_item",
+      dataQualityLabel: "未關聯料品",
+      tone: "warning"
+    }
+  ],
+  totalItems: 6,
+  totalTransactionItems: 4,
+  start: 0,
+  count: 50
+};

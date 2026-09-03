@@ -32,6 +32,13 @@ type ApiRecipeFormulaListItem = {
   id?: string;
   recipeNo?: string;
   recipeName?: string;
+  recipeVersion?: number;
+  versionStateCode?: string;
+  formulaStatusCode?: string;
+  dateTimestamp?: number;
+  weight?: number;
+  unit?: string | number;
+  warningCodes?: string[];
   productNo?: string;
   productName?: string;
   currentVersion?: number;
@@ -46,12 +53,21 @@ type ApiRecipeFormulaListItem = {
 
 type ApiRecipeFormulaCompositionPayload = {
   recipe?: ApiRecipeFormulaListItem;
+  version?: ApiRecipeFormulaVersion;
+  formula?: {
+    recipeNo?: string;
+    recipeVersion?: number;
+    formulaStatusCode?: string;
+    weight?: number;
+    unit?: string | number;
+    weightSourceCode?: string;
+  };
   versions?: ApiRecipeFormulaVersion[];
   inputs?: ApiRecipeFormulaInput[];
   output?: ApiRecipeFormulaOutput;
   definedOutput?: ApiRecipeFormulaOutput;
   lineage?: ApiRecipeFormulaLineage[];
-  sourceLineage?: ApiRecipeFormulaLineage[];
+  sourceLineage?: ApiRecipeFormulaLineage[] | ApiRecipeFormulaSourceLineage;
   warnings?: ApiRecipeFormulaWarning[];
   productStructureReferences?: ApiRecipeFormulaReference[];
   routingReferences?: ApiRecipeFormulaReference[];
@@ -62,6 +78,11 @@ type ApiRecipeFormulaCompositionPayload = {
 };
 
 type ApiRecipeFormulaVersion = {
+  recipeVersion?: number;
+  versionStateCode?: string;
+  dateTimestamp?: number;
+  weight?: number;
+  unit?: string | number;
   version?: number;
   statusCode?: string;
   recipeStatusCode?: string;
@@ -71,6 +92,12 @@ type ApiRecipeFormulaVersion = {
 
 type ApiRecipeFormulaInput = {
   lineNo?: string | number;
+  inputNo?: string;
+  inputName?: string;
+  inputCategory?: number;
+  inputSubCategory?: number;
+  lossSourceCode?: string;
+  weightSourceCode?: string;
   itemNo?: string;
   itemName?: string;
   itemCategory?: number;
@@ -90,6 +117,12 @@ type ApiRecipeFormulaInput = {
 };
 
 type ApiRecipeFormulaOutput = {
+  outputNo?: string;
+  outputName?: string;
+  outputCategory?: number;
+  productVersion?: number;
+  sourceCode?: string;
+  weightSourceCode?: string;
   itemNo?: string;
   itemName?: string;
   outputTypeCode?: string;
@@ -109,6 +142,20 @@ type ApiRecipeFormulaLineage = {
   sourceRef?: string;
   evidenceLabel?: string;
   statusLabel?: string;
+};
+
+type ApiRecipeFormulaSourceLineage = {
+  recipeSourceCode?: string;
+  inputSourceCode?: string;
+  outputSourceCode?: string;
+  productStructureReference?: {
+    productNo?: string;
+    productVersion?: number;
+    bomNo?: string;
+    bomVersion?: number;
+  };
+  routingContextRefs?: ApiRecipeFormulaReference[];
+  productionObservationRefs?: ApiRecipeFormulaReference[];
 };
 
 type ApiRecipeFormulaWarning = {
@@ -177,6 +224,12 @@ function normalizeStatusCode(value?: string): RecipeFormulaStatusCode {
   if (value === "effective" || value === "draft" || value === "future" || value === "historical" || value === "warning") {
     return value;
   }
+  if (value === "complete") {
+    return "effective";
+  }
+  if (value === "partial" || value === "missing") {
+    return "warning";
+  }
   return "unknown";
 }
 
@@ -244,11 +297,17 @@ function unitLabel(unit?: string | number, unitCode?: number) {
 }
 
 function normalizeSummary(summary?: Partial<RecipeFormulaSummary>): RecipeFormulaSummary {
+  const warningCount =
+    summary?.warningCount ??
+    asNumber((summary as { partialFormulaCount?: number } | undefined)?.partialFormulaCount) +
+      asNumber((summary as { missingFormulaCount?: number } | undefined)?.missingFormulaCount);
   return {
     recipeCount: asNumber(summary?.recipeCount),
     versionCount: asNumber(summary?.versionCount),
-    effectiveVersionCount: asNumber(summary?.effectiveVersionCount),
-    warningCount: asNumber(summary?.warningCount)
+    effectiveVersionCount: asNumber(
+      summary?.effectiveVersionCount ?? (summary as { completeFormulaCount?: number } | undefined)?.completeFormulaCount
+    ),
+    warningCount: asNumber(warningCount)
   };
 }
 
@@ -262,9 +321,9 @@ function kpisFromSummary(summary: RecipeFormulaSummary): RecipeFormulaKpi[] {
 }
 
 function mapRecipeListItem(item: ApiRecipeFormulaListItem): RecipeFormulaListItem {
-  const statusCode = normalizeStatusCode(item.statusCode ?? item.recipeStatusCode);
+  const statusCode = normalizeStatusCode(item.statusCode ?? item.recipeStatusCode ?? item.versionStateCode ?? item.formulaStatusCode);
   const recipeNo = item.recipeNo ?? "";
-  const currentVersion = asNumber(item.currentVersion ?? item.version);
+  const currentVersion = asNumber(item.currentVersion ?? item.version ?? item.recipeVersion);
   return {
     id: item.id ?? `${recipeNo || "recipe"}-v${currentVersion}`,
     recipeNo,
@@ -276,36 +335,36 @@ function mapRecipeListItem(item: ApiRecipeFormulaListItem): RecipeFormulaListIte
     statusLabel: statusLabel(statusCode),
     tone: statusTone(statusCode),
     inputCount: asNumber(item.inputCount),
-    warningCount: asNumber(item.warningCount),
+    warningCount: asNumber(item.warningCount ?? item.warningCodes?.length),
     owner: item.owner ?? "未提供",
-    sourceLabel: item.sourceLabel ?? "未提供"
+    sourceLabel: item.sourceLabel ?? (item.formulaStatusCode ? formulaStatusLabel(item.formulaStatusCode) : "未提供")
   };
 }
 
 function mapVersion(version: ApiRecipeFormulaVersion): RecipeFormulaVersion {
-  const statusCode = normalizeStatusCode(version.statusCode ?? version.recipeStatusCode);
+  const statusCode = normalizeStatusCode(version.statusCode ?? version.recipeStatusCode ?? version.versionStateCode);
   return {
-    version: asNumber(version.version),
+    version: asNumber(version.version ?? version.recipeVersion),
     statusCode,
     statusLabel: statusLabel(statusCode),
     tone: statusTone(statusCode),
-    effectiveDate: version.effectiveDate ?? version.date ?? ""
+    effectiveDate: version.effectiveDate ?? version.date ?? formatTimestamp(version.dateTimestamp)
   };
 }
 
 function mapInput(input: ApiRecipeFormulaInput): RecipeFormulaInput {
   return {
     lineNo: String(input.lineNo ?? ""),
-    itemNo: input.itemNo ?? "",
-    itemName: input.itemName ?? "",
-    itemCategoryLabel: itemCategoryLabel(input.itemCategory, input.itemCategoryLabel),
+    itemNo: input.itemNo ?? input.inputNo ?? "",
+    itemName: input.itemName ?? input.inputName ?? "",
+    itemCategoryLabel: itemCategoryLabel(input.itemCategory ?? input.inputCategory, input.itemCategoryLabel),
     processStageLabel: processStageLabel(input.processStageCode, input.processStageLabel),
     quantity: asNumber(input.inputQuantity ?? input.quantity),
     weight: asNumber(input.inputWeight ?? input.weight),
     unit: unitLabel(input.unit, input.unitCode),
     weightRatio: asNumber(input.weightRatio),
     inputLossRate: asNumber(input.inputLossRate ?? input.lossRate),
-    sourceRef: input.sourceRef ?? ""
+    sourceRef: input.sourceRef ?? input.weightSourceCode ?? input.lossSourceCode ?? ""
   };
 }
 
@@ -314,14 +373,31 @@ function mapOutput(output?: ApiRecipeFormulaOutput): RecipeFormulaOutput | undef
     return undefined;
   }
   return {
-    itemNo: output.itemNo ?? "",
-    itemName: output.itemName ?? "",
+    itemNo: output.itemNo ?? output.outputNo ?? "",
+    itemName: output.itemName ?? output.outputName ?? "",
     outputTypeLabel: output.outputTypeLabel ?? "唯一定義產出",
     quantity: asNumber(output.outputQuantity ?? output.quantity),
     weight: asNumber(output.outputWeight ?? output.weight),
     unit: unitLabel(output.unit, output.unitCode),
     yieldRate: asNumber(output.yieldRate)
   };
+}
+
+function formulaStatusLabel(value?: string) {
+  const labels: Record<string, string> = {
+    complete: "Formula 完整",
+    partial: "Formula 待確認",
+    missing: "Formula 缺漏",
+    unknown: "Formula 待確認"
+  };
+  return labels[String(value ?? "unknown").toLocaleLowerCase()] ?? labels.unknown;
+}
+
+function formatTimestamp(value?: number) {
+  if (!value) {
+    return "";
+  }
+  return new Date(value * 1000).toLocaleDateString(locale);
 }
 
 function mapLineage(lineage: ApiRecipeFormulaLineage): RecipeFormulaLineage {
@@ -333,6 +409,35 @@ function mapLineage(lineage: ApiRecipeFormulaLineage): RecipeFormulaLineage {
   };
 }
 
+function mapSourceLineage(lineage?: ApiRecipeFormulaLineage[] | ApiRecipeFormulaSourceLineage): RecipeFormulaLineage[] {
+  if (Array.isArray(lineage)) {
+    return lineage.map(mapLineage);
+  }
+  if (!lineage) {
+    return [];
+  }
+  return [
+    {
+      sourceTypeLabel: "Recipe 定義來源",
+      sourceRef: lineage.recipeSourceCode ?? "",
+      evidenceLabel: "Recipe definition evidence",
+      statusLabel: "read-only"
+    },
+    {
+      sourceTypeLabel: "Formula input 來源",
+      sourceRef: lineage.inputSourceCode ?? "",
+      evidenceLabel: "Formula input evidence",
+      statusLabel: "read-only"
+    },
+    {
+      sourceTypeLabel: "定義產出來源",
+      sourceRef: lineage.outputSourceCode ?? "",
+      evidenceLabel: "Formula output evidence",
+      statusLabel: "read-only"
+    }
+  ].filter((item) => item.sourceRef);
+}
+
 function mapWarning(warning: ApiRecipeFormulaWarning): RecipeFormulaWarning {
   const code = warning.code ?? warning.warningCode ?? "unknown";
   const messages: Record<string, string> = {
@@ -340,6 +445,12 @@ function mapWarning(warning: ApiRecipeFormulaWarning): RecipeFormulaWarning {
     missing_defined_output: "尚未提供唯一定義產出。",
     multiple_defined_outputs: "回傳包含多個定義產出，需後端確認。",
     missing_input: "尚未提供配方輸入項目。",
+    missing_inputs: "尚未提供配方輸入項目。",
+    missing_output: "尚未提供唯一定義產出。",
+    multiple_outputs: "回傳包含多個定義產出，需後端確認。",
+    missing_input_weight: "投入品項重量尚未確認。",
+    missing_output_weight: "產出重量基準尚未確認。",
+    missing_loss_source: "個別損耗來源尚未記錄。",
     unknown: "Recipe / Formula 資料需確認。"
   };
   return {
@@ -356,6 +467,31 @@ function mapReference(reference: ApiRecipeFormulaReference): RecipeFormulaRefere
     refName: reference.refName ?? "",
     statusLabel: reference.statusLabel ?? "參照中"
   };
+}
+
+function mapProductStructureReference(lineage?: ApiRecipeFormulaLineage[] | ApiRecipeFormulaSourceLineage): RecipeFormulaReference[] {
+  if (!lineage || Array.isArray(lineage) || !lineage.productStructureReference) {
+    return [];
+  }
+  const reference = lineage.productStructureReference;
+  if (!reference.productNo && !reference.bomNo) {
+    return [];
+  }
+  return [
+    {
+      typeLabel: "Product Structure",
+      refNo: reference.productNo ?? reference.bomNo ?? "",
+      refName: `BOM ${reference.bomNo ?? "未提供"} / V${asNumber(reference.bomVersion)}`,
+      statusLabel: "參照中"
+    }
+  ];
+}
+
+function mapRoutingReferences(lineage?: ApiRecipeFormulaLineage[] | ApiRecipeFormulaSourceLineage): RecipeFormulaReference[] {
+  if (!lineage || Array.isArray(lineage)) {
+    return [];
+  }
+  return withFallbackArray<ApiRecipeFormulaReference>(lineage.routingContextRefs, []).map(mapReference);
 }
 
 function mapDashboardPayload(payload: ApiRecipeFormulaDashboardPayload): RecipeFormulaDashboardData {
@@ -375,25 +511,41 @@ function mapCompositionPayload(
   payload: ApiRecipeFormulaCompositionPayload,
   fallback?: RecipeFormulaListItem
 ): RecipeFormulaDetail | undefined {
-  const recipe = payload.recipe ? mapRecipeListItem(payload.recipe) : fallback;
+  const recipe = payload.recipe ? mapRecipeListItem({
+    ...payload.recipe,
+    recipeVersion: payload.version?.recipeVersion ?? payload.formula?.recipeVersion ?? payload.recipe.recipeVersion,
+    versionStateCode: payload.version?.versionStateCode ?? payload.recipe.versionStateCode,
+    formulaStatusCode: payload.formula?.formulaStatusCode ?? payload.recipe.formulaStatusCode
+  }) : fallback;
   if (!recipe?.recipeNo) {
     return undefined;
   }
+  const inputs = withFallbackArray<ApiRecipeFormulaInput>(payload.inputs, []).map(mapInput);
+  const output = mapOutput(payload.definedOutput ?? payload.output);
+  const ratioBase = output?.weight || asNumber(payload.formula?.weight);
+  const inputsWithRatios = inputs.map((input) => ({
+    ...input,
+    weightRatio: input.weightRatio || (ratioBase > 0 ? (input.weight / ratioBase) * 100 : 0)
+  }));
+  const sourceLineage = payload.sourceLineage ?? payload.lineage;
   return {
     recipe,
-    versions: withFallbackArray<ApiRecipeFormulaVersion>(payload.versions, []).map(mapVersion),
-    inputs: withFallbackArray<ApiRecipeFormulaInput>(payload.inputs, []).map(mapInput),
-    output: mapOutput(payload.definedOutput ?? payload.output),
-    lineage: withFallbackArray<ApiRecipeFormulaLineage>(payload.sourceLineage ?? payload.lineage, []).map(mapLineage),
+    versions: withFallbackArray<ApiRecipeFormulaVersion>(
+      payload.versions,
+      payload.version ? [payload.version] : []
+    ).map(mapVersion),
+    inputs: inputsWithRatios,
+    output,
+    lineage: mapSourceLineage(sourceLineage),
     warnings: withFallbackArray<ApiRecipeFormulaWarning>(payload.warnings, []).map(mapWarning),
     productStructureReferences: withFallbackArray<ApiRecipeFormulaReference>(
       payload.productStructureReferences ?? payload.references?.productStructure,
       []
-    ).map(mapReference),
+    ).map(mapReference).concat(mapProductStructureReference(sourceLineage)),
     routingReferences: withFallbackArray<ApiRecipeFormulaReference>(
       payload.routingReferences ?? payload.references?.routing,
       []
-    ).map(mapReference)
+    ).map(mapReference).concat(mapRoutingReferences(sourceLineage))
   };
 }
 

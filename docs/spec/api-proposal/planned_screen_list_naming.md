@@ -124,7 +124,7 @@ Naming rules:
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `RecipeFormulaScreen` | Screen | Recipe / Formula | `/recipe` | 前端已完成 read-only UX、API client 與 mock/API 分離；待 Backend `ERP2-RECIPE-FORMULA-RO-EXEC-001-BE-001` 回傳契約後 real-backend validation | `GET /api/v2/recipe-formula/dashboard`、`GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 檢視 Recipe 定義、目前版本、Formula 組成、唯一定義產出、來源 lineage、警示、Product Structure 參照與 Routing context 參照；不包含寫入或核准操作。 |
+| P0 | V1 Core | `RecipeFormulaScreen` | Screen | Recipe / Formula | `/recipe` | 前端已完成 read-only UX、API client 與 mock/API 分離；已對齊 Backend `ERP2-RECIPE-FORMULA-RO-EXEC-001-BE-001` 正式欄位；real DB-backed browser validation 待可用 service window | `GET /api/v2/recipe-formula/dashboard`、`GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 檢視 Recipe 定義、目前版本、Formula 組成、唯一定義產出、來源 lineage、警示、Product Structure 參照與 Routing context 參照；不包含寫入或核准操作。 |
 | P0.1 | V1 Core | `RecipeFormulaSelectorView` | View | Recipe 選擇視圖 | `RecipeFormulaScreen` 左側 Recipe 清單 | 前端已完成 | `GET /api/v2/recipe-formula/dashboard` | 支援 Recipe / 產品 / 來源搜尋，顯示 Recipe no、產品、目前版本、輸入項數、警示數、來源與狀態。 |
 | P0.2 | V1 Core | `RecipeVersionSummaryPanel` | Panel | Recipe 版本摘要面板 | `RecipeFormulaScreen` 右側 panel | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示選取 Recipe Version、版本切換、產品、輸入項、警示與定義產出摘要。 |
 | P0.3 | V1 Core | `FormulaCompositionView` | View | Formula 組成視圖 | `RecipeFormulaScreen` 主內容區 | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示投入品項、階段、數量、重量、UOM、重量比例、個別損耗與來源 ref。 |

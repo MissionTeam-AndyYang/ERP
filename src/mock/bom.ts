@@ -1,4 +1,4 @@
-import type { BomDashboardData, BomDetail } from "@/types/bom";
+import type { BomDashboardData, BomDetail, BomProductStructureData } from "@/types/bom";
 
 export const bomDashboardMock: BomDashboardData = {
   summary: {
@@ -139,5 +139,151 @@ export const bomDetailMock: Record<string, BomDetail> = {
         ]
       }
     ]
+  }
+};
+
+export const bomProductStructureMock: Record<string, BomProductStructureData> = {
+  "P-00018": {
+    productNo: "P-00018",
+    productVersion: 5,
+    effectiveDate: "2026/08/01",
+    depth: 4,
+    statusCode: "effective",
+    statusLabel: "目前有效",
+    isPartial: false,
+    warnings: [],
+    root: {
+      id: "P-00018-v5",
+      nodeNo: "P-00018",
+      nodeName: "奶油餅乾禮盒",
+      nodeTypeCode: "finished_product",
+      nodeTypeLabel: "製成品",
+      productNo: "P-00018",
+      productVersion: 5,
+      bomNo: "BOM-260801",
+      bomVersion: 3,
+      quantity: 1,
+      weight: 150,
+      unit: "公斤",
+      unitCode: 2,
+      statusCode: "effective",
+      statusLabel: "目前有效",
+      hasChildren: true,
+      warnings: [],
+      children: [
+        {
+          id: "FG-COOKIE-018",
+          nodeNo: "FG-COOKIE-018",
+          nodeName: "奶油餅乾內盒",
+          nodeTypeCode: "wip",
+          nodeTypeLabel: "在製品",
+          quantity: 12,
+          weight: 150,
+          unit: "公斤",
+          unitCode: 2,
+          statusCode: "effective",
+          statusLabel: "目前有效",
+          hasChildren: true,
+          warnings: [],
+          children: [
+            {
+              id: "RM-0018",
+              nodeNo: "RM-0018",
+              nodeName: "小麥粉",
+              nodeTypeCode: "raw_material",
+              nodeTypeLabel: "原料",
+              quantity: 1,
+              weight: 120,
+              unit: "公斤",
+              unitCode: 2,
+              statusCode: "effective",
+              statusLabel: "目前有效",
+              hasChildren: false,
+              warnings: [],
+              children: []
+            },
+            {
+              id: "RM-0042",
+              nodeNo: "RM-0042",
+              nodeName: "砂糖",
+              nodeTypeCode: "raw_material",
+              nodeTypeLabel: "原料",
+              quantity: 1,
+              weight: 22.5,
+              unit: "公斤",
+              unitCode: 2,
+              statusCode: "effective",
+              statusLabel: "目前有效",
+              hasChildren: false,
+              warnings: [],
+              children: []
+            }
+          ]
+        },
+        {
+          id: "PKG-BOX-018",
+          nodeNo: "PKG-BOX-018",
+          nodeName: "禮盒外箱",
+          nodeTypeCode: "packaging",
+          nodeTypeLabel: "包材",
+          quantity: 1,
+          weight: 1,
+          unit: "個",
+          unitCode: 101,
+          statusCode: "effective",
+          statusLabel: "目前有效",
+          hasChildren: false,
+          warnings: [],
+          children: []
+        }
+      ]
+    }
+  },
+  "P-00021": {
+    productNo: "P-00021",
+    productVersion: 2,
+    effectiveDate: "2026/08/01",
+    depth: 3,
+    statusCode: "partial",
+    statusLabel: "部分資料",
+    isPartial: true,
+    warnings: [{ code: "partial_structure", message: "部分下階關聯尚未由後端資料提供。" }],
+    root: {
+      id: "P-00021-v2",
+      nodeNo: "P-00021",
+      nodeName: "小麥餅乾散裝包",
+      nodeTypeCode: "finished_product",
+      nodeTypeLabel: "製成品",
+      productNo: "P-00021",
+      productVersion: 2,
+      bomNo: "BOM-260801",
+      bomVersion: 3,
+      quantity: 1,
+      weight: 75,
+      unit: "公斤",
+      unitCode: 2,
+      statusCode: "partial",
+      statusLabel: "部分資料",
+      hasChildren: true,
+      warnings: [{ code: "direct_material_only", message: "目前僅顯示直接原料與直接在製品關係。" }],
+      children: [
+        {
+          id: "WIP-COOKIE-021",
+          nodeNo: "WIP-COOKIE-021",
+          nodeName: "小麥餅乾胚",
+          nodeTypeCode: "wip",
+          nodeTypeLabel: "在製品",
+          quantity: 6,
+          weight: 75,
+          unit: "公斤",
+          unitCode: 2,
+          statusCode: "partial",
+          statusLabel: "部分資料",
+          hasChildren: false,
+          warnings: [],
+          children: []
+        }
+      ]
+    }
   }
 };

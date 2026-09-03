@@ -1,10 +1,13 @@
 "use client";
 
 import {
+  AlertTriangle,
+  Boxes,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   GitBranch,
+  Loader2,
   Search
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -16,8 +19,16 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useBomDashboard } from "@/hooks/use-bom-dashboard";
 import { useLanguage } from "@/i18n/language-provider";
 import { AppLayout } from "@/layouts/app-layout";
-import { getBomDetail, type BomDashboardQuery } from "@/services/bom-api";
-import type { BomDashboardData, BomDashboardItem, BomDetail, BomVersionStateCode } from "@/types/bom";
+import { getBomDetail, getBomProductStructure, type BomDashboardQuery } from "@/services/bom-api";
+import type {
+  BomDashboardData,
+  BomDashboardItem,
+  BomDetail,
+  BomLinkedProduct,
+  BomProductStructureData,
+  BomProductStructureNode,
+  BomVersionStateCode
+} from "@/types/bom";
 
 const versionStateFilters: { value: "" | BomVersionStateCode; label: string }[] = [
   { value: "", label: "全部版本狀態" },
@@ -263,126 +274,223 @@ function PaginationControls({
   );
 }
 
-function BomRootTree({ detail, language }: { detail?: BomDetail; language: string }) {
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(["root-0", "root-0-content-0"]));
+function productKey(product: BomLinkedProduct) {
+  return `${product.productNo}::${product.productVersion}`;
+}
 
-  if (!detail) {
-    return <EmptyList title="尚未載入產品樹" description="請先選取 BOM 版本並等待明細載入。" />;
+function nodeTone(node: BomProductStructureNode) {
+  if (node.warnings.length) {
+    return "warning" as const;
   }
+  if (node.statusCode === "effective") {
+    return "success" as const;
+  }
+  if (node.statusCode === "future") {
+    return "info" as const;
+  }
+  if (node.statusCode === "historical") {
+    return "neutral" as const;
+  }
+  return "warning" as const;
+}
 
-  const roots = detail.linkedProducts.length
-    ? detail.linkedProducts
-    : [
-        {
-          productNo: detail.bom.bomNo,
-          productName: detail.bom.bomName,
-          productVersion: detail.bom.version,
-          productCategory: 0,
-          productCategoryLabel: "未關聯產品",
-          contents: []
-        }
-      ];
+function ProductStructureTreeNode({
+  node,
+  level,
+  language,
+  expandedKeys,
+  onToggle
+}: {
+  node: BomProductStructureNode;
+  level: number;
+  language: string;
+  expandedKeys: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  const isExpanded = expandedKeys.has(node.id);
+  const canExpand = node.hasChildren || node.children.length > 0;
+
+  return (
+    <div className={level ? "border-l-2 border-primary/20 pl-3" : ""}>
+      <div className="rounded-md border border-border bg-white">
+        <button
+          className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left transition hover:bg-slate-50"
+          disabled={!canExpand}
+          onClick={() => onToggle(node.id)}
+          type="button"
+        >
+          <span className="min-w-0">
+            <span className="flex flex-wrap items-center gap-2">
+              <StatusBadge tone={level === 0 ? "info" : nodeTone(node)}>{level === 0 ? "成品根節點" : node.nodeTypeLabel}</StatusBadge>
+              <span className="text-xs text-textSecondary">Level {formatInteger(level, language)}</span>
+            </span>
+            <span className="mt-2 block font-semibold text-textPrimary">
+              {node.nodeNo || "未提供節點 no"} · {node.nodeName || "未命名節點"}
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-textSecondary">
+              關係數量 {formatNumber(node.quantity, language)} · 重量 {formatNumber(node.weight, language)} {node.unit || "未提供單位"}
+              {node.bomNo ? ` · BOM ${node.bomNo}${node.bomVersion ? ` / V${formatInteger(node.bomVersion, language)}` : ""}` : ""}
+            </span>
+          </span>
+          {canExpand ? (
+            isExpanded ? (
+              <ChevronDown className="h-4 w-4 shrink-0 text-textSecondary" aria-hidden="true" />
+            ) : (
+              <ChevronRight className="h-4 w-4 shrink-0 text-textSecondary" aria-hidden="true" />
+            )
+          ) : (
+            <CircleLeaf />
+          )}
+        </button>
+        {node.warnings.length ? (
+          <div className="space-y-2 border-t border-border px-3 py-2">
+            {node.warnings.map((warning) => (
+              <p className="flex gap-2 text-xs leading-5 text-warning" key={`${node.id}-${warning.code}-${warning.message}`}>
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {warning.message}
+              </p>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {canExpand && isExpanded ? (
+        <div className="mt-2 space-y-2">
+          {node.children.length ? (
+            node.children.map((child) => (
+              <ProductStructureTreeNode
+                key={child.id}
+                node={child}
+                level={level + 1}
+                language={language}
+                expandedKeys={expandedKeys}
+                onToggle={onToggle}
+              />
+            ))
+          ) : (
+            <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-textSecondary">此節點標示有下階資料，但目前回傳未包含子節點。</p>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CircleLeaf() {
+  return <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-border" aria-hidden="true" />;
+}
+
+function ProductStructurePanel({
+  products,
+  selectedProduct,
+  data,
+  isLoading,
+  error,
+  language,
+  onSelectProduct
+}: {
+  products: BomLinkedProduct[];
+  selectedProduct?: BomLinkedProduct;
+  data?: BomProductStructureData;
+  isLoading: boolean;
+  error?: string;
+  language: string;
+  onSelectProduct: (product: BomLinkedProduct) => void;
+}) {
+  const [expandedState, setExpandedState] = useState<{ rootId?: string; keys: Set<string> }>({ keys: new Set() });
+  const defaultExpandedKeys = useMemo(
+    () => new Set(data?.root ? [data.root.id, ...data.root.children.slice(0, 2).map((child) => child.id)] : []),
+    [data]
+  );
+  const expandedKeys = expandedState.rootId === data?.root?.id ? expandedState.keys : defaultExpandedKeys;
 
   function toggle(key: string) {
-    setExpandedKeys((current) => {
-      const next = new Set(current);
+    setExpandedState((current) => {
+      const currentKeys = current.rootId === data?.root?.id ? current.keys : defaultExpandedKeys;
+      const next = new Set(currentKeys);
       if (next.has(key)) {
         next.delete(key);
       } else {
         next.add(key);
       }
-      return next;
+      return { rootId: data?.root?.id, keys: next };
     });
+  }
+
+  if (!products.length) {
+    return <EmptyList title="沒有成品根節點" description="目前此 BOM 版本沒有關聯產品，無法查詢產品結構。" />;
   }
 
   return (
     <div className="space-y-3">
-      {roots.map((product, rootIndex) => {
-        const rootKey = `root-${rootIndex}`;
-        const isRootExpanded = expandedKeys.has(rootKey);
-        const contents = product.contents.length
-          ? product.contents
-          : [
-              {
-                itemType: 0,
-                itemTypeLabel: "配方基準",
-                itemNo: detail.bom.bomNo,
-                itemName: detail.bom.bomName,
-                count: 1,
-                unit: detail.bom.unit,
-                unitCode: detail.bom.unitCode,
-                weight: detail.bom.weight
-              }
-            ];
-
-        return (
-          <div className="rounded-md border border-border bg-white" key={`${product.productNo}-${product.productVersion}`}>
+      <div className="flex flex-wrap gap-2">
+        {products.map((product) => {
+          const isSelected = selectedProduct ? productKey(product) === productKey(selectedProduct) : false;
+          return (
             <button
-              className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left"
-              onClick={() => toggle(rootKey)}
+              className={`inline-flex min-h-9 items-center gap-2 rounded-button px-3 py-2 text-sm font-medium transition ${
+                isSelected ? "bg-primary text-white" : "bg-slate-100 text-textSecondary hover:bg-slate-200"
+              }`}
+              key={productKey(product)}
+              onClick={() => onSelectProduct(product)}
               type="button"
             >
-              <span className="min-w-0">
-                <span className="text-xs font-medium text-textSecondary">製成品 root</span>
-                <span className="mt-1 block font-semibold text-textPrimary">
-                  {product.productNo || "未提供產品 no"} / V{formatInteger(product.productVersion, language)}
-                </span>
-                <span className="mt-1 block text-xs text-textSecondary">{product.productName || product.productCategoryLabel}</span>
-              </span>
-              {isRootExpanded ? <ChevronDown className="h-4 w-4 text-textSecondary" /> : <ChevronRight className="h-4 w-4 text-textSecondary" />}
+              <Boxes className="h-4 w-4" aria-hidden="true" />
+              {product.productNo || "未提供產品 no"} / V{formatInteger(product.productVersion, language)}
             </button>
+          );
+        })}
+      </div>
 
-            {isRootExpanded ? (
-              <div className="space-y-3 border-t border-border px-3 py-3">
-                {contents.map((content, contentIndex) => {
-                  const contentKey = `${rootKey}-content-${contentIndex}`;
-                  const isContentExpanded = expandedKeys.has(contentKey);
-                  return (
-                    <div className="border-l-2 border-primary/30 pl-3" key={`${contentKey}-${content.itemNo}`}>
-                      <button
-                        className="flex w-full items-start justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-left"
-                        onClick={() => toggle(contentKey)}
-                        type="button"
-                      >
-                        <span className="min-w-0">
-                          <span className="text-xs font-medium text-textSecondary">{content.itemTypeLabel}</span>
-                          <span className="mt-1 block font-medium text-textPrimary">
-                            {content.itemNo || "未提供品項 no"} · {content.itemName || "未命名內容物"}
-                          </span>
-                          <span className="mt-1 block text-xs text-textSecondary">
-                            {formatInteger(content.count, language)} 份 · {formatNumber(content.weight, language)} {content.unit}
-                          </span>
-                        </span>
-                        {isContentExpanded ? <ChevronDown className="h-4 w-4 text-textSecondary" /> : <ChevronRight className="h-4 w-4 text-textSecondary" />}
-                      </button>
+      {isLoading ? (
+        <p className="flex items-center gap-2 rounded-md bg-info/10 px-3 py-2 text-sm text-info">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          載入產品結構中...
+        </p>
+      ) : null}
 
-                      {isContentExpanded ? (
-                        <div className="mt-2 space-y-2 pl-3">
-                          {detail.items.length ? (
-                            detail.items.map((material) => (
-                              <div className="rounded-md border border-border px-3 py-2" key={`${contentKey}-${material.itemNo}`}>
-                                <p className="text-xs font-medium text-textSecondary">原料明細</p>
-                                <p className="mt-1 font-medium text-textPrimary">
-                                  {material.itemNo || "未提供料號"} · {material.itemName || "未命名原料"}
-                                </p>
-                                <p className="mt-1 text-xs text-textSecondary">
-                                  {formatNumber(material.weight, language)} {material.unit}
-                                </p>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="rounded-md bg-slate-50 px-3 py-2 text-sm text-textSecondary">目前沒有原料明細可展開。</p>
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
+      {error ? (
+        <p className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm leading-6 text-danger">
+          產品結構資料取得失敗，畫面未改用示範資料。{error}
+        </p>
+      ) : null}
+
+      {!isLoading && !error && data?.isPartial ? (
+        <p className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm leading-6 text-warning">
+          產品結構為部分資料，請以畫面警示與後端條件說明為準。
+        </p>
+      ) : null}
+
+      {!isLoading && !error && data?.warnings.length ? (
+        <div className="space-y-2">
+          {data.warnings.map((warning) => (
+            <p className="flex gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm leading-6 text-warning" key={`${warning.code}-${warning.message}`}>
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              {warning.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
+      {!isLoading && !error && data && !data.root ? (
+        <EmptyList title="找不到產品結構" description="後端未回傳此產品版本的成品結構根節點。" />
+      ) : null}
+
+      {!isLoading && !error && data?.root ? (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
+            <StatusBadge tone={data.isPartial ? "warning" : "success"}>{data.statusLabel}</StatusBadge>
+            {data.effectiveDate ? <span>有效基準日 {data.effectiveDate}</span> : null}
+            {data.depth ? <span>展開深度 {formatInteger(data.depth, language)}</span> : null}
           </div>
-        );
-      })}
+          <ProductStructureTreeNode
+            node={data.root}
+            level={0}
+            language={language}
+            expandedKeys={expandedKeys}
+            onToggle={toggle}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -390,16 +498,26 @@ function BomRootTree({ detail, language }: { detail?: BomDetail; language: strin
 function BomDetailPanel({
   item,
   detail,
+  productStructure,
+  productStructureError,
+  isProductStructureLoading,
+  selectedProduct,
   isLoading,
   error,
   language,
+  onProductSelect,
   onVersionSelect
 }: {
   item?: BomDashboardItem;
   detail?: BomDetail;
+  productStructure?: BomProductStructureData;
+  productStructureError?: string;
+  isProductStructureLoading: boolean;
+  selectedProduct?: BomLinkedProduct;
   isLoading: boolean;
   error?: string;
   language: string;
+  onProductSelect: (product: BomLinkedProduct) => void;
   onVersionSelect: (version: number) => void;
 }) {
   if (!item) {
@@ -476,9 +594,17 @@ function BomDetailPanel({
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <GitBranch className="h-4 w-4 text-primary" />
-          <p className="text-sm font-semibold text-textPrimary">製成品根節點樹</p>
+          <p className="text-sm font-semibold text-textPrimary">產品結構</p>
         </div>
-        <BomRootTree detail={detail} language={language} />
+        <ProductStructurePanel
+          products={detail?.linkedProducts ?? []}
+          selectedProduct={selectedProduct}
+          data={productStructure}
+          isLoading={isProductStructureLoading}
+          error={productStructureError}
+          language={language}
+          onSelectProduct={onProductSelect}
+        />
       </div>
 
       <div className="space-y-2">
@@ -561,6 +687,12 @@ export default function BomPage() {
     detail?: BomDetail;
     error?: string;
   }>({});
+  const [selectedProductKey, setSelectedProductKey] = useState<string>();
+  const [productStructureState, setProductStructureState] = useState<{
+    productKey?: string;
+    data?: BomProductStructureData;
+    error?: string;
+  }>({});
 
   const searchQuery = normalizeSearch(searchValue);
   const query = useMemo<BomDashboardQuery>(
@@ -614,6 +746,43 @@ export default function BomPage() {
   const isDetailLoading = Boolean(
     selectedItem?.bomNo && (detailState.bomNo !== selectedItem.bomNo || detailState.version !== selectedDetailVersion)
   );
+  const selectedProduct =
+    activeDetail?.linkedProducts.find((product) => productKey(product) === selectedProductKey) ?? activeDetail?.linkedProducts[0];
+  const selectedStructureKey = selectedProduct ? productKey(selectedProduct) : undefined;
+  const activeProductStructure =
+    productStructureState.productKey === selectedStructureKey ? productStructureState.data : undefined;
+  const activeProductStructureError =
+    productStructureState.productKey === selectedStructureKey ? productStructureState.error : undefined;
+  const isProductStructureLoading = Boolean(
+    selectedStructureKey && productStructureState.productKey !== selectedStructureKey
+  );
+
+  useEffect(() => {
+    if (!selectedProduct || !selectedStructureKey) {
+      return;
+    }
+
+    let isMounted = true;
+
+    getBomProductStructure(
+      selectedProduct.productNo,
+      { productVersion: selectedProduct.productVersion, depth: 6 },
+      dataSourceMode
+    ).then((result) => {
+      if (!isMounted) {
+        return;
+      }
+      setProductStructureState({
+        productKey: selectedStructureKey,
+        data: result.data,
+        error: result.error
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedProduct, selectedStructureKey, dataSourceMode]);
 
   return (
     <AppLayout activePath="/bom" title="BOM 中心">
@@ -722,9 +891,14 @@ export default function BomPage() {
           <BomDetailPanel
             item={selectedItem}
             detail={activeDetail}
+            productStructure={activeProductStructure}
+            productStructureError={activeProductStructureError}
+            isProductStructureLoading={isProductStructureLoading}
+            selectedProduct={selectedProduct}
             isLoading={isDetailLoading}
             error={activeDetailError}
             language={language}
+            onProductSelect={(product) => setSelectedProductKey(productKey(product))}
             onVersionSelect={(version) => {
               setSelectedBomNo(selectedItem?.bomNo);
               setSelectedVersion(version);

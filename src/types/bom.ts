@@ -90,3 +90,41 @@ export type BomDetail = {
   items: BomMaterialItem[];
   linkedProducts: BomLinkedProduct[];
 };
+
+export type BomProductStructureWarning = {
+  code: string;
+  message: string;
+};
+
+export type BomProductStructureNode = {
+  id: string;
+  nodeNo: string;
+  nodeName: string;
+  nodeTypeCode: string;
+  nodeTypeLabel: string;
+  productNo?: string;
+  productVersion?: number;
+  bomNo?: string;
+  bomVersion?: number;
+  quantity: number;
+  weight: number;
+  unit: string;
+  unitCode?: number;
+  statusCode: string;
+  statusLabel: string;
+  hasChildren: boolean;
+  warnings: BomProductStructureWarning[];
+  children: BomProductStructureNode[];
+};
+
+export type BomProductStructureData = {
+  productNo: string;
+  productVersion?: number;
+  effectiveDate?: string;
+  depth: number;
+  statusCode: string;
+  statusLabel: string;
+  isPartial: boolean;
+  warnings: BomProductStructureWarning[];
+  root?: BomProductStructureNode;
+};

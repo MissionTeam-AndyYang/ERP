@@ -120,15 +120,16 @@ Naming rules:
 
 ## BOM Center Screen Roadmap
 
-`BOMCenterScreen` 與 `ProductDevelopmentWorkspaceScreen` 分開管理。BOM Center 對應目前 `/bom` 執行畫面，只處理 BOM 版本、有效日期、直接配方明細與產品版本關聯；研發成本、成本試算、報價與合約維持在 `/rd` 與產品研發相關規劃中。
+`BOMCenterScreen` 與 `ProductDevelopmentWorkspaceScreen` 分開管理。BOM Center 對應目前 `/bom` 執行畫面，處理 BOM 版本、有效日期、直接配方明細、產品版本關聯，以及成品根節點的唯讀產品結構視圖；研發成本、成本試算、報價與合約維持在 `/rd` 與產品研發相關規劃中。產品結構視圖不等同 Recipe / Formula，不包含寫入、簽核、成本、庫存或排程操作。
 
 | Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P0 | V1 Core | `BOMCenterScreen` | Screen | BOM 中心 | `/bom` | 已有第一版，已串接 BOM dashboard 與 selected BOM detail API | `GET /api/v2/bom/dashboard`、`GET /api/v2/bom/{bom_no}/detail` | 檢視 BOM 版本、版本狀態、有效日期、配方明細及產品版本關聯；不包含成本、報價、合約與寫入操作。 |
+| P0 | V1 Core | `BOMCenterScreen` | Screen | BOM 中心 | `/bom` | 已有第一版，已串接 BOM dashboard、selected BOM detail API，並新增 Product Structure tree 前端視圖 | `GET /api/v2/bom/dashboard`、`GET /api/v2/bom/{bom_no}/detail`、`GET /api/v2/bom/product-structure/{product_no}` | 檢視 BOM 版本、版本狀態、有效日期、配方明細、產品版本關聯及成品根節點產品結構；不包含成本、報價、合約、Recipe / Formula 與寫入操作。 |
 | P0.1 | V1 Core | `BOMVersionSummaryView` | View | BOM 版本總覽 | `BOMCenterScreen` 內的總覽區與 KPI | 已有第一版，已串接 dashboard API | `GET /api/v2/bom/dashboard` | 顯示 BOM 數量、版本數量、目前有效、未來生效與歷史版本統計。 |
 | P0.2 | V1 Core | `BOMVersionListView` | View | BOM 版本清單 | `BOMCenterScreen` 內的版本清單 | 已有第一版，已串接 dashboard API | `GET /api/v2/bom/dashboard` | 支援關鍵字、版本狀態、分頁與 BOM 版本摘要檢視。 |
 | P0.3 | V1 Core | `BOMLifecycleView` | View | BOM 版本狀態視圖 | `BOMCenterScreen` 內的版本流程區 | 已有第一版，已串接 dashboard API | `GET /api/v2/bom/dashboard` | 以 `versionStateCode` 呈現目前有效、未來生效、歷史及無法判定狀態；不代表正式核准流程。 |
 | P0.4 | V1 Core | `BOMDetailPanel` | Panel | BOM 明細面板 | `BOMCenterScreen` 右側 panel；窄版可作 drawer | 已有第一版，已串接 selected BOM detail API | `GET /api/v2/bom/{bom_no}/detail` | 顯示選定版本的配方明細與關聯產品版本；detail API 失敗時保留清單摘要並顯示錯誤。 |
+| P0.5 | V1 Core | `BOMProductStructureTreeView` | View | 產品結構樹視圖 | `BOMDetailPanel` 內的「產品結構」區塊 | 前端已完成唯讀視圖、API client 與 mock/API 分離；待後端 Product-oriented API 服務回傳後做 real-backend validation | `GET /api/v2/bom/product-structure/{product_no}` | 以製成品 `PRODUCT_NO + PRODUCT_VERSION` 作為 root，支援展開/收合、在製品/半成品、原料/材料、關係數量/重量、UOM、版本/狀態、empty、not-found、partial/warning 與 error state；不加入編輯、簽核、Recipe / Formula、成本、庫存、追溯或排程擴張。 |
 
 ### BOM Center Scope Boundary
 

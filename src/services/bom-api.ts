@@ -18,6 +18,9 @@ import type {
   BomKpiItem,
   BomLinkedProduct,
   BomMaterialItem,
+  BomProductStructureData,
+  BomProductStructureNode,
+  BomProductStructureWarning,
   BomSummary,
   BomVersionOption
 } from "@/types/bom";
@@ -80,6 +83,87 @@ type ApiBomLinkedProductContent = NonNullable<
   NonNullable<ApiBomDetailPayload["linkedProducts"]>[number]["contents"]
 >[number];
 
+type ApiBomProductStructureWarning = {
+  code?: string;
+  warningCode?: string;
+  message?: string;
+  nodeId?: string;
+  refNo?: string;
+};
+
+type ApiBomProductStructureNode = {
+  id?: string;
+  nodeId?: string;
+  nodeNo?: string;
+  no?: string;
+  itemNo?: string;
+  productNo?: string;
+  nodeName?: string;
+  name?: string;
+  itemName?: string;
+  productName?: string;
+  nodeTypeCode?: string;
+  nodeType?: string;
+  itemType?: string | number;
+  type?: string;
+  level?: number;
+  itemCategory?: number;
+  itemSubCategory?: number;
+  productVersion?: number;
+  bomNo?: string;
+  bomVersion?: number;
+  quantity?: number;
+  count?: number;
+  relationshipQuantity?: number;
+  weight?: number;
+  relationshipWeight?: number;
+  unit?: string | number;
+  unitCode?: number;
+  statusCode?: string;
+  versionStateCode?: string;
+  structureStatusCode?: string;
+  statusLabel?: string;
+  hasChildren?: boolean;
+  warnings?: ApiBomProductStructureWarning[];
+  children?: ApiBomProductStructureNode[];
+};
+
+type ApiBomProductStructureEvidence = {
+  bomNo?: string;
+  bomVersion?: number;
+  bomName?: string;
+  versionStateCode?: string;
+  dateTimestamp?: number;
+};
+
+type ApiBomProductStructurePayload = {
+  serverTimestamp?: number;
+  productNo?: string;
+  productVersion?: number;
+  rootProduct?: {
+    productNo?: string;
+    productName?: string;
+    productVersion?: number;
+    productCategory?: number;
+    unitProduct?: number;
+    structureStatusCode?: string;
+  };
+  bomEvidence?: ApiBomProductStructureEvidence[];
+  children?: ApiBomProductStructureNode[];
+  effectiveDate?: string;
+  depth?: number;
+  statusCode?: string;
+  versionStateCode?: string;
+  structureStatusCode?: string;
+  statusLabel?: string;
+  isPartial?: boolean;
+  partial?: boolean;
+  warnings?: ApiBomProductStructureWarning[];
+  root?: ApiBomProductStructureNode;
+  tree?: ApiBomProductStructureNode;
+  structure?: ApiBomProductStructureNode;
+};
+
 export type BomDashboardQuery = {
   keyword?: string;
   bomNo?: string;
@@ -96,6 +180,18 @@ export type BomDashboardResult = {
 
 export type BomDetailResult = {
   detail?: BomDetail;
+  source: BomDataSource;
+  error?: string;
+};
+
+export type BomProductStructureQuery = {
+  productVersion?: number;
+  depth?: number;
+  effectiveDate?: string;
+};
+
+export type BomProductStructureResult = {
+  data?: BomProductStructureData;
   source: BomDataSource;
   error?: string;
 };
@@ -127,6 +223,10 @@ function asNumber(value?: number) {
   return Number.isFinite(value) ? Number(value) : 0;
 }
 
+function asOptionalNumber(value?: number) {
+  return Number.isFinite(value) ? Number(value) : undefined;
+}
+
 function formatInteger(value?: number) {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value ?? 0);
 }
@@ -136,6 +236,73 @@ function timestampToDate(value?: number) {
     return "";
   }
   return new Date(value * 1000).toLocaleDateString(locale, { timeZone: "Asia/Taipei" });
+}
+
+function normalizeWarning(warning: ApiBomProductStructureWarning): BomProductStructureWarning {
+  const code = warning.code ?? warning.warningCode ?? "warning";
+  const refText = warning.refNo ? `（${warning.refNo}）` : "";
+  const labels: Record<string, string> = {
+    depth_limited: "產品結構已達本次展開深度上限。",
+    missing_bom_items: "BOM 直接明細尚未完整提供。",
+    missing_item_master: "節點料品主檔資料缺漏。",
+    missing_product_spec: "此產品版本尚未設定產品結構。",
+    circular_reference: "產品結構存在循環參照，後端已停止展開。",
+    unknown: "產品結構資料需確認。"
+  };
+  return {
+    code,
+    message: warning.message ?? `${labels[code] ?? labels.unknown}${refText}`
+  };
+}
+
+function productStructureTypeLabel(value?: string | number) {
+  const normalized = String(value ?? "").trim().toLocaleLowerCase();
+  const labels: Record<string, string> = {
+    product: "製成品",
+    finished_product: "製成品",
+    finishedproduct: "製成品",
+    fg: "製成品",
+    wip: "在製品",
+    semi_finished: "半成品",
+    semifinished: "半成品",
+    inproduct: "在製品",
+    material: "材料",
+    raw_material: "原料",
+    rawmaterial: "原料",
+    raw: "原料",
+    packaging: "包材",
+    "1": "原料",
+    "2": "物料",
+    "3": "膠捲",
+    "4": "在製品",
+    "5": "製成品",
+    "6": "貨品"
+  };
+  return labels[normalized] ?? "結構節點";
+}
+
+function productStructureStatusLabel(statusCode?: string, explicitLabel?: string) {
+  if (explicitLabel) {
+    return explicitLabel;
+  }
+  if (statusCode === "complete") {
+    return "結構完整";
+  }
+  if (statusCode === "partial") {
+    return "部分資料";
+  }
+  if (statusCode === "missing") {
+    return "未設定結構";
+  }
+  const normalized = normalizeBomVersionStateCode(statusCode);
+  return bomVersionStateLabel(normalized, locale);
+}
+
+function productStructureUnitLabel(unit?: string | number, unitCode?: number) {
+  if (typeof unit === "string" && unit.trim()) {
+    return unit;
+  }
+  return bomUnitLabel(unitCode ?? (typeof unit === "number" ? unit : undefined), locale);
 }
 
 function normalizeSummary(summary?: ApiBomSummary): BomSummary {
@@ -254,6 +421,80 @@ function mapDetailPayload(payload: ApiBomDetailPayload, fallback?: BomDashboardI
   };
 }
 
+function mapProductStructureNode(node: ApiBomProductStructureNode, indexPath = "0"): BomProductStructureNode {
+  const children = withFallbackArray<ApiBomProductStructureNode>(node.children, []);
+  const nodeNo = node.nodeNo ?? node.no ?? node.itemNo ?? node.productNo ?? "";
+  const nodeTypeCode = String(node.nodeTypeCode ?? node.nodeType ?? node.itemCategory ?? node.itemType ?? node.type ?? "").trim();
+  const statusCode = node.statusCode ?? node.structureStatusCode ?? node.versionStateCode ?? "unknown";
+
+  return {
+    id: node.id ?? node.nodeId ?? `${nodeNo || "node"}-${indexPath}`,
+    nodeNo,
+    nodeName: node.nodeName ?? node.name ?? node.itemName ?? node.productName ?? "",
+    nodeTypeCode,
+    nodeTypeLabel: productStructureTypeLabel(nodeTypeCode),
+    productNo: node.productNo,
+    productVersion: asOptionalNumber(node.productVersion),
+    bomNo: node.bomNo,
+    bomVersion: asOptionalNumber(node.bomVersion),
+    quantity: asNumber(node.relationshipQuantity ?? node.quantity ?? node.count),
+    weight: asNumber(node.relationshipWeight ?? node.weight),
+    unit: productStructureUnitLabel(node.unit, node.unitCode),
+    unitCode: asOptionalNumber(node.unitCode ?? (typeof node.unit === "number" ? node.unit : undefined)),
+    statusCode,
+    statusLabel: productStructureStatusLabel(statusCode, node.statusLabel),
+    hasChildren: node.hasChildren ?? children.length > 0,
+    warnings: withFallbackArray<ApiBomProductStructureWarning>(node.warnings, []).map(normalizeWarning),
+    children: children.map((child, childIndex) => mapProductStructureNode(child, `${indexPath}-${childIndex}`))
+  };
+}
+
+function mapProductStructurePayload(payload: ApiBomProductStructurePayload): BomProductStructureData {
+  const rootProduct = payload.rootProduct;
+  const children = withFallbackArray<ApiBomProductStructureNode>(payload.children, []);
+  const bomEvidence = withFallbackArray<ApiBomProductStructureEvidence>(payload.bomEvidence, [])[0];
+  const explicitRoot = payload.root ?? payload.tree ?? payload.structure;
+  const root =
+    explicitRoot ??
+    (rootProduct
+      ? {
+          id: `product-${rootProduct.productNo ?? "root"}-${rootProduct.productVersion ?? 0}`,
+          nodeNo: rootProduct.productNo,
+          productNo: rootProduct.productNo,
+          nodeName: rootProduct.productName,
+          productVersion: rootProduct.productVersion,
+          nodeTypeCode: "finished_product",
+          unit: rootProduct.unitProduct,
+          unitCode: rootProduct.unitProduct,
+          bomNo: bomEvidence?.bomNo,
+          bomVersion: bomEvidence?.bomVersion,
+          structureStatusCode: rootProduct.structureStatusCode,
+          hasChildren: children.length > 0,
+          children
+        }
+      : undefined);
+  const statusCode =
+    payload.statusCode ??
+    payload.structureStatusCode ??
+    rootProduct?.structureStatusCode ??
+    payload.versionStateCode ??
+    root?.statusCode ??
+    root?.versionStateCode ??
+    "unknown";
+
+  return {
+    productNo: payload.productNo ?? rootProduct?.productNo ?? root?.productNo ?? root?.nodeNo ?? "",
+    productVersion: asOptionalNumber(payload.productVersion ?? rootProduct?.productVersion ?? root?.productVersion),
+    effectiveDate: payload.effectiveDate,
+    depth: asNumber(payload.depth),
+    statusCode,
+    statusLabel: productStructureStatusLabel(statusCode, payload.statusLabel),
+    isPartial: Boolean(payload.isPartial ?? payload.partial ?? statusCode === "partial"),
+    warnings: withFallbackArray<ApiBomProductStructureWarning>(payload.warnings, []).map(normalizeWarning),
+    root: root ? mapProductStructureNode(root) : undefined
+  };
+}
+
 function buildDashboardPath(query: BomDashboardQuery) {
   const params = new URLSearchParams();
   if (query.keyword) {
@@ -327,6 +568,48 @@ export async function getBomDetail(
       detail: fallback ? { bom: { ...fallback, comment: "" }, versions: [], items: [], linkedProducts: [] } : undefined,
       source: "api",
       error: error instanceof Error ? error.message : "BOM Center detail API unavailable"
+    };
+  }
+}
+
+function buildProductStructurePath(productNo: string, query: BomProductStructureQuery = {}) {
+  const params = new URLSearchParams();
+  if (query.productVersion !== undefined) {
+    params.set("productVersion", String(query.productVersion));
+  }
+  if (query.depth !== undefined) {
+    params.set("depth", String(query.depth));
+  }
+  if (query.effectiveDate) {
+    params.set("effectiveDate", query.effectiveDate);
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return `/api/v2/bom/product-structure/${encodeURIComponent(productNo)}${suffix}`;
+}
+
+export async function getBomProductStructure(
+  productNo: string,
+  query: BomProductStructureQuery = {},
+  dataSourceMode: DataSourceMode = "api"
+): Promise<BomProductStructureResult> {
+  if (dataSourceMode === "mock") {
+    const { bomProductStructureMock } = await import("@/mock/bom");
+    return {
+      data: bomProductStructureMock[productNo],
+      source: "mock"
+    };
+  }
+
+  try {
+    const payload = await apiGet<ApiBomProductStructurePayload>(buildProductStructurePath(productNo, query));
+    return {
+      data: mapProductStructurePayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      source: "api",
+      error: error instanceof Error ? error.message : "Product Structure API unavailable"
     };
   }
 }

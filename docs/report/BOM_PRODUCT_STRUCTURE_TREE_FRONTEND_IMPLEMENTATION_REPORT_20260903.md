@@ -90,7 +90,11 @@ Frontend mapping was aligned to the confirmed backend contract:
 - `structureStatusCode`, `versionStateCode`, and `warningCode` are converted to user-facing Traditional Chinese labels in the frontend.
 - `payload.warnings[]` is rendered as visible warning state; no mock rows are inserted.
 
-This frontend session attempted to reach `http://127.0.0.1:5025/api/v2/bom/product-structure/PRD-001?productVersion=2&depth=3`, but no service was listening on `127.0.0.1:5025` at that time. Final real-backend browser validation remains pending a reopened backend service window.
+Follow-up real-backend browser validation was completed against the active backend service window:
+
+- service URL: `http://127.0.0.1:5027`
+- backend service-window evidence commit: `19e9204 Document BOM product structure service window`
+- frontend validation report: `docs/report/BOM_PRODUCT_STRUCTURE_TREE_REAL_BACKEND_VALIDATION_REPORT_20260903.md`
 
 ## Validation
 
@@ -114,6 +118,6 @@ Browser smoke result:
 
 ## Final Classification
 
-Frontend implementation PASS with real-backend browser validation pending service-window availability.
+Frontend implementation PASS and real-backend browser validation PASS.
 
-The bounded read-only Product Structure UX is implemented, aligned to the confirmed backend route and contract, preserves mock/API separation, and updates the screen roadmap. Final UX real-backend classification can move to PASS after the backend service window is available to the frontend session and `/bom` is browser-validated against `GET /api/v2/bom/product-structure/{product_no}`.
+The bounded read-only Product Structure UX is implemented, aligned to the confirmed backend route and contract, preserves mock/API separation, updates the screen roadmap, and has been browser-validated against `GET /api/v2/bom/product-structure/{product_no}` through the active Shared DEV backend service window.

@@ -563,6 +563,22 @@ class EBomVersionState(object):
     UNKNOWN = "unknown"
 
 
+class EProductStructureStatusCode(object):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+class EProductStructureWarningCode(object):
+    DEPTH_LIMITED = "depth_limited"
+    MISSING_BOM_ITEMS = "missing_bom_items"
+    MISSING_ITEM_MASTER = "missing_item_master"
+    MISSING_PRODUCT_SPEC = "missing_product_spec"
+    CIRCULAR_REFERENCE = "circular_reference"
+    UNKNOWN = "unknown"
+
+
 # ------------------------------------------------------------
 # Batch Center API enums
 # ------------------------------------------------------------

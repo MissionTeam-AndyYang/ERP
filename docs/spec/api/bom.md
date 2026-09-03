@@ -12,6 +12,7 @@
 | [/api/v1/bom/tree](#get-api-v1-bom-tree) | GET | 查詢BOM / 樹狀資料 | OK | OK |
 | [/api/v2/bom/dashboard](#get-api-v2-bom-dashboard) | GET | 查詢 BOM Center 版本摘要、狀態統計、篩選及分頁清單 | OK | 依 `bom_center_proposal.md` 實作 |
 | [/api/v2/bom/{bom_no}/detail](#get-api-v2-bom-bom_no-detail) | GET | 查詢指定 BOM 的版本清單與選定版本明細 | OK | 依 `bom_center_proposal.md` 實作 |
+| [/api/v2/bom/product-structure/{product_no}](#get-api-v2-bom-product-structure-product_no) | GET | 查詢指定製成品的 read-only 產品結構 | OK | 依 CTO `ERP2-BOM-PRODUCT-STRUCTURE-RO-EXEC-001` 最小後端實作 |
 
 ## GET /api/v1/bom
 
@@ -693,3 +694,155 @@ None
 | product_spec | 提供使用該 BOM 的產品版本關聯 |
 | product | 提供關聯製成品名稱、製成品類型與內容物製成品名稱 |
 | inproduct | 提供內容物在製品名稱 |
+
+## GET /api/v2/bom/product-structure/{product_no}
+
+<a id="get-api-v2-bom-product-structure-product_no"></a>
+
+### Basic Information
+
+| URL | Method | Description |
+|----------|----------|----------------|
+| /api/v2/bom/product-structure/{product_no} | GET | 查詢指定製成品的 read-only 產品結構 |
+
+### Request Header
+
+| Header | Description |
+|----------|----------|
+| x-auth-token | 存取金鑰 |
+| x-timezone | 前端顯示偏好的 IANA timezone；後端仍直接回傳資料庫保存的 UTC timestamp |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|----------|----------|------|-----|
+| productVersion | Integer | NO | 指定製成品版本；未提供時優先取 product_spec 中同一製成品最高版本，若無 product_spec 則取 product.version |
+| depth | Integer | NO | 結構展開層數，預設 3，最小 1，最大 5 |
+| effectiveDate | Integer | NO | BOM 版本狀態判斷基準 UTC timestamp；未提供時使用系統時間 |
+
+### Request Body
+
+None
+
+### Success Response Data
+
+```json
+{
+  "code": "Integer",
+  "message": "String",
+  "payload": {
+    "serverTimestamp": "Integer",
+    "rootProduct": {
+      "productNo": "String",
+      "productName": "String",
+      "productVersion": "Integer",
+      "productCategory": "Integer",
+      "unitProduct": "Integer",
+      "structureStatusCode": "String"
+    },
+    "bomEvidence": [
+      {
+        "bomNo": "String",
+        "bomVersion": "Integer",
+        "bomName": "String",
+        "versionStateCode": "String",
+        "dateTimestamp": "Integer"
+      }
+    ],
+    "children": [
+      {
+        "nodeId": "String",
+        "parentNodeId": "String",
+        "level": "Integer",
+        "itemNo": "String",
+        "itemName": "String",
+        "itemCategory": "Integer",
+        "itemSubCategory": "Integer",
+        "relationshipQuantity": "Integer",
+        "relationshipWeight": "Float",
+        "unit": "Integer",
+        "bomNo": "String",
+        "bomVersion": "Integer",
+        "hasChildren": "Boolean",
+        "children": []
+      }
+    ],
+    "warnings": [
+      {
+        "warningCode": "String",
+        "nodeId": "String",
+        "refNo": "String"
+      }
+    ]
+  }
+}
+```
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 回傳代碼 |  |
+| message | String | API 回傳訊息 |  |
+| payload.serverTimestamp | Integer | API 回應建立時間，UTC timestamp |  |
+| payload.rootProduct.productNo | String | 查詢起點製成品 no，對應 product.no |  |
+| payload.rootProduct.productName | String | 查詢起點製成品名稱，對應 product.name；無值時回傳空字串 |  |
+| payload.rootProduct.productVersion | Integer | 本次採用的製成品版本；由 productVersion 指定，或由 product_spec / product.version 推定 |  |
+| payload.rootProduct.productCategory | Integer | 製成品主類型 code，對應 product.category |  |
+| payload.rootProduct.unitProduct | Integer | 製成品產製單位 code，對應 product.unitProduct | Unit enum |
+| payload.rootProduct.structureStatusCode | String | 產品結構狀態 code；前端負責顯示文字 | complete / partial / missing / unknown |
+| payload.bomEvidence[].bomNo | String | 此產品結構關聯的商品配方編號，來源為 product_spec.bom_no |  |
+| payload.bomEvidence[].bomVersion | Integer | 此產品結構關聯的商品配方版本，來源為 product_spec.bom_version |  |
+| payload.bomEvidence[].bomName | String | 商品配方簡稱，來源為 bom.displayName；無值時回傳空字串 |  |
+| payload.bomEvidence[].versionStateCode | String | 商品配方版本狀態 code；前端負責顯示文字 | effective / future / historical / unknown |
+| payload.bomEvidence[].dateTimestamp | Integer | 商品配方生效日期 UTC timestamp；空值時回傳 0 |  |
+| payload.children[].nodeId | String | 結構節點識別碼，由節點類型、料品 no 與層級組成，供前端樹狀 UI 使用 |  |
+| payload.children[].parentNodeId | String | 父節點識別碼；第一層節點指向 root product node |  |
+| payload.children[].level | Integer | 節點層級；root product 為 0，children 第一層為 1 |  |
+| payload.children[].itemNo | String | 子節點料品 no；來源可能為 product_spec.item_no、bom_item.item_no 或 inproduct_bom_spec.item_no |  |
+| payload.children[].itemName | String | 子節點料品名稱；依 itemCategory 從 material、inproduct、product 或 goods 主檔取得，無值時回傳空字串 |  |
+| payload.children[].itemCategory | Integer | 子節點料品品項類別 code | EItemCategory |
+| payload.children[].itemSubCategory | Integer | 子節點子分類 code；原料/物料/膠捲與貨品取 subCategory，在製品/製成品取 category |  |
+| payload.children[].relationshipQuantity | Integer | 父子關係使用數量，來源為 product_spec.count 或 inproduct_bom_spec.count；bom_item 來源無 count 時回傳 0 |  |
+| payload.children[].relationshipWeight | Float | 父子關係重量或用量，來源為 product_spec.weight、inproduct_bom_spec.weight 或 bom_item.weight；數量/重量取至小數點第 2 位 |  |
+| payload.children[].unit | Integer | 父子關係使用單位 code，來源為 product_spec.unit、inproduct_bom_spec.unit 或 bom_item.unit | Unit enum |
+| payload.children[].bomNo | String | 形成此關係的 BOM 或 BOM spec 參考編號；無值時回傳空字串 |  |
+| payload.children[].bomVersion | Integer | 形成此關係的 BOM 或 BOM spec 版本；無值時回傳 0 |  |
+| payload.children[].hasChildren | Boolean | 此節點是否仍有下一層結構節點 |  |
+| payload.children[].children | Array | 下一層產品結構節點；結構與 payload.children[] 相同，持續展開至 depth 或葉節點 |  |
+| payload.warnings[].warningCode | String | 產品結構條件或資料缺漏 warning code；前端負責顯示文字 | depth_limited / missing_bom_items / missing_item_master / missing_product_spec / circular_reference / unknown |
+| payload.warnings[].nodeId | String | warning 對應節點識別碼；無法對應時回傳空字串 |  |
+| payload.warnings[].refNo | String | warning 相關參考 no，例如 product no、bom no 或 item no；無法對應時回傳空字串 |  |
+
+### Failed Response Data
+
+| Field Path | Type | Description | Enum |
+|----------|----------|------|---|
+| code | Integer | API 錯誤代碼 |  |
+| message | String | API 錯誤訊息 |  |
+| payload | Object | 錯誤 payload，通常為空物件 |  |
+
+### Processing Flow
+
+1. 讀取 path parameter product_no 與 query parameter productVersion、depth、effectiveDate。
+2. 查詢 product 確認 root product 是否存在；不存在時回傳 record not found。
+3. 決定 productVersion：若 query 指定則使用指定版本；否則優先取 product_spec 中 product_no 或 product_no + "_1" 的最高 product_version；若沒有 product_spec，則使用 product.version。
+4. 將 depth 限制在 1 到 5 層，避免樹狀展開失控。
+5. 批次讀取 material、inproduct、product、goods 主檔，建立料品名稱與品項類別對照。
+6. 查詢 product_spec 取得 root product 第一層結構；若存在 product_no + "_1" 母節點規格，優先使用該群組，並略過 item_type=2 且 item_no 等於 root product no 的自我節點。
+7. item_type=1 時建立在製品節點，並依 inproduct_bom_spec 與 bom_item 展開其原料/物料子節點。
+8. item_type=2 時建立製成品節點，並在 depth 範圍內遞迴查詢該製成品的 product_spec。
+9. 以 bom / product_spec 建立 bomEvidence，回傳 BOM no、version、名稱、生效日期與版本狀態。
+10. 若 product_spec、bom_item 或 item master 缺漏，回傳 warnings[] code；不建立虛構子節點，不回傳前端顯示用繁中文字串。
+11. 依 children 與 warnings 判斷 structureStatusCode：有 children 且無 warning 為 complete；有 children 但有 warning 為 partial；無 children 為 missing。
+
+### Database Tables Used
+
+| Table | Purpose |
+|----------|------|
+| product | 提供 root product 與製成品子節點主檔資料 |
+| product_spec | 提供製成品版本與產品結構父子關係 |
+| inproduct | 提供在製品節點主檔資料 |
+| inproduct_bom_spec | 提供在製品與原料/物料 BOM 的關聯 |
+| bom | 提供 BOM 版本、生效日期與版本狀態判斷資料 |
+| bom_item | 提供 BOM 直接原料明細 |
+| material | 提供原料、物料、膠捲節點主檔資料 |
+| goods | 提供貨品節點主檔資料 |

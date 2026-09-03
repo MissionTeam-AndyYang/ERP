@@ -9,8 +9,17 @@ RESTSERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(RESTSERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(RESTSERVER_ROOT))
 
-from package.common.common import EBomVersionState
-from package.dbwrapper.table import CTableBOM, CTableBOMItem, CTableInproduct, CTableProduct, CTableProductSpec
+from package.common.common import EBomVersionState, EItemCategory, EProductStructureStatusCode
+from package.dbwrapper.table import (
+    CTableBOM,
+    CTableBOMItem,
+    CTableGoods,
+    CTableInproduct,
+    CTableInproductBOMSpec,
+    CTableMaterial,
+    CTableProduct,
+    CTableProductSpec,
+)
 from package.restserver.api.v2.bom import CBomCenterService
 
 
@@ -19,8 +28,11 @@ def build_session():
     for obj_table in [
         CTableBOM.__table__,
         CTableBOMItem.__table__,
+        CTableMaterial.__table__,
         CTableInproduct.__table__,
         CTableProduct.__table__,
+        CTableGoods.__table__,
+        CTableInproductBOMSpec.__table__,
         CTableProductSpec.__table__,
     ]:
         obj_table.create(bind=obj_engine)
@@ -62,6 +74,18 @@ def seed_bom_center(obj_session):
             bom_no="BOM-002", item_no="MAT-003",
             item_name="蛋粉", unit=2, weight=0.25,
         ),
+        CTableMaterial(
+            no="MAT-001", category=EItemCategory.PM, subCategory=11,
+            name="麵粉", unitWarehouse=2, unitProduct=2,
+        ),
+        CTableMaterial(
+            no="MAT-002", category=EItemCategory.PM, subCategory=11,
+            name="砂糖", unitWarehouse=2, unitProduct=2,
+        ),
+        CTableMaterial(
+            no="MAT-003", category=EItemCategory.PM, subCategory=11,
+            name="蛋粉", unitWarehouse=2, unitProduct=2,
+        ),
         CTableProduct(
             no="PRD-001", category=2, name="餅乾禮盒",
             unitShipping=111, unitWarehouse=111, unitProduct=111,
@@ -88,6 +112,11 @@ def seed_bom_center(obj_session):
             bom_no="BOM-001", bom_version=2, level=2,
             item_type=1, item_no="INP-001", count=3,
             unit=101, weight=1.5,
+        ),
+        CTableInproductBOMSpec(
+            inproduct_no="INP-001", category=1, item_no="BOM-001",
+            item_version=2, bom12_no="BOM-001", count=1,
+            unit=2, weight=1.567,
         ),
     ])
     obj_session.commit()
@@ -164,3 +193,41 @@ def test_bom_center_detail_supports_specific_version_and_not_found():
     assert CBomCenterService()._CBomCenterService__get_detail_with_session(
         obj_session, "BOM-404", 0, n_now,
     ) is None
+
+
+def test_product_structure_expands_finished_product_root_to_primitive_children():
+    obj_session = build_session()
+    seed_bom_center(obj_session)
+    dict_payload = CBomCenterService()._CBomCenterService__get_product_structure_with_session(
+        obj_session, "PRD-001", 2, 3, 1700000000,
+    )
+
+    assert dict_payload["rootProduct"]["productNo"] == "PRD-001"
+    assert dict_payload["rootProduct"]["productVersion"] == 2
+    assert dict_payload["rootProduct"]["structureStatusCode"] == EProductStructureStatusCode.COMPLETE
+    assert dict_payload["bomEvidence"][0]["bomNo"] == "BOM-001"
+    assert dict_payload["children"][0]["itemNo"] == "INP-001"
+    assert dict_payload["children"][0]["itemCategory"] == EItemCategory.INPRODUCT
+    assert dict_payload["children"][0]["hasChildren"] is True
+    assert [dict_child["itemNo"] for dict_child in dict_payload["children"][0]["children"]] == ["MAT-001", "MAT-002"]
+    assert dict_payload["children"][0]["children"][0]["itemCategory"] == EItemCategory.PM
+    assert dict_payload["warnings"] == []
+
+
+def test_product_structure_missing_spec_returns_warning_status():
+    obj_session = build_session()
+    seed_bom_center(obj_session)
+    obj_session.add(CTableProduct(
+        no="PRD-NO-SPEC", category=2, name="未設定結構產品",
+        unitShipping=111, unitWarehouse=111, unitProduct=111,
+        version=1,
+    ))
+    obj_session.commit()
+
+    dict_payload = CBomCenterService()._CBomCenterService__get_product_structure_with_session(
+        obj_session, "PRD-NO-SPEC", 0, 3, 1700000000,
+    )
+
+    assert dict_payload["rootProduct"]["structureStatusCode"] == EProductStructureStatusCode.MISSING
+    assert dict_payload["children"] == []
+    assert dict_payload["warnings"][0]["warningCode"] == "missing_product_spec"

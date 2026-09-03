@@ -28,6 +28,7 @@
 - [purchase](./purchase.md)
 - [purchasing](./purchasing.md)
 - [quotation](./quotation.md)
+- [recipe-formula](./recipe_formula.md)
 - [sale](./sale.md)
 - [shipwarehouse](./shipwarehouse.md)
 - [transitems](./transitems.md)

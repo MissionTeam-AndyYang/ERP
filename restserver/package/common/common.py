@@ -579,6 +579,31 @@ class EProductStructureWarningCode(object):
     UNKNOWN = "unknown"
 
 
+class ERecipeFormulaStatusCode(object):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+class ERecipeFormulaWarningCode(object):
+    MISSING_INPUTS = "missing_inputs"
+    MISSING_OUTPUT = "missing_output"
+    MULTIPLE_OUTPUTS = "multiple_outputs"
+    MISSING_INPUT_WEIGHT = "missing_input_weight"
+    MISSING_OUTPUT_WEIGHT = "missing_output_weight"
+    MISSING_LOSS_SOURCE = "missing_loss_source"
+    UNKNOWN = "unknown"
+
+
+class ERecipeFormulaSourceCode(object):
+    BOM = "bom"
+    BOM_ITEM = "bom_item"
+    PRODUCT_SPEC = "product_spec"
+    PRODUCT = "product"
+    NOT_RECORDED = "not_recorded"
+
+
 # ------------------------------------------------------------
 # Batch Center API enums
 # ------------------------------------------------------------

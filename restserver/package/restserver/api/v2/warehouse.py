@@ -1581,12 +1581,17 @@ class CWarehouseInventoryContextBuilder(object):
         n_query_timestamp,
         str_item_no="",
         n_item_category=0,
+        lst_item_nos=None,
     ):
+        lst_item_nos = self.__clean_string_list(lst_item_nos) if lst_item_nos is not None else None
+        if lst_item_nos is not None and not lst_item_nos and not str_item_no:
+            return {}
         dict_result = self.__query_item_current_stock(
             obj_session,
             n_query_timestamp,
             str_item_no,
             n_item_category,
+            lst_item_nos,
         )
         self.__append_item_reserved_quantities(
             obj_session,
@@ -1594,6 +1599,7 @@ class CWarehouseInventoryContextBuilder(object):
             dict_result,
             str_item_no,
             n_item_category,
+            lst_item_nos,
         )
         self.__append_item_quality_hold_quantities(
             obj_session,
@@ -1601,6 +1607,7 @@ class CWarehouseInventoryContextBuilder(object):
             dict_result,
             str_item_no,
             n_item_category,
+            lst_item_nos,
         )
         for dict_item in dict_result.values():
             dict_item["availableQuantity"] = util_round_quantity(
@@ -1641,13 +1648,15 @@ class CWarehouseInventoryContextBuilder(object):
     def stock_key(self, str_item_no, str_batch_no, str_warehouse_no):
         return "%s|%s|%s" % (str_item_no or "", str_batch_no or "", str_warehouse_no or "")
 
-    def __query_item_current_stock(self, obj_session, n_query_timestamp, str_item_no, n_item_category):
+    def __query_item_current_stock(self, obj_session, n_query_timestamp, str_item_no, n_item_category, lst_item_nos=None):
         lst_filters = [
             CTableInventoryRec.itemCategory.in_(self.ITEM_INVENTORY_CATEGORIES),
             CTableInventoryRec.date <= n_query_timestamp,
         ]
         if str_item_no:
             lst_filters.append(CTableInventoryRec.item_no == str_item_no)
+        elif lst_item_nos:
+            lst_filters.append(CTableInventoryRec.item_no.in_(self.__clean_string_list(lst_item_nos)))
         if n_item_category:
             lst_filters.append(CTableInventoryRec.itemCategory == n_item_category)
 
@@ -1702,7 +1711,7 @@ class CWarehouseInventoryContextBuilder(object):
                 dict_item["_warehouses"].add(obj_row.warehouse_no)
         return dict_result
 
-    def __append_item_reserved_quantities(self, obj_session, n_query_timestamp, dict_result, str_item_no, n_item_category):
+    def __append_item_reserved_quantities(self, obj_session, n_query_timestamp, dict_result, str_item_no, n_item_category, lst_item_nos=None):
         lst_filters = [
             CTableWarehouseInventoryReservation.status == CWarehouseDashboardService.RESERVATION_STATUS_ACTIVE,
             CTableWarehouseInventoryReservation.date <= n_query_timestamp,
@@ -1711,6 +1720,8 @@ class CWarehouseInventoryContextBuilder(object):
         ]
         if str_item_no:
             lst_filters.append(CTableWarehouseInventoryReservation.item_no == str_item_no)
+        elif lst_item_nos:
+            lst_filters.append(CTableWarehouseInventoryReservation.item_no.in_(self.__clean_string_list(lst_item_nos)))
         if n_item_category:
             lst_filters.append(CTableWarehouseInventoryReservation.itemCategory == n_item_category)
 
@@ -1728,13 +1739,15 @@ class CWarehouseInventoryContextBuilder(object):
             if dict_item is not None:
                 dict_item["reservedQuantity"] += util_safe_float(obj_row.reservedQuantity)
 
-    def __append_item_quality_hold_quantities(self, obj_session, n_query_timestamp, dict_result, str_item_no, n_item_category):
+    def __append_item_quality_hold_quantities(self, obj_session, n_query_timestamp, dict_result, str_item_no, n_item_category, lst_item_nos=None):
         lst_filters = [
             CTableWarehouseQualityHold.status == CWarehouseDashboardService.QUALITY_HOLD_STATUS_ACTIVE,
             CTableWarehouseQualityHold.date <= n_query_timestamp,
         ]
         if str_item_no:
             lst_filters.append(CTableWarehouseQualityHold.item_no == str_item_no)
+        elif lst_item_nos:
+            lst_filters.append(CTableWarehouseQualityHold.item_no.in_(self.__clean_string_list(lst_item_nos)))
         if n_item_category:
             lst_filters.append(CTableWarehouseQualityHold.itemCategory == n_item_category)
 
@@ -1751,6 +1764,9 @@ class CWarehouseInventoryContextBuilder(object):
             dict_item = dict_result.get(obj_row.item_no or "")
             if dict_item is not None:
                 dict_item["qualityHoldQuantity"] += util_safe_float(obj_row.holdQuantity)
+
+    def __clean_string_list(self, lst_values):
+        return list({str_value for str_value in lst_values if str_value})
 
     def group_risks(self, lst_risks):
         dict_result = defaultdict(lambda: {"riskTypes": [], "safetyStock": 0.0})

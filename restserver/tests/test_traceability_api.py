@@ -1406,6 +1406,27 @@ def test_trace_dashboard_does_not_build_overview_steps(monkeypatch):
     assert "nodes" not in dict_payload["records"][0]
 
 
+def test_trace_dashboard_inventory_enrichment_is_limited_to_page_batches(monkeypatch):
+    obj_session = build_session()
+    seed_traceability(obj_session)
+    dict_called = {}
+    obj_original = CTraceabilityService._CTraceabilityService__build_inventory_by_batch
+
+    def wrapped_build_inventory(self, obj_session, n_query_timestamp, str_timezone, n_item_category, str_item_no, str_batch_no, lst_batch_nos=None):
+        dict_called["batchNos"] = list(lst_batch_nos or [])
+        return obj_original(self, obj_session, n_query_timestamp, str_timezone, n_item_category, str_item_no, str_batch_no, lst_batch_nos)
+
+    monkeypatch.setattr(CTraceabilityService, "_CTraceabilityService__build_inventory_by_batch", wrapped_build_inventory)
+
+    dict_payload = CTraceabilityService()._CTraceabilityService__get_dashboard_with_session(
+        obj_session, "Asia/Taipei", "", 0, "", "", "", "", 0, 2,
+    )
+
+    assert dict_payload["total"] == 3
+    assert dict_payload["count"] == 2
+    assert len(dict_called["batchNos"]) == 2
+
+
 def test_trace_batch_overview_invalid_batch_returns_none():
     obj_session = build_session()
     seed_traceability(obj_session)

@@ -171,11 +171,13 @@ None
 
 1. 讀取 query parameters 並轉換為後端型別。
 2. 以 `trans_items` 作為第一版唯一交易品項來源，不查詢 `trans_items2`。
-3. 套用 `keyword`、`companyNo`、`transItemType`、`transItemCategory`、`hasLinkedItem`、`hasContract` 篩選。
-4. 依交易品項集合批次查詢 `company`、`payment`、`contract` 與內部料品主檔。
-5. 每個交易品項選取目前可明確關聯的最新合約摘要；單價與物流價格取至小數點第 4 位。
-6. 依公司聯絡、帳款條件、交易品項公司關聯、內部料品關聯與合約價格計算 `dataQualityCode`。
-7. 回傳摘要、公司清單、交易品項分頁清單與分頁資訊；`companies[]` 不套用 `start` / `count`，`start` / `count` 僅套用於 `transactionItems[]`。
+3. 套用 `keyword`、`companyNo`、`transItemType`、`transItemCategory`、`hasLinkedItem`、`hasContract` 篩選；`hasContract=true` 於資料庫查詢階段以 `contract.item_no` 限定交易品項，不再先全量取回後由 Python 過濾。
+4. 以同一篩選條件取得總筆數，並於資料庫查詢階段套用 `start/count` 取得 `transactionItems[]` 分頁資料，避免載入全部交易品項 ORM 物件後再分頁。
+5. 針對摘要與 `companies[]` 所需資料，只讀取符合篩選條件交易品項的 no、company_no、item_no 輕量欄位，再批次查詢 `company`、`payment`、`contract`。
+6. 針對本次分頁交易品項批次查詢內部料品主檔，建立 `transactionItems[]` 顯示所需的料品關聯資訊。
+7. 每個交易品項選取目前可明確關聯的最新合約摘要；單價與物流價格取至小數點第 4 位。
+8. 依公司聯絡、帳款條件、交易品項公司關聯、內部料品關聯與合約價格計算 `dataQualityCode`。
+9. 回傳摘要、公司清單、交易品項分頁清單與分頁資訊；`companies[]` 不套用 `start` / `count`，`start` / `count` 僅套用於 `transactionItems[]`。
 
 ### Database Tables Used
 

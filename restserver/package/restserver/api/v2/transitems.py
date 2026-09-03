@@ -74,7 +74,7 @@ class CTransItemsMasterService(object):
         n_count,
     ):
         n_start, n_count = self.__normalize_page(n_start, n_count)
-        lst_trans_items = self.__query_trans_items(
+        obj_query = self.__build_trans_items_query(
             obj_session,
             str_keyword,
             str_company_no,
@@ -83,18 +83,24 @@ class CTransItemsMasterService(object):
             b_has_linked_item,
             b_has_contract,
         )
-        n_total = len(lst_trans_items)
-        lst_page_items = lst_trans_items[n_start:n_start + n_count]
-        lst_company_nos = self.__clean_list([obj_row.company_no for obj_row in lst_trans_items])
-        lst_trans_item_nos = self.__clean_list([obj_row.no for obj_row in lst_trans_items])
+        n_total = obj_query.count()
+        lst_page_items = (
+            obj_query.order_by(CTableTransItems.category.asc(), CTableTransItems.no.asc())
+            .offset(n_start)
+            .limit(n_count)
+            .all()
+        )
+        lst_summary_refs = self.__query_trans_item_summary_refs(obj_query)
+        lst_company_nos = self.__clean_list([obj_row.company_no for obj_row in lst_summary_refs])
+        lst_trans_item_nos = self.__clean_list([obj_row.no for obj_row in lst_summary_refs])
         dict_companies = self.__query_companies_by_no(obj_session, lst_company_nos)
         dict_contracts = self.__query_contracts_by_trans_item_no(obj_session, lst_trans_item_nos)
-        dict_items = self.__query_linked_items(obj_session, self.__clean_list([obj_row.item_no for obj_row in lst_trans_items]))
+        dict_items = self.__query_linked_items(obj_session, self.__clean_list([obj_row.item_no for obj_row in lst_page_items]))
         dict_payments = self.__query_payments_for_companies(obj_session, dict_companies.values())
 
         lst_company_rows = self.__build_company_rows(
             dict_companies,
-            lst_trans_items,
+            lst_summary_refs,
             dict_contracts,
             dict_payments,
         )
@@ -109,7 +115,7 @@ class CTransItemsMasterService(object):
         ]
         return {
             "serverTimestamp": util_safe_int(time.time()),
-            "summary": self.__build_summary(lst_company_rows, lst_trans_items, dict_contracts),
+            "summary": self.__build_summary(lst_company_rows, lst_summary_refs, dict_contracts),
             "companies": lst_company_rows,
             "transactionItems": lst_trans_item_rows,
             "total": n_total,
@@ -165,7 +171,7 @@ class CTransItemsMasterService(object):
             "linkedItems": self.__build_linked_items(obj_trans_item, dict_items),
         }
 
-    def __query_trans_items(
+    def __build_trans_items_query(
         self,
         obj_session,
         str_keyword,
@@ -177,7 +183,7 @@ class CTransItemsMasterService(object):
     ):
         obj_query = obj_session.query(CTableTransItems)
         if str_trans_item_type and str_trans_item_type != ETransItemTypeCode.TRANS_ITEMS:
-            return []
+            return obj_query.filter(CTableTransItems.no == None)
         if str_company_no:
             obj_query = obj_query.filter(CTableTransItems.company_no == str_company_no)
         if n_trans_item_category:
@@ -205,11 +211,17 @@ class CTransItemsMasterService(object):
             if lst_contract_item_nos:
                 lst_conditions.append(CTableTransItems.no.in_(self.__clean_list(lst_contract_item_nos)))
             obj_query = obj_query.filter(or_(*lst_conditions))
-        lst_rows = obj_query.order_by(CTableTransItems.category.asc(), CTableTransItems.no.asc()).all()
         if b_has_contract:
-            dict_contracts = self.__query_contracts_by_trans_item_no(obj_session, self.__clean_list([obj_row.no for obj_row in lst_rows]))
-            lst_rows = [obj_row for obj_row in lst_rows if dict_contracts.get(obj_row.no or "")]
-        return lst_rows
+            obj_contract_query = obj_session.query(CTableContract.item_no).filter(CTableContract.item_no.isnot(None), CTableContract.item_no != "")
+            obj_query = obj_query.filter(CTableTransItems.no.in_(obj_contract_query))
+        return obj_query
+
+    def __query_trans_item_summary_refs(self, obj_query):
+        return obj_query.with_entities(
+            CTableTransItems.no.label("no"),
+            CTableTransItems.company_no.label("company_no"),
+            CTableTransItems.item_no.label("item_no"),
+        ).all()
 
     def __query_companies_by_no(self, obj_session, lst_company_nos):
         lst_company_nos = self.__clean_list(lst_company_nos)

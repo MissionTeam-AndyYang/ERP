@@ -18,6 +18,7 @@ from package.common.common import (  # noqa: E402
     EItemMaintenanceSuggestionTypeCode,
     EItemMasterStatusCode,
 )
+from package.restserver.api.v2.warehouse import CWarehouseInventoryContextBuilder  # noqa: E402
 from package.dbwrapper.table import (  # noqa: E402
     CTableBOM,
     CTableBOMItem,
@@ -198,6 +199,26 @@ def test_items_dashboard_returns_confirmed_fields():
     assert dict_items["FG-MISSING-BOM"]["maintenanceRiskCode"] == EItemMaintenanceRiskCode.MISSING_BOM
     assert dict_items["RM-NOSTOCK"]["maintenanceRiskCode"] == EItemMaintenanceRiskCode.MISSING_STOCK_SIGNAL
     assert dict_items["GOODS-001"]["maintenanceRiskCode"] == EItemMaintenanceRiskCode.MISSING_UNIT
+
+
+def test_items_dashboard_limits_inventory_summary_to_candidate_items(monkeypatch):
+    obj_session = build_session()
+    n_now = seed_item_center(obj_session)
+    dict_called = {}
+    obj_original = CWarehouseInventoryContextBuilder.query_item_inventory_summary
+
+    def wrapped_query_item_inventory_summary(self, obj_session, n_query_timestamp, str_item_no="", n_item_category=0, lst_item_nos=None):
+        dict_called["itemNos"] = set(lst_item_nos or [])
+        return obj_original(self, obj_session, n_query_timestamp, str_item_no, n_item_category, lst_item_nos)
+
+    monkeypatch.setattr(CWarehouseInventoryContextBuilder, "query_item_inventory_summary", wrapped_query_item_inventory_summary)
+
+    dict_payload = CItemCenterService()._CItemCenterService__get_dashboard_with_session(
+        obj_session, n_now, "Asia/Taipei", "", EItemCategory.PM, 0, "", False, False, 0, 50,
+    )
+
+    assert dict_payload["total"] == 2
+    assert dict_called["itemNos"] == {"RM-001", "RM-NOSTOCK"}
 
 
 def test_items_dashboard_filters_and_paginates_items():

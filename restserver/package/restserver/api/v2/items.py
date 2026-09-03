@@ -82,10 +82,21 @@ class CItemCenterService(object):
     ):
         n_query_timestamp = util_safe_int(n_date) or util_safe_int(time.time())
         n_start, n_count = self.__normalize_page(n_start, n_count)
-        lst_items = self.__build_item_rows(obj_session)
-        dict_inventory = self.__build_inventory_summary_by_item(obj_session, n_query_timestamp, str_timezone)
-        dict_bom = self.__build_bom_summary_by_item(obj_session)
-        dict_recent_batch_counts = self.__query_recent_batch_counts(obj_session)
+        lst_items = self.__build_item_rows(
+            obj_session,
+            str_keyword=str_keyword,
+            n_item_category=n_item_category,
+            n_item_sub_category=n_item_sub_category,
+        )
+        lst_item_nos = [dict_item.get("itemNo", "") for dict_item in lst_items if dict_item.get("itemNo")]
+        dict_inventory = self.__build_inventory_summary_by_item(
+            obj_session,
+            n_query_timestamp,
+            str_timezone,
+            lst_item_nos=lst_item_nos,
+        )
+        dict_bom = self.__build_bom_summary_by_item(obj_session, lst_item_nos=lst_item_nos)
+        dict_recent_batch_counts = self.__query_recent_batch_counts(obj_session, lst_item_nos=lst_item_nos)
         lst_rows = [
             self.__build_dashboard_row(dict_item, dict_inventory, dict_bom, dict_recent_batch_counts)
             for dict_item in lst_items
@@ -118,10 +129,9 @@ class CItemCenterService(object):
         if not str_item_no:
             return None
         n_query_timestamp = util_safe_int(n_date) or util_safe_int(time.time())
-        lst_items = [dict_item for dict_item in self.__build_item_rows(obj_session) if dict_item.get("itemNo") == str_item_no]
-        if not lst_items:
+        dict_item = self.__query_item_row(obj_session, str_item_no)
+        if not dict_item:
             return None
-        dict_item = lst_items[0]
         dict_inventory = self.__build_inventory_summary_by_item(obj_session, n_query_timestamp, str_timezone, str_item_no)
         dict_bom = self.__build_bom_summary_by_item(obj_session, str_item_no)
         dict_recent_batch_counts = self.__query_recent_batch_counts(obj_session, str_item_no)
@@ -137,33 +147,63 @@ class CItemCenterService(object):
             ] if dict_row.get("masterStatusCode") == EItemMasterStatusCode.MAINTENANCE_NEEDED else [],
         }
 
-    def __build_item_rows(self, obj_session):
+    def __build_item_rows(self, obj_session, str_keyword="", n_item_category=0, n_item_sub_category=0):
         lst_rows = []
-        for obj_row in obj_session.query(CTableMaterial).all():
+        for obj_row in self.__query_master_rows(obj_session, CTableMaterial, [EItemCategory.PM, EItemCategory.MA, EItemCategory.AF], str_keyword, n_item_category, n_item_sub_category, "subCategory"):
             lst_rows.append(self.__item_row(
                 obj_row,
                 util_safe_int(obj_row.category),
                 util_safe_int(obj_row.subCategory),
             ))
-        for obj_row in obj_session.query(CTableInproduct).all():
+        for obj_row in self.__query_master_rows(obj_session, CTableInproduct, [EItemCategory.INPRODUCT], str_keyword, n_item_category, n_item_sub_category, "category"):
             lst_rows.append(self.__item_row(
                 obj_row,
                 EItemCategory.INPRODUCT,
                 util_safe_int(obj_row.category),
             ))
-        for obj_row in obj_session.query(CTableProduct).all():
+        for obj_row in self.__query_master_rows(obj_session, CTableProduct, [EItemCategory.PRODUCT], str_keyword, n_item_category, n_item_sub_category, "category"):
             lst_rows.append(self.__item_row(
                 obj_row,
                 EItemCategory.PRODUCT,
                 util_safe_int(obj_row.category),
             ))
-        for obj_row in obj_session.query(CTableGoods).all():
+        for obj_row in self.__query_master_rows(obj_session, CTableGoods, [EItemCategory.GOODS], str_keyword, n_item_category, n_item_sub_category, "subCategory"):
             lst_rows.append(self.__item_row(
                 obj_row,
                 EItemCategory.GOODS,
                 util_safe_int(obj_row.subCategory),
             ))
         return lst_rows
+
+    def __query_master_rows(self, obj_session, obj_table, lst_item_categories, str_keyword, n_item_category, n_item_sub_category, str_sub_category_field):
+        if n_item_category and util_safe_int(n_item_category) not in lst_item_categories:
+            return []
+        obj_query = obj_session.query(obj_table)
+        if obj_table == CTableMaterial and n_item_category:
+            obj_query = obj_query.filter(obj_table.category == n_item_category)
+        if n_item_sub_category:
+            obj_query = obj_query.filter(getattr(obj_table, str_sub_category_field) == n_item_sub_category)
+        str_keyword = (str_keyword or "").strip()
+        if str_keyword:
+            str_like = "%%%s%%" % str_keyword
+            obj_query = obj_query.filter(or_(obj_table.no.ilike(str_like), obj_table.name.ilike(str_like)))
+        return obj_query.all()
+
+    def __query_item_row(self, obj_session, str_item_no):
+        for obj_table, n_item_category, str_sub_category_field in [
+            (CTableMaterial, None, "subCategory"),
+            (CTableInproduct, EItemCategory.INPRODUCT, "category"),
+            (CTableProduct, EItemCategory.PRODUCT, "category"),
+            (CTableGoods, EItemCategory.GOODS, "subCategory"),
+        ]:
+            obj_row = obj_session.query(obj_table).filter(obj_table.no == str_item_no).first()
+            if obj_row:
+                return self.__item_row(
+                    obj_row,
+                    util_safe_int(obj_row.category) if n_item_category is None else n_item_category,
+                    util_safe_int(getattr(obj_row, str_sub_category_field, 0)),
+                )
+        return None
 
     def __item_row(self, obj_row, n_item_category, n_item_sub_category):
         return {
@@ -176,17 +216,25 @@ class CItemCenterService(object):
             "creationTime": util_safe_int(getattr(obj_row, "creationTime", 0)),
         }
 
-    def __build_inventory_summary_by_item(self, obj_session, n_query_timestamp, str_timezone, str_item_no=""):
+    def __build_inventory_summary_by_item(self, obj_session, n_query_timestamp, str_timezone, str_item_no="", lst_item_nos=None):
         obj_context_builder = CWarehouseInventoryContextBuilder()
         return obj_context_builder.query_item_inventory_summary(
             obj_session=obj_session,
             n_query_timestamp=n_query_timestamp,
             n_item_category=0,
             str_item_no=str_item_no,
+            lst_item_nos=lst_item_nos,
         )
 
-    def __build_bom_summary_by_item(self, obj_session, str_item_no=""):
-        lst_item_nos = [str_item_no] if str_item_no else None
+    def __build_bom_summary_by_item(self, obj_session, str_item_no="", lst_item_nos=None):
+        if str_item_no:
+            lst_item_nos = [str_item_no]
+        elif lst_item_nos is not None:
+            lst_item_nos = self.__clean_string_list(lst_item_nos)
+            if not lst_item_nos:
+                return {}
+        else:
+            lst_item_nos = None
         dict_result = defaultdict(lambda: {"bomCount": 0, "_keys": set()})
         self.__append_bom_item_counts(obj_session, dict_result, lst_item_nos)
         self.__append_product_spec_counts(obj_session, dict_result, lst_item_nos)
@@ -242,10 +290,16 @@ class CItemCenterService(object):
             if obj_row.bom12_no:
                 dict_result[obj_row.bom12_no]["_keys"].add("inproduct_bom_spec:%s" % util_safe_int(obj_row.id))
 
-    def __query_recent_batch_counts(self, obj_session, str_item_no=""):
+    def __query_recent_batch_counts(self, obj_session, str_item_no="", lst_item_nos=None):
+        if not str_item_no and lst_item_nos is not None:
+            lst_item_nos = self.__clean_string_list(lst_item_nos)
+            if not lst_item_nos:
+                return {}
         obj_query = obj_session.query(CTableBatchNumber)
         if str_item_no:
             obj_query = obj_query.filter(CTableBatchNumber.item_no == str_item_no)
+        elif lst_item_nos:
+            obj_query = obj_query.filter(CTableBatchNumber.item_no.in_(self.__clean_string_list(lst_item_nos)))
         dict_result = defaultdict(set)
         for obj_row in obj_query.all():
             if obj_row.item_no and obj_row.no:
@@ -428,8 +482,15 @@ class CItemCenterService(object):
 
     def __query_bom_usage(self, obj_session, str_item_no):
         lst_usage = []
-        for obj_row in obj_session.query(CTableBOMItem).filter(CTableBOMItem.item_no == str_item_no).all():
-            obj_bom = self.__query_bom(obj_session, obj_row.bom_no)
+        lst_bom_item_rows = obj_session.query(CTableBOMItem).filter(CTableBOMItem.item_no == str_item_no).all()
+        lst_product_spec_rows = obj_session.query(CTableProductSpec).filter(CTableProductSpec.item_no == str_item_no).all()
+        dict_boms = self.__query_boms(
+            obj_session,
+            [obj_row.bom_no for obj_row in lst_bom_item_rows]
+            + [obj_row.bom_no for obj_row in lst_product_spec_rows],
+        )
+        for obj_row in lst_bom_item_rows:
+            obj_bom = dict_boms.get(obj_row.bom_no or "")
             lst_usage.append({
                 "bomNo": obj_row.bom_no or "",
                 "bomVersion": util_safe_int(getattr(obj_bom, "version", 0)),
@@ -437,25 +498,31 @@ class CItemCenterService(object):
                 "unit": util_safe_int(obj_row.unit),
                 "effectiveTimestamp": util_safe_int(getattr(obj_bom, "date", 0)),
             })
-        for obj_row in obj_session.query(CTableProductSpec).filter(CTableProductSpec.item_no == str_item_no).all():
+        for obj_row in lst_product_spec_rows:
             lst_usage.append({
                 "bomNo": obj_row.bom_no or "",
                 "bomVersion": util_safe_int(obj_row.bom_version),
                 "quantity": util_round_quantity(obj_row.weight or obj_row.count),
                 "unit": util_safe_int(obj_row.unit),
-                "effectiveTimestamp": util_safe_int(getattr(self.__query_bom(obj_session, obj_row.bom_no), "date", 0)),
+                "effectiveTimestamp": util_safe_int(getattr(dict_boms.get(obj_row.bom_no or ""), "date", 0)),
             })
         return self.__unique_bom_usage(lst_usage)
 
-    def __query_bom(self, obj_session, str_bom_no):
-        if not str_bom_no:
-            return None
-        return (
+    def __query_boms(self, obj_session, lst_bom_nos):
+        lst_bom_nos = self.__clean_string_list(lst_bom_nos)
+        if not lst_bom_nos:
+            return {}
+        lst_rows = (
             obj_session.query(CTableBOM)
-            .filter(CTableBOM.no == str_bom_no)
-            .order_by(CTableBOM.version.desc(), CTableBOM.date.desc())
-            .first()
+            .filter(CTableBOM.no.in_(lst_bom_nos))
+            .order_by(CTableBOM.no.asc(), CTableBOM.version.desc(), CTableBOM.date.desc())
+            .all()
         )
+        dict_result = {}
+        for obj_row in lst_rows:
+            if obj_row.no and obj_row.no not in dict_result:
+                dict_result[obj_row.no] = obj_row
+        return dict_result
 
     def __unique_bom_usage(self, lst_usage):
         dict_rows = {}
@@ -516,6 +583,9 @@ class CItemCenterService(object):
         n_start = max(util_safe_int(n_start), 0)
         n_count = min(max(util_safe_int(n_count), 1), 100)
         return n_start, n_count
+
+    def __clean_string_list(self, lst_values):
+        return list({str_value for str_value in lst_values or [] if str_value})
 
 
 class CItemCenterDashboard(object):

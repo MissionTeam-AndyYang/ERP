@@ -139,11 +139,12 @@ None
 ### Processing Flow
 
 1. 讀取 query parameters 並轉換為後端型別。
-2. 從 `material`、`inproduct`、`product`、`goods` 建立料品主檔候選集合。
-3. 使用 Warehouse 輕量品項庫存摘要共用邏輯取得目前庫存、可用數量、預留數量、品檢保留數量、批號數與倉庫數；此流程只查詢品項庫存摘要所需欄位，不建立完整 Warehouse Dashboard payload。
-4. 查詢 `bom_item`、`product_spec`、`product_bom_spec`、`inproduct_bom_spec`，彙總每個料品的 `bomCount`。
-5. 依缺單位、製成品/在製品缺 BOM、原料/物料/膠捲缺庫存與近期批號訊號，判斷 `masterStatusCode` 與 `maintenanceRiskCode`。
-6. 套用篩選、排序與分頁，建立 `summary`、`categorySummary`、`items[]` 與 read-only `maintenanceSuggestions[]`。
+2. 從 `material`、`inproduct`、`product`、`goods` 建立料品主檔候選集合；`keyword`、`itemCategory`、`itemSubCategory` 先於主檔查詢階段縮小候選範圍，避免後續庫存與 BOM 摘要掃描無關品項。
+3. 使用 Warehouse 輕量品項庫存摘要共用邏輯取得目前庫存、可用數量、預留數量、品檢保留數量、批號數與倉庫數；此流程限定於候選料品 no 清單，不建立完整 Warehouse Dashboard payload。
+4. 以候選料品 no 清單查詢 `bom_item`、`product_spec`、`product_bom_spec`、`inproduct_bom_spec`，彙總每個料品的 `bomCount`。
+5. 以候選料品 no 清單查詢 `batch_number`，彙總近期批號數；若候選集合為空，庫存、BOM 與批號摘要直接回傳空結果。
+6. 依缺單位、製成品/在製品缺 BOM、原料/物料/膠捲缺庫存與近期批號訊號，判斷 `masterStatusCode` 與 `maintenanceRiskCode`。
+7. 套用剩餘篩選、排序與分頁，建立 `summary`、`categorySummary`、`items[]` 與 read-only `maintenanceSuggestions[]`。
 
 ### Database Tables Used
 
@@ -288,9 +289,9 @@ None
 ### Processing Flow
 
 1. 驗證 `item_no`，若空字串或查無主檔則回傳錯誤。
-2. 從 `material`、`inproduct`、`product`、`goods` 讀取單一料品主檔。
-3. 使用 Warehouse 輕量品項庫存摘要共用邏輯彙總庫存摘要。
-4. 查詢 BOM 相關資料表建立 `bomUsage[]`。
+2. 依 `item_no` 分別查詢 `material`、`inproduct`、`product`、`goods` 取得單一料品主檔，不先建立全品項集合。
+3. 使用 Warehouse 輕量品項庫存摘要共用邏輯彙總此料品的庫存摘要。
+4. 查詢 BOM 相關資料表建立 `bomUsage[]`；BOM 主檔以 BOM no 清單批次查詢，避免逐筆 BOM 查詢。
 5. 查詢 `batch_number` 建立最多 20 筆近期批號摘要。
 6. 使用 dashboard 同一套規則建立 read-only `maintenanceSuggestions[]`。
 

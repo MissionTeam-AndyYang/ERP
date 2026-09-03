@@ -108,8 +108,12 @@ class CTraceabilityService(object):
         )
         n_total = len(lst_all_batches)
         lst_batches = lst_all_batches[n_start:n_start + n_count]
-        lst_all_batch_nos = [obj_batch.no for obj_batch in lst_all_batches if obj_batch.no]
         lst_page_batch_nos = [obj_batch.no for obj_batch in lst_batches if obj_batch.no]
+        dict_summary_signals = self.__query_dashboard_summary_signals(
+            obj_session,
+            n_query_timestamp,
+            [obj_batch.no for obj_batch in lst_all_batches if obj_batch.no],
+        )
         dict_inventory = self.__build_inventory_by_batch(
             obj_session,
             n_query_timestamp,
@@ -117,14 +121,14 @@ class CTraceabilityService(object):
             n_item_category,
             str_item_no,
             str_batch_no,
-            lst_all_batch_nos,
+            lst_page_batch_nos,
         )
-        dict_prod_inputs = self.__query_production_inputs_by_batch(obj_session, lst_all_batch_nos)
-        dict_prod_outputs = self.__query_production_outputs_by_batch(obj_session, lst_all_batch_nos)
-        dict_quality = self.__query_quality_holds_by_batch(obj_session, lst_all_batch_nos)
-        dict_latest = self.__query_latest_event_timestamp_by_batch(obj_session, lst_all_batch_nos)
+        dict_prod_inputs = self.__query_production_inputs_by_batch(obj_session, lst_page_batch_nos)
+        dict_prod_outputs = self.__query_production_outputs_by_batch(obj_session, lst_page_batch_nos)
+        dict_quality = self.__query_quality_holds_by_batch(obj_session, lst_page_batch_nos)
+        dict_latest = self.__query_latest_event_timestamp_by_batch(obj_session, lst_page_batch_nos)
 
-        lst_all_records = [
+        lst_page = [
             self.__build_dashboard_record(
                 obj_batch,
                 dict_inventory,
@@ -134,18 +138,12 @@ class CTraceabilityService(object):
                 dict_latest,
                 n_query_timestamp,
             )
-            for obj_batch in lst_all_batches
-        ]
-        dict_records_by_batch = {dict_record.get("batchNo", ""): dict_record for dict_record in lst_all_records}
-        lst_page = [
-            dict_records_by_batch.get(str_batch_no)
-            for str_batch_no in lst_page_batch_nos
-            if dict_records_by_batch.get(str_batch_no)
+            for obj_batch in lst_batches
         ]
 
         return {
             "serverTimestamp": n_query_timestamp,
-            "summary": self.__build_summary(lst_all_records),
+            "summary": self.__build_dashboard_summary(lst_all_batches, dict_summary_signals, n_query_timestamp),
             "records": lst_page,
             "total": n_total,
             "start": n_start,
@@ -479,6 +477,43 @@ class CTraceabilityService(object):
             .all()
         )
         return {obj_row.batchNumber or "": util_round_quantity(obj_row.holdQuantity) for obj_row in lst_rows}
+
+    def __query_dashboard_summary_signals(self, obj_session, n_query_timestamp, lst_batch_nos):
+        lst_batch_nos = self.__clean_list(lst_batch_nos)
+        if not lst_batch_nos:
+            return {
+                "stockBatchNos": set(),
+                "inputBatchNos": set(),
+                "outputBatchNos": set(),
+                "qualityHoldBatchNos": set(),
+            }
+        return {
+            "stockBatchNos": self.__query_stock_batch_nos(obj_session, n_query_timestamp, lst_batch_nos),
+            "inputBatchNos": set(self.__query_production_inputs_by_batch(obj_session, lst_batch_nos).keys()),
+            "outputBatchNos": set(self.__query_production_outputs_by_batch(obj_session, lst_batch_nos).keys()),
+            "qualityHoldBatchNos": set(self.__query_quality_holds_by_batch(obj_session, lst_batch_nos).keys()),
+        }
+
+    def __query_stock_batch_nos(self, obj_session, n_query_timestamp, lst_batch_nos):
+        obj_signed_count = func.sum(
+            case(
+                (CTableInventoryRec.category == EInventoryCategory.IN, CTableInventoryRec.count),
+                (CTableInventoryRec.category == EInventoryCategory.OUT, -CTableInventoryRec.count),
+                else_=0,
+            )
+        ).label("currentQuantity")
+        lst_rows = (
+            obj_session.query(CTableInventoryRec.batchNumber, obj_signed_count)
+            .filter(CTableInventoryRec.date <= n_query_timestamp)
+            .filter(CTableInventoryRec.batchNumber.in_(lst_batch_nos))
+            .group_by(CTableInventoryRec.batchNumber)
+            .all()
+        )
+        return {
+            obj_row.batchNumber or ""
+            for obj_row in lst_rows
+            if util_safe_float(obj_row.currentQuantity) > 0
+        }
 
     def __query_production_inputs_by_batch(self, obj_session, lst_batch_nos):
         return self.__group_by_batch(
@@ -954,6 +989,42 @@ class CTraceabilityService(object):
             "completeTraceRate": round((float(n_complete) / float(n_total)) * 100, 2) if n_total else 0.0,
             "brokenTraceCount": len([dict_row for dict_row in lst_records if dict_row.get("traceStatusCode") == ETraceStatusCode.BROKEN]),
             "highRiskTraceCount": len([dict_row for dict_row in lst_records if dict_row.get("riskLevelCode") == ETraceRiskLevelCode.HIGH_RISK]),
+        }
+
+    def __build_dashboard_summary(self, lst_batches, dict_signals, n_query_timestamp):
+        set_stock_batch_nos = dict_signals.get("stockBatchNos", set())
+        set_input_batch_nos = dict_signals.get("inputBatchNos", set())
+        set_output_batch_nos = dict_signals.get("outputBatchNos", set())
+        set_quality_hold_batch_nos = dict_signals.get("qualityHoldBatchNos", set())
+        n_total = len(lst_batches)
+        n_complete = 0
+        n_broken = 0
+        n_high_risk = 0
+        for obj_batch in lst_batches:
+            str_batch_no = obj_batch.no or ""
+            b_has_connection = bool(
+                obj_batch.ref_no
+                or str_batch_no in set_input_batch_nos
+                or str_batch_no in set_output_batch_nos
+                or str_batch_no in set_stock_batch_nos
+            )
+            if b_has_connection:
+                n_complete += 1
+            else:
+                n_broken += 1
+                n_high_risk += 1
+                continue
+            if (
+                util_safe_int(obj_batch.validDate)
+                and util_safe_int(obj_batch.validDate) < n_query_timestamp
+                and str_batch_no in set_stock_batch_nos
+            ):
+                n_high_risk += 1
+        return {
+            "traceableBatchCount": n_complete,
+            "completeTraceRate": round((float(n_complete) / float(n_total)) * 100, 2) if n_total else 0.0,
+            "brokenTraceCount": n_broken,
+            "highRiskTraceCount": n_high_risk,
         }
 
     def __trace_direction_code(self, obj_batch):

@@ -2,6 +2,7 @@
 
 import {
   Barcode,
+  Beaker,
   Bell,
   CalendarRange,
   ClipboardList,
@@ -32,6 +33,7 @@ const navItems: { labelKey: TranslationKey; icon: typeof Home; href: string }[] 
   { labelKey: "nav.items", icon: PackageSearch, href: "/items" },
   { labelKey: "nav.batches", icon: Barcode, href: "/batches" },
   { labelKey: "nav.bom", icon: FlaskConical, href: "/bom" },
+  { labelKey: "nav.recipe", icon: Beaker, href: "/recipe" },
   { labelKey: "nav.production", icon: Factory, href: "/production" },
   { labelKey: "nav.warehouse", icon: Warehouse, href: "/warehouse" },
   { labelKey: "nav.quality", icon: Shield, href: "/quality" },

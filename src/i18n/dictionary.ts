@@ -23,6 +23,7 @@ export type TranslationKey =
   | "nav.items"
   | "nav.batches"
   | "nav.bom"
+  | "nav.recipe"
   | "nav.production"
   | "nav.warehouse"
   | "nav.quality"
@@ -56,6 +57,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.items": "品項中心",
     "nav.batches": "批號中心",
     "nav.bom": "BOM 中心",
+    "nav.recipe": "Recipe / Formula",
     "nav.production": "生產中心",
     "nav.warehouse": "倉庫中心",
     "nav.quality": "品保中心",
@@ -84,6 +86,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.items": "Items",
     "nav.batches": "Batches",
     "nav.bom": "BOM",
+    "nav.recipe": "Recipe / Formula",
     "nav.production": "Production",
     "nav.warehouse": "Warehouse",
     "nav.quality": "Quality",
@@ -112,6 +115,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.items": "品目",
     "nav.batches": "ロット",
     "nav.bom": "BOM",
+    "nav.recipe": "Recipe / Formula",
     "nav.production": "生産",
     "nav.warehouse": "倉庫",
     "nav.quality": "品質",
@@ -140,6 +144,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.items": "Mặt hàng",
     "nav.batches": "Lô",
     "nav.bom": "BOM",
+    "nav.recipe": "Recipe / Formula",
     "nav.production": "Sản xuất",
     "nav.warehouse": "Kho",
     "nav.quality": "Chất lượng",

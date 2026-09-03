@@ -118,6 +118,20 @@ Naming rules:
 | P0.4 | V1 Core | `RDQuotationBasisView` | View | 報價基礎視圖 | `RDCostWorkspaceScreen` 內的「報價基礎」頁籤 | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/dashboard`、`GET /api/v2/rd/cost/products/{product_no}/detail` | 顯示目標價、最低報價、建議報價、毛利與 quotation/contract 關聯；不代表已核准或有效。 |
 | P1 | V1 Core | `RDCostDetailPanel` | Panel | 研發成本追蹤面板 | `RDCostWorkspaceScreen` 右側 panel | API proposal，Pending Engineer Review | `GET /api/v2/rd/cost/products/{product_no}/detail` | 顯示選取產品版本的 BOM、成本明細、商務關聯與資料缺口。 |
 
+## Recipe / Formula Screen Roadmap
+
+`RecipeFormulaScreen` 對應 `/recipe` 執行畫面，第一版採 read-only Product surface。Recipe / Formula 與 `BOMCenterScreen`、`BOMProductStructureTreeView`、`RDCostWorkspaceScreen` 分開管理：BOM / Product Structure 回答產品由哪些結構關係組成；Recipe / Formula 回答受治理 Recipe Version 如何使用投入項、重量、比例、個別損耗與唯一定義產出。此畫面不建立、修改、核准或發布 Recipe，不實作 Routing、Packaging Specification、Manufacturing Definition、Production Observation 或 Costing 權限。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `RecipeFormulaScreen` | Screen | Recipe / Formula | `/recipe` | 前端已完成 read-only UX、API client 與 mock/API 分離；待 Backend `ERP2-RECIPE-FORMULA-RO-EXEC-001-BE-001` 回傳契約後 real-backend validation | `GET /api/v2/recipe-formula/dashboard`、`GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 檢視 Recipe 定義、目前版本、Formula 組成、唯一定義產出、來源 lineage、警示、Product Structure 參照與 Routing context 參照；不包含寫入或核准操作。 |
+| P0.1 | V1 Core | `RecipeFormulaSelectorView` | View | Recipe 選擇視圖 | `RecipeFormulaScreen` 左側 Recipe 清單 | 前端已完成 | `GET /api/v2/recipe-formula/dashboard` | 支援 Recipe / 產品 / 來源搜尋，顯示 Recipe no、產品、目前版本、輸入項數、警示數、來源與狀態。 |
+| P0.2 | V1 Core | `RecipeVersionSummaryPanel` | Panel | Recipe 版本摘要面板 | `RecipeFormulaScreen` 右側 panel | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示選取 Recipe Version、版本切換、產品、輸入項、警示與定義產出摘要。 |
+| P0.3 | V1 Core | `FormulaCompositionView` | View | Formula 組成視圖 | `RecipeFormulaScreen` 主內容區 | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示投入品項、階段、數量、重量、UOM、重量比例、個別損耗與來源 ref。 |
+| P0.4 | V1 Core | `DefinedOutputPanel` | Panel | 定義產出面板 | `RecipeFormulaScreen` 主內容區 | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示 Recipe Version 唯一 output item、數量、重量、UOM 與標準良率；若未回傳 output，顯示 not-found/contract warning state。 |
+| P0.5 | V1 Core | `RecipeLineageWarningPanel` | Panel | 來源與警示面板 | `RecipeFormulaScreen` 主內容區 | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示來源 lineage、未解重量基準、缺少輸入、缺少定義產出等 warning；Production Observation 只能作參照，不作 Recipe authority。 |
+| P0.6 | V1 Core | `RecipeReferencePanel` | Panel | 產品結構與 Routing 參照面板 | `RecipeFormulaScreen` 主內容區 | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示 related Product Structure reference 與 Routing context reference；只呈現參照，不展開 Product Structure、不實作 Routing Product。 |
+
 ## BOM Center Screen Roadmap
 
 `BOMCenterScreen` 與 `ProductDevelopmentWorkspaceScreen` 分開管理。BOM Center 對應目前 `/bom` 執行畫面，處理 BOM 版本、有效日期、直接配方明細、產品版本關聯，以及成品根節點的唯讀產品結構視圖；研發成本、成本試算、報價與合約維持在 `/rd` 與產品研發相關規劃中。產品結構視圖不等同 Recipe / Formula，不包含寫入、簽核、成本、庫存或排程操作。

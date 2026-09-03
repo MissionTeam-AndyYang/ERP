@@ -12,7 +12,7 @@ Use this when you need to:
 - Preview the current Next.js ERP frontend.
 - Verify API integration from the browser.
 - Run lint/build before submitting changes.
-- Confirm whether a page is using real API data or mock fallback data.
+- Confirm whether a page is using backend API data or manually selected mock data.
 
 ## Project Stack
 
@@ -118,7 +118,7 @@ Notes:
 
 - `.env.local` is local-only and should not be committed.
 - Restart the dev server after changing `.env.local`.
-- If `NEXT_PUBLIC_API_BASE_URL` is unavailable or the API errors, pages may show `Mock fallback`.
+- If `NEXT_PUBLIC_API_BASE_URL` is unavailable or the API errors while API mode is selected, pages should show an error state and must not silently switch to mock data. Use the page data-source toggle only when you intentionally want to view mock data.
 
 ## Start Development Server
 
@@ -164,15 +164,17 @@ Most ERP pages show a source badge near the top:
 
 | Badge | Meaning |
 | --- | --- |
-| `API data` | The page received data from the backend API. |
-| `Mock fallback` | The API was unavailable or errored; frontend is showing fallback data. |
-| `Loading API` | The request is still pending. |
+| `後端資料` / API data | The page is requesting or displaying backend API data. |
+| `示範資料` / Mock data | The user intentionally selected mock data from the data-source toggle. |
+| Loading / loading indicator | The request is still pending. |
+| Error / 資料取得失敗 | API mode failed. The page should not silently show mock rows. |
 
 Accepted frontend rule:
 
 ```txt
-API unavailable -> show Mock fallback visibly.
+API unavailable in API mode -> show an error state.
 Valid API empty array -> show a real empty state, not mock rows.
+Mock data -> only when the user selects mock mode.
 ```
 
 ## Run Checks Before Handoff
@@ -288,7 +290,7 @@ Start on another port:
 npm.cmd run dev -- -p 3001
 ```
 
-### Page shows `Mock fallback`
+### Page shows an API error
 
 Check:
 
@@ -297,6 +299,7 @@ Check:
 3. Did you restart `npm run dev` after editing `.env.local`?
 4. Does backend route match the frontend endpoint?
 5. Does the browser devtools Network tab show a failed request?
+6. If you only need to inspect layout, switch the page data source to mock data manually.
 
 ### Build fails with TypeScript or ESLint error
 
@@ -336,7 +339,7 @@ Before saying the frontend environment is ready:
 - [ ] `.env.local` created if backend API integration is needed.
 - [ ] `npm.cmd run dev` starts successfully.
 - [ ] Target route opens in browser.
-- [ ] Source badge is understood: `API data` or `Mock fallback`.
+- [ ] Source badge is understood: backend API mode, mock mode, loading, and API error state.
 - [ ] `npm.cmd run lint` passes.
 - [ ] `npm.cmd run build` passes.
 - [ ] Route smoke returns HTTP 200.

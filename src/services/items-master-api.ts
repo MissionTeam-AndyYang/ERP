@@ -5,12 +5,22 @@ import { apiGet, withFallbackArray } from "@/services/api-client";
 import type { StatusTone } from "@/types/dashboard";
 import type {
   CompanyMasterRow,
+  CompanyDetail,
+  ContractSummaryRow,
+  ItemBomUsageRow,
   ItemAndTransactionMasterData,
   ItemCategorySummary,
+  ItemInventorySummary,
+  ItemMasterDetailData,
+  ItemMasterDetailTarget,
+  ItemRecentBatchRow,
   ItemsMasterDataSource,
+  LinkedMaterialItemRow,
   MaintenanceSuggestionRow,
+  MaterialItemDetail,
   MaterialItemMasterRow,
   PaymentSummary,
+  TransactionItemDetail,
   TransactionItemMasterRow
 } from "@/types/items-master";
 
@@ -49,6 +59,45 @@ type ApiMaintenanceSuggestion = {
   itemNo?: string;
   suggestionTypeCode?: string;
   riskLevelCode?: string;
+};
+
+type ApiItemInventorySummary = {
+  hasStock?: boolean;
+  currentQuantity?: number;
+  availableQuantity?: number;
+  reservedQuantity?: number;
+  qualityHoldQuantity?: number;
+  warehouseCount?: number;
+  batchCount?: number;
+};
+
+type ApiItemBomUsageRow = {
+  bomNo?: string;
+  bomVersion?: number;
+  quantity?: number;
+  unit?: number;
+  effectiveTimestamp?: number;
+};
+
+type ApiItemRecentBatchRow = {
+  batchNo?: string;
+  refCategory?: number;
+  refNo?: string;
+  currentQuantity?: number;
+  unit?: number;
+  validDate?: number;
+  riskLevelCode?: string;
+};
+
+type ApiItemDetailPayload = {
+  serverTimestamp?: number;
+  item?: ApiItemRow & {
+    creationTime?: number;
+  };
+  inventorySummary?: ApiItemInventorySummary;
+  bomUsage?: ApiItemBomUsageRow[];
+  recentBatches?: ApiItemRecentBatchRow[];
+  maintenanceSuggestions?: ApiMaintenanceSuggestion[];
 };
 
 type ApiItemsDashboardPayload = {
@@ -121,6 +170,63 @@ type ApiTransItemsDashboardPayload = {
   count?: number;
 };
 
+type ApiCompanyDetailRow = ApiCompanyRow & {
+  address?: string;
+  phone?: string;
+  contactTitle?: string;
+  contactEmail?: string;
+};
+
+type ApiCompanyTransactionItemRow = {
+  transItemNo?: string;
+  transItemName?: string;
+  transItemType?: string;
+  transItemCategory?: number;
+  transItemAttribute?: number;
+  itemNo?: string;
+  itemName?: string;
+  contractNo?: string;
+  tradeUnit?: number;
+  tradePrice?: number;
+  dataQualityCode?: string;
+};
+
+type ApiContractRow = {
+  contractNo?: string;
+  contractDisplayName?: string;
+  contractCategory?: number;
+  contractType?: number;
+  tradeUnit?: number;
+  tradePrice?: number;
+  shippingPrice?: number;
+  unitConversion?: number;
+  effectiveDate?: number;
+  transItemNo?: string;
+  transItemName?: string;
+};
+
+type ApiCompanyDetailPayload = {
+  serverTimestamp?: number;
+  company?: ApiCompanyDetailRow;
+  transactionItems?: ApiCompanyTransactionItemRow[];
+  contracts?: ApiContractRow[];
+};
+
+type ApiTransactionItemDetailPayload = {
+  serverTimestamp?: number;
+  transItem?: ApiTransactionItemRow & {
+    comment?: string;
+    creationTime?: number;
+  };
+  contracts?: ApiContractRow[];
+  linkedItems?: {
+    itemNo?: string;
+    itemName?: string;
+    itemCategory?: number;
+    unitWarehouse?: number;
+  }[];
+};
+
 export type ItemAndTransactionMasterQuery = {
   keyword?: string;
   start?: number;
@@ -129,6 +235,12 @@ export type ItemAndTransactionMasterQuery = {
 
 export type ItemAndTransactionMasterResult = {
   data: ItemAndTransactionMasterData;
+  source: ItemsMasterDataSource;
+  error?: string;
+};
+
+export type ItemMasterDetailResult = {
+  data?: ItemMasterDetailData;
   source: ItemsMasterDataSource;
   error?: string;
 };
@@ -161,6 +273,18 @@ const locale = "zh-TW";
 
 function asNumber(value?: number) {
   return Number.isFinite(value) ? Number(value) : 0;
+}
+
+function timestampToDate(value?: number) {
+  const timestamp = asNumber(value);
+  if (!timestamp) {
+    return "";
+  }
+  return new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date(timestamp * 1000));
 }
 
 function formatPath(path: string, query: ItemAndTransactionMasterQuery = {}) {
@@ -212,7 +336,10 @@ function dataQualityLabel(code?: string) {
     ready: "資料完整",
     missing_linked_item: "未關聯料品",
     missing_payment: "帳款條件待補",
+    missing_payment_terms: "帳款條件待補",
     missing_contact: "聯絡資訊待補",
+    missing_company: "未關聯公司",
+    missing_contract_price: "合約價格待補",
     unknown: "未確認"
   };
   return labels[code ?? "unknown"] ?? "待確認";
@@ -338,6 +465,56 @@ function mapSuggestion(item: ApiMaintenanceSuggestion): MaintenanceSuggestionRow
   };
 }
 
+function mapItemInventorySummary(item?: ApiItemInventorySummary): ItemInventorySummary {
+  return {
+    hasStock: item?.hasStock === true,
+    currentQuantity: asNumber(item?.currentQuantity),
+    availableQuantity: asNumber(item?.availableQuantity),
+    reservedQuantity: asNumber(item?.reservedQuantity),
+    qualityHoldQuantity: asNumber(item?.qualityHoldQuantity),
+    warehouseCount: asNumber(item?.warehouseCount),
+    batchCount: asNumber(item?.batchCount)
+  };
+}
+
+function mapBomUsage(item: ApiItemBomUsageRow): ItemBomUsageRow {
+  const unit = asNumber(item.unit);
+  const bomVersion = asNumber(item.bomVersion);
+  const quantity = asNumber(item.quantity);
+  return {
+    id: `${item.bomNo ?? "bom"}-${bomVersion}-${unit}-${quantity}`,
+    bomNo: item.bomNo ?? "",
+    bomVersion,
+    quantity,
+    unit,
+    unitLabel: unitLabel(unit),
+    effectiveDate: timestampToDate(item.effectiveTimestamp)
+  };
+}
+
+function refCategoryLabel(code?: number) {
+  return warehouseEnumLabel("refCategory", code, locale);
+}
+
+function mapRecentBatch(item: ApiItemRecentBatchRow): ItemRecentBatchRow {
+  const riskLevelCode = item.riskLevelCode ?? "unknown";
+  const unit = asNumber(item.unit);
+  return {
+    id: item.batchNo ?? "batch",
+    batchNo: item.batchNo ?? "",
+    refCategory: asNumber(item.refCategory),
+    refCategoryLabel: refCategoryLabel(item.refCategory),
+    refNo: item.refNo ?? "",
+    currentQuantity: asNumber(item.currentQuantity),
+    unit,
+    unitLabel: unitLabel(unit),
+    validDate: timestampToDate(item.validDate),
+    riskLevelCode,
+    riskLevelLabel: riskLevelLabel(riskLevelCode),
+    tone: statusTone(riskLevelCode)
+  };
+}
+
 function mapPayment(item?: ApiPayment): PaymentSummary {
   const paymentTypeCode = item?.paymentTypeCode ?? "unknown";
   return {
@@ -399,6 +576,126 @@ function mapTransactionItem(item: ApiTransactionItemRow): TransactionItemMasterR
     dataQualityCode,
     dataQualityLabel: dataQualityLabel(dataQualityCode),
     tone: statusTone(dataQualityCode)
+  };
+}
+
+function mapCompanyTransactionItem(item: ApiCompanyTransactionItemRow, company?: CompanyMasterRow): TransactionItemMasterRow {
+  const dataQualityCode = item.dataQualityCode ?? "unknown";
+  const tradeUnit = asNumber(item.tradeUnit);
+  return {
+    id: item.transItemNo ?? "trans-item",
+    transItemNo: item.transItemNo ?? "",
+    transItemName: item.transItemName ?? "",
+    transItemType: item.transItemType ?? "trans_items",
+    transItemTypeLabel: transItemTypeLabel(item.transItemType),
+    transItemCategory: asNumber(item.transItemCategory),
+    transItemCategoryLabel: transItemCategoryLabel(item.transItemCategory),
+    transItemAttribute: asNumber(item.transItemAttribute),
+    companyNo: company?.companyNo ?? "",
+    companyDisplayName: company?.companyDisplayName ?? "",
+    itemNo: item.itemNo ?? "",
+    itemName: item.itemName ?? "",
+    itemCategory: 0,
+    itemCategoryLabel: itemCategoryLabel(0),
+    contractNo: item.contractNo ?? "",
+    contractCategory: 0,
+    contractCategoryLabel: contractCategoryLabel(0),
+    contractType: 0,
+    tradeUnit,
+    tradeUnitLabel: unitLabel(tradeUnit),
+    tradePrice: asNumber(item.tradePrice),
+    shippingPrice: 0,
+    unitConversion: 0,
+    dataQualityCode,
+    dataQualityLabel: dataQualityLabel(dataQualityCode),
+    tone: statusTone(dataQualityCode)
+  };
+}
+
+function mapContract(item: ApiContractRow): ContractSummaryRow {
+  const contractCategory = asNumber(item.contractCategory);
+  const tradeUnit = item.tradeUnit === undefined ? undefined : asNumber(item.tradeUnit);
+  return {
+    id: item.contractNo ?? "contract",
+    contractNo: item.contractNo ?? "",
+    contractDisplayName: item.contractDisplayName ?? "",
+    contractCategory,
+    contractCategoryLabel: contractCategoryLabel(contractCategory),
+    contractType: asNumber(item.contractType),
+    tradeUnit,
+    tradeUnitLabel: tradeUnit === undefined ? undefined : unitLabel(tradeUnit),
+    tradePrice: item.tradePrice === undefined ? undefined : asNumber(item.tradePrice),
+    shippingPrice: item.shippingPrice === undefined ? undefined : asNumber(item.shippingPrice),
+    unitConversion: item.unitConversion === undefined ? undefined : asNumber(item.unitConversion),
+    effectiveDate: timestampToDate(item.effectiveDate),
+    transItemNo: item.transItemNo,
+    transItemName: item.transItemName
+  };
+}
+
+function mapLinkedItem(item: { itemNo?: string; itemName?: string; itemCategory?: number; unitWarehouse?: number }): LinkedMaterialItemRow {
+  const itemCategory = asNumber(item.itemCategory);
+  const unitWarehouse = asNumber(item.unitWarehouse);
+  return {
+    id: item.itemNo ?? "item",
+    itemNo: item.itemNo ?? "",
+    itemName: item.itemName ?? "",
+    itemCategory,
+    itemCategoryLabel: itemCategoryLabel(itemCategory),
+    unitWarehouse,
+    unitWarehouseLabel: unitLabel(unitWarehouse)
+  };
+}
+
+function mapItemDetailPayload(payload: ApiItemDetailPayload): MaterialItemDetail | undefined {
+  if (!payload.item?.itemNo) {
+    return undefined;
+  }
+  return {
+    item: mapItem(payload.item),
+    creationDate: timestampToDate(payload.item.creationTime),
+    inventorySummary: mapItemInventorySummary(payload.inventorySummary),
+    bomUsage: withFallbackArray<ApiItemBomUsageRow>(payload.bomUsage, []).map(mapBomUsage),
+    recentBatches: withFallbackArray<ApiItemRecentBatchRow>(payload.recentBatches, []).map(mapRecentBatch),
+    maintenanceSuggestions: withFallbackArray<ApiMaintenanceSuggestion>(payload.maintenanceSuggestions, []).map(mapSuggestion)
+  };
+}
+
+function mapCompanyDetailPayload(payload: ApiCompanyDetailPayload): CompanyDetail | undefined {
+  if (!payload.company?.companyNo) {
+    return undefined;
+  }
+  const company = {
+    ...mapCompany(payload.company),
+    address: payload.company.address ?? "",
+    phone: payload.company.phone ?? "",
+    contactTitle: payload.company.contactTitle ?? "",
+    contactEmail: payload.company.contactEmail ?? ""
+  };
+  return {
+    company,
+    transactionItems: withFallbackArray<ApiCompanyTransactionItemRow>(payload.transactionItems, []).map((item) =>
+      mapCompanyTransactionItem(item, company)
+    ),
+    contracts: withFallbackArray<ApiContractRow>(payload.contracts, []).map(mapContract)
+  };
+}
+
+function mapTransactionItemDetailPayload(payload: ApiTransactionItemDetailPayload): TransactionItemDetail | undefined {
+  if (!payload.transItem?.transItemNo) {
+    return undefined;
+  }
+  return {
+    transItem: {
+      ...mapTransactionItem(payload.transItem),
+      comment: payload.transItem.comment ?? "",
+      creationDate: timestampToDate(payload.transItem.creationTime)
+    },
+    contracts: withFallbackArray<ApiContractRow>(payload.contracts, []).map(mapContract),
+    linkedItems: withFallbackArray<{ itemNo?: string; itemName?: string; itemCategory?: number; unitWarehouse?: number }>(
+      payload.linkedItems,
+      []
+    ).map(mapLinkedItem)
   };
 }
 
@@ -464,6 +761,155 @@ export async function getItemAndTransactionMasterDashboard(
       data: emptyItemAndTransactionMasterData,
       source: "api",
       error: error instanceof Error ? error.message : "品項與交易主資料 API 取得失敗"
+    };
+  }
+}
+
+function mockDetailResult(target: ItemMasterDetailTarget): ItemMasterDetailResult {
+  if (target.type === "material") {
+    const item = itemAndTransactionMasterMock.items.find((row) => row.itemNo === target.id);
+    return {
+      data: item
+        ? {
+            item,
+            creationDate: "",
+            inventorySummary: {
+              hasStock: item.hasStock,
+              currentQuantity: item.currentQuantity,
+              availableQuantity: item.currentQuantity,
+              reservedQuantity: 0,
+              qualityHoldQuantity: 0,
+              warehouseCount: item.hasStock ? 1 : 0,
+              batchCount: item.batchCount
+            },
+            bomUsage: [],
+            recentBatches: [],
+            maintenanceSuggestions: itemAndTransactionMasterMock.maintenanceSuggestions.filter(
+              (suggestion) => suggestion.itemNo === item.itemNo
+            )
+          }
+        : undefined,
+      source: "mock",
+      error: item ? undefined : "示範資料中找不到此料品。"
+    };
+  }
+
+  if (target.type === "company") {
+    const company = itemAndTransactionMasterMock.companies.find((row) => row.companyNo === target.id);
+    return {
+      data: company
+        ? {
+            company: {
+              ...company,
+              address: "",
+              phone: company.contactPhone,
+              contactTitle: "",
+              contactEmail: ""
+            },
+            transactionItems: itemAndTransactionMasterMock.transactionItems.filter(
+              (item) => item.companyNo === company.companyNo
+            ),
+            contracts: []
+          }
+        : undefined,
+      source: "mock",
+      error: company ? undefined : "示範資料中找不到此客戶／廠商。"
+    };
+  }
+
+  const transItem = itemAndTransactionMasterMock.transactionItems.find((row) => row.transItemNo === target.id);
+  return {
+    data: transItem
+      ? {
+          transItem: {
+            ...transItem,
+            comment: "",
+            creationDate: ""
+          },
+          contracts: [],
+          linkedItems: transItem.itemNo
+            ? [
+                {
+                  id: transItem.itemNo,
+                  itemNo: transItem.itemNo,
+                  itemName: transItem.itemName,
+                  itemCategory: transItem.itemCategory,
+                  itemCategoryLabel: transItem.itemCategoryLabel,
+                  unitWarehouse: transItem.tradeUnit,
+                  unitWarehouseLabel: transItem.tradeUnitLabel
+                }
+              ]
+            : []
+        }
+      : undefined,
+    source: "mock",
+    error: transItem ? undefined : "示範資料中找不到此交易品項。"
+  };
+}
+
+export async function getItemMasterDetail(
+  itemNo: string,
+  dataSourceMode: DataSourceMode = "api"
+): Promise<ItemMasterDetailResult> {
+  if (dataSourceMode === "mock") {
+    return mockDetailResult({ type: "material", id: itemNo });
+  }
+  try {
+    const payload = await apiGet<ApiItemDetailPayload>(`/api/v2/items/${encodeURIComponent(itemNo)}/detail`);
+    return {
+      data: mapItemDetailPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      source: "api",
+      error: error instanceof Error ? error.message : "料品明細 API 取得失敗"
+    };
+  }
+}
+
+export async function getCompanyMasterDetail(
+  companyNo: string,
+  dataSourceMode: DataSourceMode = "api"
+): Promise<ItemMasterDetailResult> {
+  if (dataSourceMode === "mock") {
+    return mockDetailResult({ type: "company", id: companyNo });
+  }
+  try {
+    const payload = await apiGet<ApiCompanyDetailPayload>(
+      `/api/v2/transitems/companies/${encodeURIComponent(companyNo)}/detail`
+    );
+    return {
+      data: mapCompanyDetailPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      source: "api",
+      error: error instanceof Error ? error.message : "客戶／廠商明細 API 取得失敗"
+    };
+  }
+}
+
+export async function getTransactionItemMasterDetail(
+  transItemNo: string,
+  dataSourceMode: DataSourceMode = "api"
+): Promise<ItemMasterDetailResult> {
+  if (dataSourceMode === "mock") {
+    return mockDetailResult({ type: "transaction", id: transItemNo });
+  }
+  try {
+    const payload = await apiGet<ApiTransactionItemDetailPayload>(
+      `/api/v2/transitems/transitems/${encodeURIComponent(transItemNo)}/detail`
+    );
+    return {
+      data: mapTransactionItemDetailPayload(payload),
+      source: "api"
+    };
+  } catch (error) {
+    return {
+      source: "api",
+      error: error instanceof Error ? error.message : "交易品項明細 API 取得失敗"
     };
   }
 }

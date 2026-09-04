@@ -68,6 +68,7 @@ type ApiRoutingProductItem = {
   stepCount?: number;
   warningCount?: number;
   warningCodes?: string[];
+  sourceCode?: string;
   sourceLabel?: string;
 };
 
@@ -325,8 +326,15 @@ function mapProductItem(item: ApiRoutingProductItem): RoutingProductItem {
     tone: routingVersionStateTone(stateCode),
     stepCount: asNumber(item.stepCount),
     warningCount: asNumber(item.warningCount ?? item.warningCodes?.length),
-    sourceLabel: item.sourceLabel ?? "product_process / process_flow"
+    sourceLabel: item.sourceLabel ?? sourceLabelFromItem(item)
   };
+}
+
+function sourceLabelFromItem(item: ApiRoutingProductItem) {
+  if (item.sourceCode === "test_support" || item.warningCodes?.includes("test_support_only")) {
+    return "test_support";
+  }
+  return "product_process / process_flow";
 }
 
 function mapVersion(version: ApiRoutingVersion): RoutingVersion {
@@ -385,6 +393,7 @@ function processStageDisplayLabel(value?: string, oneProcess?: number) {
     preparation: "前備",
     processing: "加工",
     packaging: "包裝",
+    test_support: "test_support",
     other: "其他",
     unknown: "待確認"
   };
@@ -495,6 +504,7 @@ function mapWarning(warning: ApiRoutingWarning): RoutingWarning {
     missing_resource_eligibility: "資源資格尚未建立治理來源。",
     resource_eligibility_not_governed: "資源資格尚未建立治理來源。",
     missing_standard_performance: "標準表現尚未建立治理來源。",
+    test_support_only: "目前資料來自非正式 Shared DEV test-support read-only surface。",
     unknown: "Routing / Process Flow 資料需確認。"
   };
   return {

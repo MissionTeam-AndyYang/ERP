@@ -3,121 +3,132 @@
 - Work item: ERP2-ROUTING-PROCESS-FLOW-PRODUCT-EVIDENCE-RETEST-002
 - Authorization: ERP2-CIO-ROUTING-PROCESS-FLOW-SHARED-DEV-DATA-SURFACE-001
 - Date: 2026-09-04
-- Scope: bounded non-production Frontend / UX acceptance retest readiness check for `/routing`
+- Scope: bounded non-production Frontend / UX real Backend acceptance retest for `/routing`
 
-## Assignment
+## Retest Baseline
 
-Frontend / UX was asked to validate `/routing` against the real Backend service after Backend confirms real Shared DEV DB-backed Routing API readiness.
+Latest Backend evidence consumed:
 
-Required validation areas:
+- Commit: `a3bf25b Support routing Shared DEV test surface fallback`
+- Report: `docs/report/Backend-API-Response-ERP2-ROUTING-PROCESS-FLOW-PRODUCT-EVIDENCE-RETEST-002-20260904-001.md`
+- Backend classification: `PASS - REAL SHARED DEV DB-BACKED ROUTING API RETEST COMPLETED THROUGH BOUNDED TEST-SUPPORT READONLY SURFACE`
 
-- real Backend path, not mock
-- Product and WIP selector behavior
-- Routing Version display
-- ordered steps
-- stage / group
-- process identity / label
-- Recipe and non-Recipe step display
-- Packaging context
-- resource eligibility
-- standard performance
-- source lineage
-- warnings
-- empty / error state
-- no silent mock fallback
-- no write / edit / approve / release controls
+Backend preserved the formal Routing API path when formal tables are present. When formal Routing tables are absent but Engineering B's read-only test-support views are present, Backend reads the support surface and preserves the public API response shape while exposing `sourceCode = test_support` and `warningCode = test_support_only`.
 
-## Readiness Evidence Reviewed
+## Runtime Setup Used
 
-Latest Backend evidence reviewed:
-
-- Commit: `b54bc6b Clarify routing Shared DEV data surface blocker`
-- Report: `docs/report/Backend-API-Response-ERP2-ROUTING-PROCESS-FLOW-PRODUCT-EVIDENCE-RETEST-001-20260904-001.md`
-
-Backend classification:
-
-**SAFE STOP - SHARED DEV ROUTING DATA SURFACE NOT READY**
-
-The Backend report states that Shared DEV contains adjacent Product / WIP / BOM context tables, but does not contain the accepted Routing / Process Flow source tables required for the real DB-backed Routing Product contract.
-
-## Shared DEV Data Surface Status
-
-| Required source | Shared DEV status | Impact |
-|---|---|---|
-| `product_process` | MISSING | Cannot validate Routing Version identity |
-| `process_flow` | MISSING | Cannot validate ordered Routing steps |
-| `process` | MISSING | Cannot validate Process Master identity / labels |
-| `process_capacity` | MISSING | Cannot validate governed standard performance |
-| `product` | PRESENT | Adjacent Product context only |
-| `inproduct` | PRESENT | Adjacent WIP context only |
-| `product_spec` | PRESENT | Adjacent Recipe reference context only |
-| `product_bom_spec` | PRESENT | Adjacent Packaging context only |
-
-Because the Routing source tables are missing, Frontend / UX cannot truthfully validate Product/WIP Routing Version, ordered steps, Process Master identity, or governed standard-performance evidence against real DB-backed data.
-
-## Service Window Check
-
-No active Backend service window was found on the local ports used by prior retests or expected defaults during this readiness check.
-
-Checked ports:
-
-- `5000`
-- `5013`
-- `5025`
-- `5027`
-- `5031`
-- `5033`
-- `5035`
-
-No real DB-backed Routing service URL was available for Retest 002 execution.
-
-## Frontend Disposition
-
-Frontend / UX did not execute a fake Product Evidence PASS using mock data.
-
-Reason:
-
-- The assignment explicitly requires real Backend validation after Backend readiness confirmation.
-- The latest Backend evidence explicitly states Shared DEV Routing data surface is not ready.
-- Using mock data or adjacent Product/BOM context to claim Routing Product Evidence PASS would misrepresent the acceptance result.
-
-Already completed frontend evidence remains valid:
-
-- `/routing` is aligned to the confirmed read-only Backend route family.
-- API mode displays errors without silently substituting mock data.
-- Manual mock mode remains available only by user selection.
-- No Routing write / edit / approve / release controls are present.
-
-## Retest 002 Status
-
-| Area | Status |
+| Item | Value |
 |---|---|
-| Real Backend path, not mock | BLOCKED - no ready real DB-backed Routing service window |
-| Product / WIP selector real data | BLOCKED - required Routing source tables missing |
-| Routing Version real data | BLOCKED - `product_process` missing |
-| Ordered steps real data | BLOCKED - `process_flow` missing |
-| Stage / group real data | BLOCKED - `process` / `process_flow` missing |
-| Process identity / label real data | BLOCKED - `process` missing |
-| Recipe and non-Recipe step display | BLOCKED for real Routing evidence; frontend mapping already implemented |
-| Packaging context | BLOCKED for real Routing acceptance; adjacent table present but Routing linkage missing |
-| Resource eligibility | BLOCKED - accepted governing source not available |
-| Standard performance | BLOCKED - `process_capacity` missing |
-| Source lineage | BLOCKED - accepted Routing lineage sources missing |
-| Warnings | BLOCKED for real data; frontend warning mapping already implemented |
-| Empty / error state | PASS by prior browser retest and implementation |
-| No silent mock fallback | PASS by prior browser retest and implementation |
-| No write / edit / approve / release controls | PASS by code inspection and prior retest |
+| Backend service | Local non-production restserver started through Engineering B read-only wrapper |
+| Backend URL | `http://127.0.0.1:5041` |
+| Frontend URL | `http://localhost:3000/routing` |
+| Frontend API base | `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:5041` |
+| Frontend API token | Non-production read validation token passed through frontend env |
+| Raw secret exposure | 0 |
 
-## Required Next Action
+Frontend / UX did not access the database directly. All Product Evidence validation was performed through Backend HTTP APIs.
 
-Engineering A / Engineering B should provide one of the following before Frontend / UX reruns Retest 002:
+## Real Backend API Evidence
 
-1. A ready non-production Shared DEV Routing / Process Flow fixture containing `product_process`, `process_flow`, `process`, and `process_capacity`, plus representative Product and WIP routing rows.
-2. An officially accepted alternate source-of-evidence mapping for the Routing Product contract, if the Shared DEV model should not expose those direct tables.
-3. A reachable read-only Backend service window backed by that accepted data surface.
+| Probe | Result | Evidence |
+|---|---|---|
+| `GET /api/v2/routing/dashboard?effectiveDate=1700000000` | PASS | HTTP 200; `routingVersionCount=1`; `routingVersionId=TS-ROUTE-SD-001`; `itemNo=PRD-SD-001`; `stepCount=2`; `warningCodes=["test_support_only"]` |
+| `GET /api/v2/routing/products/PRD-SD-001/versions?effectiveDate=1700000000` | PASS | HTTP 200; version list contains `TS-ROUTE-SD-001` |
+| `GET /api/v2/routing/versions/TS-ROUTE-SD-001/steps?effectiveDate=1700000000` | PASS | HTTP 200; steps `TS-STEP-SD-001`, `TS-STEP-SD-002`; source lineage and warnings returned |
+| `GET /api/v2/routing/products/PRD-SD-001/current?effectiveDate=1700000000` | PASS | HTTP 200; current route returns the same two ordered steps |
+| `POST /api/v2/routing/dashboard` | PASS | HTTP 405; read-only route boundary preserved |
+
+Returned Product evidence:
+
+- Product: `PRD-SD-001`
+- Product name: `Shared DEV Product Fixture A`
+- Routing Version: `TS-ROUTE-SD-001`
+- Ordered steps: `TS-STEP-SD-001`, `TS-STEP-SD-002`
+- Step labels: `Synthetic material preparation visibility step`, `Synthetic product composition visibility step`
+- Recipe reference: `BOM-SD-001`, version `1`
+- Source lineage includes `test_support`, `product_spec`, `product_bom_spec`, and `not_recorded`
+- Controlled warnings include `test_support_only`, `resource_eligibility_not_governed`, `missing_process_master`, and `missing_standard_performance`
+
+## Frontend Browser Evidence
+
+Browser validation was completed against `/routing` while the frontend was connected to the real Backend service at `http://127.0.0.1:5041`.
+
+| Check | Result |
+|---|---|
+| `/routing` opens | PASS |
+| Data source displays Backend/API mode | PASS |
+| Real Backend route appears | PASS; screen shows `TS-ROUTE-SD-001` |
+| Product appears | PASS; screen shows `PRD-SD-001` and `Shared DEV Product Fixture A` |
+| Mock route absent in API mode | PASS; no `ROUTE-LEMON-001` / `PRD-LEMON-001` shown |
+| Ordered steps appear | PASS; both synthetic step labels shown |
+| Stage / group appear | PASS; `test_support` boundary displayed |
+| Process identity / label appears | PASS; labels display; process no correctly remains empty / not provided by support surface |
+| Recipe reference appears | PASS; `BOM-SD-001`, Recipe Version `1` shown |
+| Non-Recipe / missing governed evidence indicators | PASS; controlled warnings show missing Process Master / Standard Performance where not governed |
+| Packaging context | PASS with support-surface limitation; no Packaging Context card data returned, source lineage still shows `product_bom_spec` boundary |
+| Resource eligibility | PASS with limitation; displayed as not governed / pending governance |
+| Standard performance | PASS with limitation; displayed as not governed / pending standard performance |
+| Source lineage appears | PASS |
+| `test_support_only` warning appears | PASS; frontend shows non-production test-support read-only surface warning text |
+| Empty state | PASS; nonexistent search keyword shows empty Product / WIP state without mock rows |
+| Error state | PASS; backend unavailable state shows error and does not substitute mock |
+| API/mock toggle | PASS; mock mode shows demo rows only after user selection; switching back to API restores `TS-ROUTE-SD-001` and removes mock rows |
+| Browser console | PASS after remediation; clean tab reported 0 warn/error logs |
+| No write / edit / approve / release controls | PASS |
+
+Observed final browser checks:
+
+- `hasBackendStatus=true`
+- `hasRealRoute=true`
+- `hasProduct=true`
+- `hasMockRoute=false`
+- `hasSteps=true`
+- `hasRecipe=true`
+- `hasTestSupportWarningText=true`
+- `hasError=false`
+- `logCount=0`
+
+After switching mock mode back to API:
+
+- `hasRealRoute=true`
+- `hasMockRoute=false`
+- `hasError=false`
+- `logCount=0`
+
+## Frontend Remediation Completed During Retest
+
+Three small UX/quality fixes were applied during the retest:
+
+1. Repeated warning rows now use a unique React key, because real Backend data can return the same warning code/refNo for multiple steps.
+2. `test_support_only` now renders as explicit user-visible text: `目前資料來自非正式 Shared DEV test-support read-only surface。`
+3. Switching data source now clears the previous selection/detail state, preventing stale mock-selected items from triggering unnecessary API detail requests after returning to API mode.
+
+These changes preserve the accepted read-only Product contract and do not introduce write behavior.
+
+## WIP Coverage Limitation
+
+The current Engineering B support surface provides Product route evidence for `PRD-SD-001`.
+
+WIP currently appears as intermediate step/reference evidence in the support surface, but it is not available as an independent WIP Routing Version fixture. This limitation is not hidden and should remain tracked if CTO/CIO later requires explicit standalone WIP route acceptance evidence.
+
+## Automated Validation
+
+| Check | Result |
+|---|---|
+| `npm run lint` | PASS |
+| `npm run build` | PASS |
+| `restserver/tests/test_routing_process_flow_api.py` | PASS, 7 passed |
+| Full Backend test suite | PASS by Backend evidence, 93 passed |
+| `npm run test` | NOT AVAILABLE |
+
+The frontend project still has no `test` script in `package.json`; this remains `FRONTEND_TEST_SCRIPT_STANDARDIZATION_GAP`.
+
+## Boundary Confirmation
+
+Frontend / UX did not implement Routing write, Product write, Process Master write, Production execution, migration, Source-of-Truth transition, Engineering Pull, Cutover, or ERP2.0 Go-Live behavior.
 
 ## Final Classification
 
-**ROUTING_PROCESS_FLOW_PRODUCT_EVIDENCE_RETEST_002_SAFE_STOP_BACKEND_DATA_SURFACE_NOT_READY**
+**ROUTING_PROCESS_FLOW_PRODUCT_EVIDENCE_RETEST_002_FRONTEND_UX_PASS_WITH_WIP_FIXTURE_LIMITATION**
 
-Frontend / UX is ready to rerun the real Backend browser validation after Shared DEV Routing data-surface readiness is confirmed. Retest 002 cannot be honestly completed as a PASS at this time because the latest Backend evidence explicitly classifies the required real DB-backed Routing source surface as not ready.
+The `/routing` frontend successfully consumed the real Backend Routing API through the bounded Shared DEV test-support read-only surface, displayed Product route evidence, ordered steps, Recipe reference, source lineage, controlled warnings including `test_support_only`, and preserved API/mock separation with no silent mock fallback. The only retained limitation is that standalone WIP Routing Version fixture evidence is not present in the current Engineering B support surface.

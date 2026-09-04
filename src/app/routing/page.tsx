@@ -216,8 +216,8 @@ function LineageWarningPanel({ detail }: { detail?: RoutingDetail }) {
         </div>
         <div className="mt-3 space-y-2">
           {detail?.warnings.length ? (
-            detail.warnings.map((warning) => (
-              <p className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm leading-6 text-warning" key={`${warning.code}-${warning.refNo}`}>
+            detail.warnings.map((warning, index) => (
+              <p className="rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm leading-6 text-warning" key={`${warning.code}-${warning.refNo}-${index}`}>
                 {warning.message}
                 {warning.refNo ? `（${warning.refNo}）` : ""}
               </p>
@@ -348,7 +348,17 @@ export default function RoutingProcessFlowPage() {
     data.items[0];
   const selectedDetailVersion = selectedVersion ?? selectedItem?.routingVersion;
 
+  function handleDataSourceModeChange(mode: DataSourceMode) {
+    setDataSourceMode(mode);
+    setSelectedItemNo(undefined);
+    setSelectedVersion(undefined);
+    setDetailState({});
+  }
+
   useEffect(() => {
+    if (source !== dataSourceMode) {
+      return;
+    }
     if (!selectedItem?.itemNo || selectedDetailVersion === undefined) {
       return;
     }
@@ -369,7 +379,7 @@ export default function RoutingProcessFlowPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedItem, selectedDetailVersion, dataSourceMode]);
+  }, [selectedItem, selectedDetailVersion, dataSourceMode, source]);
 
   const activeDetail = detailState.itemNo === selectedItem?.itemNo && detailState.version === selectedDetailVersion ? detailState.detail : undefined;
   const activeDetailError = detailState.itemNo === selectedItem?.itemNo && detailState.version === selectedDetailVersion ? detailState.error : undefined;
@@ -402,7 +412,7 @@ export default function RoutingProcessFlowPage() {
                   placeholder="Product / WIP / Routing"
                 />
               </label>
-              <DataSourceToggle value={dataSourceMode} onChange={setDataSourceMode} />
+              <DataSourceToggle value={dataSourceMode} onChange={handleDataSourceModeChange} />
             </div>
           </div>
         </section>

@@ -47,6 +47,7 @@ from package.restserver.api.v2.transitems_uri import transitems_v2
 from package.restserver.api.v2.items_uri import items_v2
 from package.restserver.api.v2.inventory_uri import inventory_v2
 from package.restserver.api.v2.recipe_formula_uri import recipe_formula_v2
+from package.restserver.api.v2.routing_uri import routing_v2
 from flask_cors import CORS
 
 def create_app():
@@ -103,7 +104,8 @@ def create_app():
         transitems_v2,
         items_v2,
         inventory_v2,
-        recipe_formula_v2
+        recipe_formula_v2,
+        routing_v2
     ]
 
     for obj_bp in lst_blueprints:

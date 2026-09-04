@@ -29,6 +29,7 @@
 - [purchasing](./purchasing.md)
 - [quotation](./quotation.md)
 - [recipe-formula](./recipe_formula.md)
+- [routing](./routing.md)
 - [sale](./sale.md)
 - [shipwarehouse](./shipwarehouse.md)
 - [transitems](./transitems.md)

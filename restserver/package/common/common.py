@@ -604,6 +604,36 @@ class ERecipeFormulaSourceCode(object):
     NOT_RECORDED = "not_recorded"
 
 
+class ERoutingStatusCode(object):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+class ERoutingWarningCode(object):
+    MISSING_STEPS = "missing_steps"
+    MISSING_ITEM_MASTER = "missing_item_master"
+    MISSING_PROCESS_MASTER = "missing_process_master"
+    MISSING_STANDARD_PERFORMANCE = "missing_standard_performance"
+    MISSING_RECIPE_REFERENCE = "missing_recipe_reference"
+    PACKAGING_CONTEXT_NOT_GOVERNED = "packaging_context_not_governed"
+    RESOURCE_ELIGIBILITY_NOT_GOVERNED = "resource_eligibility_not_governed"
+    UNKNOWN = "unknown"
+
+
+class ERoutingSourceCode(object):
+    PRODUCT_PROCESS = "product_process"
+    PROCESS_FLOW = "process_flow"
+    PROCESS = "process"
+    PROCESS_CAPACITY = "process_capacity"
+    PRODUCT_SPEC = "product_spec"
+    PRODUCT_BOM_SPEC = "product_bom_spec"
+    PRODUCT = "product"
+    INPRODUCT = "inproduct"
+    NOT_RECORDED = "not_recorded"
+
+
 # ------------------------------------------------------------
 # Batch Center API enums
 # ------------------------------------------------------------

@@ -31,6 +31,7 @@ type ApiProductWip360Payload = {
     unitWarehouse?: number;
     unitProduct?: number;
     masterStatusCode?: string;
+    sourceCode?: string;
     subjectSourceCode?: string;
   };
   moduleReadiness?: ApiModuleReadiness[];
@@ -42,7 +43,7 @@ type ApiProductWip360Payload = {
   productStructure?: ApiProductStructure;
   recipeFormula?: ApiRecipeFormula;
   routingProcess?: ApiRoutingProcess;
-  sourceLineage?: ApiLineage[] | Record<string, string | undefined>;
+  sourceLineage?: ApiLineage[] | Record<string, string | ApiLineage | undefined>;
   warnings?: ApiWarning[];
   capabilityBoundary?: Partial<ProductWip360CapabilityBoundary>;
 };
@@ -59,6 +60,7 @@ type ApiTransactionItem = {
   transItemNo?: string;
   transItemName?: string;
   companyNo?: string;
+  companyName?: string;
   companyDisplayName?: string;
   contractNo?: string;
   tradeUnit?: number;
@@ -362,7 +364,7 @@ function mapSubject(subject: ApiProductWip360Payload["subject"], query: ProductW
     unitWarehouseLabel: subject?.unitWarehouseLabel ?? unitLabel(subject?.unitWarehouse),
     unitProductLabel: subject?.unitProductLabel ?? unitLabel(subject?.unitProduct),
     masterStatusLabel: subject?.masterStatusLabel ?? statusLabel(subject?.masterStatusCode),
-    sourceLabel: subject?.sourceLabel ?? subject?.subjectSourceCode ?? "",
+    sourceLabel: subject?.sourceLabel ?? subject?.sourceCode ?? subject?.subjectSourceCode ?? "",
     tone: subject?.tone ?? statusTone(subject?.masterStatusCode ?? "complete")
   };
 }
@@ -386,7 +388,7 @@ function mapTransactionItem(item: ApiTransactionItem): ProductWip360TransactionI
     transItemNo: item.transItemNo ?? "",
     transItemName: item.transItemName ?? "",
     companyNo: item.companyNo ?? "",
-    companyDisplayName: item.companyDisplayName ?? "",
+    companyDisplayName: item.companyDisplayName ?? item.companyName ?? "",
     contractNo: item.contractNo ?? "",
     tradeUnitLabel: item.tradeUnitLabel ?? unitLabel(item.tradeUnit),
     tradePrice: asNumber(item.tradePrice),
@@ -536,12 +538,24 @@ function mapLineage(value?: ApiProductWip360Payload["sourceLineage"]): ProductWi
   }
   return Object.entries(value)
     .filter(([, source]) => Boolean(source))
-    .map(([key, source]) => ({
-      moduleLabel: key,
-      sourceLabel: String(source),
-      statusLabel: String(source) === "test_support" ? "測試支援" : "read-only",
-      tone: String(source) === "test_support" ? "warning" : "success"
-    }));
+    .map(([key, source]) => {
+      if (source && typeof source === "object") {
+        const status = normalizeStatusCode(source.statusCode);
+        const sourceLabel = source.sourceLabel ?? source.sourceCode ?? "";
+        return {
+          moduleLabel: source.moduleLabel ?? moduleLabel(source.moduleCode ?? key),
+          sourceLabel,
+          statusLabel: source.statusLabel ?? (sourceLabel === "test_support" ? "測試支援" : statusLabel(status)),
+          tone: sourceLabel === "test_support" ? "warning" : statusTone(status)
+        };
+      }
+      return {
+        moduleLabel: moduleLabel(key),
+        sourceLabel: String(source),
+        statusLabel: String(source) === "test_support" ? "測試支援" : "read-only",
+        tone: String(source) === "test_support" ? "warning" : "success"
+      };
+    });
 }
 
 function warningMessage(code: string) {

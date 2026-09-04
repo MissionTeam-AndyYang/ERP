@@ -89,6 +89,18 @@ type ApiBatchHighlight = {
 type ApiProductStructure = {
   statusCode?: string;
   statusLabel?: string;
+  rootProduct?: {
+    productNo?: string;
+    productName?: string;
+    productVersion?: number;
+    structureStatusCode?: string;
+  };
+  bomEvidence?: Array<{
+    bomNo?: string;
+    bomVersion?: number;
+    bomName?: string;
+    versionStateCode?: string;
+  }>;
   rootProductNo?: string;
   rootProductVersion?: number;
   bomNo?: string;
@@ -100,19 +112,50 @@ type ApiProductStructure = {
 
 type ApiStructureNode = {
   id?: string;
+  nodeId?: string;
   itemNo?: string;
   itemName?: string;
+  itemCategory?: number;
   nodeTypeCode?: string;
   nodeTypeLabel?: string;
   quantity?: number;
+  relationshipQuantity?: number;
+  relationshipWeight?: number;
   unit?: number;
   unitLabel?: string;
   level?: number;
+  children?: ApiStructureNode[];
 };
 
 type ApiRecipeFormula = {
   statusCode?: string;
   statusLabel?: string;
+  recipeVersions?: Array<{
+    recipe?: {
+      recipeNo?: string;
+      recipeName?: string;
+      recipeSourceCode?: string;
+    };
+    version?: {
+      recipeVersion?: number;
+      versionStateCode?: string;
+      unit?: number;
+    };
+    formula?: {
+      formulaStatusCode?: string;
+      weight?: number;
+      unit?: number;
+    };
+    inputs?: ApiRecipeInput[];
+    output?: {
+      outputNo?: string;
+      outputName?: string;
+      quantity?: number;
+      weight?: number;
+      unit?: number;
+    };
+    warnings?: Array<ApiWarning | string>;
+  }>;
   recipeNo?: string;
   recipeVersion?: number;
   recipeVersionLabel?: string;
@@ -127,7 +170,10 @@ type ApiRecipeFormula = {
 type ApiRecipeInput = {
   itemNo?: string;
   itemName?: string;
+  inputNo?: string;
+  inputName?: string;
   quantity?: number;
+  weight?: number;
   weightRatio?: number;
   lossRate?: number;
   unit?: number;
@@ -137,13 +183,21 @@ type ApiRecipeInput = {
 type ApiRoutingProcess = {
   statusCode?: string;
   statusLabel?: string;
+  routingVersion?: number | {
+    routingVersionId?: string;
+    routingVersion?: number;
+    routingStatusCode?: string;
+    warningCodes?: string[];
+  };
+  sourceLineage?: {
+    routingVersionSourceCode?: string;
+  };
   routingVersionId?: string;
-  routingVersion?: number;
   routingVersionLabel?: string;
   sourceCode?: string;
   sourceLabel?: string;
   steps?: ApiRoutingStep[];
-  warnings?: string[];
+  warnings?: Array<ApiWarning | string>;
 };
 
 type ApiRoutingStep = {
@@ -154,9 +208,24 @@ type ApiRoutingStep = {
   processLabel?: string;
   processName?: string;
   recipeRefLabel?: string;
+  recipeReference?: {
+    recipeNo?: string;
+    recipeVersion?: number;
+    sourceCode?: string;
+  };
   recipeNo?: string;
   resourceLabel?: string;
+  resourceEligibility?: {
+    governed?: boolean;
+    sourceCode?: string;
+  };
   resourceEligibilityLabel?: string;
+  standardPerformance?: {
+    hourlyOutput?: number;
+    laborCount?: number;
+    unit?: number;
+    sourceCode?: string;
+  };
   standardRateLabel?: string;
 };
 
@@ -302,6 +371,17 @@ function formatTimestamp(value?: number) {
   return new Date(value * 1000).toLocaleDateString(locale);
 }
 
+function warningCodes(value: unknown): string[] {
+  return withFallbackArray<ApiWarning | string>(value, [])
+    .map((warning) => {
+      if (typeof warning === "string") {
+        return warning;
+      }
+      return warning.warningCode ?? warning.code ?? "";
+    })
+    .filter(Boolean);
+}
+
 function unitLabel(unit?: number, explicit?: string) {
   return explicit || bomUnitLabel(unit, locale) || "";
 }
@@ -432,28 +512,33 @@ function mapStructure(value?: ApiProductStructure): ProductWip360Structure {
   if (!value) {
     return emptyStructure("unavailable");
   }
-  const statusCode = normalizeStatusCode(value.statusCode);
+  const firstBom = value.bomEvidence?.[0];
+  const statusCode = normalizeStatusCode(value.statusCode ?? value.rootProduct?.structureStatusCode ?? (value.children?.length ? "complete" : "unavailable"));
   return {
     statusCode,
     statusLabel: value.statusLabel ?? statusLabel(statusCode),
-    rootProductNo: value.rootProductNo ?? "",
-    rootProductVersion: asNumber(value.rootProductVersion),
-    bomNo: value.bomNo ?? "",
-    bomVersionLabel: value.bomVersionLabel ?? (value.bomVersion ? `V${value.bomVersion}` : ""),
-    children: withFallbackArray<ApiStructureNode>(value.children, []).map(mapStructureNode),
+    rootProductNo: value.rootProductNo ?? value.rootProduct?.productNo ?? "",
+    rootProductVersion: asNumber(value.rootProductVersion ?? value.rootProduct?.productVersion),
+    bomNo: value.bomNo ?? firstBom?.bomNo ?? "",
+    bomVersionLabel: value.bomVersionLabel ?? (value.bomVersion ? `V${value.bomVersion}` : firstBom?.bomVersion ? `V${firstBom.bomVersion}` : firstBom?.versionStateCode ?? ""),
+    children: flattenStructureNodes(withFallbackArray<ApiStructureNode>(value.children, [])).map(mapStructureNode),
     warnings: withFallbackArray<string>(value.warnings, []),
     tone: statusTone(statusCode)
   };
 }
 
+function flattenStructureNodes(nodes: ApiStructureNode[]): ApiStructureNode[] {
+  return nodes.flatMap((node) => [node, ...flattenStructureNodes(withFallbackArray<ApiStructureNode>(node.children, []))]);
+}
+
 function mapStructureNode(item: ApiStructureNode, index: number): ProductWip360StructureNode {
   const level = asNumber(item.level);
   return {
-    id: item.id ?? `${item.itemNo ?? "node"}-${index}`,
+    id: item.id ?? item.nodeId ?? `${item.itemNo ?? "node"}-${index}`,
     itemNo: item.itemNo ?? "",
     itemName: item.itemName ?? "",
-    nodeTypeLabel: item.nodeTypeLabel ?? item.nodeTypeCode ?? "節點",
-    quantity: asNumber(item.quantity),
+    nodeTypeLabel: item.nodeTypeLabel ?? item.nodeTypeCode ?? itemCategoryLabel(item.itemCategory),
+    quantity: asNumber(item.quantity ?? item.relationshipQuantity ?? item.relationshipWeight),
     unitLabel: item.unitLabel ?? unitLabel(item.unit),
     level,
     tone: level === 0 ? "info" : "neutral"
@@ -464,27 +549,36 @@ function mapRecipe(value?: ApiRecipeFormula): ProductWip360Recipe {
   if (!value) {
     return emptyRecipe("unavailable");
   }
-  const statusCode = normalizeStatusCode(value.statusCode);
+  const firstVersion = value.recipeVersions?.[0];
+  const statusCode = normalizeStatusCode(value.statusCode ?? firstVersion?.formula?.formulaStatusCode ?? (firstVersion ? "complete" : "unavailable"));
+  const recipeNo = value.recipeNo ?? firstVersion?.recipe?.recipeNo ?? "";
+  const recipeVersion = value.recipeVersion ?? firstVersion?.version?.recipeVersion;
+  const outputQuantity = value.outputQuantity ?? firstVersion?.output?.quantity ?? firstVersion?.output?.weight ?? firstVersion?.formula?.weight;
+  const outputUnit = value.outputUnit ?? firstVersion?.output?.unit ?? firstVersion?.version?.unit ?? firstVersion?.formula?.unit;
+  const warnings = [
+    ...withFallbackArray<string>(value.warnings, []),
+    ...warningCodes(firstVersion?.warnings)
+  ];
   return {
     statusCode,
     statusLabel: value.statusLabel ?? statusLabel(statusCode),
-    recipeNo: value.recipeNo ?? "",
-    recipeVersionLabel: value.recipeVersionLabel ?? (value.recipeVersion ? `V${value.recipeVersion}` : ""),
-    outputItemNo: value.outputItemNo ?? "",
-    outputQuantity: asNumber(value.outputQuantity),
-    outputUnitLabel: value.outputUnitLabel ?? unitLabel(value.outputUnit),
-    inputs: withFallbackArray<ApiRecipeInput>(value.inputs, []).map(mapRecipeInput),
-    warnings: withFallbackArray<string>(value.warnings, []),
+    recipeNo,
+    recipeVersionLabel: value.recipeVersionLabel ?? (recipeVersion ? `V${recipeVersion}` : firstVersion?.version?.versionStateCode ?? ""),
+    outputItemNo: value.outputItemNo ?? firstVersion?.output?.outputNo ?? "",
+    outputQuantity: asNumber(outputQuantity),
+    outputUnitLabel: value.outputUnitLabel ?? unitLabel(outputUnit),
+    inputs: withFallbackArray<ApiRecipeInput>(value.inputs ?? firstVersion?.inputs, []).map(mapRecipeInput),
+    warnings,
     tone: statusTone(statusCode)
   };
 }
 
 function mapRecipeInput(item: ApiRecipeInput): ProductWip360RecipeInput {
   return {
-    itemNo: item.itemNo ?? "",
-    itemName: item.itemName ?? "",
-    quantity: asNumber(item.quantity),
-    weightRatio: asNumber(item.weightRatio),
+    itemNo: item.itemNo ?? item.inputNo ?? "",
+    itemName: item.itemName ?? item.inputName ?? "",
+    quantity: asNumber(item.quantity ?? item.weight),
+    weightRatio: asNumber(item.weightRatio ?? item.weight),
     lossRate: asNumber(item.lossRate),
     unitLabel: item.unitLabel ?? unitLabel(item.unit)
   };
@@ -494,16 +588,21 @@ function mapRouting(value?: ApiRoutingProcess): ProductWip360Routing {
   if (!value) {
     return emptyRouting("unavailable");
   }
-  const source = value.sourceLabel ?? value.sourceCode ?? "";
-  const statusCode = source === "test_support" ? "test_support" : normalizeStatusCode(value.statusCode);
+  const routingVersionObject = value.routingVersion && typeof value.routingVersion === "object" ? value.routingVersion : undefined;
+  const source = value.sourceLabel ?? value.sourceCode ?? value.sourceLineage?.routingVersionSourceCode ?? "";
+  const statusCode = source === "test_support" ? "test_support" : normalizeStatusCode(value.statusCode ?? routingVersionObject?.routingStatusCode);
+  const routingVersion = routingVersionObject?.routingVersion ?? (typeof value.routingVersion === "number" ? value.routingVersion : undefined);
   return {
     statusCode,
     statusLabel: value.statusLabel ?? statusLabel(statusCode),
-    routingVersionId: value.routingVersionId ?? "",
-    routingVersionLabel: value.routingVersionLabel ?? (value.routingVersion ? `V${value.routingVersion}` : ""),
+    routingVersionId: value.routingVersionId ?? routingVersionObject?.routingVersionId ?? "",
+    routingVersionLabel: value.routingVersionLabel ?? (routingVersion ? `V${routingVersion}` : ""),
     sourceLabel: source,
     steps: withFallbackArray<ApiRoutingStep>(value.steps, []).map(mapRoutingStep),
-    warnings: withFallbackArray<string>(value.warnings, []),
+    warnings: [
+      ...warningCodes(value.warnings),
+      ...withFallbackArray<string>(routingVersionObject?.warningCodes, [])
+    ],
     tone: statusTone(statusCode)
   };
 }
@@ -514,10 +613,14 @@ function mapRoutingStep(item: ApiRoutingStep): ProductWip360RoutingStep {
     stageLabel: item.stageLabel ?? "待確認",
     groupLabel: item.groupLabel ?? "待確認",
     processLabel: item.processLabel ?? item.processName ?? "未命名製程",
-    recipeRefLabel: item.recipeRefLabel ?? item.recipeNo ?? "未提供",
-    resourceLabel: item.resourceLabel ?? item.resourceEligibilityLabel ?? "待確認",
-    standardRateLabel: item.standardRateLabel ?? "待確認",
-    tone: item.resourceLabel || item.resourceEligibilityLabel ? "neutral" : "warning"
+    recipeRefLabel: item.recipeRefLabel ?? item.recipeNo ?? item.recipeReference?.recipeNo ?? "未提供",
+    resourceLabel: item.resourceLabel ?? item.resourceEligibilityLabel ?? (item.resourceEligibility?.governed ? "已治理" : item.resourceEligibility?.sourceCode ?? "待確認"),
+    standardRateLabel: item.standardRateLabel ?? (
+      item.standardPerformance?.sourceCode
+        ? `${asNumber(item.standardPerformance.hourlyOutput).toFixed(2)} / hr · ${item.standardPerformance.sourceCode}`
+        : "待確認"
+    ),
+    tone: item.resourceLabel || item.resourceEligibilityLabel || item.resourceEligibility?.governed ? "neutral" : "warning"
   };
 }
 

@@ -29,14 +29,15 @@ import type {
   ProductWip360OverviewData,
   ProductWip360Query,
   ProductWip360RoutingStep,
-  ProductWip360StructureNode
+  ProductWip360StructureNode,
+  ProductWip360TransactionItem
 } from "@/types/product-wip-360";
 
 type Scenario = "product" | "wip";
 
 const scenarioDefaults: Record<Scenario, ProductWip360Query> = {
   product: { itemNo: "PRD-SD-001", itemCategory: 5 },
-  wip: { itemNo: "WIP-SD-BASE-001", itemCategory: 4 }
+  wip: { itemNo: "INP-SD-001", itemCategory: 4 }
 };
 
 function formatNumber(value: number | undefined, language: string, digits = 2) {
@@ -91,6 +92,42 @@ function ModuleReadinessGrid({ modules }: { modules: ProductWip360ModuleReadines
           <p className="mt-3 text-xs text-textSecondary">
             {item.warningCodes.length ? item.warningCodes.join(" / ") : "沒有警示"}
           </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TransactionItemList({ rows, language }: { rows: ProductWip360TransactionItem[]; language: string }) {
+  if (!rows.length) {
+    return <SupportEmptyState title="沒有交易品項資料" description="後端 API 回傳交易品項清單為空；畫面如實呈現空狀態。" />;
+  }
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      {rows.map((item) => (
+        <div className="rounded-lg border border-border bg-white p-4 shadow-card" key={item.transItemNo || item.contractNo}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-textPrimary">{item.transItemNo || "未提供交易品項"}</p>
+              <p className="mt-1 text-sm text-textSecondary">{item.transItemName || "未提供交易品項名稱"}</p>
+            </div>
+            <StatusBadge tone={item.tone}>{item.dataQualityLabel}</StatusBadge>
+          </div>
+          <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-textSecondary">客戶／廠商</p>
+              <p className="mt-1 font-medium text-textPrimary">{item.companyDisplayName || "未提供名稱"}</p>
+              <p className="mt-1 text-xs text-textSecondary">{item.companyNo || "未提供代碼"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-textSecondary">採購／銷售合約</p>
+              <p className="mt-1 font-medium text-textPrimary">{item.contractNo || "未提供合約"}</p>
+              <p className="mt-1 text-xs text-textSecondary">
+                {item.tradeUnitLabel || "未提供單位"} · {formatMoney(item.tradePrice, language)}
+              </p>
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -393,6 +430,19 @@ export default function ProductWip360Page() {
                 <SummaryMetric label="生產單位" value={subject?.unitProductLabel || "未提供"} hint="前端 enum 轉換" />
                 <SummaryMetric label="交易品項" value={`${formatInteger(data.transactionItems.length, language)} 筆`} hint={scenario === "wip" && !data.transactionItems.length ? "Standalone WIP 可不適用" : "客戶／廠商參照"} />
               </div>
+            </section>
+
+            <section className="rounded-lg border border-border bg-white p-4 shadow-card">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-textPrimary">Transaction Item Context</h2>
+                  <p className="mt-1 text-sm text-textSecondary">只呈現交易品項、客戶／廠商與合約摘要，不處理交易品項維護。</p>
+                </div>
+                <StatusBadge tone={data.transactionItems.length ? "success" : scenario === "wip" ? "info" : "neutral"}>
+                  {data.transactionItems.length ? `${formatInteger(data.transactionItems.length, language)} 筆` : scenario === "wip" ? "不適用或未連結" : "未連結"}
+                </StatusBadge>
+              </div>
+              <TransactionItemList rows={data.transactionItems} language={language} />
             </section>
 
             <ModuleReadinessGrid modules={data.moduleReadiness} />

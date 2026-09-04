@@ -37,10 +37,12 @@ Frontend service files:
 - `src/types/routing.ts`
 - `src/mock/routing.ts`
 
-Candidate read-only API routes prepared for Backend integration:
+Confirmed read-only API routes prepared for Backend integration:
 
-- `GET /api/v2/routing-process-flow/dashboard`
-- `GET /api/v2/routing-process-flow/items/{item_no}/versions/{version}`
+- `GET /api/v2/routing/dashboard`
+- `GET /api/v2/routing/products/{item_no}/versions`
+- `GET /api/v2/routing/versions/{routing_version_id}/steps`
+- `GET /api/v2/routing/products/{item_no}/current`
 
 API mode does not silently fallback to mock data. Mock data is returned only when the user explicitly switches the data source to `mock`.
 
@@ -121,13 +123,13 @@ Browser screenshot automation was not used in this run because this workspace do
 
 ## Limitations
 
-- Backend Routing / Process Flow API is not yet present in `main`; real-backend validation remains pending Backend `ERP2-ROUTING-PROCESS-FLOW-RO-EXEC-001-BE-001`.
-- Candidate API routes may need field-level alignment after Backend publishes the confirmed contract.
+- Backend Routing / Process Flow API is present in `main`; frontend route names and field mapping were aligned to Backend `ERP2-ROUTING-PROCESS-FLOW-RO-EXEC-001-BE-001`.
+- Shared DEV DB-backed smoke remains pending routing source table fixture readiness according to Backend report.
 - Current implementation uses mock fixtures only for manual preview and API-unavailable UX validation.
 - No production, scheduling, dispatch, write, migration, cutover, or Go-Live behavior is included.
 
 ## Final Classification
 
-**ROUTING_PROCESS_FLOW_FRONTEND_READONLY_IMPLEMENTATION_PASS_REAL_BACKEND_PENDING**
+**ROUTING_PROCESS_FLOW_FRONTEND_READONLY_IMPLEMENTATION_PASS_SHARED_DEV_FIXTURE_PENDING**
 
-The bounded read-only Routing / Process Flow UX surface is implemented at `/routing`, screen naming is documented, API/mock separation is preserved, no write controls were added, and lint/build/route smoke passed. Final real-backend PASS remains pending confirmed Backend API contract and a DB-backed non-production service window.
+The bounded read-only Routing / Process Flow UX surface is implemented at `/routing`, screen naming is documented, API/mock separation is preserved, no write controls were added, and lint/build/route smoke passed. Frontend is now aligned to the confirmed Backend API route family. Full Shared DEV DB-backed validation remains pending routing source table fixture readiness.

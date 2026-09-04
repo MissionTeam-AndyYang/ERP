@@ -32,8 +32,12 @@ type ApiRoutingDashboardPayload = {
     versionCount?: number;
     routingVersionCount?: number;
     effectiveRoutingCount?: number;
+    completeRoutingCount?: number;
+    partialRoutingCount?: number;
+    missingRoutingCount?: number;
     warningCount?: number;
   };
+  routingVersions?: ApiRoutingProductItem[];
   items?: ApiRoutingProductItem[];
   products?: ApiRoutingProductItem[];
   results?: ApiRoutingProductItem[];
@@ -44,8 +48,11 @@ type ApiRoutingDashboardPayload = {
 
 type ApiRoutingProductItem = {
   id?: string;
+  routingVersionId?: string;
   itemNo?: string;
   itemName?: string;
+  itemCategory?: number;
+  itemSubCategory?: number;
   productNo?: string;
   productName?: string;
   wipNo?: string;
@@ -67,6 +74,7 @@ type ApiRoutingProductItem = {
 type ApiRoutingDetailPayload = {
   item?: ApiRoutingProductItem;
   routing?: ApiRoutingProductItem;
+  routingVersion?: ApiRoutingProductItem;
   version?: ApiRoutingVersion;
   versions?: ApiRoutingVersion[];
   steps?: ApiRoutingProcessStep[];
@@ -80,7 +88,7 @@ type ApiRoutingDetailPayload = {
   standardPerformance?: ApiRoutingContextReference[];
   standardPerformanceRefs?: ApiRoutingContextReference[];
   lineage?: ApiRoutingLineage[];
-  sourceLineage?: ApiRoutingLineage[];
+  sourceLineage?: ApiRoutingLineage[] | ApiRoutingSourceLineage;
   warnings?: ApiRoutingWarning[];
 };
 
@@ -96,6 +104,8 @@ type ApiRoutingVersion = {
 };
 
 type ApiRoutingProcessStep = {
+  stepId?: string;
+  stepOrder?: number;
   stepNo?: number;
   order?: number;
   processNo?: string;
@@ -115,6 +125,39 @@ type ApiRoutingProcessStep = {
   hourlyOutput?: number;
   laborCount?: number;
   resourceEligibilityLabel?: string;
+  recipeReference?: {
+    established?: boolean;
+    recipeNo?: string;
+    recipeVersion?: number;
+    sourceCode?: string;
+  };
+  packagingContext?: {
+    established?: boolean;
+    packagingLevel?: number;
+    packagingBomNo?: string;
+    quantity?: number;
+    unit?: number;
+    weight?: number;
+    sourceCode?: string;
+  };
+  resourceEligibility?: {
+    governed?: boolean;
+    eligibleResourceRefs?: string[];
+    sourceCode?: string;
+  };
+  standardPerformance?: {
+    governed?: boolean;
+    hourlyOutput?: number;
+    laborCount?: number;
+    unit?: number;
+    sourceDateTimestamp?: number;
+    sourceCode?: string;
+  };
+  sourceLineage?: {
+    stepSourceCode?: string;
+    processSourceCode?: string;
+    standardPerformanceSourceCode?: string;
+  };
   sourceRef?: string;
 };
 
@@ -133,6 +176,16 @@ type ApiRoutingLineage = {
   sourceRef?: string;
   evidenceLabel?: string;
   statusLabel?: string;
+};
+
+type ApiRoutingSourceLineage = {
+  routingVersionSourceCode?: string;
+  stepSourceCode?: string;
+  processIdentitySourceCode?: string;
+  recipeReferenceSourceCode?: string;
+  packagingContextSourceCode?: string;
+  resourceEligibilitySourceCode?: string;
+  routingVersionId?: string;
 };
 
 type ApiRoutingWarning = {
@@ -205,21 +258,21 @@ function normalizeItemType(value?: string, explicit?: string) {
   if (explicit) {
     return explicit;
   }
-  if (normalized === "product") {
+  if (normalized === "product" || normalized === "5") {
     return "製成品";
   }
-  if (normalized === "wip" || normalized === "inproduct") {
+  if (normalized === "wip" || normalized === "inproduct" || normalized === "4") {
     return "在製品";
   }
   return "未分類";
 }
 
-function normalizedItemTypeCode(value?: string, itemNo?: string): RoutingProductItem["itemTypeCode"] {
+function normalizedItemTypeCode(value?: string | number, itemNo?: string): RoutingProductItem["itemTypeCode"] {
   const normalized = String(value ?? "").toLocaleLowerCase();
-  if (normalized === "product") {
+  if (normalized === "product" || normalized === "5") {
     return "product";
   }
-  if (normalized === "wip" || normalized === "inproduct") {
+  if (normalized === "wip" || normalized === "inproduct" || normalized === "4") {
     return "wip";
   }
   if (String(itemNo ?? "").startsWith("WIP")) {
@@ -229,11 +282,17 @@ function normalizedItemTypeCode(value?: string, itemNo?: string): RoutingProduct
 }
 
 function normalizeSummary(summary?: ApiRoutingDashboardPayload["summary"]): RoutingSummary {
+  const itemCount =
+    summary?.itemCount ??
+    asNumber(summary?.productCount) + asNumber(summary?.wipCount);
   return {
-    itemCount: asNumber(summary?.itemCount ?? summary?.productCount ?? summary?.wipCount),
+    itemCount: asNumber(itemCount),
     routingVersionCount: asNumber(summary?.routingVersionCount ?? summary?.versionCount),
-    effectiveRoutingCount: asNumber(summary?.effectiveRoutingCount),
-    warningCount: asNumber(summary?.warningCount)
+    effectiveRoutingCount: asNumber(summary?.effectiveRoutingCount ?? summary?.completeRoutingCount),
+    warningCount: asNumber(
+      summary?.warningCount ??
+        asNumber(summary?.partialRoutingCount) + asNumber(summary?.missingRoutingCount)
+    )
   };
 }
 
@@ -251,13 +310,15 @@ function mapProductItem(item: ApiRoutingProductItem): RoutingProductItem {
   const itemName = item.itemName ?? item.productName ?? item.wipName ?? "";
   const routingVersion = asNumber(item.routingVersion ?? item.version);
   const stateCode = normalizeRoutingVersionStateCode(item.versionStateCode ?? item.stateCode);
+  const routingVersionId = item.routingVersionId ?? item.routingNo ?? item.productProcessNo ?? "";
   return {
-    id: item.id ?? `${itemNo || "item"}-${item.routingNo ?? item.productProcessNo ?? "routing"}-v${routingVersion}`,
+    id: item.id ?? `${itemNo || "item"}-${routingVersionId || "routing"}-v${routingVersion}`,
     itemNo,
     itemName,
-    itemTypeCode: normalizedItemTypeCode(item.itemTypeCode, itemNo),
-    itemTypeLabel: normalizeItemType(item.itemTypeCode, item.itemTypeLabel),
-    routingNo: item.routingNo ?? item.productProcessNo ?? "",
+    itemTypeCode: normalizedItemTypeCode(item.itemTypeCode ?? item.itemCategory, itemNo),
+    itemTypeLabel: normalizeItemType(String(item.itemTypeCode ?? item.itemCategory ?? ""), item.itemTypeLabel),
+    routingNo: item.routingNo ?? item.productProcessNo ?? routingVersionId,
+    routingVersionId,
     routingVersion,
     versionStateCode: stateCode,
     versionStateLabel: routingVersionStateLabel(stateCode, locale),
@@ -295,22 +356,53 @@ function standardRateLabel(quantity: number, unit: string, minutes: number, hour
 function mapStep(step: ApiRoutingProcessStep): RoutingProcessStep {
   const oneProcess = step.oneProcess;
   const secProcess = step.secProcess;
-  const unit = unitLabel(step.unit, step.processUnit);
-  const quantity = asNumber(step.standardQuantity ?? step.processCount);
-  const minutes = asNumber(step.standardMinutes ?? step.processTime);
+  const performance = step.standardPerformance;
+  const unit = unitLabel(step.unit, step.processUnit ?? performance?.unit);
+  const hourlyOutput = asNumber(step.hourlyOutput ?? performance?.hourlyOutput);
+  const quantity = asNumber(step.standardQuantity ?? step.processCount ?? hourlyOutput);
+  const minutes = asNumber(step.standardMinutes ?? step.processTime ?? (hourlyOutput > 0 ? 60 : 0));
+  const laborCount = asNumber(step.laborCount ?? performance?.laborCount);
+  const resourceRefs = step.resourceEligibility?.eligibleResourceRefs ?? [];
   return {
-    stepNo: asNumber(step.stepNo ?? step.order),
-    processNo: step.processNo ?? step.no ?? "",
-    processLabel: step.processLabel ?? step.processName ?? routingSubProcessLabel(oneProcess, secProcess, locale),
-    stageLabel: step.stageLabel ?? routingMainProcessLabel(oneProcess, locale),
-    groupLabel: step.groupLabel ?? routingSubProcessLabel(oneProcess, secProcess, locale),
+    stepNo: asNumber(step.stepNo ?? step.stepOrder ?? step.order),
+    processNo: step.processNo ?? step.no ?? step.stepId ?? "",
+    processLabel: processDisplayLabel(step.processLabel ?? step.processName, oneProcess, secProcess),
+    stageLabel: processStageDisplayLabel(step.stageLabel, oneProcess),
+    groupLabel: processGroupDisplayLabel(step.groupLabel, oneProcess, secProcess),
     standardQuantity: quantity,
     standardUnit: unit,
     standardMinutes: minutes,
-    standardRateLabel: standardRateLabel(quantity, unit, minutes, step.hourlyOutput),
-    resourceEligibilityLabel: step.resourceEligibilityLabel ?? (step.laborCount ? `${formatInteger(step.laborCount)} 人` : "待確認"),
-    sourceRef: step.sourceRef ?? "process_flow"
+    standardRateLabel: standardRateLabel(quantity, unit, minutes, hourlyOutput),
+    resourceEligibilityLabel:
+      step.resourceEligibilityLabel ??
+      (step.resourceEligibility?.governed && resourceRefs.length ? resourceRefs.join(" / ") : laborCount ? `${formatInteger(laborCount)} 人` : "待確認"),
+    sourceRef: step.sourceRef ?? step.sourceLineage?.stepSourceCode ?? "process_flow"
   };
+}
+
+function processStageDisplayLabel(value?: string, oneProcess?: number) {
+  const labels: Record<string, string> = {
+    preparation: "前備",
+    processing: "加工",
+    packaging: "包裝",
+    other: "其他",
+    unknown: "待確認"
+  };
+  return labels[String(value ?? "").toLocaleLowerCase()] ?? routingMainProcessLabel(oneProcess, locale);
+}
+
+function processGroupDisplayLabel(value?: string, oneProcess?: number, secProcess?: number) {
+  if (!value || value.includes(":")) {
+    return routingSubProcessLabel(oneProcess, secProcess, locale);
+  }
+  return value;
+}
+
+function processDisplayLabel(value?: string, oneProcess?: number, secProcess?: number) {
+  if (!value || value.includes(":") || value === "preparation" || value === "processing" || value === "packaging") {
+    return routingSubProcessLabel(oneProcess, secProcess, locale);
+  }
+  return value;
 }
 
 function toneFromStatus(value?: string) {
@@ -343,13 +435,65 @@ function mapLineage(lineage: ApiRoutingLineage): RoutingLineage {
   };
 }
 
+function mapSourceLineage(lineage?: ApiRoutingLineage[] | ApiRoutingSourceLineage): RoutingLineage[] {
+  if (Array.isArray(lineage)) {
+    return lineage.map(mapLineage);
+  }
+  if (!lineage) {
+    return [];
+  }
+  return [
+    {
+      sourceTypeLabel: "Routing 版本來源",
+      sourceRef: lineage.routingVersionSourceCode ?? "",
+      evidenceLabel: "Routing version evidence",
+      statusLabel: "read-only"
+    },
+    {
+      sourceTypeLabel: "流程步驟來源",
+      sourceRef: lineage.stepSourceCode ?? "",
+      evidenceLabel: "ordered process-flow evidence",
+      statusLabel: "read-only"
+    },
+    {
+      sourceTypeLabel: "製程主檔來源",
+      sourceRef: lineage.processIdentitySourceCode ?? "",
+      evidenceLabel: "process identity evidence",
+      statusLabel: "read-only"
+    },
+    {
+      sourceTypeLabel: "Recipe 參照來源",
+      sourceRef: lineage.recipeReferenceSourceCode ?? "",
+      evidenceLabel: "Recipe reference evidence",
+      statusLabel: "read-only"
+    },
+    {
+      sourceTypeLabel: "Packaging context 來源",
+      sourceRef: lineage.packagingContextSourceCode ?? "",
+      evidenceLabel: "bounded packaging context evidence",
+      statusLabel: "read-only"
+    },
+    {
+      sourceTypeLabel: "資源資格來源",
+      sourceRef: lineage.resourceEligibilitySourceCode ?? "",
+      evidenceLabel: "resource eligibility evidence",
+      statusLabel: "read-only"
+    }
+  ].filter((item) => item.sourceRef);
+}
+
 function mapWarning(warning: ApiRoutingWarning): RoutingWarning {
   const code = warning.code ?? warning.warningCode ?? "unknown";
   const messages: Record<string, string> = {
     missing_process_flow: "尚未建立製程流程步驟。",
+    missing_steps: "尚未建立製程流程步驟。",
+    missing_item_master: "品項主檔尚未建立或無法解析。",
+    missing_process_master: "製程主檔尚未建立或無法解析。",
     missing_recipe_reference: "尚未建立 Recipe 參照。",
     missing_packaging_context: "包裝 context 尚未建立。",
+    packaging_context_not_governed: "包裝 context 尚未建立治理來源。",
     missing_resource_eligibility: "資源資格尚未建立治理來源。",
+    resource_eligibility_not_governed: "資源資格尚未建立治理來源。",
     missing_standard_performance: "標準表現尚未建立治理來源。",
     unknown: "Routing / Process Flow 資料需確認。"
   };
@@ -362,7 +506,10 @@ function mapWarning(warning: ApiRoutingWarning): RoutingWarning {
 
 function mapDashboardPayload(payload: ApiRoutingDashboardPayload): RoutingDashboardData {
   const summary = normalizeSummary(payload.summary);
-  const items = withFallbackArray<ApiRoutingProductItem>(payload.items ?? payload.products ?? payload.results, []).map(mapProductItem);
+  const items = withFallbackArray<ApiRoutingProductItem>(
+    payload.routingVersions ?? payload.items ?? payload.products ?? payload.results,
+    []
+  ).map(mapProductItem);
   return {
     summary,
     kpis: kpisFromSummary(summary),
@@ -374,21 +521,99 @@ function mapDashboardPayload(payload: ApiRoutingDashboardPayload): RoutingDashbo
 }
 
 function mapDetailPayload(payload: ApiRoutingDetailPayload, fallback?: RoutingProductItem): RoutingDetail | undefined {
-  const item = payload.item || payload.routing ? mapProductItem({ ...(payload.item ?? payload.routing), routingVersion: payload.version?.routingVersion ?? payload.version?.version }) : fallback;
+  const routingVersion = payload.routingVersion ?? payload.item ?? payload.routing;
+  const item = routingVersion
+    ? mapProductItem({
+        ...routingVersion,
+        routingVersion: payload.version?.routingVersion ?? payload.version?.version ?? routingVersion.routingVersion,
+        versionStateCode: payload.version?.versionStateCode ?? routingVersion.versionStateCode
+      })
+    : fallback;
   if (!item?.itemNo) {
     return undefined;
   }
+  const steps = withFallbackArray<ApiRoutingProcessStep>(payload.steps ?? payload.processFlow, []);
+  const recipeReferences = uniqueReferences(steps.map((step) => mapRecipeReference(step.recipeReference)).filter(Boolean) as RoutingContextReference[]);
+  const packagingContexts = uniqueReferences(steps.map((step) => mapPackagingContext(step.packagingContext)).filter(Boolean) as RoutingContextReference[]);
+  const resourceEligibility = uniqueReferences(steps.map((step) => mapResourceEligibility(step.resourceEligibility)).filter(Boolean) as RoutingContextReference[]);
+  const standardPerformance = uniqueReferences(steps.map((step) => mapStandardPerformance(step.standardPerformance)).filter(Boolean) as RoutingContextReference[]);
   return {
     item,
     versions: withFallbackArray<ApiRoutingVersion>(payload.versions, payload.version ? [payload.version] : []).map(mapVersion),
-    steps: withFallbackArray<ApiRoutingProcessStep>(payload.steps ?? payload.processFlow, []).map(mapStep).sort((a, b) => a.stepNo - b.stepNo),
-    recipeReferences: withFallbackArray<ApiRoutingContextReference>(payload.recipeReferences ?? payload.recipeRefs, []).map(mapReference),
-    packagingContexts: withFallbackArray<ApiRoutingContextReference>(payload.packagingContexts ?? payload.packagingRefs, []).map(mapReference),
-    resourceEligibility: withFallbackArray<ApiRoutingContextReference>(payload.resourceEligibility ?? payload.resourceEligibilityRefs, []).map(mapReference),
-    standardPerformance: withFallbackArray<ApiRoutingContextReference>(payload.standardPerformance ?? payload.standardPerformanceRefs, []).map(mapReference),
-    lineage: withFallbackArray<ApiRoutingLineage>(payload.sourceLineage ?? payload.lineage, []).map(mapLineage),
+    steps: steps.map(mapStep).sort((a, b) => a.stepNo - b.stepNo),
+    recipeReferences: withFallbackArray<ApiRoutingContextReference>(payload.recipeReferences ?? payload.recipeRefs, []).map(mapReference).concat(recipeReferences),
+    packagingContexts: withFallbackArray<ApiRoutingContextReference>(payload.packagingContexts ?? payload.packagingRefs, []).map(mapReference).concat(packagingContexts),
+    resourceEligibility: withFallbackArray<ApiRoutingContextReference>(payload.resourceEligibility ?? payload.resourceEligibilityRefs, []).map(mapReference).concat(resourceEligibility),
+    standardPerformance: withFallbackArray<ApiRoutingContextReference>(payload.standardPerformance ?? payload.standardPerformanceRefs, []).map(mapReference).concat(standardPerformance),
+    lineage: mapSourceLineage(payload.sourceLineage ?? payload.lineage),
     warnings: withFallbackArray<ApiRoutingWarning>(payload.warnings, []).map(mapWarning)
   };
+}
+
+function mapRecipeReference(reference?: ApiRoutingProcessStep["recipeReference"]): RoutingContextReference | undefined {
+  if (!reference?.established) {
+    return undefined;
+  }
+  return {
+    typeLabel: "Recipe reference",
+    refNo: reference.recipeNo ?? "",
+    refName: reference.recipeVersion ? `Recipe Version ${reference.recipeVersion}` : "已建立 Recipe 參照",
+    statusLabel: "已建立",
+    tone: "success"
+  };
+}
+
+function mapPackagingContext(context?: ApiRoutingProcessStep["packagingContext"]): RoutingContextReference | undefined {
+  if (!context?.established) {
+    return undefined;
+  }
+  const unit = unitLabel(context.unit);
+  return {
+    typeLabel: "Packaging context",
+    refNo: context.packagingBomNo ?? "",
+    refName: `Level ${context.packagingLevel ?? 0} · ${formatInteger(context.quantity)} ${unit} · ${formatNumber(context.weight)} kg`,
+    statusLabel: "參照中",
+    tone: "neutral"
+  };
+}
+
+function mapResourceEligibility(resource?: ApiRoutingProcessStep["resourceEligibility"]): RoutingContextReference | undefined {
+  if (!resource) {
+    return undefined;
+  }
+  return {
+    typeLabel: "Resource eligibility",
+    refNo: resource.sourceCode ?? "not_recorded",
+    refName: resource.governed ? withFallbackArray<string>(resource.eligibleResourceRefs, []).join(" / ") || "已建立資源資格" : "尚未建立治理來源",
+    statusLabel: resource.governed ? "受治理" : "待治理",
+    tone: resource.governed ? "success" : "warning"
+  };
+}
+
+function mapStandardPerformance(performance?: ApiRoutingProcessStep["standardPerformance"]): RoutingContextReference | undefined {
+  if (!performance) {
+    return undefined;
+  }
+  const unit = unitLabel(performance.unit);
+  return {
+    typeLabel: "Standard performance",
+    refNo: performance.sourceCode ?? "not_recorded",
+    refName: performance.governed ? `${formatNumber(performance.hourlyOutput)} ${unit} / hr · ${formatInteger(performance.laborCount)} 人` : "尚未建立標準表現",
+    statusLabel: performance.governed ? "受治理" : "待治理",
+    tone: performance.governed ? "success" : "warning"
+  };
+}
+
+function uniqueReferences(references: RoutingContextReference[]) {
+  const seen = new Set<string>();
+  return references.filter((reference) => {
+    const key = `${reference.typeLabel}-${reference.refNo}-${reference.refName}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 function buildDashboardPath(query: RoutingDashboardQuery = {}) {
@@ -400,7 +625,7 @@ function buildDashboardPath(query: RoutingDashboardQuery = {}) {
     params.set("start", String(query.start));
   }
   params.set("count", String(query.count ?? 50));
-  return `/api/v2/routing-process-flow/dashboard?${params.toString()}`;
+  return `/api/v2/routing/dashboard?${params.toString()}`;
 }
 
 export async function getRoutingDashboard(
@@ -451,10 +676,30 @@ export async function getRoutingDetail(
   }
 
   try {
-    const payload = await apiGet<ApiRoutingDetailPayload>(
-      `/api/v2/routing-process-flow/items/${encodeURIComponent(itemNo)}/versions/${encodeURIComponent(String(routingVersion))}`
+    const versionsPayload = await apiGet<{ versions?: ApiRoutingProductItem[] }>(
+      `/api/v2/routing/products/${encodeURIComponent(itemNo)}/versions`
     );
-    return { detail: mapDetailPayload(payload, fallback), source: "api" };
+    const selectedVersion =
+      withFallbackArray<ApiRoutingProductItem>(versionsPayload.versions, []).find((item) => asNumber(item.routingVersion ?? item.version) === routingVersion) ??
+      withFallbackArray<ApiRoutingProductItem>(versionsPayload.versions, [])[0];
+    const routingVersionId = selectedVersion?.routingVersionId ?? fallback?.routingVersionId;
+    if (!routingVersionId) {
+      throw new Error("Routing Version ID unavailable");
+    }
+    const payload = await apiGet<ApiRoutingDetailPayload>(
+      `/api/v2/routing/versions/${encodeURIComponent(routingVersionId)}/steps`
+    );
+    return {
+      detail: mapDetailPayload(
+        {
+          ...payload,
+          versions: versionsPayload.versions,
+          routingVersion: payload.routingVersion ?? selectedVersion
+        },
+        fallback
+      ),
+      source: "api"
+    };
   } catch (error) {
     return {
       detail: fallback

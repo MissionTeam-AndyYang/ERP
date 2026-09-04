@@ -25,6 +25,7 @@ export type RoutingProductItem = {
   itemTypeCode: "product" | "wip" | "unknown";
   itemTypeLabel: string;
   routingNo: string;
+  routingVersionId: string;
   routingVersion: number;
   versionStateCode: RoutingVersionStateCode;
   versionStateLabel: string;

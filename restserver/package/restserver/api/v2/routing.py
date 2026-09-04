@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 
 from flask import request
-from sqlalchemy import or_
+from sqlalchemy import inspect, or_, text
 
 from package.common.common import (
     EBomVersionState,
@@ -61,6 +61,14 @@ class CRoutingProcessFlowService(object):
         n_start,
         n_count,
     ):
+        if self.__use_test_support_surface(obj_session):
+            return self.__get_test_support_dashboard_with_session(
+                obj_session,
+                str_keyword,
+                str_routing_status_code,
+                n_start,
+                n_count,
+            )
         n_query_timestamp = util_safe_int(n_effective_date) or util_safe_int(time.time())
         n_start = max(util_safe_int(n_start), 0)
         n_count = min(max(util_safe_int(n_count), 1), 100)
@@ -103,6 +111,8 @@ class CRoutingProcessFlowService(object):
         str_item_no = (str_item_no or "").strip()
         if not str_item_no:
             return None
+        if self.__use_test_support_surface(obj_session):
+            return self.__get_test_support_versions_with_session(obj_session, str_item_no)
         n_query_timestamp = util_safe_int(n_effective_date) or util_safe_int(time.time())
         lst_versions = obj_session.query(CTableProductProcess).filter(CTableProductProcess.item_no == str_item_no).all()
         if not lst_versions:
@@ -129,6 +139,8 @@ class CRoutingProcessFlowService(object):
         str_routing_version_id = (str_routing_version_id or "").strip()
         if not str_routing_version_id:
             return None
+        if self.__use_test_support_surface(obj_session):
+            return self.__get_test_support_steps_with_session(obj_session, str_routing_version_id)
         obj_product_process = (
             obj_session.query(CTableProductProcess)
             .filter(CTableProductProcess.no == str_routing_version_id)
@@ -163,6 +175,14 @@ class CRoutingProcessFlowService(object):
         str_item_no = (str_item_no or "").strip()
         if not str_item_no:
             return None
+        if self.__use_test_support_surface(obj_session):
+            dict_versions = self.__get_test_support_versions_with_session(obj_session, str_item_no)
+            if not dict_versions or not dict_versions.get("versions"):
+                return None
+            return self.__get_test_support_steps_with_session(
+                obj_session,
+                dict_versions["versions"][0].get("routingVersionId", ""),
+            )
         n_query_timestamp = util_safe_int(n_effective_date) or util_safe_int(time.time())
         lst_versions = obj_session.query(CTableProductProcess).filter(CTableProductProcess.item_no == str_item_no).all()
         if not lst_versions:
@@ -279,6 +299,244 @@ class CRoutingProcessFlowService(object):
             if tuple_key not in dict_capacity:
                 dict_capacity[tuple_key] = obj_row
         return dict_capacity
+
+    def __use_test_support_surface(self, obj_session):
+        return (
+            not self.__db_object_exists(obj_session, "product_process")
+            and self.__db_object_exists(obj_session, "v_test_support_routing_process_flow_readonly")
+        )
+
+    def __db_object_exists(self, obj_session, str_object_name):
+        str_object_name = (str_object_name or "").strip()
+        if not str_object_name:
+            return False
+        try:
+            obj_bind = obj_session.get_bind()
+            if obj_bind and obj_bind.dialect.name != "mariadb":
+                return inspect(obj_bind).has_table(str_object_name)
+            obj_row = obj_session.execute(
+                text(
+                    "SELECT COUNT(*) FROM information_schema.tables "
+                    "WHERE table_schema = DATABASE() AND table_name = :str_object_name"
+                ),
+                {"str_object_name": str_object_name},
+            ).first()
+            return util_safe_int(obj_row[0] if obj_row else 0) > 0
+        except Exception:
+            return False
+
+    def __query_test_support_rows(self, obj_session, str_item_no="", str_route_id=""):
+        str_sql = (
+            "SELECT test_support_route_id, product_no, product_name, product_version, bom_no, "
+            "bom_display_name, bom_version, process_flow_label, test_support_step_id, step_sequence, "
+            "step_label, input_ref, output_ref, nonproduction_classification, evidence_boundary, "
+            "source_lineage_ref, warning_behavior, acceptance_use "
+            "FROM v_test_support_routing_process_flow_readonly "
+        )
+        dict_params = {}
+        lst_where = []
+        if str_item_no:
+            lst_where.append("product_no = :str_item_no")
+            dict_params["str_item_no"] = str_item_no
+        if str_route_id:
+            lst_where.append("test_support_route_id = :str_route_id")
+            dict_params["str_route_id"] = str_route_id
+        if lst_where:
+            str_sql += "WHERE " + " AND ".join(lst_where) + " "
+        str_sql += "ORDER BY product_no ASC, product_version DESC, step_sequence ASC"
+        return [
+            dict(obj_row._mapping)
+            for obj_row in obj_session.execute(text(str_sql), dict_params).all()
+        ]
+
+    def __query_test_support_warning_map(self, obj_session):
+        if not self.__db_object_exists(obj_session, "v_test_support_routing_source_lineage_warnings"):
+            return {}
+        dict_warnings = {}
+        for obj_row in obj_session.execute(text(
+            "SELECT test_support_route_id, source_lineage_ref, warning_behavior, boundary_label "
+            "FROM v_test_support_routing_source_lineage_warnings"
+        )).all():
+            dict_row = dict(obj_row._mapping)
+            dict_warnings[dict_row.get("test_support_route_id", "")] = dict_row
+        return dict_warnings
+
+    def __get_test_support_dashboard_with_session(
+        self,
+        obj_session,
+        str_keyword,
+        str_routing_status_code,
+        n_start,
+        n_count,
+    ):
+        n_start = max(util_safe_int(n_start), 0)
+        n_count = min(max(util_safe_int(n_count), 1), 100)
+        lst_rows = self.__build_test_support_dashboard_rows(
+            self.__query_test_support_rows(obj_session),
+            str_keyword,
+        )
+        if str_routing_status_code:
+            lst_rows = [dict_row for dict_row in lst_rows if dict_row.get("routingStatusCode") == str_routing_status_code]
+        n_total = len(lst_rows)
+        lst_page = lst_rows[n_start:n_start + n_count]
+        return {
+            "serverTimestamp": util_safe_int(time.time()),
+            "summary": self.__build_summary(lst_rows),
+            "routingVersions": lst_page,
+            "capabilityBoundary": self.__capability_boundary(),
+            "total": n_total,
+            "start": n_start,
+            "count": len(lst_page),
+        }
+
+    def __get_test_support_versions_with_session(self, obj_session, str_item_no):
+        lst_rows = self.__build_test_support_dashboard_rows(
+            self.__query_test_support_rows(obj_session, str_item_no),
+            "",
+        )
+        if not lst_rows:
+            return None
+        return {
+            "serverTimestamp": util_safe_int(time.time()),
+            "item": {
+                "itemNo": str_item_no,
+                "itemName": lst_rows[0].get("itemName", ""),
+                "itemCategory": lst_rows[0].get("itemCategory", 0),
+                "itemSubCategory": lst_rows[0].get("itemSubCategory", 0),
+                "sourceCode": ERoutingSourceCode.PRODUCT,
+            },
+            "versions": lst_rows,
+            "capabilityBoundary": self.__capability_boundary(),
+        }
+
+    def __get_test_support_steps_with_session(self, obj_session, str_routing_version_id):
+        lst_rows = self.__query_test_support_rows(obj_session, str_route_id=str_routing_version_id)
+        if not lst_rows:
+            return None
+        dict_warning_map = self.__query_test_support_warning_map(obj_session)
+        lst_steps = [self.__build_test_support_step_row(dict_row) for dict_row in lst_rows]
+        lst_warnings = self.__build_test_support_warnings(str_routing_version_id, lst_steps, dict_warning_map)
+        dict_routing_row = self.__build_test_support_dashboard_rows(lst_rows, "")[0]
+        dict_routing_row["routingStatusCode"] = self.__routing_status_code(
+            len(lst_steps),
+            [dict_warning.get("warningCode", "") for dict_warning in lst_warnings],
+        )
+        return {
+            "serverTimestamp": util_safe_int(time.time()),
+            "routingVersion": dict_routing_row,
+            "steps": lst_steps,
+            "sourceLineage": {
+                "routingVersionSourceCode": ERoutingSourceCode.TEST_SUPPORT,
+                "stepSourceCode": ERoutingSourceCode.TEST_SUPPORT,
+                "processIdentitySourceCode": ERoutingSourceCode.NOT_RECORDED,
+                "recipeReferenceSourceCode": ERoutingSourceCode.PRODUCT_SPEC,
+                "packagingContextSourceCode": ERoutingSourceCode.PRODUCT_BOM_SPEC,
+                "resourceEligibilitySourceCode": ERoutingSourceCode.NOT_RECORDED,
+                "routingVersionId": str_routing_version_id,
+            },
+            "capabilityBoundary": self.__capability_boundary(),
+            "warnings": lst_warnings,
+        }
+
+    def __build_test_support_dashboard_rows(self, lst_source_rows, str_keyword):
+        str_keyword = (str_keyword or "").strip().lower()
+        dict_grouped_rows = {}
+        for dict_row in lst_source_rows:
+            str_route_id = dict_row.get("test_support_route_id", "")
+            if not str_route_id:
+                continue
+            if str_route_id not in dict_grouped_rows:
+                dict_grouped_rows[str_route_id] = {
+                    "source": dict_row,
+                    "stepCount": 0,
+                }
+            dict_grouped_rows[str_route_id]["stepCount"] += 1
+        lst_rows = []
+        for str_route_id, dict_group in dict_grouped_rows.items():
+            dict_source = dict_group.get("source", {})
+            dict_result = {
+                "routingVersionId": str_route_id,
+                "itemNo": dict_source.get("product_no", ""),
+                "itemName": dict_source.get("product_name", ""),
+                "itemCategory": EItemCategory.PRODUCT,
+                "itemSubCategory": 0,
+                "routingVersion": util_safe_int(dict_source.get("product_version")),
+                "versionStateCode": EBomVersionState.EFFECTIVE,
+                "routingStatusCode": ERoutingStatusCode.PARTIAL,
+                "dateTimestamp": 0,
+                "stepCount": util_safe_int(dict_group.get("stepCount")),
+                "warningCodes": [ERoutingWarningCode.TEST_SUPPORT_ONLY],
+            }
+            str_search_body = " ".join([
+                dict_result.get("routingVersionId", ""),
+                dict_result.get("itemNo", ""),
+                dict_result.get("itemName", ""),
+            ]).lower()
+            if str_keyword and str_keyword not in str_search_body:
+                continue
+            lst_rows.append(dict_result)
+        return sorted(lst_rows, key=lambda dict_row: (dict_row.get("itemNo", ""), -util_safe_int(dict_row.get("routingVersion"))))
+
+    def __build_test_support_step_row(self, dict_source):
+        return {
+            "stepId": dict_source.get("test_support_step_id", ""),
+            "stepOrder": util_safe_int(dict_source.get("step_sequence")),
+            "oneProcess": 0,
+            "secProcess": 0,
+            "processNo": "",
+            "processLabel": dict_source.get("step_label", ""),
+            "stageCode": "test_support",
+            "stageLabel": "test_support",
+            "groupCode": "test_support",
+            "groupLabel": "test_support",
+            "recipeReference": {
+                "established": bool(dict_source.get("bom_no", "")),
+                "recipeNo": dict_source.get("bom_no", ""),
+                "recipeVersion": util_safe_int(dict_source.get("bom_version")),
+                "sourceCode": ERoutingSourceCode.TEST_SUPPORT,
+            },
+            "packagingContext": {
+                "established": False,
+                "packagingLevel": 0,
+                "packagingBomNo": "",
+                "quantity": 0,
+                "unit": 0,
+                "weight": 0.0,
+                "sourceCode": ERoutingSourceCode.NOT_RECORDED,
+            },
+            "resourceEligibility": {
+                "governed": False,
+                "eligibleResourceRefs": [],
+                "sourceCode": ERoutingSourceCode.NOT_RECORDED,
+            },
+            "standardPerformance": {
+                "governed": False,
+                "hourlyOutput": 0.0,
+                "laborCount": 0,
+                "unit": 0,
+                "sourceDateTimestamp": 0,
+                "sourceCode": ERoutingSourceCode.NOT_RECORDED,
+            },
+            "sourceLineage": {
+                "stepSourceCode": ERoutingSourceCode.TEST_SUPPORT,
+                "processSourceCode": ERoutingSourceCode.NOT_RECORDED,
+                "standardPerformanceSourceCode": ERoutingSourceCode.NOT_RECORDED,
+            },
+        }
+
+    def __build_test_support_warnings(self, str_routing_version_id, lst_steps, dict_warning_map):
+        lst_warnings = []
+        if not lst_steps:
+            self.__append_warning(lst_warnings, ERoutingWarningCode.MISSING_STEPS, str_routing_version_id, "")
+            return lst_warnings
+        self.__append_warning(lst_warnings, ERoutingWarningCode.TEST_SUPPORT_ONLY, str_routing_version_id, "")
+        dict_warning = dict_warning_map.get(str_routing_version_id, {})
+        if dict_warning.get("warning_behavior"):
+            self.__append_warning(lst_warnings, ERoutingWarningCode.RESOURCE_ELIGIBILITY_NOT_GOVERNED, str_routing_version_id, "")
+        for dict_step in lst_steps:
+            self.__append_warning(lst_warnings, ERoutingWarningCode.MISSING_PROCESS_MASTER, str_routing_version_id, dict_step.get("stepId", ""))
+            self.__append_warning(lst_warnings, ERoutingWarningCode.MISSING_STANDARD_PERFORMANCE, str_routing_version_id, dict_step.get("stepId", ""))
+        return lst_warnings
 
     def __build_dashboard_row(self, obj_product_process, str_version_state_code, dict_step_counts, dict_item_map):
         n_step_count = util_safe_int(dict_step_counts.get(obj_product_process.no or "", 0))

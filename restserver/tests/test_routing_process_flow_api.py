@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 from sqlalchemy import create_engine
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 
 RESTSERVER_ROOT = Path(__file__).resolve().parents[1]
@@ -181,3 +182,76 @@ def test_routing_routes_reject_post_mutation(monkeypatch):
     )
 
     assert obj_response.status_code == 405
+
+
+def test_routing_falls_back_to_test_support_surface_when_formal_tables_are_missing():
+    obj_engine = create_engine("sqlite:///:memory:")
+    obj_session = sessionmaker(bind=obj_engine)()
+    obj_session.execute(text("""
+        CREATE VIEW v_test_support_routing_process_flow_readonly AS
+        SELECT
+            'TS-ROUTE-SD-001' AS test_support_route_id,
+            'PRD-SD-001' AS product_no,
+            'Shared DEV Product Fixture A' AS product_name,
+            1 AS product_version,
+            'BOM-SD-001' AS bom_no,
+            'Shared DEV BOM Fixture A' AS bom_display_name,
+            1 AS bom_version,
+            'Shared DEV synthetic routing / process flow fixture' AS process_flow_label,
+            'TS-STEP-SD-001' AS test_support_step_id,
+            10 AS step_sequence,
+            'Synthetic material preparation visibility step' AS step_label,
+            'MAT-SD-001' AS input_ref,
+            'INP-SD-001' AS output_ref,
+            'NON-PRODUCTION ACCEPTANCE TEST SUPPORT' AS nonproduction_classification,
+            'Read-only acceptance-test support; not Routing write or Process Master source' AS evidence_boundary,
+            'Derived from existing Shared DEV product_spec, bom, and bom_item fixture identities' AS source_lineage_ref,
+            'Warn: synthetic process flow test support only' AS warning_behavior,
+            'Read-only Backend / Frontend acceptance retest support' AS acceptance_use
+        UNION ALL
+        SELECT
+            'TS-ROUTE-SD-001',
+            'PRD-SD-001',
+            'Shared DEV Product Fixture A',
+            1,
+            'BOM-SD-001',
+            'Shared DEV BOM Fixture A',
+            1,
+            'Shared DEV synthetic routing / process flow fixture',
+            'TS-STEP-SD-002',
+            20,
+            'Synthetic product composition visibility step',
+            'INP-SD-001',
+            'PRD-SD-001',
+            'NON-PRODUCTION ACCEPTANCE TEST SUPPORT',
+            'Read-only acceptance-test support; not Routing write or Process Master source',
+            'Derived from existing Shared DEV product_spec, bom, and bom_item fixture identities',
+            'Warn: synthetic process flow test support only',
+            'Read-only Backend / Frontend acceptance retest support'
+    """))
+    obj_session.execute(text("""
+        CREATE VIEW v_test_support_routing_source_lineage_warnings AS
+        SELECT
+            'TS-ROUTE-SD-001' AS test_support_route_id,
+            'NON-PRODUCTION ACCEPTANCE TEST SUPPORT' AS nonproduction_classification,
+            'Derived from existing Shared DEV product_spec, bom, and bom_item fixture identities' AS source_lineage_ref,
+            'Show warning when no governed production routing source exists; do not imply target schema' AS warning_behavior,
+            'NOT_TARGET_SCHEMA_NOT_PRODUCTION_NOT_SOURCE_OF_TRUTH' AS boundary_label
+    """))
+    obj_session.commit()
+
+    obj_service = CRoutingProcessFlowService()
+    dict_dashboard = obj_service._CRoutingProcessFlowService__get_dashboard_with_session(
+        obj_session, "", "", 1700000000, 0, 50,
+    )
+    dict_steps = obj_service._CRoutingProcessFlowService__get_steps_with_session(
+        obj_session, "TS-ROUTE-SD-001", 1700000000,
+    )
+
+    assert dict_dashboard["summary"]["routingVersionCount"] == 1
+    assert dict_dashboard["routingVersions"][0]["routingVersionId"] == "TS-ROUTE-SD-001"
+    assert dict_dashboard["routingVersions"][0]["stepCount"] == 2
+    assert dict_dashboard["routingVersions"][0]["warningCodes"] == [ERoutingWarningCode.TEST_SUPPORT_ONLY]
+    assert [dict_row["stepId"] for dict_row in dict_steps["steps"]] == ["TS-STEP-SD-001", "TS-STEP-SD-002"]
+    assert dict_steps["sourceLineage"]["routingVersionSourceCode"] == ERoutingSourceCode.TEST_SUPPORT
+    assert ERoutingWarningCode.TEST_SUPPORT_ONLY in [dict_row["warningCode"] for dict_row in dict_steps["warnings"]]

@@ -619,6 +619,7 @@ class ERoutingWarningCode(object):
     MISSING_RECIPE_REFERENCE = "missing_recipe_reference"
     PACKAGING_CONTEXT_NOT_GOVERNED = "packaging_context_not_governed"
     RESOURCE_ELIGIBILITY_NOT_GOVERNED = "resource_eligibility_not_governed"
+    TEST_SUPPORT_ONLY = "test_support_only"
     UNKNOWN = "unknown"
 
 
@@ -631,6 +632,7 @@ class ERoutingSourceCode(object):
     PRODUCT_BOM_SPEC = "product_bom_spec"
     PRODUCT = "product"
     INPRODUCT = "inproduct"
+    TEST_SUPPORT = "test_support"
     NOT_RECORDED = "not_recorded"
 
 

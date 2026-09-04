@@ -7,9 +7,22 @@
 | URL | Method | Description | Status | Review Note |
 |----------|----------|----------------|------|------|
 | [/api/v2/routing/dashboard](#get-api-v2-routing-dashboard) | GET | 查詢 Product / WIP Routing Version 摘要清單 | OK | 依 CTO `ERP2-ROUTING-PROCESS-FLOW-RO-EXEC-001` 最小 read-only 實作 |
-| [/api/v2/routing/products/{item_no}/versions](#get-api-v2-routing-products-item_no-versions) | GET | 查詢指定製成品或在製品的 Routing Version 清單 | OK | 第一版以 product_process 作為 Routing Version evidence |
-| [/api/v2/routing/versions/{routing_version_id}/steps](#get-api-v2-routing-versions-routing_version_id-steps) | GET | 查詢指定 Routing Version 的 ordered process steps | OK | 第一版以 process_flow.order 作為步驟順序 |
-| [/api/v2/routing/products/{item_no}/current](#get-api-v2-routing-products-item_no-current) | GET | 查詢指定製成品或在製品目前生效 Routing | OK | 依 product_process.date 與 version 判斷目前生效版本 |
+| [/api/v2/routing/products/{item_no}/versions](#get-api-v2-routing-products-item_no-versions) | GET | 查詢指定製成品或在製品的 Routing Version 清單 | OK | 第一版以 product_process 作為 Routing Version evidence；Shared DEV acceptance retest 可讀 test_support readonly view |
+| [/api/v2/routing/versions/{routing_version_id}/steps](#get-api-v2-routing-versions-routing_version_id-steps) | GET | 查詢指定 Routing Version 的 ordered process steps | OK | 第一版以 process_flow.order 作為步驟順序；Shared DEV acceptance retest 可讀 test_support readonly view |
+| [/api/v2/routing/products/{item_no}/current](#get-api-v2-routing-products-item_no-current) | GET | 查詢指定製成品或在製品目前生效 Routing | OK | 依 product_process.date 與 version 判斷目前生效版本；Shared DEV acceptance retest 可讀 test_support readonly view |
+
+## Shared DEV Test-Support Fallback
+
+正式 Routing 來源表 `product_process` 存在時，API 優先使用正式表與既有 ORM 查詢流程。
+
+若 Shared DEV acceptance retest 環境尚未提供正式 Routing 來源表，但 Engineering B 已套用非正式測試支援物件，API 可在 read-only 模式下改讀：
+
+| Object | Purpose |
+|----------|------|
+| v_test_support_routing_process_flow_readonly | 提供非正式 acceptance test-support 的 Routing Version 與 ordered step evidence |
+| v_test_support_routing_source_lineage_warnings | 提供非正式 test-support source-lineage 與 warning evidence |
+
+此 fallback 僅用於非正式 Shared DEV acceptance retest，不代表 Production target schema、不支援任何寫入、不進行 Product / Routing / Process Master 變更。回傳欄位仍維持本文件定義的 API contract，並透過 `sourceCode = test_support` 與 `warningCode = test_support_only` 標示資料來源邊界。
 
 ## GET /api/v2/routing/dashboard
 
@@ -112,7 +125,7 @@ None
 | payload.routingVersions[].routingStatusCode | String | Routing 完整性狀態 code；前端負責轉換顯示文字 | complete / partial / missing / unknown |
 | payload.routingVersions[].dateTimestamp | Integer | Routing Version 生效日期 UTC timestamp；來源為 product_process.date，無值時回傳 0 |  |
 | payload.routingVersions[].stepCount | Integer | 此 Routing Version 的步驟數；來源為 process_flow 筆數 |  |
-| payload.routingVersions[].warningCodes[] | String | 此 Routing Version 的資料條件 warning code | ERoutingWarningCode |
+| payload.routingVersions[].warningCodes[] | String | 此 Routing Version 的資料條件 warning code；Shared DEV test-support fallback 會回傳 test_support_only | ERoutingWarningCode |
 | payload.capabilityBoundary.routingWriteSupported | Boolean | 是否支援 Routing 寫入；本 API 固定為 false |  |
 | payload.capabilityBoundary.processMasterWriteSupported | Boolean | 是否支援 Process Master 寫入；本 API 固定為 false |  |
 | payload.capabilityBoundary.productWriteSupported | Boolean | 是否支援 Product 寫入；本 API 固定為 false |  |
@@ -131,7 +144,7 @@ None
 ### Processing Flow
 
 1. 讀取 keyword、routingStatusCode、effectiveDate、start、count。
-2. 查詢 product_process 作為 Routing Version evidence。
+2. 查詢 product_process 作為 Routing Version evidence；若正式表不存在且 Shared DEV test-support readonly view 存在，改讀 v_test_support_routing_process_flow_readonly。
 3. 依 product_process.item_no 對應 product / inproduct 主檔，補足品項名稱與品項類別。
 4. 依同一 item_no 的 product_process.date 與 version 判斷 versionStateCode。
 5. 以 process_flow 統計每個 Routing Version 的 stepCount。
@@ -146,6 +159,7 @@ None
 | process_flow | 提供 Routing Step 統計 |
 | product | 提供製成品名稱與分類 |
 | inproduct | 提供在製品名稱與分類 |
+| v_test_support_routing_process_flow_readonly | Shared DEV acceptance retest fallback；僅在正式 Routing 表不存在時使用 |
 
 ## GET /api/v2/routing/products/{item_no}/versions
 
@@ -224,12 +238,12 @@ None
 | payload.versions[].routingStatusCode | String | Routing 完整性狀態 code | complete / partial / missing / unknown |
 | payload.versions[].dateTimestamp | Integer | Routing Version 生效日期 UTC timestamp |  |
 | payload.versions[].stepCount | Integer | Routing Version 的步驟數 |  |
-| payload.versions[].warningCodes[] | String | Routing Version warning code | ERoutingWarningCode |
+| payload.versions[].warningCodes[] | String | Routing Version warning code；Shared DEV test-support fallback 會回傳 test_support_only | ERoutingWarningCode |
 
 ### Processing Flow
 
 1. 讀取 item_no 與 effectiveDate。
-2. 查詢 product_process.item_no = item_no 的所有 Routing Version；不存在時回傳 record not found。
+2. 查詢 product_process.item_no = item_no 的所有 Routing Version；正式表不存在且 test-support view 存在時，改以 v_test_support_routing_process_flow_readonly.product_no = item_no 查詢；仍不存在時回傳 record not found。
 3. 查詢 product / inproduct 補足 item header。
 4. 判斷各版本 versionStateCode、stepCount、routingStatusCode。
 5. 回傳 item、versions 與 capabilityBoundary。
@@ -242,6 +256,7 @@ None
 | process_flow | 提供每個 Routing Version 的步驟數 |
 | product | 提供製成品主檔 |
 | inproduct | 提供在製品主檔 |
+| v_test_support_routing_process_flow_readonly | Shared DEV acceptance retest fallback；僅在正式 Routing 表不存在時使用 |
 
 ## GET /api/v2/routing/versions/{routing_version_id}/steps
 
@@ -375,7 +390,7 @@ None
 | payload.steps[].recipeReference.established | Boolean | 是否已建立 Recipe reference；第一版依 product_spec 是否有 bom_no 判斷 |  |
 | payload.steps[].recipeReference.recipeNo | String | 已建立的 Recipe/BOM no；來源為 product_spec.bom_no，未建立時回傳空字串 |  |
 | payload.steps[].recipeReference.recipeVersion | Integer | 已建立的 Recipe/BOM version；來源為 product_spec.bom_version，未建立時回傳 0 |  |
-| payload.steps[].recipeReference.sourceCode | String | Recipe reference evidence 來源 code | product_spec / not_recorded |
+| payload.steps[].recipeReference.sourceCode | String | Recipe reference evidence 來源 code | product_spec / test_support / not_recorded |
 | payload.steps[].packagingContext.established | Boolean | 是否有包裝上下文；第一版依 product_bom_spec 是否存在判斷 |  |
 | payload.steps[].packagingContext.packagingLevel | Integer | 包裝階層；來源為 product_bom_spec.level，未建立時回傳 0 |  |
 | payload.steps[].packagingContext.packagingBomNo | String | 包裝 BOM no；來源為 product_bom_spec.bom2_no，未建立時回傳空字串 |  |
@@ -392,24 +407,24 @@ None
 | payload.steps[].standardPerformance.unit | Integer | 標準時產量單位 code；來源為 process_capacity.unit，未建立時回傳 0 | Unit enum |
 | payload.steps[].standardPerformance.sourceDateTimestamp | Integer | 採用的 process_capacity 生效時間；未建立時回傳 0 |  |
 | payload.steps[].standardPerformance.sourceCode | String | 標準績效 evidence 來源 code | process_capacity / not_recorded |
-| payload.steps[].sourceLineage.stepSourceCode | String | Step evidence 來源 code | process_flow |
+| payload.steps[].sourceLineage.stepSourceCode | String | Step evidence 來源 code | process_flow / test_support |
 | payload.steps[].sourceLineage.processSourceCode | String | Process identity evidence 來源 code | process / not_recorded |
 | payload.steps[].sourceLineage.standardPerformanceSourceCode | String | Standard performance evidence 來源 code | process_capacity / not_recorded |
-| payload.sourceLineage.routingVersionSourceCode | String | Routing Version evidence 來源 code | product_process |
-| payload.sourceLineage.stepSourceCode | String | Step evidence 來源 code | process_flow |
-| payload.sourceLineage.processIdentitySourceCode | String | Process identity evidence 來源 code | process |
-| payload.sourceLineage.recipeReferenceSourceCode | String | Recipe reference evidence 來源 code | product_spec |
+| payload.sourceLineage.routingVersionSourceCode | String | Routing Version evidence 來源 code | product_process / test_support |
+| payload.sourceLineage.stepSourceCode | String | Step evidence 來源 code | process_flow / test_support |
+| payload.sourceLineage.processIdentitySourceCode | String | Process identity evidence 來源 code | process / not_recorded |
+| payload.sourceLineage.recipeReferenceSourceCode | String | Recipe reference evidence 來源 code | product_spec / test_support |
 | payload.sourceLineage.packagingContextSourceCode | String | Packaging context evidence 來源 code | product_bom_spec |
 | payload.sourceLineage.resourceEligibilitySourceCode | String | Resource eligibility evidence 來源 code | not_recorded |
 | payload.sourceLineage.routingVersionId | String | Routing Version 識別碼 |  |
-| payload.warnings[].warningCode | String | Routing 資料條件 warning code | missing_steps / missing_item_master / missing_process_master / missing_standard_performance / missing_recipe_reference / packaging_context_not_governed / resource_eligibility_not_governed / unknown |
+| payload.warnings[].warningCode | String | Routing 資料條件 warning code | missing_steps / missing_item_master / missing_process_master / missing_standard_performance / missing_recipe_reference / packaging_context_not_governed / resource_eligibility_not_governed / test_support_only / unknown |
 | payload.warnings[].refNo | String | warning 相關 Routing、品項或 reference no |  |
 | payload.warnings[].stepId | String | warning 相關 stepId；非步驟層 warning 回傳空字串 |  |
 
 ### Processing Flow
 
 1. 讀取 routing_version_id 與 effectiveDate。
-2. 查詢 product_process.no = routing_version_id；不存在時回傳 record not found。
+2. 查詢 product_process.no = routing_version_id；正式表不存在且 test-support view 存在時，改以 v_test_support_routing_process_flow_readonly.test_support_route_id = routing_version_id 查詢；仍不存在時回傳 record not found。
 3. 查詢同一 item_no 的全部 product_process 版本，判斷目前版本狀態。
 4. 查詢 process_flow.product_process_no = routing_version_id，依 process_flow.order 與 id 排序。
 5. 依 process_flow.oneProcess + secProcess 對應 process，補足 processNo 與 processLabel。
@@ -431,6 +446,8 @@ None
 | product_bom_spec | 提供 bounded Packaging context |
 | product | 提供製成品主檔 |
 | inproduct | 提供在製品主檔 |
+| v_test_support_routing_process_flow_readonly | Shared DEV acceptance retest fallback；僅在正式 Routing 表不存在時使用 |
+| v_test_support_routing_source_lineage_warnings | Shared DEV acceptance retest fallback warning 與 source-lineage evidence |
 
 ## GET /api/v2/routing/products/{item_no}/current
 
@@ -466,7 +483,7 @@ None
 ### Processing Flow
 
 1. 讀取 item_no 與 effectiveDate。
-2. 查詢 product_process.item_no = item_no 的全部版本；不存在時回傳 record not found。
+2. 查詢 product_process.item_no = item_no 的全部版本；正式表不存在且 test-support view 存在時，改以 v_test_support_routing_process_flow_readonly.product_no = item_no 查詢；不存在時回傳 record not found。
 3. 優先選擇 effective 版本；若無 effective，選擇有 date 的最高版本，否則選擇最高版本。
 4. 以選定的 routingVersionId 執行 steps API 同一組解析流程。
 
@@ -482,4 +499,5 @@ None
 | product_bom_spec | 提供 bounded Packaging context |
 | product | 提供製成品主檔 |
 | inproduct | 提供在製品主檔 |
-
+| v_test_support_routing_process_flow_readonly | Shared DEV acceptance retest fallback；僅在正式 Routing 表不存在時使用 |
+| v_test_support_routing_source_lineage_warnings | Shared DEV acceptance retest fallback warning 與 source-lineage evidence |

@@ -132,6 +132,20 @@ Naming rules:
 | P0.5 | V1 Core | `RecipeLineageWarningPanel` | Panel | 來源與警示面板 | `RecipeFormulaScreen` 主內容區 | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示來源 lineage、未解重量基準、缺少輸入、缺少定義產出等 warning；Production Observation 只能作參照，不作 Recipe authority。 |
 | P0.6 | V1 Core | `RecipeReferencePanel` | Panel | 產品結構與 Routing 參照面板 | `RecipeFormulaScreen` 主內容區 | 前端已完成 | `GET /api/v2/recipe-formula/{recipe_no}/versions/{version}/composition` | 顯示 related Product Structure reference 與 Routing context reference；只呈現參照，不展開 Product Structure、不實作 Routing Product。 |
 
+## Routing / Process Flow Screen Roadmap
+
+`RoutingProcessFlowScreen` 對應 `/routing` 執行畫面，第一版採 read-only Product / WIP surface。Routing / Process Flow 回答「某個 Product 或 WIP 應依何種受治理流程順序製造」；它與 `RecipeFormulaScreen`、`BOMCenterScreen`、`ProductionWorkspaceScreen` 分開管理。此畫面不建立、修改、核准或發布 Routing，不執行排程、生產、資源派工、Packaging Specification、Manufacturing Definition 或 Costing。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | V1 Core | `RoutingProcessFlowScreen` | Screen | Routing / Process Flow | `/routing` | 前端已完成 read-only UX、API client 與 mock/API 分離；待 Backend `ERP2-ROUTING-PROCESS-FLOW-RO-EXEC-001-BE-001` 回傳契約後 real-backend validation | `GET /api/v2/routing-process-flow/dashboard`、`GET /api/v2/routing-process-flow/items/{item_no}/versions/{version}` | 檢視 Product / WIP 適用 Routing Version、ordered process flow、Recipe reference、Packaging context、resource eligibility、standard performance、source lineage 與 controlled warnings；不包含寫入或執行操作。 |
+| P0.1 | V1 Core | `RoutingProductWipSelectorView` | View | Product / WIP 選擇視圖 | `RoutingProcessFlowScreen` 左側清單 | 前端已完成 | `GET /api/v2/routing-process-flow/dashboard` | 支援 Product / WIP / Routing 關鍵字查詢，顯示品項、Routing no、版本、步驟數、警示數與來源。 |
+| P0.2 | V1 Core | `RoutingVersionSummaryPanel` | Panel | Routing 版本摘要面板 | `RoutingProcessFlowScreen` 右側 panel | 前端已完成 | `GET /api/v2/routing-process-flow/items/{item_no}/versions/{version}` | 顯示選取 Product / WIP 的 Routing Version、版本狀態、流程步驟、Recipe reference 與警示摘要。 |
+| P0.3 | V1 Core | `OrderedProcessFlowView` | View | 製程流程順序視圖 | `RoutingProcessFlowScreen` 主內容區 | 前端已完成 | `GET /api/v2/routing-process-flow/items/{item_no}/versions/{version}` | 依 `process_flow.order` 顯示 step、stage、group、process identity、process label、標準產出、標準時間、效率基準與資源資格。 |
+| P0.4 | V1 Core | `RoutingContextReferenceView` | View | Recipe 與 Packaging 參照視圖 | `RoutingProcessFlowScreen` 主內容區 | 前端已完成 | `GET /api/v2/routing-process-flow/items/{item_no}/versions/{version}` | 顯示已建立 Recipe reference 與 bounded Packaging context；只作參照，不實作 Recipe、Packaging Specification 或 Manufacturing Definition。 |
+| P0.5 | V1 Core | `RoutingGovernanceReferenceView` | View | 資源與標準表現視圖 | `RoutingProcessFlowScreen` 主內容區 | 前端已完成 | `GET /api/v2/routing-process-flow/items/{item_no}/versions/{version}` | 顯示受治理 resource eligibility 與 standard performance reference；不進行排程、產能配置或派工。 |
+| P0.6 | V1 Core | `RoutingLineageWarningPanel` | Panel | Routing 來源與警示面板 | `RoutingProcessFlowScreen` 主內容區 | 前端已完成 | `GET /api/v2/routing-process-flow/items/{item_no}/versions/{version}` | 顯示 source lineage、缺少流程、Recipe reference、Packaging context、resource eligibility 或 standard performance 的 controlled warnings。 |
+
 ## BOM Center Screen Roadmap
 
 `BOMCenterScreen` 與 `ProductDevelopmentWorkspaceScreen` 分開管理。BOM Center 對應目前 `/bom` 執行畫面，處理 BOM 版本、有效日期、直接配方明細、產品版本關聯，以及成品根節點的唯讀產品結構視圖；研發成本、成本試算、報價與合約維持在 `/rd` 與產品研發相關規劃中。產品結構視圖不等同 Recipe / Formula，不包含寫入、簽核、成本、庫存或排程操作。

@@ -20,6 +20,7 @@ export type TranslationKey =
   | "nav.orders"
   | "nav.rd"
   | "nav.planning"
+  | "nav.product360"
   | "nav.items"
   | "nav.batches"
   | "nav.bom"
@@ -55,6 +56,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.orders": "訂單中心",
     "nav.rd": "研發成本",
     "nav.planning": "計劃中心",
+    "nav.product360": "Product / WIP 360",
     "nav.items": "品項中心",
     "nav.batches": "批號中心",
     "nav.bom": "BOM 中心",
@@ -85,6 +87,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.orders": "Orders",
     "nav.rd": "R&D Costing",
     "nav.planning": "Planning",
+    "nav.product360": "Product / WIP 360",
     "nav.items": "Items",
     "nav.batches": "Batches",
     "nav.bom": "BOM",
@@ -115,6 +118,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.orders": "受注",
     "nav.rd": "開発原価",
     "nav.planning": "計画",
+    "nav.product360": "Product / WIP 360",
     "nav.items": "品目",
     "nav.batches": "ロット",
     "nav.bom": "BOM",
@@ -145,6 +149,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.orders": "Đơn hàng",
     "nav.rd": "R&D chi phí",
     "nav.planning": "Kế hoạch",
+    "nav.product360": "Product / WIP 360",
     "nav.items": "Mặt hàng",
     "nav.batches": "Lô",
     "nav.bom": "BOM",

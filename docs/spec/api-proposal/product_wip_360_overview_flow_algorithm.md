@@ -3,7 +3,7 @@
 狀態：Proposal Refinement / Pending Engineer Review
 對應 API 提案：`docs/spec/api-proposal/product_wip_360_overview_proposal.md`
 對應靜態預覽：`docs/spec/api-proposal/product_wip_360_overview_static_preview.html`
-目的：說明 `GET /api/v2/product-overview/items/{item_no}/overview` bounded read-only BFF / composition API 的後端流程、模組組合、資料缺漏處理與 read-only 邊界。
+目的：說明 `GET /api/v2/product-wip-360/overview` bounded read-only BFF / composition API 的後端流程、模組組合、資料缺漏處理與 read-only 邊界。
 
 ## 文件定位
 
@@ -21,7 +21,7 @@ BFF_CONTRACT != NEW_SOURCE_OF_TRUTH
 輸入：
 
 ```txt
-item_no
+itemNo
 itemCategory
 effectiveDate
 inventoryDate
@@ -32,7 +32,7 @@ x-timezone
 
 規則：
 
-1. `item_no` 不可為空。
+1. `itemNo` 不可為空。
 2. `itemCategory` 必須為 `EItemCategory.INPRODUCT = 4` 或 `EItemCategory.PRODUCT = 5`。
 3. `effectiveDate` 未提供時使用目前 UTC timestamp。
 4. `inventoryDate` 未提供時採用 `effectiveDate`。
@@ -129,7 +129,7 @@ payload.transactionContext
 ```txt
 date = inventoryDate
 itemCategory = request.itemCategory
-item_no = request.item_no
+item_no = request.itemNo
 ```
 
 處理：

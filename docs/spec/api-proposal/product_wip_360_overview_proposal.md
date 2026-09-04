@@ -5,7 +5,7 @@
 > Authority Reference: ERP2-CIO-CP1-PRODUCT-WIP-360-RO-DESIGN-REFINE-001
 > Target UI Preview: `docs/spec/api-proposal/product_wip_360_overview_static_preview.html`
 > Flow / Algorithm: `docs/spec/api-proposal/product_wip_360_overview_flow_algorithm.md`
-> Purpose: 依 CTO Office 要求，細化 Product / WIP 360 read-only overview 的 bounded BFF / composition API 提案。本文件不代表 runtime endpoint 已實作。
+> Purpose: 依 CTO Office 要求，細化 Product / WIP 360 read-only overview 的 UX contract、static preview structure 與 bounded BFF / composition API 提案。本文件不代表 runtime endpoint 已實作。
 
 ## 文件邊界
 
@@ -18,11 +18,32 @@ API_PROPOSAL_REFINEMENT != API_IMPLEMENTATION
 BFF_CONTRACT != NEW_SOURCE_OF_TRUTH
 ```
 
+## UX / Static Preview Summary
+
+| Item | Decision |
+| --- | --- |
+| Screen Code | `ProductWip360OverviewScreen` |
+| Formal Screen Name | Product / WIP 360 唯讀總覽 |
+| Recommended Route | `/product-360` |
+| Alternate Route | `/items/product-360`，若後續決定此 overview 必須留在品項主資料 navigation 底下 |
+| Static Preview Structure | 左側 Product / WIP selector、上方 common identity summary、主內容 read-only domain sections、右側 source warning rail、domain navigation actions |
+| Product Scenario | 以 Product identity 作為 root，呈現 transaction item / customer、inventory、BOM、Recipe、Routing 與 source lineage |
+| Standalone WIP Scenario | 以 WIP identity 作為 root；交易品項可為 not applicable；BOM / Recipe 若尚無 WIP root governance，必須 partial 或 unavailable |
+| Navigation Contract | Overview 只提供 drill-down，既有 domain pages 保留 detail ownership 與 correction authority |
+
+Static preview file:
+
+```txt
+docs/spec/api-proposal/product_wip_360_overview_static_preview.html
+```
+
+No runtime frontend feature implementation is authorized by this document.
+
 ## API Summary
 
 | URL | Method | Description | Status | Review Note |
 | --- | --- | --- | --- | --- |
-| `/api/v2/product-overview/items/{item_no}/overview` | GET | 查詢指定製成品或在製品的 360 read-only overview | Proposal / Pending Engineer Review | Bounded BFF composition candidate；僅組合既有 read-only Item / TransItems / Warehouse / BOM / Recipe / Routing 能力，不建立新權威來源。 |
+| `/api/v2/product-wip-360/overview` | GET | 查詢指定製成品或在製品的 360 read-only overview | Proposal / Pending Engineer Review | Bounded BFF composition candidate；僅組合既有 read-only Item / TransItems / Warehouse / BOM / Recipe / Routing 能力，不建立新權威來源。 |
 
 ## 1. Request Identity Contract
 
@@ -30,7 +51,7 @@ BFF_CONTRACT != NEW_SOURCE_OF_TRUTH
 
 | URL | Method | Description |
 | --- | --- | --- |
-| `/api/v2/product-overview/items/{item_no}/overview` | GET | 查詢指定製成品或在製品的 360 read-only overview |
+| `/api/v2/product-wip-360/overview` | GET | 查詢指定製成品或在製品的 360 read-only overview |
 
 ### Request Header
 
@@ -39,16 +60,11 @@ BFF_CONTRACT != NEW_SOURCE_OF_TRUTH
 | `x-auth-token` | 存取金鑰 |
 | `x-timezone` | 前端顯示偏好的 IANA timezone；後端不改寫資料庫 UTC timestamp |
 
-### Path Parameters
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `item_no` | String | YES | 查詢主體的內部料品 no；Product 對應 `product.no`，WIP 對應 `inproduct.no` |
-
 ### Query Parameters
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
+| `itemNo` | String | YES | 查詢主體的內部料品 no；Product 對應 `product.no`，WIP 對應 `inproduct.no` |
 | `itemCategory` | Integer | YES | 查詢主體料品品項類別；僅允許 `4` 在製品或 `5` 製成品 |
 | `effectiveDate` | Integer | NO | BOM / Recipe / Routing 版本選擇基準 UTC timestamp；未提供時使用伺服器目前時間 |
 | `inventoryDate` | Integer | NO | Warehouse / Inventory 快照計算基準 UTC timestamp；未提供時同 `effectiveDate`，若兩者皆未提供則使用伺服器目前時間 |
@@ -64,7 +80,7 @@ BFF_CONTRACT != NEW_SOURCE_OF_TRUTH
 
 處理規則：
 
-1. `itemCategory` 必須由前端明確傳入，避免同一 `item_no` 在不同主檔表可能存在時產生歧義。
+1. `itemCategory` 必須由前端明確傳入，避免同一 `itemNo` 在不同主檔表可能存在時產生歧義。
 2. 後端只接受 Product / WIP，其他類別回傳 validation error。
 3. Product/WIP 360 的 canonical key 為 `itemNo + itemCategory`。
 4. 若主檔不存在，回傳 not found，不由其他模組推測主體。
@@ -294,7 +310,7 @@ BFF 不重新定義業務邏輯權威。若某模組無資料或尚未支援 WIP
 | Scenario | Expected behavior |
 | --- | --- |
 | `itemCategory` 不是 4 或 5 | 回傳 validation error |
-| `item_no` 空值 | 回傳 validation error |
+| `itemNo` 空值 | 回傳 validation error |
 | Product/WIP 主檔不存在 | 回傳 record not found，payload 可為空 |
 | 子模組查無資料 | 整體回傳 200，對應 moduleReadiness 為 unavailable 或 partial |
 | 子模組查詢錯誤 | 整體可回傳 200 with module error warning；若錯誤導致主體不可確認，回傳 failed response |
@@ -317,7 +333,7 @@ BFF 不重新定義業務邏輯權威。若某模組無資料或尚未支援 WIP
 Example request:
 
 ```txt
-GET /api/v2/product-overview/items/PRD-SD-001/overview?itemCategory=5&effectiveDate=1700000000&inventoryDate=1700000000
+GET /api/v2/product-wip-360/overview?itemNo=PRD-SD-001&itemCategory=5&effectiveDate=1700000000&inventoryDate=1700000000
 ```
 
 Expected Product behavior:
@@ -335,7 +351,7 @@ Expected Product behavior:
 Example request:
 
 ```txt
-GET /api/v2/product-overview/items/INP-SD-001/overview?itemCategory=4&effectiveDate=1700000000&inventoryDate=1700000000
+GET /api/v2/product-wip-360/overview?itemNo=INP-SD-001&itemCategory=4&effectiveDate=1700000000&inventoryDate=1700000000
 ```
 
 Expected WIP behavior:

@@ -21,6 +21,7 @@
 - [material](./material.md)
 - [mix](./mix.md)
 - [orders](./orders.md)
+- [packaging-specification](./packaging_specification.md)
 - [plstatistics](./plstatistics.md)
 - [product](./product.md)
 - [product-wip-360](./product_wip_360.md)

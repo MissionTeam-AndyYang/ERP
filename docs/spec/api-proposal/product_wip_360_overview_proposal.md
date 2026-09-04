@@ -1,21 +1,21 @@
 # Product / WIP 360 Read-Only Overview API Proposal
 
-> Status: Proposal Refinement / Pending Engineer Review
+> Status: Implemented / Pending Runtime Review
 > Work Item ID: ERP2-CP1-PRODUCT-WIP-360-RO-DESIGN-REFINE-001
 > Authority Reference: ERP2-CIO-CP1-PRODUCT-WIP-360-RO-DESIGN-REFINE-001
 > Target UI Preview: `docs/spec/api-proposal/product_wip_360_overview_static_preview.html`
 > Flow / Algorithm: `docs/spec/api-proposal/product_wip_360_overview_flow_algorithm.md`
-> Purpose: 依 CTO Office 要求，細化 Product / WIP 360 read-only overview 的 UX contract、static preview structure 與 bounded BFF / composition API 提案。本文件不代表 runtime endpoint 已實作。
+> Purpose: 依 CTO Office 要求，細化並實作 Product / WIP 360 read-only overview 的 UX contract、static preview structure 與 bounded BFF / composition API。Runtime endpoint 已於 `restserver/package/restserver/api/v2/product_wip_360.py` 實作。
 
 ## 文件邊界
 
-本文件只進行 API proposal refinement，不授權後端 endpoint 實作、不修改 `restserver/` 程式、不新增或修改資料庫 schema、不建立 Product write、不進行 Production、migration、Source-of-Truth transition、Cutover 或 Go-Live。
+本文件已進入 CP1 read-only BFF implementation。實作僅新增 GET endpoint 與唯讀組合服務；不新增或修改資料庫 schema、不建立 Product write、不進行 Production、migration、Source-of-Truth transition、Cutover 或 Go-Live。
 
 必須保留：
 
 ```txt
-API_PROPOSAL_REFINEMENT != API_IMPLEMENTATION
-BFF_CONTRACT != NEW_SOURCE_OF_TRUTH
+CP1_READ_ONLY_BFF_IMPLEMENTATION != NEW_SOURCE_OF_TRUTH
+CP1_READ_ONLY_BFF_IMPLEMENTATION != PRODUCT_WRITE
 ```
 
 ## UX / Static Preview Summary
@@ -43,7 +43,7 @@ No runtime frontend feature implementation is authorized by this document.
 
 | URL | Method | Description | Status | Review Note |
 | --- | --- | --- | --- | --- |
-| `/api/v2/product-wip-360/overview` | GET | 查詢指定製成品或在製品的 360 read-only overview | Proposal / Pending Engineer Review | Bounded BFF composition candidate；僅組合既有 read-only Item / TransItems / Warehouse / BOM / Recipe / Routing 能力，不建立新權威來源。 |
+| `/api/v2/product-wip-360/overview` | GET | 查詢指定製成品或在製品的 360 read-only overview | Implemented / Pending Runtime Review | Bounded BFF composition；僅組合既有 read-only Item / TransItems / Warehouse / BOM / Recipe / Routing 能力，不建立新權威來源。 |
 
 ## 1. Request Identity Contract
 

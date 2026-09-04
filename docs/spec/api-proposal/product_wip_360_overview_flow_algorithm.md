@@ -1,19 +1,19 @@
 # Product / WIP 360 Read-Only Overview Flow / Algorithm Proposal
 
-狀態：Proposal Refinement / Pending Engineer Review
+狀態：Implemented / Pending Runtime Review
 對應 API 提案：`docs/spec/api-proposal/product_wip_360_overview_proposal.md`
 對應靜態預覽：`docs/spec/api-proposal/product_wip_360_overview_static_preview.html`
-目的：說明 `GET /api/v2/product-wip-360/overview` bounded read-only BFF / composition API 的後端流程、模組組合、資料缺漏處理與 read-only 邊界。
+目的：說明 `GET /api/v2/product-wip-360/overview` bounded read-only BFF / composition API 的後端流程、模組組合、資料缺漏處理與 read-only 邊界。Runtime endpoint 已於 `restserver/package/restserver/api/v2/product_wip_360.py` 實作。
 
 ## 文件定位
 
-本文件是流程與演算法提案，不代表目前 `restserver/` 已實作。
+本文件已作為 CP1 read-only BFF implementation 的流程基準；目前不代表任何 Product write、Production、migration、Source-of-Truth transition、Cutover 或 Go-Live 授權。
 
 必須保留：
 
 ```txt
-API_PROPOSAL_REFINEMENT != API_IMPLEMENTATION
-BFF_CONTRACT != NEW_SOURCE_OF_TRUTH
+CP1_READ_ONLY_BFF_IMPLEMENTATION != NEW_SOURCE_OF_TRUTH
+CP1_READ_ONLY_BFF_IMPLEMENTATION != PRODUCT_WRITE
 ```
 
 ## Step 1：解析 Request Identity

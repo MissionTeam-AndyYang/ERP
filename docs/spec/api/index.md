@@ -23,6 +23,7 @@
 - [orders](./orders.md)
 - [plstatistics](./plstatistics.md)
 - [product](./product.md)
+- [product-wip-360](./product_wip_360.md)
 - [productline](./productline.md)
 - [production](./production.md)
 - [purchase](./purchase.md)

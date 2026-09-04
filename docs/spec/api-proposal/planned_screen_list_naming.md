@@ -226,6 +226,23 @@ Naming rules:
 | 料品品項 | ERP 內部採購、庫存、生產、BOM、批號所使用的料品主檔。 | `material`、`inproduct`、`product`、`goods` |
 | 交易品項 | 由客戶／廠商合約、報價或交易條件產生的商務品項，需能對應公司與料品。 | `trans_items`、`contract`；`trans_items2` 留待下一版 |
 
+## CP1 Product / WIP 360 Screen Roadmap
+
+`ProductWip360OverviewScreen` 是 CTO Office 要求評估的 CP1 read-only integrated overview candidate。此畫面以製成品或在製品為主體，組合 Item / Transaction Item、Warehouse / Inventory、BOM / Product Structure、Recipe / Formula、Routing / Process Flow 的既有 read-only 能力。此規劃目前為 proposal refinement，不代表 runtime endpoint 已實作，也不代表 Product / WIP 新 Source of Truth。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CP1-P0 | CP1 Proposal | `ProductWip360OverviewScreen` | Screen | Product / WIP 360 唯讀總覽 | 建議 route：`/product-overview/items/{itemNo}` | Proposal / Pending Engineer Review | `GET /api/v2/product-overview/items/{item_no}/overview` | 以 `itemNo + itemCategory` 查詢單一製成品或在製品，呈現主檔、交易品項、庫存、批號、BOM、Recipe、Routing 與 module readiness。 |
+| CP1-P0.1 | CP1 Proposal | `ProductWip360IdentityView` | View | 主體識別視圖 | `ProductWip360OverviewScreen` 內的主體摘要區 | Proposal / Pending Engineer Review | `GET /api/v2/product-overview/items/{item_no}/overview` | 顯示 Product/WIP 主檔、類別、單位、版本與 request identity。 |
+| CP1-P0.2 | CP1 Proposal | `ProductWip360InventoryView` | View | 庫存與批號視圖 | `ProductWip360OverviewScreen` 內的庫存與批號區 | Proposal / Pending Engineer Review | `GET /api/v2/product-overview/items/{item_no}/overview` | 顯示目前庫存、可用量、預留、品檢保留、庫存價值、倉庫數、批號數與風險批號摘要。 |
+| CP1-P0.3 | CP1 Proposal | `ProductWip360StructureRecipeView` | View | 結構與配方視圖 | `ProductWip360OverviewScreen` 內的 BOM / Recipe 區 | Proposal / Pending Engineer Review | `GET /api/v2/product-overview/items/{item_no}/overview` | 顯示 Product Structure、Recipe / Formula evidence、sourceLineage 與 warning。WIP root coverage 若未治理需回傳 partial 或 unavailable。 |
+| CP1-P0.4 | CP1 Proposal | `ProductWip360RoutingView` | View | 製程路由視圖 | `ProductWip360OverviewScreen` 內的 Routing 區 | Proposal / Pending Engineer Review | `GET /api/v2/product-overview/items/{item_no}/overview` | 顯示目前 Routing、製程步驟、製程來源、標準績效與 test-support warning。 |
+| CP1-P0.5 | CP1 Proposal | `ProductWip360ReadinessPanel` | Panel | 模組可用性面板 | `ProductWip360OverviewScreen` 右側 panel | Proposal / Pending Engineer Review | `GET /api/v2/product-overview/items/{item_no}/overview` | 彙整各模組 complete / partial / unavailable / test_support / error 狀態，避免 partial data 被誤認為完整權威。 |
+
+### CP1 Product / WIP 360 Scope Boundary
+
+此 CP1 畫面第一版只做 read-only composition proposal，不新增 Product write、不修改 BOM / Recipe / Routing、不建立 workflow task、不進行資料庫 schema mutation、不進行 Production、migration、Source-of-Truth transition、Cutover 或 Go-Live。若後續要實作 BFF endpoint，需先經工程師確認 `product_wip_360_overview_proposal.md` 與 `product_wip_360_overview_flow_algorithm.md`，並取得獨立 implementation authorization。
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：

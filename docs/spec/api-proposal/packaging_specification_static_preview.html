@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>包裝規格唯讀檢視 Static Preview</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --border: #dbe3ef;
+      --text: #172033;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --success: #0f766e;
+      --warning: #b45309;
+      --danger: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      line-height: 1.5;
+    }
+    main { max-width: 1480px; margin: 0 auto; padding: 24px; }
+    .toolbar, .card, .side { background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 24px rgba(15, 23, 42, .06); }
+    .toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; padding: 18px; align-items: center; }
+    h1, h2, p { margin: 0; }
+    h1 { margin-top: 8px; font-size: 28px; }
+    h2 { font-size: 18px; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .controls { display: grid; grid-template-columns: auto 220px 96px auto; gap: 8px; }
+    .button, .input, .pill { border: 1px solid var(--border); border-radius: 8px; background: #fff; min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+    .button.active, .pill.info { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .pill { min-height: 28px; font-size: 12px; font-weight: 700; }
+    .pill.success { color: var(--success); background: #ecfdf5; border-color: #99f6e4; }
+    .pill.warning { color: var(--warning); background: #fffbeb; border-color: #fde68a; }
+    .pill.neutral { color: var(--muted); background: #f8fafc; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; margin-top: 18px; }
+    .stack { display: grid; gap: 18px; }
+    .card, .side { padding: 18px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+    .metric { border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; padding: 14px; }
+    .metric strong { display: block; margin-top: 8px; font-size: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 14px; }
+    th { background: #f8fafc; color: var(--muted); font-size: 12px; text-align: left; }
+    th, td { border-top: 1px solid var(--border); padding: 12px; vertical-align: top; }
+    .right { text-align: right; }
+    .source-item { padding: 12px; background: #f8fafc; border-radius: 8px; margin-top: 10px; }
+    .nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+    .nav .button { justify-content: center; }
+    @media (max-width: 980px) {
+      .toolbar, .grid, .metrics, .nav { grid-template-columns: 1fr; }
+      .controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="toolbar">
+      <div>
+        <span class="pill info">Read-only</span>
+        <span class="pill success">後端資料</span>
+        <span class="pill neutral">Packaging Specification</span>
+        <h1>包裝規格唯讀檢視</h1>
+        <p class="muted">查詢 Product 或 WIP 的包裝階層、包材 BOM、規格份數、重量、單位與來源警示。此畫面不提供新增、修改、核准或發布。</p>
+      </div>
+      <div class="controls">
+        <div class="button active">Product</div>
+        <div class="input">PRD-SD-001</div>
+        <div class="input">V1</div>
+        <div class="button">示範資料</div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="stack">
+        <section class="card">
+          <p class="muted">Packaging Subject</p>
+          <h2>PRD-SD-001 · Shared DEV Product Fixture A</h2>
+          <p class="muted">製成品 · 製成品主檔 · 版本 V1</p>
+          <div class="metrics">
+            <div class="metric"><span class="muted">包裝規格</span><strong>2 筆</strong><span class="muted">2 個階層</span></div>
+            <div class="metric"><span class="muted">包材 BOM</span><strong>2 組</strong><span class="muted">4 筆包材明細</span></div>
+            <div class="metric"><span class="muted">規格份數</span><strong>13</strong><span class="muted">箱 / 包</span></div>
+            <div class="metric"><span class="muted">包裝重量</span><strong>4.80</strong><span class="muted">公斤</span></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>包裝階層與規格</h2>
+          <p class="muted">依 product_bom_spec.level 呈現箱規、組規與其他階層。</p>
+          <table>
+            <thead>
+              <tr><th>包裝階層</th><th>包材 BOM</th><th class="right">規格份數</th><th class="right">重量</th><th>來源</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="pill success">箱規</span></td>
+                <td><strong>BOM2-CASE-001</strong><br><span class="muted">外箱與箱標組合</span></td>
+                <td class="right">1 箱</td>
+                <td class="right">3.20 公斤</td>
+                <td>product_bom_spec<br><span class="muted">bom2_number / bom2</span></td>
+              </tr>
+              <tr>
+                <td><span class="pill success">組規</span></td>
+                <td><strong>BOM2-GROUP-001</strong><br><span class="muted">內袋與組標</span></td>
+                <td class="right">12 包</td>
+                <td class="right">1.60 公斤</td>
+                <td>product_bom_spec<br><span class="muted">bom2_number / bom2</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>包材 BOM 明細</h2>
+          <p class="muted">箱規 · BOM2-CASE-001 · 外箱與箱標組合</p>
+          <table>
+            <thead>
+              <tr><th>包材品項</th><th>類別</th><th class="right">數量</th><th class="right">重量</th><th class="right">損耗</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>MAT-CARTON-001</strong><br><span class="muted">標準外箱</span></td><td>物料</td><td class="right">1 個</td><td class="right">2.80 個</td><td class="right">0.50% / 0.00%</td></tr>
+              <tr><td><strong>MAT-LABEL-CASE</strong><br><span class="muted">箱標</span></td><td>物料</td><td class="right">1 張</td><td class="right">0.40 張</td><td class="right">1.00% / 0.00%</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card">
+          <h2>關聯模組導覽</h2>
+          <div class="nav">
+            <div class="button">Product / WIP 360</div>
+            <div class="button">BOM 中心</div>
+            <div class="button">Routing</div>
+            <div class="button">庫存批號</div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="side">
+        <h2>來源與警示</h2>
+        <p class="muted">保留資料來源，不把包裝規格畫面當成新的權威資料。</p>
+        <div class="source-item"><strong>包裝規格</strong><br><span class="pill success">完整</span><p class="muted">product_bom_spec 包裝規格</p></div>
+        <div class="source-item"><strong>主體來源</strong><p class="muted">product</p></div>
+        <div class="source-item"><strong>包材 BOM 主檔來源</strong><p class="muted">bom2_number</p></div>
+        <div class="source-item"><strong>包材 BOM 明細來源</strong><p class="muted">bom2</p></div>
+        <div class="source-item"><strong>唯讀邊界</strong><p class="muted">不新增、不修改、不核准、不發布、不執行 Cutover 或 Go-Live。</p></div>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

@@ -244,6 +244,23 @@ Naming rules:
 
 此 CP1 畫面第一版只做 read-only composition proposal，不新增 Product write、不修改 BOM / Recipe / Routing、不建立 workflow task、不進行資料庫 schema mutation、不進行 Production、migration、Source-of-Truth transition、Cutover 或 Go-Live。若後續要實作 BFF endpoint，需先經工程師確認 `product_wip_360_overview_proposal.md` 與 `product_wip_360_overview_flow_algorithm.md`，並取得獨立 implementation authorization。
 
+## Packaging Specification Screen Roadmap
+
+`PackagingSpecificationScreen` 對應 `/packaging` 執行畫面，第一版以 Product / WIP 的包裝規格唯讀檢視為範圍，承接 `product_bom_spec`、`bom2_number`、`bom2` 與 WIP downstream product context。此畫面只提供查詢、來源判讀與跨模組導覽，不新增、修改、核准、發布或執行包裝規格。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CP1-P1 | CP1 Implementation | `PackagingSpecificationScreen` | Screen | 包裝規格唯讀檢視 | `/packaging`；可由 `/product-360`、`/items`、`/bom`、`/routing` drill-down 進入 | 前端已完成 read-only API 串接與靜態預覽；待工程師 runtime review | `GET /api/v2/packaging-specification/overview` | 以 `itemNo + itemCategory + productVersion?` 查詢 Product 或 WIP 包裝規格，呈現箱規、組規、包材 BOM、規格份數、重量、單位、來源與警示。 |
+| CP1-P1.1 | CP1 Implementation | `PackagingSubjectSummarySection` | View | 包裝主體摘要區 | `PackagingSpecificationScreen` 上方摘要 | 已實作 | `GET /api/v2/packaging-specification/overview` | 顯示 Product/WIP 主體、版本、出貨/倉庫/生產單位、來源與摘要 KPI。 |
+| CP1-P1.2 | CP1 Implementation | `PackagingSpecLevelView` | View | 包裝階層與規格區 | `PackagingSpecificationScreen` 主要表格 | 已實作 | `GET /api/v2/packaging-specification/overview` | 依 `packagingSpecs[]` 顯示箱規、組規或其他階層、包材 BOM、份數、重量與來源。 |
+| CP1-P1.3 | CP1 Implementation | `PackagingBomLineDetailView` | View | 包材 BOM 明細區 | `PackagingSpecificationScreen` selected spec detail | 已實作 | `GET /api/v2/packaging-specification/overview` | 顯示選取包裝規格的 `lines[]`，包含包材品項、數量、重量、損耗與備註。 |
+| CP1-P1.4 | CP1 Implementation | `PackagingSourceWarningPanel` | Panel | 包裝規格來源與警示面板 | `PackagingSpecificationScreen` 右側 panel | 已實作 | `GET /api/v2/packaging-specification/overview` | 顯示 `sourceLineage`、`moduleReadiness`、`warnings` 與唯讀邊界；API mode 不得以 mock 取代空陣列或錯誤狀態。 |
+| CP1-P1.5 | CP1 Implementation | `PackagingDomainNavigationView` | View | 包裝關聯模組導覽區 | `PackagingSpecificationScreen` 下方導覽 | 已實作 | Frontend route query | 導向 Product / WIP 360、BOM、Routing、Warehouse Inventory Lots 等 read-only domain page。 |
+
+### Packaging Specification Scope Boundary
+
+包裝規格第一版只做 read-only visibility，不新增 Packaging write、不修改 `product_bom_spec` / `bom2_number` / `bom2`、不核准或發布包裝規格、不建立 Product / WIP write、不進行 Production、migration、Source-of-Truth transition、Cutover 或 Go-Live。若後續需要包裝規格維護、審核或版本發布，需另行規劃 mutation API、權限、稽核與後端流程。
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：

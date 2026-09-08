@@ -261,6 +261,23 @@ Naming rules:
 
 包裝規格第一版只做 read-only visibility，不新增 Packaging write、不修改 `product_bom_spec` / `bom2_number` / `bom2`、不核准或發布包裝規格、不建立 Product / WIP write、不進行 Production、migration、Source-of-Truth transition、Cutover 或 Go-Live。若後續需要包裝規格維護、審核或版本發布，需另行規劃 mutation API、權限、稽核與後端流程。
 
+## Manufacturing Definition Screen Roadmap
+
+`ManufacturingDefinitionScreen` 對應 `/manufacturing-definition` 執行畫面，承接既有 Manufacturing Definition read-only composition API。此畫面回答「目前這個 Product / WIP 可辨識到哪些 BOM、Recipe、Routing 與 Packaging 候選，以及各候選的來源、數量／重量依據與效期狀態」，不把候選資料直接視為正式核准標準。
+
+| Priority | Phase | Code | Type | 正式畫面名稱 | Route / UI Location | Implementation Status | Primary API | 說明 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P0 | Gate 2 Bounded Read-only | `ManufacturingDefinitionScreen` | Screen | 製造定義唯讀工作區 | `/manufacturing-definition`；可由 Product / WIP 360、BOM、Recipe、Routing 或 Packaging read-only 導覽進入 | 前端已完成最小 API binding；待 Test Engineering 以真實 C1 驗證 | `GET /api/v2/manufacturing-definition/overview` | 以 `itemNo + itemCategory + asOfDate? + version selectors?` 顯示主體、候選版本、跨模組參照、數量／重量 authority、效期／衝突、source lineage、warnings 與 freeze compatibility preview。 |
+| P0.1 | Gate 2 Bounded Read-only | `ManufacturingDefinitionCandidateView` | View | 製造定義候選視圖 | `ManufacturingDefinitionScreen` 主內容區 | 已實作 | `GET /api/v2/manufacturing-definition/overview` | 顯示 `definitionCandidate` 與各領域版本候選；多候選時完整保留，不由前端自動合併或選定。 |
+| P0.2 | Gate 2 Bounded Read-only | `ManufacturingDefinitionAuthorityView` | View | 數量與重量依據視圖 | `ManufacturingDefinitionScreen` 主內容區 | 已實作 | `GET /api/v2/manufacturing-definition/overview` | 顯示 `quantityAuthorities[]`、`weightAuthorities[]`、單位、來源、參照與 authority caveat；Enum 顯示文字由前端依多國語言轉換。 |
+| P0.3 | Gate 2 Bounded Read-only | `ManufacturingDefinitionEffectivityView` | View | 效期與適用狀態視圖 | `ManufacturingDefinitionScreen` 主內容區 | 已實作 | `GET /api/v2/manufacturing-definition/overview` | 顯示 as-of date、各 domain effectivity、目前適用、版本狀態與 conflict state。 |
+| P0.4 | Gate 2 Bounded Read-only | `ManufacturingDefinitionSourceWarningPanel` | Panel | 製造定義來源與警示面板 | `ManufacturingDefinitionScreen` 右側 panel | 已實作 | `GET /api/v2/manufacturing-definition/overview` | 顯示 `warnings[]`、`sourceLineage[]`、模組缺口、test-support / unavailable / partial 狀態與來源限制。 |
+| P0.5 | Gate 2 Bounded Read-only | `ManufacturingDefinitionFreezeCompatibilityPanel` | Panel | 凍結相容性預覽面板 | `ManufacturingDefinitionScreen` 右側 panel | 已實作 | `GET /api/v2/manufacturing-definition/overview` | 只顯示 `freezeCompatibility` 與 `capabilityBoundary`；不提供核准、發布、凍結或任何隱藏寫入控制。 |
+
+### Manufacturing Definition Scope Boundary
+
+製造定義第一階段只做既有 API 的唯讀前端 binding。前端不建立第二個 API、不重做 Backend composition、不新增 Product / BOM / Recipe / Routing / Packaging 寫入、不核准、不發布、不凍結、不進行 Source-of-Truth transition、Cutover、Go-Live 或 Production。API mode 發生錯誤或回傳空資料時，畫面顯示錯誤／空狀態，不靜默改用示範資料；示範資料僅能透過使用者明確切換取得。
+
 ## Not Standalone Screens
 
 以下名稱在討論中容易造成混淆，統一不作為獨立畫面名稱使用：

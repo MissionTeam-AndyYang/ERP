@@ -22,6 +22,7 @@ export type TranslationKey =
   | "nav.planning"
   | "nav.product360"
   | "nav.packaging"
+  | "nav.manufacturingDefinition"
   | "nav.items"
   | "nav.batches"
   | "nav.bom"
@@ -59,6 +60,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.planning": "計劃中心",
     "nav.product360": "Product / WIP 360",
     "nav.packaging": "包裝規格",
+    "nav.manufacturingDefinition": "製造定義",
     "nav.items": "品項中心",
     "nav.batches": "批號中心",
     "nav.bom": "BOM 中心",
@@ -91,6 +93,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.planning": "Planning",
     "nav.product360": "Product / WIP 360",
     "nav.packaging": "Packaging Specification",
+    "nav.manufacturingDefinition": "Manufacturing Definition",
     "nav.items": "Items",
     "nav.batches": "Batches",
     "nav.bom": "BOM",
@@ -123,6 +126,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.planning": "計画",
     "nav.product360": "Product / WIP 360",
     "nav.packaging": "包装仕様",
+    "nav.manufacturingDefinition": "製造定義",
     "nav.items": "品目",
     "nav.batches": "ロット",
     "nav.bom": "BOM",
@@ -155,6 +159,7 @@ export const dictionaries: Record<LanguageCode, Dictionary> = {
     "nav.planning": "Kế hoạch",
     "nav.product360": "Product / WIP 360",
     "nav.packaging": "Quy cách đóng gói",
+    "nav.manufacturingDefinition": "Định nghĩa sản xuất",
     "nav.items": "Mặt hàng",
     "nav.batches": "Lô",
     "nav.bom": "BOM",

@@ -3,6 +3,7 @@ from flask import Blueprint
 
 from package.restserver.api.apibase import CAPIBase
 from package.restserver.api.common import URL_PATH_V2
+from package.restserver.api.v2.warehouse_fixture import CWarehouseFixtureP0, CWarehouseFixtureP2, CWarehouseFixtureP3, CWarehouseFixtureP4, CWarehouseFixtureP5, CWarehouseFixtureP6, CWarehouseFixtureP7, CWarehouseFixtureP8
 from package.restserver.api.v2.warehouse import (
     CWarehouseAnalytics,
     CWarehouseDashboard,
@@ -72,6 +73,124 @@ class CWarehouseAnalyticsURI(CAPIBase):
         return CWarehouseAnalytics()
 
     def _is_vaildate_param(self):
+        return False
+
+
+class CWarehouseFixtureP0URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP0()
+
+    def _is_vaildate_param(self):
+        return False
+
+    def _is_support_post(self):
+        return False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
+        return False
+
+
+class CWarehouseFixtureP2URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP2()
+
+    def _is_vaildate_param(self):
+        return False
+
+    def _is_support_post(self):
+        return False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
+        return False
+
+
+class CWarehouseFixtureP3URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP3()
+
+    def _is_vaildate_param(self):
+        return True if self._is_post_method() else False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
+        return False
+
+
+class CWarehouseFixtureP4URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP4()
+
+    def _is_vaildate_param(self):
+        return True if self._is_post_method() else False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
+        return False
+
+
+class CWarehouseFixtureP5URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP5()
+
+    def _is_vaildate_param(self):
+        return True if self._is_post_method() else False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
+        return False
+
+
+class CWarehouseFixtureP6URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP6()
+
+    def _is_vaildate_param(self):
+        return True if self._is_post_method() else False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
+        return False
+
+
+class CWarehouseFixtureP7URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP7()
+
+    def _is_vaildate_param(self):
+        return True if self._is_post_method() else False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
+        return False
+
+
+class CWarehouseFixtureP8URI(CAPIBase):
+    def _get_executor(self):
+        return CWarehouseFixtureP8()
+
+    def _is_vaildate_param(self):
+        return True if self._is_post_method() else False
+
+    def _is_support_put(self):
+        return False
+
+    def _is_support_delete(self):
         return False
 
 
@@ -145,3 +264,87 @@ def analytics_risk_breakdown():
 def analytics_task_sla():
     obj_uri = CWarehouseAnalyticsURI()
     return obj_uri.run("task-sla")
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p0", methods=["GET"])
+def fixture_p0():
+    obj_uri = CWarehouseFixtureP0URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p2", methods=["GET"])
+def fixture_p2():
+    obj_uri = CWarehouseFixtureP2URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p3", methods=["GET"])
+def fixture_p3():
+    obj_uri = CWarehouseFixtureP3URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p3/receipt", methods=["POST"])
+def fixture_p3_receipt():
+    obj_uri = CWarehouseFixtureP3URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p4", methods=["GET"])
+def fixture_p4():
+    obj_uri = CWarehouseFixtureP4URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p4/reversal", methods=["POST"])
+def fixture_p4_reversal():
+    obj_uri = CWarehouseFixtureP4URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p5", methods=["GET"])
+def fixture_p5():
+    obj_uri = CWarehouseFixtureP5URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p5/adjustment", methods=["POST"])
+def fixture_p5_adjustment():
+    obj_uri = CWarehouseFixtureP5URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p6", methods=["GET"])
+def fixture_p6():
+    obj_uri = CWarehouseFixtureP6URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p6/proposal", methods=["POST"])
+def fixture_p6_proposal():
+    obj_uri = CWarehouseFixtureP6URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p7", methods=["GET"])
+def fixture_p7():
+    obj_uri = CWarehouseFixtureP7URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p7/outbound", methods=["POST"])
+def fixture_p7_outbound():
+    obj_uri = CWarehouseFixtureP7URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p8", methods=["GET"])
+def fixture_p8():
+    obj_uri = CWarehouseFixtureP8URI()
+    return obj_uri.run()
+
+
+@warehouse_v2.route(URL_PATH_V2 + "/" + SUBKEY + "/fixture/p8/transfer", methods=["POST"])
+def fixture_p8_transfer():
+    obj_uri = CWarehouseFixtureP8URI()
+    return obj_uri.run()

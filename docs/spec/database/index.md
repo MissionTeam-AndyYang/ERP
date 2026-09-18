@@ -99,7 +99,9 @@
 
 ## Generation Notes
 
-- Total SQL tables documented: 79.
+- Core baseline table count: 79 (`docs/database/EWDB_20260526.sql`).
+- Current index table heading count: 89, including 10 later extension-only tables: `item_safety_stock`, `production_line_daily_capacity`, `production_line_downtime`, `warehouse_inventory_reservation`, `warehouse_pallet_movement`, `warehouse_quality_hold`, `warehouse_risk_rule`, `workflow_next_owner_rule`, `workflow_task_event`, and `workflow_task_state`.
+- The ORM model inventory contains the same 89 table names. See [CONV-04 DB Conformance Matrix](./CONV-04-DB-CONFORMANCE-MATRIX-20260918.md) for the bounded reconciliation evidence and extension applicability.
 - `Status = OK` means the field meaning can be reasonably determined from SQL schema, constraints, relation, enum definition, or Word description.
 - `Status = Need Review` means the field is preserved exactly from SQL but its business meaning or value domain should be confirmed.
 - `Index` marks `PK` and `UK(constraint_name)` based on SQL.

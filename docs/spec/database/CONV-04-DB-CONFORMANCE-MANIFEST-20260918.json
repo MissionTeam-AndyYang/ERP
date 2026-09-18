@@ -1,0 +1,36 @@
+{
+  "dispatch": "ERP2-CTO-V2-CONV-04-DB-RECONCILIATION-ENG-B-001",
+  "status": "CONV-04 DB RECONCILIATION = PASS / GATE ELIGIBLE",
+  "branch": "codex/erp2-common-baseline-20260918-001",
+  "entryHead": "89b374109312720b3ff6669a9664fb0cf8f9a6ba",
+  "baseline": {
+    "path": "docs/database/EWDB_20260526.sql",
+    "sha256": "23520B547FFF2A55B2B2590C6B6CD5EB52C14C885DB74AAFA62012C0E3405643",
+    "tableCount": 79
+  },
+  "inventory": {
+    "indexPath": "docs/spec/database/index.md",
+    "indexTableCount": 89,
+    "ormPath": "restserver/package/dbwrapper/table.py",
+    "ormTableCount": 89,
+    "baselineTablesMissingFromIndex": 0,
+    "indexTablesMissingFromOrm": 0
+  },
+  "extensionOnlyTables": [
+    "item_safety_stock",
+    "production_line_daily_capacity",
+    "production_line_downtime",
+    "warehouse_inventory_reservation",
+    "warehouse_pallet_movement",
+    "warehouse_quality_hold",
+    "warehouse_risk_rule",
+    "workflow_next_owner_rule",
+    "workflow_task_event",
+    "workflow_task_state"
+  ],
+  "artifacts": {
+    "matrix": "docs/spec/database/CONV-04-DB-CONFORMANCE-MATRIX-20260918.md",
+    "manifest": "docs/spec/database/CONV-04-DB-CONFORMANCE-MANIFEST-20260918.json"
+  },
+  "scope": "Documentation/index/manifest reconciliation only; no schema, migration, runtime, Product, Production, Source-of-Truth, or remote-state mutation."
+}

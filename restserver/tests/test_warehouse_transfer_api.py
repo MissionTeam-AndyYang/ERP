@@ -8,7 +8,7 @@ RESTSERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(RESTSERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(RESTSERVER_ROOT))
 
-from package.restserver.api.v2.warehouse_fixture import CWarehouseFixtureP8
+from package.restserver.api.v2.warehouse_fixture import CWarehouseFixtureP3, CWarehouseFixtureP4, CWarehouseFixtureP5, CWarehouseFixtureP6, CWarehouseFixtureP7, CWarehouseFixtureP8
 from package.restserver.api.v2.warehouse_uri import warehouse_v2
 
 
@@ -165,11 +165,11 @@ def test_p8_reset_replay_is_byte_stable_and_prior_fixtures_are_unchanged(monkeyp
     obj_app = build_app(monkeypatch)
     byt_initial = read_state_bytes()
     obj_prior_paths = [
-        Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P3-RECEIPT-MOVEMENT-FIXTURE-001\state.json"),
-        Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P4-REVERSAL-IDEMPOTENCY-FIXTURE-001\state.json"),
-        Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P5-ADJUSTMENT-RECONCILIATION-FIXTURE-001\state.json"),
-        Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P6-PROPOSAL-ONLY-FIXTURE-001\state.json"),
-        Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P7-OUTBOUND-PICK-INVENTORY-DECREMENT-FIXTURE-001\state.json"),
+        CWarehouseFixtureP3.STATE_PATH,
+        CWarehouseFixtureP4.STATE_PATH,
+        CWarehouseFixtureP5.STATE_PATH,
+        CWarehouseFixtureP6.STATE_PATH,
+        CWarehouseFixtureP7.STATE_PATH,
     ]
     dict_prior_bytes = {obj_path: obj_path.read_bytes() for obj_path in obj_prior_paths}
 

@@ -3,9 +3,20 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
 
 from package.common.common import EErrorCode
+
+
+_DEFAULT_WAREHOUSE_FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "warehouse"
+_WAREHOUSE_FIXTURE_ROOT = Path(
+    os.environ.get("ERP2_WAREHOUSE_FIXTURE_ROOT", str(_DEFAULT_WAREHOUSE_FIXTURE_ROOT))
+)
+
+
+def _portable_state_path(str_fixture_id):
+    return _WAREHOUSE_FIXTURE_ROOT / str_fixture_id / "state.json"
 
 
 class CWarehouseFixtureP0(object):
@@ -982,7 +993,7 @@ class CWarehouseFixtureP2(object):
 class CWarehouseFixtureP3(object):
     """Bounded receipt-to-movement adapter for the isolated P3 fixture."""
 
-    STATE_PATH = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P3-RECEIPT-MOVEMENT-FIXTURE-001\state.json")
+    STATE_PATH = _portable_state_path("ERP2-WH-P3-RECEIPT-MOVEMENT-FIXTURE-001")
     FIXTURE_ID = "ERP2-WH-P3-RECEIPT-MOVEMENT-FIXTURE-001"
     FIXTURE_VERSION = "1.0.0"
     REQUIRED_BODY_FIELDS = {
@@ -1391,7 +1402,7 @@ class CWarehouseFixtureP3(object):
 class CWarehouseFixtureP4(object):
     """Bounded reversal and idempotency adapter for the isolated P4 fixture."""
 
-    STATE_PATH = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P4-REVERSAL-IDEMPOTENCY-FIXTURE-001\state.json")
+    STATE_PATH = _portable_state_path("ERP2-WH-P4-REVERSAL-IDEMPOTENCY-FIXTURE-001")
     FIXTURE_ID = "ERP2-WH-P4-REVERSAL-IDEMPOTENCY-FIXTURE-001"
     FIXTURE_VERSION = "1.0.0"
     REQUIRED_BODY_FIELDS = {
@@ -1841,7 +1852,7 @@ class CWarehouseFixtureP4(object):
 class CWarehouseFixtureP5(object):
     """Bounded signed adjustment and reconciliation adapter for P5."""
 
-    STATE_PATH = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P5-ADJUSTMENT-RECONCILIATION-FIXTURE-001\state.json")
+    STATE_PATH = _portable_state_path("ERP2-WH-P5-ADJUSTMENT-RECONCILIATION-FIXTURE-001")
     FIXTURE_ID = "ERP2-WH-P5-ADJUSTMENT-RECONCILIATION-FIXTURE-001"
     FIXTURE_VERSION = "1.0.0"
     REQUIRED_BODY_FIELDS = {
@@ -2243,7 +2254,7 @@ class CWarehouseFixtureP5(object):
 class CWarehouseFixtureP6(object):
     """Non-effective correction proposal and impact-preview adapter for P6."""
 
-    STATE_PATH = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P6-PROPOSAL-ONLY-FIXTURE-001\state.json")
+    STATE_PATH = _portable_state_path("ERP2-WH-P6-PROPOSAL-ONLY-FIXTURE-001")
     FIXTURE_ID = "ERP2-WH-P6-PROPOSAL-ONLY-FIXTURE-001"
     FIXTURE_VERSION = "1.0.0"
     PREVIEW_LABEL = "PREVIEW ONLY / NOT OFFICIAL BALANCE"
@@ -2666,7 +2677,7 @@ class CWarehouseFixtureP6(object):
 class CWarehouseFixtureP7(object):
     """Bounded pick/outbound decrement adapter for the isolated P7 fixture."""
 
-    STATE_PATH = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P7-OUTBOUND-PICK-INVENTORY-DECREMENT-FIXTURE-001\state.json")
+    STATE_PATH = _portable_state_path("ERP2-WH-P7-OUTBOUND-PICK-INVENTORY-DECREMENT-FIXTURE-001")
     FIXTURE_ID = "ERP2-WH-P7-OUTBOUND-PICK-INVENTORY-DECREMENT-FIXTURE-001"
     FIXTURE_VERSION = "1.0.0"
     REQUIRED_BODY_FIELDS = {
@@ -2935,7 +2946,7 @@ class CWarehouseFixtureP7(object):
 class CWarehouseFixtureP8(object):
     """Bounded source-to-destination Warehouse transfer adapter for P8."""
 
-    STATE_PATH = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P8-CONTROLLED-WAREHOUSE-TRANSFER-FIXTURE-001\state.json")
+    STATE_PATH = _portable_state_path("ERP2-WH-P8-CONTROLLED-WAREHOUSE-TRANSFER-FIXTURE-001")
     FIXTURE_ID = "ERP2-WH-P8-CONTROLLED-WAREHOUSE-TRANSFER-FIXTURE-001"
     FIXTURE_VERSION = "1.0.0"
     REQUIRED_BODY_FIELDS = {

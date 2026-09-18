@@ -1,0 +1,75 @@
+{
+  "fixture_id": "ERP2-WH-P5-ADJUSTMENT-RECONCILIATION-FIXTURE-001",
+  "fixture_version": "1.0.0",
+  "classification": "NON-PRODUCTION / CONTROLLED VALIDATION DATA",
+  "source_class": "SYNTHETIC_FIXTURE",
+  "freshness": "NOT_MEASURED",
+  "confidence": "CONTROLLED_FIXTURE_ONLY",
+  "business_truth": false,
+  "production_truth": false,
+  "live_governed_binding": false,
+  "item": {
+    "item_id": "fixture-item-p5-001",
+    "item_no": "ERP2-P5-MAT-001",
+    "item_category": "MATERIAL",
+    "description": "P5 controlled material fixture"
+  },
+  "warehouse": {
+    "warehouse_id": "fixture-warehouse-p5-001",
+    "warehouse_code": "WH-P5-001",
+    "name": "P5 controlled warehouse fixture"
+  },
+  "location": {
+    "location_id": "fixture-location-p5-001",
+    "location_code": "LOC-P5-A",
+    "warehouse_id": "fixture-warehouse-p5-001",
+    "name": "P5 controlled location fixture"
+  },
+  "balance": {
+    "balance_id": "fixture-balance-p5-001",
+    "item_id": "fixture-item-p5-001",
+    "warehouse_id": "fixture-warehouse-p5-001",
+    "location_id": "fixture-location-p5-001",
+    "uom": "EA",
+    "opening_balance": 100,
+    "current_balance": 100
+  },
+  "reference_transaction": {
+    "transaction_id": "fixture-transaction-p5-reference-001",
+    "movement_id": "fixture-movement-p5-reference-001",
+    "evidence_link_id": "fixture-evidence-p5-reference-001",
+    "transaction_type": "CONTROLLED_BASELINE",
+    "effectivity": "2026-09-13T08:00:00+08:00",
+    "baseline_balance": 100
+  },
+  "valid_adjustment": {
+    "item_no": "ERP2-P5-MAT-001",
+    "item_category": "MATERIAL",
+    "warehouse_code": "WH-P5-001",
+    "location_code": "LOC-P5-A",
+    "reference_transaction_id": "fixture-transaction-p5-reference-001",
+    "idempotency_key": "P5-ADJUSTMENT-IDEMPOTENCY-001",
+    "signed_adjustment_delta": -5,
+    "uom": "EA",
+    "operation_type": "ADJUSTMENT",
+    "reason": "CONTROLLED_RECONCILIATION_ADJUSTMENT",
+    "effectivity": "2026-09-13T09:00:00+08:00"
+  },
+  "adjustments": [],
+  "reconciliation_reference_after_balance": 94,
+  "max_abs_delta": 10,
+  "reset_rebuild": {
+    "scope": "ERP2-WH-P5-ADJUSTMENT-RECONCILIATION-FIXTURE-001 only",
+    "initial_state": "one material, one Warehouse, one location, baseline balance 100 EA, one reference transaction, no adjustment",
+    "method": "restore exact initial state.json bytes",
+    "cleanup_owner": "CTO V2"
+  },
+  "caveats": [
+    "CONTROLLED_FIXTURE_ONLY",
+    "SYNTHETIC_NOT_BUSINESS_TRUTH",
+    "NO_LIVE_OR_GOVERNED_SOURCE",
+    "NOT_MEASURED freshness",
+    "Reconciliation reference is intentionally separate from computed balance",
+    "CONFLICTING mismatch is visible and has no automatic resolution"
+  ]
+}

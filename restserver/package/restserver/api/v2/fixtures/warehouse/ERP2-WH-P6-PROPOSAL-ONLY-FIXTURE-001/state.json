@@ -1,0 +1,91 @@
+{
+  "fixture_id": "ERP2-WH-P6-PROPOSAL-ONLY-FIXTURE-001",
+  "fixture_version": "1.0.0",
+  "classification": "NON-PRODUCTION / CONTROLLED VALIDATION DATA",
+  "source_class": "SYNTHETIC_FIXTURE",
+  "freshness": "NOT_MEASURED",
+  "confidence": "CONTROLLED_FIXTURE_ONLY",
+  "business_truth": false,
+  "production_truth": false,
+  "live_governed_binding": false,
+  "item": {
+    "item_id": "fixture-item-p6-001",
+    "item_no": "ERP2-P6-MAT-001",
+    "item_category": "MATERIAL",
+    "description": "P6 controlled proposal fixture"
+  },
+  "warehouse": {
+    "warehouse_id": "fixture-warehouse-p6-001",
+    "warehouse_code": "WH-P6-001",
+    "name": "P6 controlled warehouse fixture"
+  },
+  "location": {
+    "location_id": "fixture-location-p6-001",
+    "location_code": "LOC-P6-A",
+    "warehouse_id": "fixture-warehouse-p6-001",
+    "name": "P6 controlled location fixture"
+  },
+  "balance": {
+    "balance_id": "fixture-balance-p6-001",
+    "item_id": "fixture-item-p6-001",
+    "warehouse_id": "fixture-warehouse-p6-001",
+    "location_id": "fixture-location-p6-001",
+    "uom": "EA",
+    "current_balance": 100
+  },
+  "original_evidence": {
+    "transaction_id": "fixture-transaction-p6-original-001",
+    "source": "P6_CONTROLLED_ORIGINAL_EVIDENCE",
+    "source_record_id": "fixture-source-record-p6-original-001",
+    "transaction_type": "RECEIPT",
+    "item_id": "fixture-item-p6-001",
+    "item_category": "MATERIAL",
+    "warehouse_code": "WH-P6-001",
+    "location_code": "LOC-P6-A",
+    "quantity": 100,
+    "uom": "EA",
+    "timestamp": "2026-09-13T08:00:00+08:00",
+    "evidence_ref": "fixture-evidence-p6-original-001"
+  },
+  "valid_proposal": {
+    "item_no": "ERP2-P6-MAT-001",
+    "item_category": "MATERIAL",
+    "warehouse_code": "WH-P6-001",
+    "location_code": "LOC-P6-A",
+    "proposal_type": "CORRECTION_PROPOSAL",
+    "proposed_quantity": 95,
+    "reason_code": "CONTROLLED_RECONCILIATION_PROPOSAL",
+    "reason_text": "Preview-only controlled reconciliation proposal",
+    "proposer_id": "engineering-b-v2",
+    "proposer_role": "CTO-owned Engineering B V2",
+    "created_at": "2026-09-13T10:00:00+08:00",
+    "proposed_effective_date": "2026-09-14",
+    "idempotency_key": "P6-PROPOSAL-IDEMPOTENCY-001",
+    "review_note": "REVIEW_REQUIRED: preview only",
+    "policy_reference": "P6-CONTROLLED-PREVIEW-001"
+  },
+  "allowed_statuses": ["DRAFT", "PROPOSED", "REVIEW_REQUIRED", "REJECTED", "CANCELLED"],
+  "status_examples": [
+    {"status": "DRAFT", "effective": false},
+    {"status": "PROPOSED", "effective": false},
+    {"status": "REVIEW_REQUIRED", "effective": false},
+    {"status": "REJECTED", "effective": false},
+    {"status": "CANCELLED", "effective": false}
+  ],
+  "reconciliation_reference_after_balance": 96,
+  "proposals": [],
+  "reset_rebuild": {
+    "scope": "ERP2-WH-P6-PROPOSAL-ONLY-FIXTURE-001 only",
+    "initial_state": "immutable original evidence at 100 EA with no proposal record",
+    "method": "restore exact initial state.json bytes",
+    "cleanup_owner": "CTO V2"
+  },
+  "caveats": [
+    "PREVIEW ONLY / NOT OFFICIAL BALANCE",
+    "CONTROLLED_FIXTURE_ONLY",
+    "SYNTHETIC_NOT_BUSINESS_TRUTH",
+    "NO_LIVE_OR_GOVERNED_SOURCE",
+    "NOT_MEASURED freshness",
+    "No approval, application, supersession, void, replacement, or automatic resolution"
+  ]
+}

@@ -9,7 +9,7 @@ RESTSERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(RESTSERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(RESTSERVER_ROOT))
 
-from package.restserver.api.v2.warehouse_fixture import CWarehouseFixtureP6
+from package.restserver.api.v2.warehouse_fixture import CWarehouseFixtureP3, CWarehouseFixtureP4, CWarehouseFixtureP5, CWarehouseFixtureP6
 from package.restserver.api.v2.warehouse_uri import warehouse_v2
 
 
@@ -202,9 +202,9 @@ def test_p6_blocked_conditions_and_malformed_inputs_do_not_mutate(monkeypatch):
 def test_p6_reset_replay_is_byte_stable_and_prior_fixtures_are_unchanged(monkeypatch):
     obj_app = build_app(monkeypatch)
     byt_initial = read_state_bytes()
-    obj_p3_path = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P3-RECEIPT-MOVEMENT-FIXTURE-001\state.json")
-    obj_p4_path = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P4-REVERSAL-IDEMPOTENCY-FIXTURE-001\state.json")
-    obj_p5_path = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P5-ADJUSTMENT-RECONCILIATION-FIXTURE-001\state.json")
+    obj_p3_path = CWarehouseFixtureP3.STATE_PATH
+    obj_p4_path = CWarehouseFixtureP4.STATE_PATH
+    obj_p5_path = CWarehouseFixtureP5.STATE_PATH
     byt_p3_initial = obj_p3_path.read_bytes()
     byt_p4_initial = obj_p4_path.read_bytes()
     byt_p5_initial = obj_p5_path.read_bytes()

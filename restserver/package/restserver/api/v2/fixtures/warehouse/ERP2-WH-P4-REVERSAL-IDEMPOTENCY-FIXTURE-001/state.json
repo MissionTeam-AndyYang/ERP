@@ -1,0 +1,92 @@
+{
+  "fixture_id": "ERP2-WH-P4-REVERSAL-IDEMPOTENCY-FIXTURE-001",
+  "fixture_version": "1.0.0",
+  "classification": "NON-PRODUCTION / CONTROLLED VALIDATION DATA",
+  "source_class": "SYNTHETIC_FIXTURE",
+  "freshness": "NOT_MEASURED",
+  "confidence": "CONTROLLED_FIXTURE_ONLY",
+  "business_truth": false,
+  "production_truth": false,
+  "live_governed_binding": false,
+  "item": {
+    "item_id": "fixture-item-p4-001",
+    "item_no": "ERP2-P4-MAT-001",
+    "item_category": "MATERIAL",
+    "description": "P4 controlled material fixture"
+  },
+  "warehouse": {
+    "warehouse_id": "fixture-warehouse-p4-001",
+    "warehouse_code": "WH-P4-001",
+    "name": "P4 controlled warehouse fixture"
+  },
+  "location": {
+    "location_id": "fixture-location-p4-001",
+    "location_code": "LOC-P4-A",
+    "warehouse_id": "fixture-warehouse-p4-001",
+    "name": "P4 controlled location fixture"
+  },
+  "balance": {
+    "balance_id": "fixture-balance-p4-001",
+    "item_id": "fixture-item-p4-001",
+    "warehouse_id": "fixture-warehouse-p4-001",
+    "location_id": "fixture-location-p4-001",
+    "uom": "EA",
+    "opening_balance": 100,
+    "current_balance": 125
+  },
+  "original_receipt": {
+    "receipt_id": "fixture-receipt-p4-original-001",
+    "receipt_no": "P4-RECEIPT-ORIGINAL-001",
+    "item_id": "fixture-item-p4-001",
+    "warehouse_id": "fixture-warehouse-p4-001",
+    "location_id": "fixture-location-p4-001",
+    "quantity": 25,
+    "uom": "EA",
+    "transaction_type": "RECEIPT",
+    "effectivity": "2026-09-13T08:00:00+08:00",
+    "source_class": "SYNTHETIC_FIXTURE",
+    "lineage_ref": "fixture-evidence-p4-original-001",
+    "freshness": "NOT_MEASURED",
+    "confidence": "CONTROLLED_FIXTURE_ONLY"
+  },
+  "original_movement": {
+    "movement_id": "fixture-movement-p4-original-001",
+    "transaction_id": "fixture-transaction-p4-original-001",
+    "receipt_id": "fixture-receipt-p4-original-001",
+    "before_balance": 100,
+    "movement_quantity": 25,
+    "after_balance": 125,
+    "source_class": "SYNTHETIC_FIXTURE",
+    "lineage_ref": "fixture-evidence-p4-original-001",
+    "freshness": "NOT_MEASURED",
+    "confidence": "CONTROLLED_FIXTURE_ONLY"
+  },
+  "original_transaction": {
+    "transaction_id": "fixture-transaction-p4-original-001",
+    "receipt_id": "fixture-receipt-p4-original-001",
+    "movement_id": "fixture-movement-p4-original-001",
+    "evidence_link_id": "fixture-evidence-p4-original-001",
+    "transaction_type": "RECEIPT",
+    "effectivity": "2026-09-13T08:00:00+08:00"
+  },
+  "valid_reversal": {
+    "item_category": "MATERIAL",
+    "idempotency_key": "P4-REVERSAL-IDEMPOTENCY-001",
+    "reason": "RECEIPT_REVERSAL",
+    "effectivity": "2026-09-13T08:30:00+08:00"
+  },
+  "reversals": [],
+  "reset_rebuild": {
+    "scope": "ERP2-WH-P4-REVERSAL-IDEMPOTENCY-FIXTURE-001 only",
+    "initial_state": "completed P3 receipt baseline at 125 EA with no reversal",
+    "method": "restore exact initial state.json bytes",
+    "cleanup_owner": "CTO V2"
+  },
+  "caveats": [
+    "CONTROLLED_FIXTURE_ONLY",
+    "SYNTHETIC_NOT_BUSINESS_TRUTH",
+    "NO_LIVE_OR_GOVERNED_SOURCE",
+    "NOT_MEASURED freshness",
+    "P3 baseline is copied as independent controlled evidence, not a live P3 binding"
+  ]
+}

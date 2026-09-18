@@ -8,7 +8,7 @@ RESTSERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(RESTSERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(RESTSERVER_ROOT))
 
-from package.restserver.api.v2.warehouse_fixture import CWarehouseFixtureP4
+from package.restserver.api.v2.warehouse_fixture import CWarehouseFixtureP3, CWarehouseFixtureP4
 from package.restserver.api.v2.warehouse_uri import warehouse_v2
 
 
@@ -168,7 +168,7 @@ def test_p4_invalid_identity_category_reason_effectivity_and_fields_do_not_mutat
 def test_p4_reset_replay_is_byte_stable_and_p3_state_is_not_touched(monkeypatch):
     obj_app = build_app(monkeypatch)
     byt_initial = read_state_bytes()
-    obj_p3_path = Path(r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\Warehouse_Operations\ERP2-WH-P3-RECEIPT-MOVEMENT-FIXTURE-001\state.json")
+    obj_p3_path = CWarehouseFixtureP3.STATE_PATH
     byt_p3_initial = obj_p3_path.read_bytes()
 
     try:

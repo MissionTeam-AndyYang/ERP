@@ -1,0 +1,28 @@
+{
+  "fixtureNamespace": "ERP2-LPB-G0-SYNTHETIC-FIXTURE-001",
+  "scenarioId": "LPB-G0-SYN-SCENARIO-001",
+  "sourceCoverage": {
+    "demand": "PRESENT",
+    "forecast": "ABSENT",
+    "planningInterpretation": "PRESENT",
+    "purchaseRequest": "ABSENT",
+    "supplyReference": "PRESENT",
+    "purchaseCommitment": "ABSENT",
+    "receiptEvidence": "UNAVAILABLE",
+    "inventoryEvidence": "UNAVAILABLE",
+    "deliveryReference": "ABSENT"
+  },
+  "evidence": [
+    {"evidenceId": "E-DEMAND-001", "stage": "demand", "state": "PRESENT", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "demandId": "SYN-DEMAND-LPB-001", "customerRef": "SYN-CUSTOMER-LPB-001", "itemRef": "SYN-ITEM-LPB-001", "uomRef": "SYN-UOM-LPB-UNIT", "quantity": 12},
+    {"evidenceId": "E-FORECAST-001", "stage": "forecast", "state": "ABSENT", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001"},
+    {"evidenceId": "E-PLAN-001", "stage": "planningInterpretation", "state": "PRESENT", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "planningId": "SYN-PLAN-INTERP-LPB-001", "demandRef": "SYN-DEMAND-LPB-001", "reviewOnly": true},
+    {"evidenceId": "E-PURCHASE-REQUEST-001", "stage": "purchaseRequest", "state": "ABSENT", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001"},
+    {"evidenceId": "E-SUPPLY-001", "stage": "supplyReference", "state": "PRESENT", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "supplyReferenceId": "SYN-SUPPLY-REF-LPB-001", "planningRef": "SYN-PLAN-INTERP-LPB-001", "nonBinding": true},
+    {"evidenceId": "E-PURCHASE-COMMITMENT-001", "stage": "purchaseCommitment", "state": "ABSENT", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001"},
+    {"evidenceId": "E-RECEIPT-001", "stage": "receiptEvidence", "state": "UNAVAILABLE", "sourceClass": "EVIDENCE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "evidenceViewId": "SYN-RECEIPT-INVENTORY-VIEW-LPB-001"},
+    {"evidenceId": "E-INVENTORY-001", "stage": "inventoryEvidence", "state": "UNAVAILABLE", "sourceClass": "EVIDENCE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "evidenceViewId": "SYN-RECEIPT-INVENTORY-VIEW-LPB-001"},
+    {"evidenceId": "E-STATE-SUPPORT-001", "stage": "stateModel", "state": "INCOMPLETE", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "note": "future-variant state support; not a lifecycle assertion"},
+    {"evidenceId": "E-STATE-SUPPORT-002", "stage": "stateModel", "state": "PARTIAL", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "note": "future-variant state support; not a lifecycle assertion"},
+    {"evidenceId": "E-STATE-SUPPORT-003", "stage": "stateModel", "state": "CONFLICTING", "sourceClass": "FIXTURE_REPORTED", "scenarioId": "LPB-G0-SYN-SCENARIO-001", "note": "future-variant state support; no winner selected"}
+  ]
+}

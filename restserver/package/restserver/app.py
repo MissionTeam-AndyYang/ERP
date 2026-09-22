@@ -51,6 +51,7 @@ from package.restserver.api.v2.routing_uri import routing_v2
 from package.restserver.api.v2.product_wip_360_uri import product_wip_360_v2
 from package.restserver.api.v2.packaging_specification_uri import packaging_specification_v2
 from package.restserver.api.v2.manufacturing_definition_uri import manufacturing_definition_v2
+from package.restserver.api.v2.quality_trace_delivery_evidence_uri import quality_trace_delivery_evidence_v2
 from flask_cors import CORS
 
 def create_app():
@@ -111,7 +112,8 @@ def create_app():
         routing_v2,
         product_wip_360_v2,
         packaging_specification_v2,
-        manufacturing_definition_v2
+        manufacturing_definition_v2,
+        quality_trace_delivery_evidence_v2
     ]
 
     for obj_bp in lst_blueprints:

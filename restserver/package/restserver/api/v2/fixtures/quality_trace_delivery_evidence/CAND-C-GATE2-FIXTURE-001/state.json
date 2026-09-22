@@ -1,0 +1,22 @@
+{
+  "fixtureId": "CAND-C-GATE2-FIXTURE-001",
+  "correlation": "ERP2-CAND-C-LOT-DELIVERY-EVIDENCE-001",
+  "lotNo": "CAND-C-LOT-001",
+  "deliveryReference": "CAND-C-DELIVERY-001",
+  "sourceCoverage": [
+    {"sourceId": "QUALITY-SOURCE-001", "observable": true, "scope": "synthetic quality evidence"},
+    {"sourceId": "DELIVERY-SOURCE-001", "observable": true, "scope": "synthetic delivery reference"},
+    {"sourceId": "TRACE-SOURCE-UNAVAILABLE", "observable": false, "scope": "trace detail unavailable"}
+  ],
+  "evidence": [
+    {"evidenceId": "Q-PRESENT-001", "domain": "quality", "state": "PRESENT", "sourceId": "QUALITY-SOURCE-001", "lotNo": "CAND-C-LOT-001", "lineage": ["P5-T1-REFERENCE"], "statement": "synthetic inspection evidence present"},
+    {"evidenceId": "Q-ABSENT-001", "domain": "quality", "state": "ABSENT", "sourceId": "QUALITY-SOURCE-001", "lotNo": "CAND-C-LOT-001", "lineage": [], "statement": "observable source returned no matching certificate"},
+    {"evidenceId": "Q-INCOMPLETE-001", "domain": "quality", "state": "INCOMPLETE", "sourceId": "QUALITY-SOURCE-001", "lotNo": "CAND-C-LOT-001", "lineage": ["QM-T1-REFERENCE"], "missingFields": ["inspector"], "statement": "matching statement lacks inspector"},
+    {"evidenceId": "Q-PARTIAL-001", "domain": "quality", "state": "PARTIAL", "sourceId": "QUALITY-SOURCE-001", "lotNo": "CAND-C-LOT-001", "lineage": ["QM-T0-REFERENCE"], "covered": ["inspection"], "uncovered": ["lab-result"], "statement": "only declared inspection segment covered"},
+    {"evidenceId": "Q-CONFLICT-A-001", "domain": "quality", "state": "CONFLICTING", "sourceId": "QUALITY-SOURCE-001", "lotNo": "CAND-C-LOT-001", "lineage": ["QM-T0-REFERENCE"], "statement": "synthetic statement A"},
+    {"evidenceId": "Q-CONFLICT-B-001", "domain": "quality", "state": "CONFLICTING", "sourceId": "QUALITY-SOURCE-001", "lotNo": "CAND-C-LOT-001", "lineage": ["QM-T0-REFERENCE"], "statement": "synthetic statement B"},
+    {"evidenceId": "T-UNAVAILABLE-001", "domain": "traceability", "state": "UNAVAILABLE", "sourceId": "TRACE-SOURCE-UNAVAILABLE", "lotNo": "CAND-C-LOT-001", "lineage": [], "limitation": "declared source not observable", "statement": "presence cannot be determined"},
+    {"evidenceId": "D-LINKED-001", "domain": "delivery", "state": "PRESENT", "sourceId": "DELIVERY-SOURCE-001", "lotNo": "CAND-C-LOT-001", "deliveryReference": "CAND-C-DELIVERY-001", "lineage": ["A17-PLANNING-REFERENCE"], "statement": "synthetic delivery reference explicitly carries lot"},
+    {"evidenceId": "D-UNLINKED-001", "domain": "delivery", "state": "UNAVAILABLE", "sourceId": "DELIVERY-SOURCE-001", "deliveryReference": "CAND-C-DELIVERY-001", "lineage": [], "limitation": "no explicit lot field", "statement": "not correlated to lot"}
+  ]
+}

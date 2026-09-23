@@ -1,0 +1,125 @@
+{
+  "fixture_id": "ERP2-PLANNING-CAPACITY-GATE2-CTO-RECOVERY-FIXTURE-002",
+  "scenario_id": "ERP2-PLANNING-CAPACITY-GATE2-CTO-RECOVERY-SCENARIO-002",
+  "fixture_version": "1.0.0",
+  "entrypoint_id": "PRODUCT-001",
+  "evidence_states": [
+    "OBSERVED",
+    "DECLARED",
+    "DERIVED",
+    "PARTIAL",
+    "UNAVAILABLE",
+    "CONFLICT"
+  ],
+  "truth_labels": {
+    "synthetic": true,
+    "read_only": true,
+    "business_truth": false,
+    "production_truth": false,
+    "planning_truth": false,
+    "schedule_truth": false,
+    "capacity_truth": false,
+    "commitment_truth": false,
+    "authorization_truth": false,
+    "order_truth": false
+  },
+  "products": [
+    {
+      "id": "PRODUCT-001",
+      "product_code": "RECOVERY-SYNTHETIC-PRODUCT-001",
+      "demand_id": "DEMAND-001",
+      "evidence_state": "OBSERVED",
+      "evidence_ref": "RECOVERY-EVIDENCE-PRODUCT-001"
+    }
+  ],
+  "demands": [
+    {
+      "id": "DEMAND-001",
+      "product_id": "PRODUCT-001",
+      "process_id": "PROCESS-MIX-001",
+      "demand_code": "RECOVERY-SYNTHETIC-DEMAND-001",
+      "quantity": 80,
+      "uom": "EA",
+      "evidence_state": "DECLARED",
+      "evidence_ref": "RECOVERY-EVIDENCE-DEMAND-001"
+    }
+  ],
+  "processes": [
+    {
+      "id": "PROCESS-MIX-001",
+      "product_id": "PRODUCT-001",
+      "demand_id": "DEMAND-001",
+      "routing_id": "ROUTING-001",
+      "resource_id": "RESOURCE-LINE-01",
+      "process_code": "MIXING",
+      "evidence_state": "DERIVED",
+      "evidence_ref": "RECOVERY-EVIDENCE-PROCESS-001"
+    }
+  ],
+  "routings": [
+    {
+      "id": "ROUTING-001",
+      "process_id": "PROCESS-MIX-001",
+      "resource_id": "RESOURCE-LINE-01",
+      "routing_code": "RECOVERY-ROUTE-MIX-001",
+      "evidence_state": "OBSERVED",
+      "evidence_ref": "RECOVERY-EVIDENCE-ROUTING-001"
+    }
+  ],
+  "resources": [
+    {
+      "id": "RESOURCE-LINE-01",
+      "process_id": "PROCESS-MIX-001",
+      "capacity_id": "CAPACITY-001",
+      "resource_code": "RECOVERY-LINE-01",
+      "evidence_state": "PARTIAL",
+      "evidence_ref": "RECOVERY-EVIDENCE-RESOURCE-001"
+    }
+  ],
+  "capacities": [
+    {
+      "id": "CAPACITY-001",
+      "resource_id": "RESOURCE-LINE-01",
+      "window_id": "WINDOW-001",
+      "available_hours": 8.0,
+      "required_hours": 7.2,
+      "utilization_ratio": 0.9,
+      "bottleneck_candidate": true,
+      "evidence_state": "DERIVED",
+      "evidence_ref": "RECOVERY-EVIDENCE-CAPACITY-001"
+    }
+  ],
+  "time_windows": [
+    {
+      "id": "WINDOW-001",
+      "capacity_id": "CAPACITY-001",
+      "constraint_id": "CONSTRAINT-001",
+      "window_code": "RECOVERY-WINDOW-UNRESOLVED-001",
+      "start": null,
+      "end": null,
+      "evidence_state": "UNAVAILABLE",
+      "evidence_ref": "RECOVERY-EVIDENCE-WINDOW-001"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "CONSTRAINT-001",
+      "window_id": "WINDOW-001",
+      "readiness_id": "READINESS-001",
+      "constraint_code": "RECOVERY-TIME-WINDOW-UNRESOLVED",
+      "constraint_type": "TIME_WINDOW",
+      "evidence_state": "CONFLICT",
+      "evidence_ref": "RECOVERY-EVIDENCE-CONSTRAINT-001"
+    }
+  ],
+  "readiness": [
+    {
+      "id": "READINESS-001",
+      "constraint_id": "CONSTRAINT-001",
+      "readiness_code": "RECOVERY-READINESS-CONDITIONAL-001",
+      "status": "CONDITIONALLY_READY",
+      "evidence_state": "PARTIAL",
+      "evidence_ref": "RECOVERY-EVIDENCE-READINESS-001"
+    }
+  ]
+}

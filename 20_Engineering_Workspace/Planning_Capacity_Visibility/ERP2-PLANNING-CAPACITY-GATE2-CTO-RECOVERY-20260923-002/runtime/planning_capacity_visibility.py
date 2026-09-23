@@ -9,12 +9,12 @@ from typing import Any, Mapping
 
 
 EVIDENCE_STATES = (
-    "OBSERVED",
-    "DECLARED",
-    "DERIVED",
+    "PRESENT",
+    "ABSENT",
+    "INCOMPLETE",
     "PARTIAL",
+    "CONFLICTING",
     "UNAVAILABLE",
-    "CONFLICT",
 )
 
 TRUTH_DOMAINS = (
@@ -36,6 +36,7 @@ COLLECTIONS = (
     "time_windows",
     "constraints",
     "readiness",
+    "bottleneck_evidence",
 )
 
 
@@ -153,23 +154,24 @@ def _truth_separation() -> dict[str, dict[str, Any]]:
     }
 
 
-def _bottleneck(capacities: list[Mapping[str, Any]]) -> dict[str, Any]:
+def _bottleneck(evidence: list[Mapping[str, Any]]) -> dict[str, Any]:
     candidates = [
         {
-            "capacity_id": item["id"],
+            "evidence_id": item["id"],
             "resource_id": item["resource_id"],
-            "utilization_ratio": item["utilization_ratio"],
+            "capacity_id": item["capacity_id"],
+            "signal": item["signal"],
             "evidence_state": item["evidence_state"],
             "evidence_ref": item["evidence_ref"],
         }
-        for item in capacities
-        if item.get("bottleneck_candidate") is True
-        and item.get("evidence_state") in {"OBSERVED", "DERIVED"}
+        for item in evidence
+        if item.get("evidence_state") == "PRESENT"
     ]
-    candidates.sort(key=lambda item: item["capacity_id"])
+    candidates.sort(key=lambda item: item["evidence_id"])
     return {
         "evidence_derived_only": True,
         "candidates": candidates,
+        "resolution_state": "CONFLICTING",
         "authoritative_winner": None,
     }
 
@@ -222,7 +224,7 @@ def compose(fixture: Mapping[str, Any]) -> dict[str, Any]:
         "evidence_state_catalog": list(EVIDENCE_STATES),
         "evidence_summary": _summary(chain),
         "truth_separation": _truth_separation(),
-        "bottleneck": _bottleneck(fixture["capacities"]),
+        "bottleneck": _bottleneck(fixture["bottleneck_evidence"]),
         "readiness": {
             "id": readiness["id"],
             "status": readiness["status"],

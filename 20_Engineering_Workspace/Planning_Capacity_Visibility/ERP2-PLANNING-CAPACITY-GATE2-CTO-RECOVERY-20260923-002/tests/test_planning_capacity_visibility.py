@@ -67,6 +67,10 @@ class RecoveryPlanningCapacityTests(unittest.TestCase):
         self.assertTrue(required.issubset(actual))
 
     def test_six_evidence_states_are_present_in_replay(self) -> None:
+        self.assertEqual(
+            tuple(self.result["evidence_state_catalog"]),
+            ("PRESENT", "ABSENT", "INCOMPLETE", "PARTIAL", "CONFLICTING", "UNAVAILABLE"),
+        )
         self.assertEqual(tuple(self.result["evidence_state_catalog"]), EVIDENCE_STATES)
         self.assertTrue(all(self.result["evidence_summary"][state]["count"] > 0 for state in EVIDENCE_STATES))
 
@@ -130,13 +134,27 @@ class RecoveryPlanningCapacityTests(unittest.TestCase):
 
     def test_bottleneck_is_evidence_derived_without_winner(self) -> None:
         self.assertTrue(self.result["bottleneck"]["evidence_derived_only"])
+        self.assertEqual(self.result["bottleneck"]["resolution_state"], "CONFLICTING")
         self.assertEqual(self.result["bottleneck"]["authoritative_winner"], None)
         self.assertEqual(self.result["bottleneck"]["candidates"][0]["capacity_id"], "CAPACITY-001")
 
-    def test_unavailable_and_conflict_states_are_not_collapsed(self) -> None:
+    def test_unavailable_and_conflicting_states_are_not_collapsed(self) -> None:
         self.assertEqual(self.result["composition"]["time_window"]["evidence_state"], "UNAVAILABLE")
-        self.assertEqual(self.result["composition"]["constraint"]["evidence_state"], "CONFLICT")
+        self.assertEqual(self.result["composition"]["constraint"]["evidence_state"], "CONFLICTING")
         self.assertEqual(self.result["readiness"]["status"], "CONDITIONALLY_READY")
+
+    def test_absent_and_unavailable_are_not_zero_or_insufficient(self) -> None:
+        resource = self.fixture["resources"][0]
+        capacity = self.fixture["capacities"][0]
+        self.assertEqual(resource["evidence_state"], "ABSENT")
+        self.assertIsNone(resource["available_capacity"])
+        self.assertNotEqual(resource["available_capacity"], 0)
+        self.assertEqual(capacity["evidence_state"], "UNAVAILABLE")
+        self.assertEqual(capacity["capacity_status"], "UNKNOWN")
+        self.assertIsNone(capacity["available_hours"])
+        self.assertIsNone(capacity["capacity_sufficiency"])
+        self.assertNotEqual(capacity["available_hours"], 0)
+        self.assertNotEqual(capacity["capacity_status"], "INSUFFICIENT")
 
     def test_fixture_bytes_are_unchanged(self) -> None:
         raw_after = FIXTURE_PATH.read_bytes()

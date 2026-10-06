@@ -1,0 +1,93 @@
+{
+  "execution": "ERP2.0-M0-A4",
+  "date": "2026-10-05",
+  "purpose": "enterprise foundation baseline consolidation and freeze-package preparation",
+  "final_status": "ERP2.0-M0-A4 FOUNDATION BASELINE = COMPLETE / READY FOR CIO FREEZE DECISION",
+  "authoritative_inputs": [
+    {"name": "M0-A1 Foundation Discovery", "report_sha256": "3CA6CA5D08B3D277CB7C82251982E4BDA9FC50E8807FA346BBF79F2CF496960D", "manifest_sha256": "17A5212032538B2EAED521602270050175AEBB4E51221AF09787141EB821F134"},
+    {"name": "M0-A2 Foundation Architecture", "report_sha256": "D5DEED37392976F81BD2349EF65A896F10A0F16F02DE5C6495D016BA94805602", "manifest_sha256": "1F06F4B3391E246AD90D19A59ACD44522053522794AEB7681850C28619252354"},
+    {"name": "M0-A3-T1 Technical Standards", "report_sha256": "99AE5B1CE867876BF13EBF25DC2B09CBA4F7EE7E67849926F279323BEBD9BD52", "manifest_sha256": "42BFFF5C95EA52556045DE9C8681AEE1A4AC18F595B90C9A0E87F6EABA43850B"},
+    {"name": "M0-A3-C1 Custody/Publications", "sha256": "561C0D57246878A18A14660E2A7D47D36AD92567E158A8A4C95ED969BBE4457B"},
+    {"name": "M0-A3-BO1 Wave 1", "sha256": "8A76F1295CB98098A997D2340357BCAF45607B970EC520D6834B11E3FA281DA9"},
+    {"name": "M0-A3-BO2 Wave 2", "sha256": "584A389689AA4FA5FC6357955B6D6A208D50504DBF2FCDA9998798A5F46F8C0D"}
+  ],
+  "accepted_business_principles": [
+    "Item != Product / SKU",
+    "BOM/Recipe lanes remain separate but linked: Formula/Recipe, Production BOM, Packaging BOM, Packaging Structure, Cost BOM",
+    "Book Inventory = Movement Ledger",
+    "Official Inventory Balance = Book Inventory + Approved Count Adjustments",
+    "Physical Count != automatic Book Inventory change",
+    "Finance verifies inventory; Warehouse counts/custodies; approved adjustment requires Finance validation and Warehouse Supervisor confirmation"
+  ],
+  "deferred_decisions": [
+    "legal entity/company/site/plant/warehouse/location structure",
+    "named Item owner and lifecycle authority",
+    "Item code uniqueness scope",
+    "Supplier source of truth",
+    "Customer source of truth",
+    "BOM/Recipe revision/effectivity/release authority",
+    "Movement Ledger source of truth",
+    "Inventory Balance source of truth",
+    "adjustment posting authority",
+    "warehouse/location hierarchy mapping",
+    "final roadmap priority"
+  ],
+  "implementation_readiness_policy": {
+    "labels": [
+      "FOUNDATION READY",
+      "READY AFTER NAMED OWNER DECISION",
+      "READY AFTER SOURCE-OF-TRUTH DECISION",
+      "READY AFTER SECURITY DECISION",
+      "READY AFTER OPERATIONAL DECISION",
+      "NOT READY"
+    ],
+    "rule": "No Domain is IMPLEMENTATION READY unless all required milestone prerequisites are satisfied"
+  },
+  "milestone_count": 13,
+  "milestone_readiness": {
+    "Master Data / Item / Product": "READY AFTER NAMED OWNER DECISION",
+    "BOM / Recipe": "READY AFTER SOURCE-OF-TRUTH DECISION",
+    "Inventory / Warehouse": "READY AFTER SOURCE-OF-TRUTH DECISION",
+    "Purchasing / Supplier": "READY AFTER SOURCE-OF-TRUTH DECISION",
+    "Planning": "READY AFTER OPERATIONAL DECISION",
+    "Manufacturing": "READY AFTER NAMED OWNER DECISION",
+    "Quality / Traceability": "READY AFTER SECURITY DECISION",
+    "Workforce / Labor": "READY AFTER SECURITY DECISION",
+    "Equipment / Maintenance": "READY AFTER OPERATIONAL DECISION",
+    "Transportation / Logistics": "READY AFTER OPERATIONAL DECISION",
+    "Commercial / Delivery": "READY AFTER SOURCE-OF-TRUTH DECISION",
+    "Finance / Expense / Fixed Asset": "READY AFTER SECURITY DECISION",
+    "Reporting / Analytics": "READY AFTER NAMED OWNER DECISION"
+  },
+  "technical_standards": [
+    "ERP2-STD-DB-001",
+    "ERP2-STD-DEV-001",
+    "ERP2-STD-ADR-001",
+    "ERP2-STD-MDP-001",
+    "ERP2-STD-CTX-001",
+    "ERP2-STD-MIG-001",
+    "ERP2-STD-EVR-001",
+    "ERP2-STD-KRO-001"
+  ],
+  "track_b_stage_policy": {
+    "B0": "source inventory",
+    "B1": "profiling/qualification",
+    "B2": "target mapping after authoritative target model",
+    "B3": "pilot/reconciliation after validated physical target",
+    "B4": "Production migration/cutover after accepted pilot and separate authorization"
+  },
+  "boundary_confirmation": {
+    "functional_implementation": false,
+    "domain_schema": false,
+    "alembic_or_migration": false,
+    "production_change": false,
+    "message_bus": false,
+    "authority_or_route_change": false,
+    "roadmap_final_priority": false,
+    "business_security_operations_truth_invented": false,
+    "cutover_golive": false
+  },
+  "report": {
+    "path": "20_Engineering_Workspace/ERP2.0_M0_A4_Foundation_Baseline_Freeze_Package_20261005_001/ERP2.0-M0-A4-Enterprise-Foundation-Baseline-Freeze-Package-20261005-001.md"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "execution": "ERP2.0-M0-A5-R1",
+  "date": "2026-10-05",
+  "source": {
+    "r1_report_sha256": "CE63B5F70ABFE5CC334E05FDBB491B34FE30A68988077F6FBE5F86FBD5FAA23C",
+    "r1_report_path": "20_Engineering_Workspace/ERP2.0_M0_A5_R1_Roadmap_Reconciliation_20261005_001/ERP2.0-M0-A5-R1-Corrected-Roadmap-Freeze-Candidate-20261005-001.md"
+  },
+  "manifest_role": "corrected R1 evidence manifest; replaces stale pre-correction source references",
+  "final_status": "ERP2.0-M0-A5-R1 ROADMAP RECONCILIATION = PASS / ACYCLIC ROADMAP READY FOR CIO FREEZE",
+  "graph_status": "MILESTONE EXECUTION DEPENDENCY GRAPH = ACYCLIC",
+  "preserved_major_milestones": 15,
+  "reconciliation": {
+    "workforce_equipment_vs_manufacturing": "FM-09 requires WF-S1 and EQ-S1, not full FM-07/FM-08",
+    "transportation_commercial": "FM-11 uses COMM-S1; FM-12 consumes transport conditionally/downstream; no circular completion",
+    "equipment_maintenance_cycle": "FM-08 is parallel after FM-01; FM-09/FM-13 use slices; no reverse prerequisite",
+    "workforce_dependency": "minimum worker/skill/qualification slice only; full HR integration is not a production prerequisite"
+  },
+  "minimum_foundation_slices": [
+    {"id": "WF-S1", "name": "Workforce Identity / Skill / Qualification Foundation", "parent": "FM-07", "unlocks": ["FM-09"]},
+    {"id": "EQ-S1", "name": "Equipment Operational Resource", "parent": "FM-08", "unlocks": ["FM-09"]},
+    {"id": "EQ-ASSET-S1", "name": "Equipment/Asset Link", "parent": "FM-08/FM-13", "unlocks": ["FM-13"]},
+    {"id": "INV-S1", "name": "Lot / Traceability Foundation", "parent": "FM-04", "unlocks": ["FM-10"]},
+    {"id": "PLAN-S1", "name": "Planning / Material Requirement", "parent": "FM-06", "unlocks": ["FM-09"]},
+    {"id": "PUR-S1", "name": "Supplier / Material Readiness", "parent": "FM-05", "unlocks": ["FM-09 conditionally"]},
+    {"id": "COMM-S1", "name": "Customer / Ship-to / Fulfillment Identity", "parent": "FM-12", "unlocks": ["FM-11"]},
+    {"id": "FIN-S1", "name": "Financial Posting Reference / Cost Center", "parent": "FM-13", "unlocks": ["FM-13"]}
+  ],
+  "dependency_classifications": [
+    "HARD_PREREQUISITE",
+    "MINIMUM_FOUNDATION_SLICE",
+    "PARALLEL_DESIGN_INPUT",
+    "CONDITIONAL_DEPENDENCY",
+    "DOWNSTREAM_DEPENDENCY"
+  ],
+  "pm_trigger_compatibility": "PASS / reads explicit milestone and slice gates; does not infer from numbering",
+  "preserved_standards": [
+    "Sprint Standard",
+    "Backlog Standard",
+    "WorkItem / Track F Mapping",
+    "PMO Auto-Trigger Ruleset",
+    "CIO Control-Tower Model",
+    "BOR/CIO-OPS/CI Office conditional triggers",
+    "Status Vocabulary",
+    "Progress Measurement",
+    "Governance Cadence",
+    "KRO Custody Model",
+    "Track B B0-B4 Principles"
+  ],
+  "boundaries": {
+    "foundation_changed": false,
+    "major_milestone_count_changed": false,
+    "functional_implementation": false,
+    "schema_or_migration": false,
+    "pmo_functional_program_activation": false,
+    "message_bus": false,
+    "authority_or_route_change": false,
+    "production_cutover_golive": false,
+    "business_security_operations_truth_invented": false
+  },
+  "report": {
+    "path": "20_Engineering_Workspace/ERP2.0_M0_A5_R1_Roadmap_Reconciliation_20261005_001/ERP2.0-M0-A5-R1-Corrected-Roadmap-Freeze-Candidate-20261005-001.md"
+  }
+}

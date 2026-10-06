@@ -1,0 +1,815 @@
+# coding=utf8
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../..')
+
+from enum import IntEnum
+
+ERROR_COMMON = 1000
+ERROR_AUTH = 2000
+
+SYSTEM_ID = "999999999999"
+
+class EUnit():
+    NONE = 0        # 無單位
+    GRAM = 1        # 公克
+    KILOGRAM = 2    # 公斤
+    TAIJIN = 3      # 台斤
+    
+    CM = 51          # 公分 50
+    METER = 52       # 公尺 51
+
+    ITEM =  101       # 個
+    STRIP = 102       # 條
+    SLICE = 103       # 片
+    SHEET = 104       # 張
+    CAN = 105        # 罐
+    BAG = 106        # 包
+    ROLL = 107      # 捲
+    BARREL = 108     # 桶
+    BOX = 109        # 盒
+    SET = 110        # 組
+    CASE = 111       # 箱
+    ZHI = 112        # 支
+    SHI = 113       # 式
+    RU = 114        # 入
+    DE = 115        # 袋
+    PIECE = 116       # 顆 110
+    BOTTLE = 117       # 瓶
+    UNIT = 150      #單位
+
+    BAN = 201      # 板
+    PCS = 202      # 件
+    CAR = 203      # 車
+    TIMES = 204   # 次
+
+class EPrivilegeCategory(object):
+    SALE = 1
+    PURCHASE = 2
+    PRODUCT = 3
+    FINANCE = 4
+    INVENTORY = 5
+
+
+class EPrivilegeAction(object):
+    VIEW = 1
+    CREATION = 2
+    MODIFICATION = 3
+    CANCELLATION = 4
+    REPORT = 5
+
+class EErrorCode(object):
+    ERROR_SUCCESS = 0
+    ERROR_NO_MORE_ITEMS = 1
+    ERROR_OTHER_ERROR = ERROR_COMMON + 1
+    ERROR_PATH_NOT_FOUND = ERROR_COMMON + 2
+    ERROR_DB = ERROR_COMMON + 3
+    ERROR_NOT_SUPPORTED = 3
+
+    ERROR_REGISTERNONOTFOUND = 2001
+    ERROR_EMPLOYEENOTFOUND = 2002
+    ERROR_INCORRECT_ACCOUNTPWD = 2003
+    ERROR_INVAILD_TOKEN = 2101
+    ERROR_PERMISSION_DENIED = 2202
+    ERROR_INVAILD_PARAM = 3001
+    ERROR_INVAILD_BODY = 3002
+
+    ERROR_WAREHOUSE_NOT_FOUND = 5001
+    ERROR_STOCK_NOT_ENOUGH = 5001
+
+class EProcCategory(object):
+    PREPROCESS = 1 #前備
+    PROCESS = 2
+    PACKAGE = 3
+
+class EMaterialType(object):
+    NONE = 0
+    PM = 1 #原料
+    MA = 2
+    AF = 3
+
+class EPaymentType(object):
+    NOW = 0
+    MONTH = 1
+
+class EPaymentSource(object):
+    CASH = 0
+    TRANSFER = 1
+    TICKET = 2
+
+class EBomCategory(object):
+    NONE = 0
+    PM = 1 #原料
+    MA_AP = 2 #物料
+
+class EItemCategory(object): # itemCategory
+    NONE = 0
+    PM = 1 #原料
+    MA = 2
+    AF = 3
+    INPRODUCT = 4
+    PRODUCT = 5
+    GOODS = 6
+
+class EItemType():
+    NONE = 0
+    NEW = 1 #新料
+    REMAINING = 2 #餘料
+    WASTE = 3 #廢料
+
+
+class EBatchOrderCategory(object): # itemCategory
+    NONE = 0
+    PURCHASE = 1 #採購
+    PRODUCT = 2 #產製
+    SALE_RETURN = 3 #銷貨退回
+
+
+class EReuseCategory():
+    NONE = 0
+    REMAINING = 1 #餘料
+    WASTE = 2 #廢料
+
+
+class EInventoryOrderCategory(object):
+    PURCHASE = 1 #採購
+    SALE = 2
+    RECEIVE = 3
+    RETURN = 4
+    REMAIN = 5
+    WASTE = 6
+    PRODUCT = 7
+    REC = 8
+
+class EInventoryCategory(object):
+    IN = 1 #入庫
+    OUT = 2
+
+
+class EInventorySubCategory(object):
+    SCRAPPED= 1 #報廢
+    GIVEAWAY = 2 #贈品
+    RD = 3
+    OTHER = 4
+
+
+class ELaborType(object):
+    WORK = 1
+    REST = 2
+    CLEAN = 3
+
+
+class EInventorySrc(object):
+    PURCHASE_RECEIVE = 1  # 採購 / 領料
+    RETURN_SALE = 2         # 退料 / 銷售
+    REMAINING_PRETURN = 3    # 餘料 / 採購退回
+    WASTE_WASTE = 4          # 廢料 / 報廢
+    PRODUCT = 5              # 產品
+    SRETURN = 6              # 銷售退回
+
+
+class EOutputCategory(object):
+    INPRODUCT = 1 #在製品
+    PRODUCT = 2 #製成品
+
+class EActionType(object):
+    NONE = 0
+    PURCHASE = 1 #採購
+    WORK = 2 #製造
+    SALE = 3 #銷售
+
+
+class EDevAction():
+    IN = 1        #入庫/入產
+    OUT = 2     # 出庫/出產
+
+class EBatchTraceRefCategory():
+    NONE = 0
+    PURCHASE = 1 #採購
+    SALE = 2 #銷售
+
+class EBatchNoCategory():
+    PURCHASE = 1 #採購
+    WORK = 2 #製造
+    SALE = 3 #銷售
+
+class EInventoryDeltaKind():
+    NONE = 0
+    MATERIAL = 1 #原物料
+    INPRODUCT = 2 #在製品
+    PRODUCT = 3 #製成品
+    BATCHNO = 4 #批號
+
+
+class EOrderStatisticKind():
+    NONE = 0
+    PURCHASE = 1 #採購
+    PRODUCT = 2 #訂購
+    SHIPPING = 3 #物流
+    WAREHOUSE = 4 #倉儲
+    EXPENSE = 5 #費用
+
+
+class EBom1ChildCategory():
+    NONE = 0
+    PM = 1 #原料
+    INPRODUCT = 2 #在製品
+
+class EBom2ChildCategory():
+    NONE = 0
+    MA = 1 #物料
+    AF = 2 #膠捲
+
+
+class ELaborAction():
+    NONE = 0
+    WORK = 1 #工作
+    REST = 2 #休息
+    CLEAN = 3 #清潔
+
+class ELaborSubAction():
+    NONE = 0
+    PRE = 1 #前段
+    POST = 2 #後段
+
+class EEmployeeType():
+    NONE = 0
+    FULL_TIME = 1 #全職
+    PART_TIME = 2 #兼職
+
+#Device
+class ELocationType():
+    STORAGE = 1        #倉庫
+    PREPARING1 = 2     # 前備1
+    PREPARING2 = 3     # 前備2
+    PROCESSING = 4     # 加工
+    PACKAGING = 5      # 包裝
+
+class EProcessOrderCategory():
+    NONE = 0
+    RECEIVE = 1        #領料
+    RETURN = 2     # 退料
+    REMAIN = 3     # 餘料
+    WASTE = 4     # 廢料
+    PRODUCT = 5      # 產品
+
+class EInputAction():
+    NONE = 0
+    RECEIVE = 1        #領料
+    RETURN = 2     # 退料
+
+class EOutputAction():
+    NONE = 0
+    WORK = 1        #產製
+
+
+class EReuseAction():
+    NONE = 0
+    WORK = 1  # 產製
+
+
+class EDevRefCategory:
+    NONE = 0
+    PURCHASE = 1  # 採購
+    SALE = 2  # 訂購
+    WORK = 3  # 產製
+    OTHER = 4  # 其他
+
+class EInventoryRefCategory:
+    NONE = 0
+    PURCHASE = 1  # 採購
+    SALE = 2  # 訂購
+    WORK = 3  # 產製
+    OTHER = 4  # 其他
+
+class EOrderPaymentRefCategory:
+    NONE = 0
+    PURCHASE = 1  # 採購
+    SALE = 2  # 訂購
+    EXPENSE = 3  # 費用
+    OTHER = 4  # 其他
+
+class EGoodsReceiptNoteCategory:
+    NORMAL = 0 # 進貨
+    RETURN = 1  # 退回
+
+class EShippingOrderCategory:
+    NORMAL = 0
+    RETURN = 1  # 退回
+
+
+class EARAPType():
+    NONE = 0
+    AR = 1 #應收
+    AP = 2 #應付
+
+class ETransItemCat():
+    NONE = 0
+    GOODS = 1 # 貨品
+    MATERIAL = 2 #材料
+    PRODUCT = 3  # 產品
+
+
+class ETransItem2Cat():
+    NONE = 0
+    CONSUMABLES = 1  # 耗品
+    EQUIPMENT = 2  # 設備
+    # 工程
+    # 其他
+class EQuotationCat():
+    NONE = 0
+    PURCHASE = 1 #採購
+    SALE = 2 #銷售
+
+class EItemStyle():
+    NONE = 0
+    GOODS = 1 # 貨品
+    PRODUCT = 2 #產品
+    MATERIAL = 3 #材料
+    CONSUMABLES = 4  # 耗品
+    EQUIPMENT = 5  # 設備
+
+class EBSType():
+    NONE = 0
+    # 入庫
+    PURCHASE_IN_S = 1        #採購入庫; 進貨
+    PRODUCT_IN_S = 2         #產製入庫; 餘/廢/產
+    PRODUCT_RETURN_IN_S = 3  # 產製退回入庫; 收料
+    SALE_IN_S = 4            # 銷售退回入庫
+    OTHER_IN_S = 5           # 其他入庫 ?
+
+    # 出庫
+    PURCHASE_OUT_S = 11        # 採購退回出庫
+    PRODUCT_OUT_S = 12         # 產製出庫; 發料
+    SALE_OUT_S = 13            # 銷售出庫
+    OTHER_OUT_S = 14           # 其他出庫 ?
+
+    # 產間
+    PRODUCT_IN_P = 21         #產製入產; 領料
+    PRODUCT_OUT_P = 22        #產製出產; 餘/廢/產
+    PRODUCT_RETURN_OUT_P = 22   #產製出產; 退料
+
+class EDepartment():
+    '''
+1: 管理部
+2: 行政部
+3: 業務部
+4: 製造部
+5: 品保部
+6: 生管部
+7: 倉庫部
+8: 總務部
+9: 採購部
+10: 研發部
+11: 財務部
+
+    '''
+    MANAGEMENT= 1
+    ADMINISTRATION= 2
+    SALES=  3
+    PRODUCTION=  4
+    QA= 5
+    PLANNING=  6
+    WAREHOUSE=  7
+    GENERAL_AFFAIRS=  8
+    PURCHASING=  9
+    RD=  10
+    FINANCE=  11
+
+
+# ------------------------------------------------------------
+# Warehouse Dashboard API extension enums
+# ------------------------------------------------------------
+
+class EWarehouseRiskType(object):
+    TURNOVER_OVER_30_DAYS = "TURNOVER_OVER_30_DAYS"
+    SHELF_LIFE_LT_ONE_THIRD = "SHELF_LIFE_LT_ONE_THIRD"
+    BELOW_SAFETY_STOCK = "BELOW_SAFETY_STOCK"
+
+
+class EWarehouseRiskLevel(object):
+    NORMAL = 1
+    NOTICE = 2
+    WARNING = 3
+    DANGER = 4
+
+
+class EWorkflowTaskStatus(object):
+    PENDING = 1
+    PARTIAL = 2
+    DONE = 3
+    BLOCKED = 4
+    CANCELLED = 5
+
+
+class EWorkflowTaskType(object):
+    PURCHASE_REQUEST = 1
+    PURCHASE = 2
+    GOODS_RECEIPT = 3
+    INBOUND = 4
+    OUTBOUND = 5
+    TRANSFER = 6
+    PRODUCTION = 7
+    QUALITY = 8
+    SHIPMENT = 9
+
+
+class EShipWarehouseCat(object):
+    SHIP = 1  #物流
+    WAREHOUSE = 2 #倉儲
+
+
+# ------------------------------------------------------------
+# Production Dashboard API enums
+# ------------------------------------------------------------
+
+class EProductionRiskLevel(object):
+    NORMAL = 0
+    NOTICE = 1
+    WARNING = 2
+    DANGER = 3
+
+
+class EProductionWorkOrderStatus(object):
+    SCHEDULED = "scheduled"
+    MATERIAL_READY = "material_ready"
+    RUNNING = "running"
+    PAUSED = "paused"
+    PENDING_INVENTORY = "pending_inventory"
+    COMPLETED = "completed"
+
+
+class EProductionMaterialStatus(object):
+    READY = "ready"
+    PARTIAL = "partial"
+    UNKNOWN = "unknown"
+
+
+class EProductionStaffStatus(object):
+    READY = "ready"
+    SUPPORT_NEEDED = "support_needed"
+    SHORTAGE = "shortage"
+    UNKNOWN = "unknown"
+
+
+class EProductionMachineStatus(object):
+    RUNNING = "running"
+    PAUSED = "paused"
+    STOPPED = "stopped"
+    UNKNOWN = "unknown"
+
+
+class EProductionQualityStatus(object):
+    DEFERRED = "deferred"
+
+
+class EProductionDeliveryRisk(object):
+    NORMAL = "normal"
+    HIGH_RISK = "high_risk"
+    UNKNOWN = "unknown"
+
+
+class EProductionReadinessStatus(object):
+    READY = "ready"
+    ATTENTION = "attention"
+
+
+class EProductionSignalType(object):
+    MATERIAL = "material"
+    STAFF = "staff"
+
+
+class EProductionCapacityStatus(object):
+    CONFIGURED = "configured"
+    MISSING_CONFIG = "missing_config"
+    CLOSED = "closed"
+    DISABLED = "disabled"
+
+
+class EProductionCapacityConfigStatus(object):
+    ACTIVE = 1
+    DISABLED = 2
+    CLOSED = 3
+
+
+class EProductionDowntimeStatus(object):
+    CONFIRMED = 2
+
+
+class EProductionChangeoverStatus(object):
+    DEFERRED = "deferred"
+
+
+class EProductionAlertType(object):
+    MATERIAL_SHORTAGE = "material_shortage"
+    STAFF_SHORTAGE = "staff_shortage"
+    CAPACITY_BOTTLENECK = "capacity_bottleneck"
+    CAPACITY_CONFIG_MISSING = "capacity_config_missing"
+    CAPACITY_DOWNTIME = "capacity_downtime"
+    SCHEDULE_DELAY = "schedule_delay"
+    EFFICIENCY_LOSS = "efficiency_loss"
+    LOSS_OVER_THRESHOLD = "loss_over_threshold"
+    LABOR_COST_MISSING = "labor_cost_missing"
+
+
+class EProductionAlertComment(object):
+    MATERIAL_SHORTAGE = "production.alert.material_shortage"
+    STAFF_SHORTAGE = "production.alert.staff_shortage"
+    CAPACITY_DOWNTIME = "production.alert.capacity_downtime"
+    CAPACITY_CONFIG_MISSING = "production.alert.capacity_config_missing"
+    CAPACITY_BOTTLENECK = "production.alert.capacity_bottleneck"
+    SCHEDULE_DELAY = "production.alert.schedule_delay"
+    LABOR_COST_MISSING = "production.alert.labor_cost_missing"
+    MATERIAL_REQUIREMENT_MISSING = "production.readiness.material_requirement_missing"
+    MATERIAL_AVAILABLE_UNKNOWN = "production.readiness.material_available_unknown"
+
+
+class EMesEventType(object):
+    INPUT = "input"
+    OUTPUT = "output"
+    LABOR = "labor"
+    MACHINE = "machine"
+
+
+class EProductionDocumentType(object):
+    WORK_ORDER = "work_order"
+    PRODUCT_ORDER = "product_order"
+    PRODUCTION_DATA = "production_data"
+    PROCESS_ORDER = "process_order"
+
+
+class EProductionDocumentStatus(object):
+    SCHEDULED = "scheduled"
+    LINKED = "linked"
+
+
+class EPurchasingRiskType(object):
+    NORMAL = "normal"
+    LATE_ARRIVAL = "late_arrival"
+    DUE_TODAY = "due_today"
+    PURCHASE_REQUEST_UNLINKED = "purchase_request_unlinked"
+    OPEN_RECEIPT = "open_receipt"
+    UNKNOWN = "unknown"
+
+
+# ------------------------------------------------------------
+# BOM Center API enums
+# ------------------------------------------------------------
+
+class EBomVersionState(object):
+    EFFECTIVE = "effective"
+    FUTURE = "future"
+    HISTORICAL = "historical"
+    UNKNOWN = "unknown"
+
+
+class EProductStructureStatusCode(object):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+class EProductStructureWarningCode(object):
+    DEPTH_LIMITED = "depth_limited"
+    MISSING_BOM_ITEMS = "missing_bom_items"
+    MISSING_ITEM_MASTER = "missing_item_master"
+    MISSING_PRODUCT_SPEC = "missing_product_spec"
+    CIRCULAR_REFERENCE = "circular_reference"
+    UNKNOWN = "unknown"
+
+
+class ERecipeFormulaStatusCode(object):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+class ERecipeFormulaWarningCode(object):
+    MISSING_INPUTS = "missing_inputs"
+    MISSING_OUTPUT = "missing_output"
+    MULTIPLE_OUTPUTS = "multiple_outputs"
+    MISSING_INPUT_WEIGHT = "missing_input_weight"
+    MISSING_OUTPUT_WEIGHT = "missing_output_weight"
+    MISSING_LOSS_SOURCE = "missing_loss_source"
+    UNKNOWN = "unknown"
+
+
+class ERecipeFormulaSourceCode(object):
+    BOM = "bom"
+    BOM_ITEM = "bom_item"
+    PRODUCT_SPEC = "product_spec"
+    PRODUCT = "product"
+    NOT_RECORDED = "not_recorded"
+
+
+class ERoutingStatusCode(object):
+    COMPLETE = "complete"
+    PARTIAL = "partial"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+class ERoutingWarningCode(object):
+    MISSING_STEPS = "missing_steps"
+    MISSING_ITEM_MASTER = "missing_item_master"
+    MISSING_PROCESS_MASTER = "missing_process_master"
+    MISSING_STANDARD_PERFORMANCE = "missing_standard_performance"
+    MISSING_RECIPE_REFERENCE = "missing_recipe_reference"
+    PACKAGING_CONTEXT_NOT_GOVERNED = "packaging_context_not_governed"
+    RESOURCE_ELIGIBILITY_NOT_GOVERNED = "resource_eligibility_not_governed"
+    TEST_SUPPORT_ONLY = "test_support_only"
+    UNKNOWN = "unknown"
+
+
+class ERoutingSourceCode(object):
+    PRODUCT_PROCESS = "product_process"
+    PROCESS_FLOW = "process_flow"
+    PROCESS = "process"
+    PROCESS_CAPACITY = "process_capacity"
+    PRODUCT_SPEC = "product_spec"
+    PRODUCT_BOM_SPEC = "product_bom_spec"
+    PRODUCT = "product"
+    INPRODUCT = "inproduct"
+    TEST_SUPPORT = "test_support"
+    NOT_RECORDED = "not_recorded"
+
+
+# ------------------------------------------------------------
+# Batch Center API enums
+# ------------------------------------------------------------
+
+class EBatchRiskLevelCode(object):
+    NORMAL = "normal"
+    ATTENTION = "attention"
+    HIGH_RISK = "high_risk"
+
+
+class EBatchRiskCode(object):
+    NORMAL = "normal"
+    EXPIRED = "expired"
+    NEAR_EXPIRY = "near_expiry"
+    QUALITY_HOLD = "quality_hold"
+    RESERVED = "reserved"
+    STOCK_SHORTAGE = "stock_shortage"
+    WORKFLOW_BLOCKED = "workflow_blocked"
+    UNKNOWN = "unknown"
+
+
+class EBatchExpiryStatusCode(object):
+    VALID = "valid"
+    NEAR_EXPIRY = "near_expiry"
+    EXPIRED = "expired"
+    UNKNOWN = "unknown"
+
+
+class EBatchQaStatusCode(object):
+    RELEASED = "released"
+    INSPECTION = "inspection"
+    QUALITY_HOLD = "quality_hold"
+    BLOCKED = "blocked"
+    UNKNOWN = "unknown"
+
+
+class EBatchStageCode(object):
+    INBOUND_PENDING = "inbound_pending"
+    STOCKED = "stocked"
+    AVAILABLE = "available"
+    RESERVED = "reserved"
+    QUALITY_HOLD = "quality_hold"
+    PRODUCTION_INPUT = "production_input"
+    PRODUCTION_OUTPUT = "production_output"
+    SHIPPED = "shipped"
+    UNKNOWN = "unknown"
+
+
+# ------------------------------------------------------------
+# Traceability Center API enums
+# ------------------------------------------------------------
+
+class ETraceDirectionCode(object):
+    UPSTREAM = "upstream"
+    DOWNSTREAM = "downstream"
+    BOTH = "both"
+
+
+class ETraceStatusCode(object):
+    COMPLETE = "complete"
+    BROKEN = "broken"
+    UNKNOWN = "unknown"
+
+
+class ETraceRiskLevelCode(object):
+    NORMAL = "normal"
+    ATTENTION = "attention"
+    HIGH_RISK = "high_risk"
+
+
+class ETraceRiskCode(object):
+    NORMAL = "normal"
+    BROKEN_CHAIN = "broken_chain"
+    EXPIRED = "expired"
+    QUALITY_HOLD = "quality_hold"
+    UNKNOWN = "unknown"
+
+
+class ETracePartnerTypeCode(object):
+    SUPPLIER = "supplier"
+    CUSTOMER = "customer"
+    INTERNAL = "internal"
+    UNKNOWN = "unknown"
+
+
+class ETraceStepTypeCode(object):
+    RECEIPT = "receipt"
+    PRODUCTION = "production"
+    SALE = "sale"
+
+
+class ETraceNodeTypeCode(object):
+    SUPPLIER = "supplier"
+    RECEIPT = "receipt"
+    BATCH = "batch"
+    INVENTORY = "inventory"
+    PRODUCTION_INPUT = "production_input"
+    PRODUCTION_OUTPUT = "production_output"
+    QUALITY = "quality"
+    WORK_ORDER = "work_order"
+    UNKNOWN = "unknown"
+
+
+class ETraceRelationTypeCode(object):
+    SOURCE_OF = "source_of"
+    RECEIVED_AS = "received_as"
+    STORED_IN = "stored_in"
+    CONSUMED_BY = "consumed_by"
+    PRODUCED_AS = "produced_as"
+    INSPECTED_BY = "inspected_by"
+
+
+class ETraceEventTypeCode(object):
+    RECEIPT = "receipt"
+    INVENTORY_IN = "inventory_in"
+    INVENTORY_OUT = "inventory_out"
+    PRODUCTION_INPUT = "production_input"
+    PRODUCTION_OUTPUT = "production_output"
+    QUALITY_HOLD = "quality_hold"
+    QUALITY_RELEASE = "quality_release"
+    TASK = "task"
+
+
+# ------------------------------------------------------------
+# Transaction Item Master API enums
+# ------------------------------------------------------------
+
+class ETransItemTypeCode(object):
+    TRANS_ITEMS = "trans_items"
+
+
+class EDataQualityCode(object):
+    READY = "ready"
+    MISSING_COMPANY = "missing_company"
+    MISSING_LINKED_ITEM = "missing_linked_item"
+    MISSING_CONTRACT_PRICE = "missing_contract_price"
+    MISSING_PAYMENT_TERMS = "missing_payment_terms"
+    UNKNOWN = "unknown"
+
+
+class EPaymentTypeCode(object):
+    CASH = "cash"
+    MONTHLY = "monthly"
+    UNKNOWN = "unknown"
+
+
+# ------------------------------------------------------------
+# Item Center API enums
+# ------------------------------------------------------------
+
+class EItemMasterStatusCode(object):
+    READY = "ready"
+    MAINTENANCE_NEEDED = "maintenance_needed"
+    UNKNOWN = "unknown"
+
+
+class EItemMaintenanceRiskCode(object):
+    NORMAL = "normal"
+    MISSING_UNIT = "missing_unit"
+    MISSING_BOM = "missing_bom"
+    MISSING_STOCK_SIGNAL = "missing_stock_signal"
+    UNKNOWN = "unknown"
+
+
+class EItemMaintenanceSuggestionTypeCode(object):
+    MISSING_UNIT = "missing_unit"
+    MISSING_BOM = "missing_bom"
+    MISSING_STOCK_SIGNAL = "missing_stock_signal"
+
+
+# ------------------------------------------------------------
+# Warehouse / Inventory read API permission enums
+# ------------------------------------------------------------
+
+class EInventoryReadPermissionCode(object):
+    WH_INV_READ = "WH_INV_READ"
+

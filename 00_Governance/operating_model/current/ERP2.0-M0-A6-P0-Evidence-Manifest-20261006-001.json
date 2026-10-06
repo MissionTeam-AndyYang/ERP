@@ -1,0 +1,54 @@
+{
+  "package_id": "ERP2.0-M0-A6-P0-20261006-001",
+  "title": "Functional Program Kickoff and Engineering Readiness Baseline",
+  "authorization": "ERP2.0-M0-A6-P0",
+  "owner": "Program Management Office",
+  "created_local": "2026-10-06",
+  "completion": "COMPLETE / READY FOR CIO FREEZE REVIEW",
+  "scope": "operating model and readiness baseline only",
+  "non_authorized": [
+    "functional implementation",
+    "physical functional schema execution",
+    "B2/B3/B4 migration",
+    "Production",
+    "Cutover",
+    "Go-Live",
+    "irreversible repository restructuring",
+    "Message Bus activation",
+    "authority or route creation"
+  ],
+  "artifacts": [
+    {
+      "role": "package",
+      "path": "16_Program_Office/ERP2.0-M0-A6-P0-Functional-Program-Kickoff-and-Engineering-Readiness-Baseline-20261006-001.md"
+    },
+    {
+      "role": "evidence_manifest",
+      "path": "16_Program_Office/ERP2.0-M0-A6-P0-Evidence-Manifest-20261006-001.json"
+    },
+    {
+      "role": "foundation_input",
+      "path": "03_Track_C_Knowledge_Repository/Enterprise_Foundation_Baseline/ERP2.0-M0-A4-C1-Enterprise-Foundation-Baseline-Custody-Publication-20261005-001.md",
+      "sha256": "561C0D57246878A18A14660E2A7D47D36AD92567E158A8A4C95ED969BBE4457B"
+    },
+    {
+      "role": "roadmap_input",
+      "path": "03_Track_C_Knowledge_Repository/Functional_Mainline_Roadmap_Baseline/ERP2.0-M0-A5-C1-Functional-Mainline-Roadmap-Baseline-Custody-Publication-20261005-001.md",
+      "sha256": "CE63B5F70ABFE5CC334E05FDBB491B34FE30A68988077F6FBE5F86FBD5FAA23C"
+    },
+    {
+      "role": "technical_standard",
+      "path": "03_Track_C_Knowledge_Repository/Technical_Foundation_Standards/ERP2-STD-MDP-001-Module-Development-Pack-Standard-20261005-001.md"
+    },
+    {
+      "role": "technical_standard",
+      "path": "03_Track_C_Knowledge_Repository/Technical_Foundation_Standards/ERP2-STD-KRO-001-Technical-Versioning-Supersession-and-KRO-Custody-Standard-20261005-001.md"
+    }
+  ],
+  "required_cio_disposition": [
+    "FREEZE / ACCEPT M0-A6-P0 OPERATING BASELINE",
+    "ACCEPT WITH SPECIFIC CONDITIONS",
+    "RETURN FOR SPECIFIC CORRECTION",
+    "PARTIAL / CIO DECISION REQUIRED"
+  ]
+}

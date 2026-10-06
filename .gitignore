@@ -1,0 +1,47 @@
+# Runtime and local database state
+FGR1Data/
+G1P313/
+mer1_runtime/
+**/data/
+**/datadir/
+**/*.ibd
+**/*.frm
+**/*.mad
+**/*.pid
+**/*.sock
+
+# Secrets and local overrides
+.env
+.env.*
+!.env.example
+**/secrets/
+**/*credential*
+**/*password*
+**/*token*
+
+# Logs, caches, dependencies, generated output
+*.log
+.fg4_deps/
+**/.fg4_deps/
+node_modules/
+.venv/
+**/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.next/
+dist/
+build/
+out/
+coverage/
+
+# Temporary worktrees and local runtime surfaces
+**/worktree/
+**/tmp/
+**/temp/
+**/runtime_state/
+**/generated/
+**/snapshots/

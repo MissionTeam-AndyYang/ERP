@@ -1,0 +1,26 @@
+{
+  "receipt_id": "ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-20261012-001",
+  "custodian": "Repository Office / Canonical ERP2.0 Knowledge Repository",
+  "classification": "CUSTODY VERIFIED",
+  "authorization": "CIO-GOV-ERP2-FM02-SPRINT01-EXECUTION-AUTHORIZATION-20261012-001",
+  "parent": "FM02-SPRINT01-PARENT-20261012-001",
+  "package": {
+    "repository": "20_Engineering_Workspace/FM02_Sprint01_Custody_20261012_001",
+    "branch": "custody/fm02-sprint01-20261012-001",
+    "commit": "aca980b0c2c300ac653ac1b72a6d038ed65bd4af",
+    "tree": "f475be067b018ee78e2cde9a0c73af843ef4a6cb",
+    "tracked_file_count": 20,
+    "readback": "PASS"
+  },
+  "assets": [
+    {"path":"docs/FM02-SPRINT01-COMPLETION-REPORT-20261012-003.md","sha256":"97012C3043F4A04B11E5A0DFE226D74E606AE2F56AD5BF8D469D2636511F8613","verification":"MATCH"},
+    {"path":"docs/FM02-ENGINEERING-C-SOURCE-CUSTODY-HANDOVER-20261012-001.md","sha256":"F5EE7257FE80E1D2E9915A15843EB6B8B9AF4D2249115B7F8275D3158874914D","verification":"MATCH"},
+    {"path":"FM02-SPRINT01-EVIDENCE-MANIFEST-20261012-002.json","sha256":"156B25CEC85C80D2CD5013577B75B36AF3EDE7A091EC210D455F6906768E15C6","verification":"MATCH"}
+  ],
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-20261012-001",
+  "historical_engineering_authorship": "NOT VERIFIED",
+  "missing_core_assets": [],
+  "secrets_registered": false,
+  "canonical_main_modified": false,
+  "migration_lineage_modified": false
+}

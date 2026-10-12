@@ -1,0 +1,19 @@
+{
+  "receipt_id": "ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-RECONCILIATION-20261012-002",
+  "classification": "CUSTODY VERIFIED",
+  "custodian": "Repository Office / Canonical ERP2.0 Knowledge Repository",
+  "package_commit": "aca980b0c2c300ac653ac1b72a6d038ed65bd4af",
+  "package_tree": "f475be067b018ee78e2cde9a0c73af843ef4a6cb",
+  "tracked_asset_count": 20,
+  "package_readback": "PASS",
+  "actual_manifest_sha256": "156B25CEC85C80D2CD5013577B75B36AF3EDE7A091EC210D455F6906768E15C6",
+  "authorization_manifest_sha256": "156B25CEC85C80D2CD5013577B75B36AF3DE7A091EC210D455F6906768E15C6",
+  "authorization_difference": "TRANSCRIPTION DIFFERENCE; ACTUAL SOURCE HASH AUTHORITATIVE",
+  "missing_core_assets": [],
+  "historical_engineering_authorship": "NOT VERIFIED",
+  "prior_receipt": "ERP2-KNOWLEDGE:ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-20261012-001",
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-RECONCILIATION-20261012-002",
+  "source_modified": false,
+  "canonical_main_modified": false,
+  "migration_lineage_modified": false
+}

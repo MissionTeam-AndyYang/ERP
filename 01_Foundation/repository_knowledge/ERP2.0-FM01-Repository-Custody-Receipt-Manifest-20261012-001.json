@@ -1,0 +1,38 @@
+{
+  "receipt_id": "ERP2-FM01-REPOSITORY-CUSTODY-20261012-001",
+  "classification": "A - CUSTODY VERIFIED",
+  "return_target": "Program Management Office / CIO Governance review",
+  "receipt_path": "01_Foundation/repository_knowledge/ERP2.0-FM01-Repository-Custody-Receipt-20261012-001.md",
+  "authoritative_assets": [
+    {
+      "path": "16_Program_Office/ERP2.0-FM01-MODULE-COMPLETION-REPORT-V1-20261012-001.md",
+      "sha256": "DB2BE1BB4E1E9BD67B279315F18427EC14731C3D9115FEA892CC41115CA9384B"
+    },
+    {
+      "path": "16_Program_Office/ERP2.0-FM01-MODULE-COMPLETION-EVIDENCE-MANIFEST-V1-20261012-001.json",
+      "sha256": "47A119888B752605A339DCFFF01A71B62DA6EAD78AFD3C11D5BF203C7B9E2DE5"
+    },
+    {
+      "path": "16_Program_Office/ERP2.0-FM01-COMPLETION-PATTERN-V1-FINAL-PILOT-CLOSURE-RESULT-20261012-002.md",
+      "sha256": "7DEF3C1814DEF019F1F8023E95ADE1FC6AF87F395E147DCC24FFAEB53961425D"
+    }
+  ],
+  "source": {
+    "repository": "Canonical_ERP2.0_Monorepo",
+    "branch": "fm01/development-first-getonly-20261011-001",
+    "commit": "f6e1b57e2bacee4b508bb847e62c8b7db7dd4f5a",
+    "tree": "8586e388237044670397a285ca83e67d0a60af8f",
+    "evidence_commit": "672734f635fd38ad8ded025cd6a5de1871e7ae12"
+  },
+  "custody": {
+    "index": "01_Foundation/repository_knowledge/Repository-Knowledge-Index-20261010-001.md",
+    "receipt_readback": true,
+    "source_assets_readback": true,
+    "secrets_registered": false
+  },
+  "limitations": {
+    "formal_integration_release": "HELD",
+    "historical_89_table_executable_source": "NOT VERIFIED",
+    "fm02_activation": "NOT AUTHORIZED"
+  }
+}

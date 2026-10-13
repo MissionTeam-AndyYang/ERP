@@ -1,0 +1,16 @@
+{
+  "receipt_id": "ERP2-CROSS-TRACK-GIT-RECONCILIATION-20261013-001",
+  "classification": "READ-ONLY RECONCILIATION VERIFIED / SYNCHRONIZATION NOT AUTHORIZED",
+  "package_root": "20_Engineering_Workspace/FM02_CROSS_TRACK_GIT_RECONCILIATION_20261013_001",
+  "source_assets": 2,
+  "content_hash_readback": "2/2 PASS",
+  "product_repository": {"origin":"https://github.com/MissionTeam-AndyYang/ERP.git","main":"89b374109312720b3ff6669a9664fb0cf8f9a6ba","main_alignment":"ALIGNED","remote_readback":"VERIFIED"},
+  "product_collaboration_branch": {"remote_ahead_by":4,"synchronization_performed":false},
+  "canonical_monorepo": {"head":"f36d43a4b849c43e77013ec6b757c37433d88632","tree":"3005217b625776a9e29c588598b853dee7b1e85f","remote_configured":false,"common_merge_base_with_product":"NOT FOUND"},
+  "track_c_authority": "NOT VERIFIED",
+  "track_f_authority": "NOT VERIFIED",
+  "original_layer_limitations": "PRESERVED",
+  "deferred_fm02_tables": ["item_supplier_qualification","supplier_item_package","item_customer_qualification","item_uom","uom_conversion"],
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-CROSS-TRACK-GIT-RECONCILIATION-20261013-001",
+  "mutation_performed": false
+}

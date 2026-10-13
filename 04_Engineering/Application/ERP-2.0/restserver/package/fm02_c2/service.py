@@ -31,11 +31,11 @@ from flask import Flask, jsonify, request
 
 CUSTOMER_SCOPE_SENTINEL = "00000000-0000-0000-0000-000000000000"
 CUSTOMER_SCOPES = {"ANY_GENERAL_QUALIFIED_SUPPLIER", "SPECIFIC_SUPPLIER"}
-QUALIFICATION_STATUSES = {"DRAFT", "PENDING", "APPROVED", "ACTIVE", "EXPIRED", "REVOKED", "REJECTED"}
-CONVERSION_STATUSES = {"DRAFT", "PENDING", "APPROVED", "ACTIVE", "EXPIRED", "REVOKED", "REJECTED"}
+QUALIFICATION_STATUSES = {"DRAFT", "ACTIVE", "INACTIVE", "REJECTED", "SUPERSEDED"}
+CONVERSION_STATUSES = {"DRAFT", "ACTIVE", "INACTIVE", "REJECTED", "SUPERSEDED"}
 CONVERSION_TYPES = {"FIXED", "CATCH_WEIGHT"}
 ACTIVE_STATUSES = {"ACTIVE"}
-NON_CONFLICTING_STATUSES = {"REJECTED", "REVOKED", "EXPIRED"}
+NON_CONFLICTING_STATUSES = {"REJECTED", "INACTIVE", "SUPERSEDED"}
 
 
 def _error(status: int, field: str, message: str) -> dict[str, Any]:
@@ -359,7 +359,7 @@ class C2Service:
                     """SELECT * FROM item_customer_qualification
                     WHERE customer_ref=%s AND item_id=%s AND approval_scope=%s
                       AND supplier_qualification_scope_key=%s
-                      AND qualification_status NOT IN ('REJECTED','REVOKED','EXPIRED')
+                      AND qualification_status NOT IN ('REJECTED','INACTIVE','SUPERSEDED')
                       AND effective_from < COALESCE(%s,'9999-12-31 23:59:59.999999')
                       AND COALESCE(effective_to,'9999-12-31 23:59:59.999999') > %s
                     FOR UPDATE""",
@@ -437,7 +437,7 @@ class C2Service:
                 cursor.execute(
                     """SELECT * FROM uom_conversion
                     WHERE item_id=%s AND from_item_uom_id=%s AND to_item_uom_id=%s
-                      AND conversion_type=%s AND lifecycle_status NOT IN ('REJECTED','REVOKED','EXPIRED')
+                      AND conversion_type=%s AND lifecycle_status NOT IN ('REJECTED','INACTIVE','SUPERSEDED')
                       AND effective_from < COALESCE(%s,'9999-12-31 23:59:59.999999')
                       AND COALESCE(effective_to,'9999-12-31 23:59:59.999999') > %s
                     FOR UPDATE""",

@@ -13,6 +13,8 @@ if str(PACKAGE_ROOT) not in sys.path:
 from fm02_c2.service import (  # noqa: E402
     CUSTOMER_SCOPE_SENTINEL,
     C2Service,
+    CONVERSION_STATUSES,
+    QUALIFICATION_STATUSES,
     build_app,
     normalize_customer_qualification,
     resolve_item_specific_conversion,
@@ -43,6 +45,22 @@ def conversion_payload(**overrides):
     }
     payload.update(overrides)
     return payload
+
+
+def test_status_vocabulary_matches_frozen_migration_0005_contract():
+    expected = {"DRAFT", "ACTIVE", "INACTIVE", "REJECTED", "SUPERSEDED"}
+    assert QUALIFICATION_STATUSES == expected
+    assert CONVERSION_STATUSES == expected
+
+    for status in ("PENDING", "APPROVED", "EXPIRED", "REVOKED"):
+        _, customer_errors = normalize_customer_qualification(
+            customer_payload(qualification_status=status), "ITEM-1"
+        )
+        _, conversion_errors = validate_conversion_rule(
+            conversion_payload(lifecycle_status=status), "ITEM-1"
+        )
+        assert any(error["field"] == "qualification_status" for error in customer_errors)
+        assert any(error["field"] == "lifecycle_status" for error in conversion_errors)
 
 
 def test_customer_scope_normalizes_null_supplier_to_reserved_non_null_key():

@@ -1,0 +1,16 @@
+{
+  "receipt_id": "ERP2-FM02-PRODUCT-INTEGRATION-CANDIDATE-CUSTODY-20261013-001",
+  "directive": "CIO-GOV-ERP2-GIT-CONVERGENCE-20261013-001",
+  "classification": "CANDIDATE VERIFIED / NO REMOTE MUTATION",
+  "package_root": "20_Engineering_Workspace/FM02_PRODUCT_INTEGRATION_CANDIDATE_20261013_001",
+  "source_assets": 2,
+  "content_hash_readback": "2/2 PASS",
+  "product_baseline": {"repository":"ERP-2.0","branch":"main","commit":"89b374109312720b3ff6669a9664fb0cf8f9a6ba","tree":"3a965a0e6c90990927005896cca21bf55640bb48"},
+  "accepted_fm02_source": {"commit":"561b964d28aeecf228cadd7132bdeb7ca15f97c8","tree":"68c32300aa099b5b4ea69e26ace7887da5aa4bdc","closure":"6/6 MATCH"},
+  "candidate_commit": null,
+  "persistent_db_tests": "NOT RUN",
+  "track_c_source_authority": "NOT VERIFIED",
+  "track_f_source_authority": "NOT VERIFIED",
+  "remote_mutation": false,
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-PRODUCT-INTEGRATION-CANDIDATE-CUSTODY-20261013-001"
+}

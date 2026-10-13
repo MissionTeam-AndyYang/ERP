@@ -1,0 +1,18 @@
+{
+  "receipt_id": "ERP2-GIT-SOURCE-AUTHORITY-PREPARATION-20261013-001",
+  "directive": "CIO-GOV-ERP2-GIT-SOURCE-AUTHORITY-20261013-001",
+  "classification": "READ-ONLY SOURCE AUTHORITY PREPARATION VERIFIED / SYNCHRONIZATION NOT AUTHORIZED",
+  "package_root": "20_Engineering_Workspace/FM02_GIT_SOURCE_AUTHORITY_PREPARATION_20261013_001",
+  "source_assets": 2,
+  "content_hash_readback": "2/2 PASS",
+  "product_main": {"remote":"https://github.com/MissionTeam-AndyYang/ERP.git","commit":"89b374109312720b3ff6669a9664fb0cf8f9a6ba","alignment":"ALIGNED"},
+  "product_collaboration_branch": {"classification":"REMOTE_AHEAD","remote_ahead_by":4,"synchronization_performed":false},
+  "canonical_monorepo": {"head":"f36d43a4b849c43e77013ec6b757c37433d88632","remote_configured":false},
+  "fm02_product_remote_publication": "NOT VERIFIED",
+  "track_c_authority": "NOT VERIFIED",
+  "track_f_authority": "NOT VERIFIED",
+  "original_layer_mappings": "NOT RETRIEVABLE / ORIGINAL IDENTITY NOT VERIFIED where unresolved",
+  "synchronization_states": {"S0":"COMPLETE","S1":"PREPARED_NOT_AUTHORIZED","S2":"OWNER_DECISION_REQUIRED","S3":"BLOCKED","S4":"BLOCKED","S5":"PREPARED"},
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-GIT-SOURCE-AUTHORITY-PREPARATION-20261013-001",
+  "mutation_performed": false
+}

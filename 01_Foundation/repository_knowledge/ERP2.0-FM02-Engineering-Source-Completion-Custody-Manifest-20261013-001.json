@@ -1,0 +1,23 @@
+{
+  "receipt_id": "ERP2-FM02-ENGINEERING-SOURCE-COMPLETION-CUSTODY-20261013-001",
+  "correlation": "FM02-CENTRAL-SOURCE-COMPLETION-20261013-001",
+  "stable_retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-ENGINEERING-SOURCE-COMPLETION-CUSTODY-20261013-001",
+  "remote": "https://github.com/MissionTeam-AndyYang/ERP.git",
+  "branch": "codex/fm02-central-source-completion-20261013-001",
+  "commit": "41e070a58c668505b91e5bcece778a87fc9725c5",
+  "tree": "f18f6fa7d0a4f8a8b60af3464ed6bc8da77b3c71",
+  "engineering_task": "01a1333b-d9eb-7890-b900-c0af5cbf35ae",
+  "classification": "SOURCE CANDIDATE / NOT RELEASED",
+  "evidence": {
+    "report_sha256": "18ABC5A58C485718CD50BB63BD4797CA1438EC6E9173FDC86E58368C5833CB86",
+    "manifest_sha256": "76FC40970BB32BCF7A72D492334A18F61775AEBB810EC19B22DD69DA5441BD28",
+    "engineering_self_check_sha256": "7CFF0FCC5D4C18F4C581C9B07B598111A62012CD9DAC8E542EBD8720C8190CED",
+    "cto_review_sha256": "049592F89A19217A277CBBE5B830E03AFDBFCBA04F3D814D6544DA02C660F663"
+  },
+  "remote_readback": "PASS",
+  "blob_comparison": "PASS",
+  "missing_core_assets": [],
+  "prior_sprint01_receipt": "ERP2-KNOWLEDGE:ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-20261013-001",
+  "runtime_status": "NOT READY / PERSISTENT MARIADB AND API TESTS NOT RUN",
+  "release_status": "NOT AUTHORIZED"
+}

@@ -1,0 +1,25 @@
+{
+  "receipt_id": "ERP2-ENG-STANDARD-CUSTODY-20261013-001",
+  "directive": "CIO-GOV-ERP2-ENG-STANDARD-CONSOLIDATED-20261013-001",
+  "custodian": "Repository Office / Canonical ERP2.0 Knowledge Repository",
+  "package_root": "20_Engineering_Workspace/ERP2_ENG_STANDARD_HANDOFF_20261013_001",
+  "source_manifest": "20_Engineering_Workspace/ERP2_ENG_STANDARD_HANDOFF_20261013_001/MANIFEST-SHA256.json",
+  "source_manifest_sha256": "99703C8558BFB5AED9BAD8157F4C3ECD59DE1E29489D2568A8436F00CAA0301D",
+  "extracted_file_count": 30,
+  "hash_readback": "30/30 PASS",
+  "zip_container_sha256": "NOT VERIFIED; ZIP NOT AVAILABLE IN WORKSPACE",
+  "v1_reference": "ERP2-KNOWLEDGE:ERP2-PORTFOLIO-V1-REPOSITORY-CUSTODY-20261012-003",
+  "v1_1": {
+    "classification": "CIO CONTENT ACCEPTED / CANONICAL REGISTRATION VERIFIED",
+    "assets": 4
+  },
+  "v1_2": {
+    "classification": "CANDIDATE / CTO TECHNICAL CONFORMANCE PENDING / NORMATIVE REVIEW PENDING",
+    "core_and_domain_candidates": 5,
+    "templates": 18
+  },
+  "stable_retrieval": "ERP2-KNOWLEDGE:ERP2-ENG-STANDARD-CUSTODY-20261013-001",
+  "source_modified": false,
+  "canonical_main_modified": false,
+  "implementation_authorized": false
+}

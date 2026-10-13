@@ -1,0 +1,16 @@
+{
+  "receipt_id": "ERP2-FM02-KNOWLEDGE-HANDOVER-RETRIEVAL-20261013-001",
+  "directive": "CIO-GOV-ERP2-FM02-KNOWLEDGE-HANDOVER-20261013-001",
+  "classification": "LOCAL KNOWLEDGE HANDOVER = PASS",
+  "package_root": "20_Engineering_Workspace/FM02_KNOWLEDGE_HANDOVER_20261013_001",
+  "source_manifest": "FM02-KNOWLEDGE-HANDOVER-EVIDENCE-MANIFEST-20261013-001.json",
+  "source_manifest_sha256": "523D17EF0D93A462055C200338376691C7213D87546D8F7B1B53A4720E178560",
+  "artifact_count": 5,
+  "content_hash_readback": "5/5 PASS",
+  "missing_assets": [],
+  "linked_c1_receipt": "ERP2-KNOWLEDGE:ERP2-FM02-C1-EVIDENCE-CUSTODY-20261013-001",
+  "remote_engineer_handover": "NOT VERIFIED",
+  "v12_normative_acceptance": "CIO DECISION REQUIRED",
+  "implementation_authority": "NOT GRANTED",
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-KNOWLEDGE-HANDOVER-RETRIEVAL-20261013-001"
+}

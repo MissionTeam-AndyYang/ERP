@@ -1,0 +1,14 @@
+{
+  "receipt_id": "ERP2-FM02-CENTRAL-REPOSITORY-HANDOVER-20261013-001",
+  "classification": "LOCAL CUSTODY VERIFIED / CENTRAL REMOTE NOT VERIFIED",
+  "package_root": "20_Engineering_Workspace/FM02_CENTRAL_REPOSITORY_HANDOVER_20261013_001",
+  "asset_count": 4,
+  "content_hash_readback": "4/4 PASS",
+  "local_git": {"repository":"Canonical_ERP2.0_Monorepo","branch":"main","head":"9b777a6bc52685ce61a8927fb8bdd74aac951b97","tree":"5d65bd58132fa91b93dc593c666ea1d5654c704c","remote_configured":false},
+  "knowledge_index_readback": true,
+  "existing_c1_linkage": "ERP2-KNOWLEDGE:ERP2-FM02-C1-EVIDENCE-CUSTODY-20261013-001",
+  "original_layer_resolution": "NOT VERIFIED where current index cannot resolve original artifacts",
+  "remote_engineer_access": "NOT VERIFIED",
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-CENTRAL-REPOSITORY-HANDOVER-20261013-001",
+  "mutation_performed": false
+}

@@ -1,0 +1,50 @@
+{
+  "directive": "CIO-GOV-ERP2-FM02-C2-DB-FALLBACK-20261013-001",
+  "result": "ROUTE_A_BLOCKED / ROUTE_B_PLATFORM_ACCEPTANCE_REQUIRED / INDEPENDENT_TEST_PREPARATION_ACCEPTED",
+  "source_adoption": {
+    "task_identity": "01a13415-8e5e-7271-b407-9bc06fecde1e",
+    "executor_nickname": "Peirce",
+    "formal_engineering_task_id": null,
+    "formal_engineering_assignment_id": null,
+    "corrected_commit": "4324c31bf2e34a3faa1413bca14022cf6bb4e30a",
+    "corrected_tree": "8af3bd1c460db3923f6fc6487be7583ebda77367",
+    "source_tests": "16 passed",
+    "decision": "ADOPTION ACCEPT / SOURCE ONLY"
+  },
+  "route_a": {
+    "target_id": "ERP2-DEV-MARIADB-001",
+    "database": "erp2_functional_dev_001",
+    "endpoint": "127.0.0.1:3344",
+    "status": "BLOCKED",
+    "named_pipe_start": "ACCESS DENIED",
+    "dpapi_callability": "CRYPTOGRAPHIC OPERATION FAILED",
+    "sql_session": "NOT_ESTABLISHED",
+    "runtime": "STOPPED / LISTENER ABSENT",
+    "migration": "NOT_RUN"
+  },
+  "route_b": {
+    "status": "EVALUATED / NOT CREATED",
+    "target_id": "ERP2-FM02-C2-TEST-MARIADB-001",
+    "environment_class": "LOCAL_DEV_PHASE1_ISOLATED_NONPRODUCTION / SYNTHETIC_ONLY",
+    "database": "erp2_fm02_c2_test_001",
+    "endpoint": "127.0.0.1:3345",
+    "datadir": "20_Engineering_Workspace\\Database_Runtime\\ERP2-FM02-C2-TEST-MARIADB-001\\data",
+    "engine": "MariaDB 11.4.10",
+    "platform_owner_acceptance": "NOT_PRESENT",
+    "credential_provisioning": "NOT_PERFORMED",
+    "initialization": "NOT_PERFORMED",
+    "no_production_data_copy": true,
+    "no_cross_target_contact": true
+  },
+  "independent_test": {
+    "task_identity": "01a13415-bb8d-7b23-ad87-6bb7f853b587",
+    "executor_nickname": "Euler",
+    "status": "TEST ASSIGNMENT ACCEPTED FOR PREPARATION",
+    "terminal_verdict": "NOT_ISSUED"
+  },
+  "checkpoint_report": {
+    "path": "FM02-C2-DATABASE-ADMISSION-FALLBACK-AND-PERSISTENT-TEST-RESULT-20261013-004.md",
+    "sha256": "E1768C115401E4980231E21B3DC6D305E91E14945965907927B87AEABA84D998"
+  },
+  "boundary": "No target initialization, credential creation, persistent SQL session, migration, DDL, DML, grant change, authentication bypass, Production or unrelated-system contact."
+}

@@ -1,6 +1,8 @@
 -- FM-02 C2 migration 0005 downgrade.
 -- Rows must be removed/restored by an approved target-only rollback first.
 -- No destructive row deletion is performed here.
+-- The materialized customer scope key is removed with its table; no separate
+-- generated-column or trigger cleanup is required.
 
 DELIMITER //
 CREATE PROCEDURE fm02_c2_0005_down_guard()

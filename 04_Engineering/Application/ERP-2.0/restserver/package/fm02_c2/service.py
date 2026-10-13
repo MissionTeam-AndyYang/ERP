@@ -372,13 +372,14 @@ class C2Service:
                 cursor.execute(
                     """INSERT INTO item_customer_qualification
                     (customer_qualification_id,item_id,customer_ref,supplier_qualification_id,
-                     specification_id,approval_scope,supply_method,qualification_status,
+                     supplier_qualification_scope_key,specification_id,approval_scope,supply_method,qualification_status,
                      effective_from,effective_to,approved_by_role,approved_by_business_ref,
                      approval_evidence_ref,source_reference,provenance_note,correlation_id,
                      created_by_assignment_id,updated_by_assignment_id,created_at,updated_at,row_version)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,0)""",
+                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,0)""",
                     (
                         qualification_id, item_id, normalized["customer_ref"], normalized["supplier_qualification_id"],
+                        normalized["supplier_qualification_scope_key"],
                         normalized["specification_id"], normalized["approval_scope"], normalized["supply_method"],
                         normalized["qualification_status"], normalized["effective_from"], normalized["effective_to"],
                         normalized.get("approved_by_role"), normalized.get("approved_by_business_ref"),

@@ -87,9 +87,9 @@ CREATE TABLE item_customer_qualification (
   created_at DATETIME(6) NOT NULL,
   updated_at DATETIME(6) NOT NULL,
   row_version BIGINT UNSIGNED NOT NULL DEFAULT 0,
-  supplier_qualification_scope_key CHAR(36)
-    GENERATED ALWAYS AS
-      (COALESCE(supplier_qualification_id, '00000000-0000-0000-0000-000000000000')) STORED,
+  -- Option 1: the owning service materializes NULL as the reserved sentinel;
+  -- direct SQL bypasses are rejected by the equality CHECK below.
+  supplier_qualification_scope_key CHAR(36) NOT NULL,
   PRIMARY KEY (customer_qualification_id),
   UNIQUE KEY uq_item_customer_qualification_identity
     (customer_ref, item_id, approval_scope, supplier_qualification_scope_key, effective_from),
@@ -105,6 +105,14 @@ CREATE TABLE item_customer_qualification (
     FOREIGN KEY (specification_id, item_id)
     REFERENCES item_specification (specification_id, item_id)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
+  CONSTRAINT ck_item_customer_qualification_scope_key
+    CHECK (
+      (supplier_qualification_id IS NULL
+       AND supplier_qualification_scope_key = '00000000-0000-0000-0000-000000000000')
+      OR
+      (supplier_qualification_id IS NOT NULL
+       AND supplier_qualification_scope_key = supplier_qualification_id)
+    ),
   CONSTRAINT ck_item_customer_qualification_scope
     CHECK (
       (approval_scope = 'ANY_GENERAL_QUALIFIED_SUPPLIER'

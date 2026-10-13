@@ -78,6 +78,18 @@ def test_customer_scope_normalizes_null_supplier_to_reserved_non_null_key():
     assert normalized["supplier_qualification_scope_key"] == CUSTOMER_SCOPE_SENTINEL
 
 
+def test_customer_scope_normalizes_item_supplier_to_identical_non_null_key():
+    normalized, errors = normalize_customer_qualification(
+        customer_payload(
+            approval_scope="SPECIFIC_SUPPLIER",
+            supplier_qualification_id="SUP-1",
+        ),
+        "ITEM-1",
+    )
+    assert errors == []
+    assert normalized["supplier_qualification_scope_key"] == "SUP-1"
+
+
 def test_customer_scope_rejects_mismatched_supplier_scope_and_reserved_id():
     _, general_errors = normalize_customer_qualification(
         customer_payload(supplier_qualification_id="SUP-1"), "ITEM-1"
@@ -206,6 +218,9 @@ def test_customer_write_locks_item_before_relationship_and_returns_idempotent_re
     assert first_connection.commits == 1
     assert "FOR UPDATE" in first_connection.cursor_instance.executed[0][0]
     assert first_connection.cursor_instance.executed[0][0].startswith("SELECT item_id FROM item")
+    insert_sql, insert_params = first_connection.cursor_instance.executed[-1]
+    assert "supplier_qualification_scope_key" in insert_sql
+    assert CUSTOMER_SCOPE_SENTINEL in insert_params
 
     replay_connection = ScriptedConnection([{"item_id": "ITEM-1"}, {
         "customer_qualification_id": "CQ-1",

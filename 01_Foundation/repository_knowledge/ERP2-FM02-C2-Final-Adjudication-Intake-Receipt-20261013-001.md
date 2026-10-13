@@ -1,0 +1,33 @@
+# ERP2.0 FM-02 C2 Final Adjudication Intake Receipt
+
+**Receipt ID:** `ERP2-FM02-C2-FINAL-ADJUDICATION-INTAKE-20261013-001`
+
+**Knowledge URI:** `ERP2-KNOWLEDGE:ERP2-FM02-C2-FINAL-ADJUDICATION-INTAKE-20261013-001`
+
+## Result
+
+`PARTIAL INTAKE / REPORT READBACK VERIFIED / MANIFEST MISSING / CUSTODY NOT COMPLETED`
+
+## Verified Report
+
+- Path: `20_Engineering_Workspace/FM02_TEST_Evidence_20261013_006/FM-02-C2-FINAL-INDEPENDENT-TEST-ADJUDICATION-AND-REPOSITORY-CLOSURE-20261013-001.md`
+- Expected SHA-256: `690DE5AE05F1803FC43EEE873577700D33735C909B5A8E478BCCD132768B5D42`
+- Actual SHA-256: `690DE5AE05F1803FC43EEE873577700D33735C909B5A8E478BCCD132768B5D42`
+- Content GET/readback: `PASS`
+
+## Missing Required Manifest
+
+- Expected path: `20_Engineering_Workspace/FM02_TEST_Evidence_20261013_006/FM-02-C2-FINAL-INDEPENDENT-TEST-ADJUDICATION-MANIFEST-20261013-001.json`
+- Expected SHA-256: `78E0E8E2813C0FE9D1FE416A6AFC8FFDAF58A9602D39FC14FAB524D5CDECC5E5`
+- Actual result: `NOT FOUND`
+- Exact blocker: file does not exist at the supplied path; actual hash/readback cannot be computed.
+
+## Preserved Status
+
+The report's terminal disposition remains:
+
+`FM-02 C2 FINAL INDEPENDENT TEST ADJUDICATION & REPOSITORY CLOSURE = BLOCKED / INDEPENDENT TEST AND FINAL REPOSITORY READBACK NOT VERIFIED`
+
+No historical C2 evidence was overwritten. No new Parent, Sprint, schema, migration, runtime, or TEST task was created. No implementation or Production action occurred.
+
+**CUSTODY NOT COMPLETED — MANIFEST REQUIRED**

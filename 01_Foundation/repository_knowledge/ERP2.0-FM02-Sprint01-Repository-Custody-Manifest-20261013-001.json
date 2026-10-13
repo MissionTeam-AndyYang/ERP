@@ -1,0 +1,21 @@
+{
+  "receipt_id": "ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-20261013-001",
+  "stable_retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-SPRINT01-REPOSITORY-CUSTODY-20261013-001",
+  "custodian": "Repository Office / Knowledge Repository",
+  "source_repository": "20_Engineering_Workspace/FM02_Sprint01_Custody_20261012_001",
+  "branch": "custody/fm02-sprint01-20261012-001",
+  "commit": "aca980b0c2c300ac653ac1b72a6d038ed65bd4af",
+  "tree": "f475be067b018ee78e2cde9a0c73af843ef4a6cb",
+  "tracked_file_count": 20,
+  "primary_assets": {
+    "completion_report_sha256": "97012C3043F4A04B11E5A0DFE226D74E606AE2F56AD5BF8D469D2636511F8613",
+    "engineering_handover_sha256": "F5EE7257FE80E1D2E9915A15843EB6B8B9AF4D2249115B7F8275D3158874914D",
+    "evidence_manifest_sha256": "156B25CEC85C80D2CD5013577B75B36AF3EDE7A091EC210D455F6906768E15C6"
+  },
+  "readback": "PASS",
+  "missing_core_assets": [],
+  "classification": "CUSTODY VERIFIED / COMPLETE WITH CONDITIONS",
+  "historical_authorship": "NOT VERIFIED",
+  "release_or_production": "NOT AUTHORIZED",
+  "source_modification": "NOT PERFORMED"
+}

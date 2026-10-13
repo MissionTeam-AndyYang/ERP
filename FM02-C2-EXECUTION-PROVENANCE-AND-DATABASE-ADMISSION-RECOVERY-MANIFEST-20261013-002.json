@@ -1,0 +1,71 @@
+{
+  "directive": "CIO-GOV-ERP2-FM02-C2-EXECUTION-RECOVERY-20261013-001",
+  "result": "SOURCE_PRESERVED_PROVISIONAL / DATABASE_ADMISSION_BLOCKED / INDEPENDENT_TEST_PENDING",
+  "provenance": {
+    "formal_engineering_task_id": null,
+    "formal_engineering_assignment_id": null,
+    "execution_mode": "CTO_ORCHESTRATED_LOCAL_SUBAGENT_CONTEXTS",
+    "subagents": [
+      {
+        "id": "01a133ff-45d6-7683-b5c3-70dc78c09e0b",
+        "nickname": "Leibniz",
+        "scope": "migration source and migration contract tests"
+      },
+      {
+        "id": "01a133ff-468e-7ec1-ba4c-3cb172ac21cf",
+        "nickname": "Locke",
+        "scope": "backend service and bounded service tests"
+      }
+    ],
+    "organizational_engineering_acceptance": "NOT_VERIFIED",
+    "independent_engineering_review": "NOT_VERIFIED"
+  },
+  "source": {
+    "parent_commit": "41e070a58c668505b91e5bcece778a87fc9725c5",
+    "implementation_commit": "4c60ecce55941f861bb7d32db1071ee173660994",
+    "implementation_tree": "29b49939b28bab5552df87f4096ffc247b17f8cc",
+    "evidence_commit": "8b8c05b76a7727e239044a5248720a50a076da37",
+    "evidence_tree": "04da4d228aaf4757cbfbc783f43312ba1007e701",
+    "dirty_canonical_main_modified": false
+  },
+  "evidence": {
+    "recovery_report": {
+      "path": "FM02-C2-EXECUTION-PROVENANCE-AND-DATABASE-ADMISSION-RECOVERY-20261013-002.md",
+      "sha256": "81C8FFB08B9ECAE4963F410F4A5B7C4E92AB156D40B62E10564158D92CCF6A7C"
+    },
+    "prior_engineering_report": {
+      "path": "FM02-C2-ISOLATED-ENGINEERING-IMPLEMENTATION-RESULT-20261013-001.md",
+      "sha256": "120663A5A05F06FF02928747218881A59484BCA57265C4235548D3D3D076C18E"
+    },
+    "prior_manifest": {
+      "path": "FM02-C2-ISOLATED-IMPLEMENTATION-EVIDENCE-MANIFEST-20261013-001.json",
+      "sha256": "F4B9C2A0D6758D332DD771F7BEFB5DC9F16B54A9C6EC7AE96DBB76656EB63DA5"
+    },
+    "repository_receipt": "ERP2-FM02-C2-ISOLATED-IMPLEMENTATION-CUSTODY-20261013-001",
+    "repository_receipt_sha256": "337FE485D6B1BA7E813A9CD121684F17D83649F38576BB52C20CA6C6FB033F40"
+  },
+  "database_admission": {
+    "target_id": "ERP2-DEV-MARIADB-001",
+    "database": "erp2_functional_dev_001",
+    "endpoint": "127.0.0.1:3344",
+    "engine": "MariaDB 11.4.10",
+    "approved_start_script_sha256": "A1FF7AC8F6FEE9E4EAF58E97F3A7FA7512E240745BB6C802A564FB48A19E79CF",
+    "failure_1": "Create named pipe failed: Access is denied",
+    "failure_2": "ConvertTo-SecureString: Error occurred during a cryptographic operation",
+    "current_windows_identity": "SEATTLE\\andyy",
+    "dpapi_file_owner": "Seattle\\CodexSandboxOffline",
+    "sql_session": "NOT_ESTABLISHED",
+    "migration": "NOT_RUN",
+    "final_runtime_state": "DEV_RUNTIME_NOT_RUNNING=TRUE",
+    "status": "BLOCKED / CREDENTIAL CALLABILITY AND APPROVED START PROCEDURE"
+  },
+  "validation": {
+    "engineering_tests": "15 passed",
+    "independent_test": "NOT_DISPATCHED / ADMISSION GATE NOT PASSED",
+    "compileall": "PASS",
+    "persistent_ddl": "NOT_RUN"
+  },
+  "next_action": "Authorized local Platform/Database operator must restore target-bound DPAPI credential callability or provide an approved non-secret callable DEV credential path, then perform read-only admission under the approved target procedure.",
+  "secret_disclosure": false,
+  "scope_boundary": "No credential rotation, grant change, authentication bypass, schema/data mutation, Product-main merge, runtime integration, Release or Production action."
+}

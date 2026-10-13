@@ -48,9 +48,17 @@ def conversion_payload(**overrides):
 
 
 def test_status_vocabulary_matches_frozen_migration_0005_contract():
-    expected = {"DRAFT", "ACTIVE", "INACTIVE", "REJECTED", "SUPERSEDED"}
-    assert QUALIFICATION_STATUSES == expected
-    assert CONVERSION_STATUSES == expected
+    assert QUALIFICATION_STATUSES == {"DRAFT", "ACTIVE", "INACTIVE", "REJECTED", "SUPERSEDED"}
+    assert CONVERSION_STATUSES == {"DRAFT", "ACTIVE", "INACTIVE", "SUPERSEDED"}
+
+    _, customer_rejected_errors = normalize_customer_qualification(
+        customer_payload(qualification_status="REJECTED"), "ITEM-1"
+    )
+    _, conversion_rejected_errors = validate_conversion_rule(
+        conversion_payload(lifecycle_status="REJECTED"), "ITEM-1"
+    )
+    assert customer_rejected_errors == []
+    assert any(error["field"] == "lifecycle_status" for error in conversion_rejected_errors)
 
     for status in ("PENDING", "APPROVED", "EXPIRED", "REVOKED"):
         _, customer_errors = normalize_customer_qualification(

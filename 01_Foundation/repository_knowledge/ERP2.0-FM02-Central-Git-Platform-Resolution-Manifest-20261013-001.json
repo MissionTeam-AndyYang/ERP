@@ -1,0 +1,16 @@
+{
+  "receipt_id": "ERP2-FM02-CENTRAL-GIT-PLATFORM-RESOLUTION-20261013-001",
+  "directive": "CIO-GOV-ERP2-CENTRAL-GIT-FM02-RESOLUTION-20261013-001",
+  "classification": "LOCAL KNOWLEDGE CUSTODY VERIFIED / CENTRAL PLATFORM DECISION REQUIRED",
+  "package_root": "20_Engineering_Workspace/FM02_CENTRAL_GIT_PLATFORM_RESOLUTION_20261013_001",
+  "source_assets": 3,
+  "content_hash_readback": "3/3 PASS",
+  "local_git": {"branch":"main","head":"24c36b19271c0d8065737d3e1f695a0b1835d48a","tree":"6546a26947f785078c507a133fb1f7cc3dbe7cf4","remote_configured":false},
+  "original_layer_status": "NOT RETRIEVABLE where current index cannot resolve original identity",
+  "as_built_current_records": "RETRIEVABLE",
+  "deferred_tables": ["item_supplier_qualification","supplier_item_package","item_customer_qualification","item_uom","uom_conversion"],
+  "remote_commit_verification": "NOT VERIFIED",
+  "remote_engineer_access": "NOT VERIFIED",
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-CENTRAL-GIT-PLATFORM-RESOLUTION-20261013-001",
+  "mutation_performed": false
+}

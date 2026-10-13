@@ -1,0 +1,59 @@
+{
+  "directive": "CIO-GOV-ERP2-FM02-C2-PARALLEL-RECOVERY-20261013-001",
+  "result": "SOURCE_ADOPTION_ACCEPTED / DATABASE_ADMISSION_BLOCKED / TEST_PREPARATION_ACCEPTED",
+  "source_adoption": {
+    "task_identity": "01a13415-8e5e-7271-b407-9bc06fecde1e",
+    "executor_nickname": "Peirce",
+    "formal_engineering_task_id": null,
+    "formal_engineering_assignment_id": null,
+    "organizational_acceptance": "NOT_ESTABLISHED",
+    "pre_correction_commit": "4c60ecce55941f861bb7d32db1071ee173660994",
+    "corrected_commit": "4324c31bf2e34a3faa1413bca14022cf6bb4e30a",
+    "corrected_tree": "8af3bd1c460db3923f6fc6487be7583ebda77367",
+    "test_command": "python -m pytest 04_Engineering/Database/tests 04_Engineering/Application/ERP-2.0/restserver/tests/test_fm02_c2_service.py -q -p no:cacheprovider",
+    "test_result": "16 passed in 0.24s",
+    "decision": "ADOPTION ACCEPT / SOURCE ONLY"
+  },
+  "corrected_files": [
+    {
+      "path": "04_Engineering/Application/ERP-2.0/restserver/package/fm02_c2/service.py",
+      "sha256": "F3B6F0849F30226C580525D6EA4104B1757B292B82FEEE165BB0E01A17BECE01"
+    },
+    {
+      "path": "04_Engineering/Application/ERP-2.0/restserver/tests/test_fm02_c2_service.py",
+      "sha256": "2BBC968184914F2F4096A6BC50D866741F65EBA97D9CB0E3ABF55A66B079608B"
+    }
+  ],
+  "independent_test_preparation": {
+    "task_identity": "01a13415-bb8d-7b23-ad87-6bb7f853b587",
+    "executor_nickname": "Euler",
+    "status": "TEST ASSIGNMENT ACCEPTED FOR PREPARATION",
+    "terminal_verdict": "NOT_ISSUED",
+    "persistent_execution": "BLOCKED PENDING DATABASE ADMISSION PASS"
+  },
+  "database_admission": {
+    "target_id": "ERP2-DEV-MARIADB-001",
+    "database": "erp2_functional_dev_001",
+    "endpoint": "127.0.0.1:3344",
+    "datadir": "20_Engineering_Workspace\\Database_Runtime\\ERP2-DEV-MARIADB-001\\data",
+    "engine": "MariaDB 11.4.10",
+    "named_pipe_start": "BLOCKED / ACCESS DENIED",
+    "tcp_only_evaluation": "PROCESS AVAILABILITY OBSERVED / NOT ADMITTED",
+    "credential_callability": "BLOCKED / DPAPI CRYPTOGRAPHIC OPERATION FAILED",
+    "sql_session": "NOT_ESTABLISHED",
+    "revision_row_counts_grants": "NOT_VERIFIED",
+    "backup_reset_restore": "NOT_VERIFIED",
+    "migration": "NOT_RUN",
+    "runtime_state": "STOPPED / LISTENER ABSENT"
+  },
+  "historical_evidence": {
+    "prior_recovery_report_sha256": "81C8FFB08B9ECAE4963F410F4A5B7C4E92AB156D40B62E10564158D92CCF6A7C",
+    "prior_evidence_manifest_sha256": "555A4379532027B4CE3DCD591D5E3474644BFA4DFECBF90AED811414A101DDF5",
+    "prior_custody_receipt": "ERP2-FM02-C2-ISOLATED-IMPLEMENTATION-CUSTODY-20261013-001"
+  },
+  "checkpoint_report": {
+    "path": "FM02-C2-ENGINEERING-ADOPTION-AND-PLATFORM-RECOVERY-CHECKPOINT-20261013-003.md",
+    "sha256": "83ADFAD3BBF588923E2EB0FE450448B40208310BB9E13F97836E916EEBA073B1"
+  },
+  "scope_boundary": "No database, credential, runtime, canonical-main, Production, persistent migration, grant change, authentication bypass or unrelated-system contact."
+}

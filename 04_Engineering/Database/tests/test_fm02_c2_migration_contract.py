@@ -57,7 +57,8 @@ def test_0005_contains_non_null_customer_scope_key_and_correction_contract():
     sql = read("fm02_item_master_0005_c2_package_customer_conversion.sql")
     assert "supplier_qualification_scope_key CHAR(36)" in sql
     assert "GENERATED ALWAYS AS" in sql
-    assert "COALESCE(supplier_qualification_id, '00000000-0000-0000-0000-000000000000')" in sql
+    assert "IFNULL(supplier_qualification_id, '00000000-0000-0000-0000-000000000000')" in sql
+    assert "COALESCE(supplier_qualification_id, '00000000-0000-0000-0000-000000000000')" not in sql
     assert "uq_item_customer_qualification_identity" in sql
     assert "ck_item_customer_qualification_sentinel" in sql
     assert "SELECT the parent item row FOR UPDATE" in sql

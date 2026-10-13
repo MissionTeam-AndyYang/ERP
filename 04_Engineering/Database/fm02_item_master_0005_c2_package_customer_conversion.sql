@@ -88,10 +88,8 @@ CREATE TABLE item_customer_qualification (
   updated_at DATETIME(6) NOT NULL,
   row_version BIGINT UNSIGNED NOT NULL DEFAULT 0,
   supplier_qualification_scope_key CHAR(36)
-    -- MariaDB 11.4 rejects COALESCE here with ERROR 1901; IFNULL is the
-    -- equivalent two-argument deterministic NULL normalization.
     GENERATED ALWAYS AS
-      (IFNULL(supplier_qualification_id, '00000000-0000-0000-0000-000000000000')) STORED,
+      (COALESCE(supplier_qualification_id, '00000000-0000-0000-0000-000000000000')) STORED,
   PRIMARY KEY (customer_qualification_id),
   UNIQUE KEY uq_item_customer_qualification_identity
     (customer_ref, item_id, approval_scope, supplier_qualification_scope_key, effective_from),

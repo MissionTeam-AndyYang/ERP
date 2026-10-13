@@ -1,0 +1,15 @@
+{
+  "receipt_id": "ERP2-FM02-GIT-INTEGRATION-CLOSURE-PARTIAL-20261013-001",
+  "directive": "CIO-GOV-ERP2-FM02-GIT-INTEGRATION-CLOSURE-20261013-001",
+  "classification": "PARTIAL",
+  "package_root": "20_Engineering_Workspace/FM02_GIT_INTEGRATION_CLOSURE_20261013_001",
+  "source_assets": 2,
+  "content_hash_readback": "2/2 PASS",
+  "prior_candidate_receipt": "ERP2-KNOWLEDGE:ERP2-FM02-PRODUCT-INTEGRATION-CANDIDATE-CUSTODY-20261013-001",
+  "missing_elements": ["fresh Engineering closure task","0001/0002 predecessor and Sprint-01 API/test closure","Product app registration decision","target-bound DB test authority","branch-write authority"],
+  "persistent_db_tests": "NOT RUN",
+  "candidate_commit": null,
+  "remote_publication": false,
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-GIT-INTEGRATION-CLOSURE-PARTIAL-20261013-001",
+  "mutation_performed": false
+}

@@ -1,0 +1,57 @@
+{
+  "manifest_id": "FM02-CENTRAL-SOURCE-COMPLETION-MANIFEST-20261013-001",
+  "task_id": "FM02-CENTRAL-SOURCE-COMPLETION-01",
+  "directive": "CIO-GOV-ERP2-FM02-SOURCE-COMPLETION-20261013-001",
+  "executor": "Engineering C / Backend/API and source-integration capability",
+  "return_target": "CTO Office",
+  "candidate": {
+    "path": "C:\\Users\\andyy\\Desktop\\Codex-workspace\\projects\\ERP 2.0 Phase1\\_fm02int_source_completion_89b",
+    "branch": "codex/fm02-central-source-completion-20261013-001",
+    "parent_commit": "89b374109312720b3ff6669a9664fb0cf8f9a6ba",
+    "parent_tree": "3a965a0e6c90990927005896cca21bf55640bb48"
+  },
+  "accepted_sprint02_provenance": {
+    "commit": "561b964d28aeecf228cadd7132bdeb7ca15f97c8",
+    "tree": "68c32300aa099b5b4ea69e26ace7887da5aa4bdc",
+    "history_merged_into_product": false
+  },
+  "predecessor_lineage": {
+    "repository": "FM02_Sprint01_Custody_20261012_001",
+    "branch": "custody/fm02-sprint01-20261012-001",
+    "custody_commit": "aca980b0c2c300ac653ac1b72a6d038ed65bd4af",
+    "implementation_package_commit": "24f55ca"
+  },
+  "changed_files": [
+    {"path": "04_Engineering/Source_Archive/FM02_Sprint01_Implementation_20261012_001/migrations/fm02_item_master_0001.sql", "sha256": "68913C8468F242A328CBEAF79955FA6D51BB340E945A78A29D37AB3A8894DBF6", "classification": "Sprint-01 predecessor"},
+    {"path": "04_Engineering/Source_Archive/FM02_Sprint01_Implementation_20261012_001/migrations/fm02_item_master_0002_business_names.sql", "sha256": "F5F19CCE0911268ADB212F73980F15DACD9DCDA8FE162E5DA92B11D36A32DC49", "classification": "Sprint-01 predecessor"},
+    {"path": "04_Engineering/Source_Archive/FM02_Sprint01_Implementation_20261012_001/src/fm02_item_api.py", "sha256": "A76001E41997F85F88DDFDA052FEBFE79AF83FD845CFB26B0227F1D29F6F0F7D", "classification": "Sprint-01 API source"},
+    {"path": "04_Engineering/Source_Archive/FM02_Sprint01_Implementation_20261012_001/tests/test_fm02_item_api.py", "sha256": "53982CA32FF295D0EDB19948349C414C98B64D319C1EA22D8F13C5DD5BDC0775", "classification": "Sprint-01 API test source"},
+    {"path": "04_Engineering/Database/fm02_item_master_0003_integrity_foundation.sql", "sha256": "B748D7C8BC3EFFCD4A0A3B64FA71154C0240AF224D935BA3AD41485EA9A1E3DF", "classification": "accepted Sprint-02 source"},
+    {"path": "04_Engineering/Database/fm02_item_master_0003_integrity_foundation_down.sql", "sha256": "52A8DAE571DDE09F3E45B24723F0D8F6691D0E14AE484E63A5C835845118469F", "classification": "accepted Sprint-02 source"},
+    {"path": "04_Engineering/Application/ERP-2.0/restserver/package/fm02_foundation/foundation.py", "sha256": "1FA143C4199F0DC4713C2B40A53765A2FA7652D962281348105C3E5B396DA474", "classification": "accepted Sprint-02 source"},
+    {"path": "04_Engineering/Application/ERP-2.0/restserver/tests/test_fm02_foundation.py", "sha256": "6E6DB5B8143ED4BEDFEFC8C53B8B6803D8F8F71988245FFB0FD9D41D52B20BD2", "classification": "accepted Sprint-02 test source"},
+    {"path": "04_Engineering/evidence/FM02-IM-FOUNDATION-INTEGRITY-01-AS-BUILT-20261012-001.md", "sha256": "3DE83A90CEBF0319E37C02D6B39EE40C9FEB201BFAB5027B2E68F0EFF11D5C00", "classification": "accepted Sprint-02 evidence"},
+    {"path": "04_Engineering/evidence/FM02-IM-FOUNDATION-INTEGRITY-01-MANIFEST-20261012-001.json", "sha256": "E9804A6EA4F753FC72E3A82BF5E85748B15977FF157D46ADB8186316D733C867", "classification": "accepted Sprint-02 evidence"},
+    {"path": "04_Engineering/evidence/FM02-CENTRAL-SOURCE-COMPLETION-20261013-001.md", "classification": "Engineering self-check"},
+    {"path": "04_Engineering/evidence/FM02-CENTRAL-SOURCE-COMPLETION-MANIFEST-20261013-001.json", "classification": "exact changed-file manifest"}
+  ],
+  "checks": {
+    "sha256_readback": "PASS",
+    "python_ast_static_parse": "PASS",
+    "json_parse": "PASS",
+    "sql_source_consistency": "PASS",
+    "sensitive_data_review": "PASS",
+    "persistent_mariadb_tests": "NOT RUN",
+    "product_app_or_route_registration": "NOT MODIFIED",
+    "remote_push": "NOT ATTEMPTED"
+  },
+  "classification": {
+    "source_archival_candidate": "PASS",
+    "reproducible_fm02_engineering_candidate": "PASS WITH LIMITATIONS",
+    "product_rest_api_integration_candidate": "NOT READY",
+    "authorized_executable_runtime": "NOT READY"
+  },
+  "scope_exclusions": ["Product app.py/API registration", "runtime", "database execution", "schema beyond named migrations", "database grants", "Production", "Message Bus", "Track C", "Track F"],
+  "commit_hash": null,
+  "manifest_sha256_scope": "This manifest intentionally does not embed its own digest. The final source-only commit hash is reported after Git readback."
+}

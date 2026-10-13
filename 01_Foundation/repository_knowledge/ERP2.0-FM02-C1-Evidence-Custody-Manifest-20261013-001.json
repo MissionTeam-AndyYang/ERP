@@ -1,0 +1,21 @@
+{
+  "receipt_id": "ERP2-FM02-C1-EVIDENCE-CUSTODY-20261013-001",
+  "directive": "CIO-GOV-ERP2-ENG-V12-FM02-C1-CONSOLIDATED-20261013-002",
+  "classification": "CUSTODY VERIFIED - DOCUMENTATION AND TRACEABILITY ONLY",
+  "package_root": "20_Engineering_Workspace/FM02_C1_Evidence_Completion_20261013_001",
+  "source_manifest": "FM02-C1-EVIDENCE-MANIFEST-20261013-001.json",
+  "source_manifest_sha256": "B0FFFA59D37B90D251449F8CEB0B0D94F7ADFBBC0712095AA878F1FFA328A42C",
+  "asset_count": 20,
+  "hash_readback": "20/20 PASS",
+  "missing_assets": [],
+  "independent_test": {"result":"6 passed","downgrade_reapply":"INDEPENDENTLY_PERFORMED","durable_assignment_metadata":"NOT EXPOSED"},
+  "linked_sprint02_receipt": "ERP2-KNOWLEDGE:ERP2-FM02-SPRINT02-FOUNDATION-INTEGRITY-CUSTODY-20261012-001",
+  "template_count_correction": {"current_local":19,"prior_repository_summary":18,"reason":"metadata/count reconciliation; content unchanged"},
+  "v1_reference": "ERP2-KNOWLEDGE:ERP2-PORTFOLIO-V1-REPOSITORY-CUSTODY-20261012-003",
+  "v1_1_reference": "ERP2-KNOWLEDGE:ERP2-ENG-STANDARD-CUSTODY-20261013-001",
+  "retrieval_reference": "ERP2-KNOWLEDGE:ERP2-FM02-C1-EVIDENCE-CUSTODY-20261013-001",
+  "source_modified": false,
+  "database_modified": false,
+  "runtime_modified": false,
+  "github_custody_claimed": false
+}

@@ -35,3 +35,13 @@ Directive: `ERP2.0-CIO-GOV-FM02-SPRINT01-DOCUMENT-COMPLETION-20261016-104`
 `SPRINT02_ENTRY=NOT_READY`
 
 The remaining status is caused by explicit unresolved Product/domain scope, dependency-complete API/UI validation, centralized convention ownership and remote Git authorization—not by an unperformed documentation review. No Sprint 2 code was added by this package.
+
+## Addendum 105A registration disposition
+
+The authoritative Repository Knowledge index was located at `Canonical_ERP2.0_Monorepo/01_Foundation/repository_knowledge/Repository-Knowledge-Index-20261010-001.md`. It is maintained in a separate canonical repository, and no direct authorized Office-to-Office write/readback route was available from this delivery workspace. A single relay package was prepared at `docs/fm02/FM02_SPRINT01_REPOSITORY_KNOWLEDGE_REGISTRATION_RELAY_20261016_105A.md`.
+
+`REPOSITORY_KNOWLEDGE_REGISTRATION=HOLD`
+
+`REPOSITORY_KNOWLEDGE_READBACK=HOLD`
+
+No registration, business approval, standard activation, remote Git delivery or Sprint 2 authorization is inferred from the relay package.

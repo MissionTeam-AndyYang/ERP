@@ -29,4 +29,15 @@ Detailed requirement mapping is in `FM02_SPRINT01_TRACEABILITY_MATRIX_20261016.m
 `CODING_CONVENTION=PARTIAL`
 `SPRINT02_ENTRY=NOT_READY`
 
+## Addendum 105A — Repository Knowledge closure
+
+Registration relay: `docs/fm02/FM02_SPRINT01_REPOSITORY_KNOWLEDGE_REGISTRATION_RELAY_20261016_105A.md`.
+
+The authoritative index is outside this delivery repository at `Canonical_ERP2.0_Monorepo/01_Foundation/repository_knowledge/Repository-Knowledge-Index-20261010-001.md`. No authorized direct write route or Repository Office readback was available in this task, so no registration was claimed and no competing index was created.
+
+`REPOSITORY_KNOWLEDGE_REGISTRATION=HOLD`
+`REPOSITORY_KNOWLEDGE_READBACK=HOLD`
+
+The Sprint 1 scope is documentation authoring, reconciliation, Coding Convention, local Git commit and Repository Knowledge handoff. Missing dependency installation, runtime tests, live DB access and GitHub push remain later-sprint activities and are not Sprint 1 document-review failures.
+
 The package is ready for formal review and local documentation commit. It is not a claim that missing Product decisions, dependency-complete test runs, remote Git custody or live database evidence have been completed.

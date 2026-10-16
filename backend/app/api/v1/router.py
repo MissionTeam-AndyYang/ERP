@@ -2,6 +2,7 @@ from flask import Blueprint
 
 from app.api.v1.endpoints import (
     batch_numbers,
+    fm02_c2,
     goods_receipt_notes,
     health,
     inventory_records,
@@ -18,5 +19,6 @@ api_router.register_blueprint(purchase_requests.router, url_prefix="/purchase-re
 api_router.register_blueprint(purchase_orders.router, url_prefix="/purchase-orders")
 api_router.register_blueprint(goods_receipt_notes.router, url_prefix="/goods-receipt-notes")
 api_router.register_blueprint(batch_numbers.router, url_prefix="/batch-numbers")
+api_router.register_blueprint(fm02_c2.router, url_prefix="/fm02")
 api_router.register_blueprint(inventory_records.router, url_prefix="/inventory-records")
 api_router.register_blueprint(workflows.router, url_prefix="/workflows")

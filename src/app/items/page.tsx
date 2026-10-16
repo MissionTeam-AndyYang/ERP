@@ -4,6 +4,7 @@ import { AlertTriangle, Building2, Boxes, Eye, Link2, Loader2, PackageCheck, Ref
 import { useEffect, useMemo, useState } from "react";
 import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
+import { C2ReferencePanel } from "@/components/items/c2-reference-panel";
 import { ModuleHero } from "@/components/common/module-hero";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { SupportEmptyState } from "@/components/common/support-empty-state";
@@ -327,12 +328,14 @@ function DetailPanel({
   target,
   data,
   isLoading,
-  error
+  error,
+  dataSourceMode
 }: {
   target?: ItemMasterDetailTarget;
   data?: ItemMasterDetailData;
   isLoading: boolean;
   error?: string;
+  dataSourceMode: DataSourceMode;
 }) {
   return (
     <aside className="rounded-lg border border-border bg-white p-4">
@@ -414,6 +417,7 @@ function DetailPanel({
                 <SupportEmptyState title="沒有近期批號" description="目前 API 回傳近期批號清單為空。" />
               )}
             </section>
+            <C2ReferencePanel itemId={data.item.itemNo} dataSourceMode={dataSourceMode} />
           </div>
         ) : null}
 
@@ -696,7 +700,13 @@ export default function ItemsPage() {
             </div>
           </section>
 
-          <DetailPanel target={detailTarget} data={detailData} isLoading={isDetailLoading} error={detailError} />
+          <DetailPanel
+            target={detailTarget}
+            data={detailData}
+            isLoading={isDetailLoading}
+            error={detailError}
+            dataSourceMode={dataSourceMode}
+          />
         </div>
 
         <section className="grid gap-4 md:grid-cols-3">

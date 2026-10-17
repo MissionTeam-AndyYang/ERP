@@ -40,13 +40,11 @@ Current CF-02 evidence to register after Repository Office review:
 
 - Project-local setup completed: `npm ci`, `backend/.venv`, editable backend
   development dependencies.
-- Quality result: 3 PASS / 2 FAIL / 0 UNAVAILABLE. Frontend build and backend
-  pytest pass; frontend lint and backend Ruff fail on existing source-level
-  findings.
+- Quality result: 5 PASS / 0 FAIL / 0 UNAVAILABLE. Frontend lint/build and
+  backend Ruff/pytest pass after bounded corrections.
 - Additional deterministic results: FM-02 migration contract 6/6 PASS;
-  FM-02 C2 service 11/11 PASS; direct TypeScript check reports five existing
-  target/downlevel-iteration errors; no frontend component-test framework is
-  configured in the repository package scripts.
+  FM-02 C2 service 11/11 PASS; direct TypeScript PASS; frontend component
+  suite 6/6 PASS using project-local Vitest/Testing Library mocks.
 - Coding convention approval remains separate and is requested in
   `docs/engineering/CROSS_MODULE_CODING_CONVENTION_APPROVAL_REQUEST_20261017.md`.
 

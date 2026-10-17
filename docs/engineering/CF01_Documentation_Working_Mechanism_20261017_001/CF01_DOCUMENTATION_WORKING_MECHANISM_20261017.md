@@ -1,10 +1,12 @@
 # CF-01 Documentation Working Mechanism
 
 Mechanism ID: `ERP2-CF01-DOC-WORKING-MECHANISM-20261017-001`
-Owner: CF-01 technical executor, subject to parent review
+Version: `v1.1 / 2026-10-17`
+Owner: Repository Office (custody, lifecycle, registration and maintenance); CTO Office (technical review); CIO Governance (cross-office policy approval)
 Repository scope: shared ERP2.0 documentation control for FM-01, FM-02 and future modules; demonstrated in `FM02_C2_Implementation_20261013_001`
 Created: 2026-10-17
-Status: `DRAFT_FOR_PARENT_REVIEW`
+Status: `ACTIVE_BOUNDED`
+Decision reference: `ERP2.0-CIO-GOV-SHARED-FOUNDATION-DECISION-AND-EXECUTION-20261017-119`
 
 ## 1. Purpose and non-duplication rule
 

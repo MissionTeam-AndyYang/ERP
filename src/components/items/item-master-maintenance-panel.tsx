@@ -34,6 +34,17 @@ import type {
 } from "@/types/item-master-governance";
 import { ITEM_MASTER_CATEGORIES, ITEM_MASTER_LIFECYCLE_ACTIONS } from "@/types/item-master-governance";
 
+const LIFECYCLE_STATUS_BY_ACTION: Record<
+  ItemMasterLifecycleAction,
+  Exclude<ItemMasterLifecycleStatus, "DRAFT">
+> = {
+  ACTIVATE: "ACTIVE",
+  BLOCK: "BLOCKED",
+  INACTIVATE: "INACTIVE",
+  SUPERSEDE: "SUPERSEDED",
+  RETIRE: "RETIRED"
+};
+
 export type ItemMasterMaintenanceTarget = {
   itemId: string;
   itemCode: string;
@@ -314,25 +325,28 @@ export function ItemMasterMaintenancePanel({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setError(undefined);
-    setNotice(undefined);
-    setFieldErrors({});
-    setConversionLookup(undefined);
-    setChangeReason("");
-    setLifecycleAction(undefined);
-    setBusinessActorType("BUSINESS");
-    setBusinessActorRef("");
-    setAccountableApprovalRole("");
-    setDelegatedAuthorizationRef("");
-    setReentryReviewEvidenceRef("");
-    setSuccessorRelationshipId("");
-    setDraft(draftFromGovernance(undefined, target));
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setError(undefined);
+      setNotice(undefined);
+      setFieldErrors({});
+      setConversionLookup(undefined);
+      setChangeReason("");
+      setLifecycleAction(undefined);
+      setBusinessActorType("BUSINESS");
+      setBusinessActorRef("");
+      setAccountableApprovalRole("");
+      setDelegatedAuthorizationRef("");
+      setReentryReviewEvidenceRef("");
+      setSuccessorRelationshipId("");
+      setDraft(draftFromGovernance(undefined, target));
+      setIsLoading(Boolean(target));
+      if (!target) setGovernance(undefined);
+    });
     if (!target) {
-      setGovernance(undefined);
       return () => { cancelled = true; };
     }
 
-    setIsLoading(true);
     getItemMasterGovernance(target.itemId, dataSourceMode).then((result) => {
       if (cancelled) return;
       setIsLoading(false);
@@ -555,13 +569,7 @@ export function ItemMasterMaintenancePanel({
     const result = await submitItemLifecycleAction(target.itemId, {
       request_id: createIdempotencyKey(),
       idempotency_key: createIdempotencyKey(),
-      to_status: {
-        ACTIVATE: "ACTIVE",
-        BLOCK: "BLOCKED",
-        INACTIVATE: "INACTIVE",
-        SUPERSEDE: "SUPERSEDED",
-        RETIRE: "RETIRED"
-      }[lifecycleAction],
+      to_status: LIFECYCLE_STATUS_BY_ACTION[lifecycleAction],
       reason: lifecycleReason.trim(),
       business_actor_type: businessActorType,
       business_actor_ref: businessActorRef.trim(),

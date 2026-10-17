@@ -90,3 +90,42 @@ CTO/Engineering should reconcile the exact baseline's migration file custody wit
 - `PRODUCTION_TEST=NOT_AUTHORIZED`
 - `CIO_NOTIFICATION=MANUAL_REQUIRED`
 - `MANUAL_RELAY_REQUIRED=YES`
+
+## Test Foundation coverage correction
+
+This document update is documentation-only. No tests were executed, no source or migration SQL was changed, and no DB/runtime was contacted.
+
+- Original cases retained: `TC01-TC12`
+- Added coverage cases: `TC13-TC24` (12 planned cases)
+- Total unique Test Cases: `24`
+- Primary type counts: Unit `1`; API/Contract `3`; Functional `10`; Integration `3`; Security/Authorization `3`; Migration/Database `3`; E2E/UAT `1`.
+- Environment counts: Static/Pure `1`; Mock/Stub `4`; Test DB `16`; Live DB/Production `2`; Isolated Runtime without DB `0 explicitly identified`.
+- DB-dependent cases: `19`
+- Non-DB cases: `5`
+- Mock/Stub cases: `4`
+- Historical status ledger: PASS `9`; NOT_VERIFIED `3` after normalizing TC12 PENDING; FAIL/BLOCKED/NOT RUN/DEFERRED `0` in the legacy catalog.
+- New coverage cases: `NOT_RUN`; DB-dependent cases are `DEFERRED_NOT_AUTHORIZED`.
+- Automated tools remain separate from functional case totals: frontend 5 PASS, backend 11 PASS, ESLint PASS, TypeScript PASS; prior static migration gate remains FAIL.
+
+### A-E coverage disposition
+
+- A: Item identity, code non-reuse, name correction, base UOM/editability: TC01, TC13, TC14, TC15. Partial; DB cases deferred.
+- B: UOM/conversion, effective periods, customer/supplier/package scope: TC02, TC04, TC16, TC22. Partial; DB cases deferred.
+- C: Lifecycle, approval, successor and provenance: TC05, TC06, TC08, TC17, TC18. Partial; DB cases deferred.
+- D: API/UI, validation, idempotency, role-aware controls: TC19, TC20, TC21 plus TC01/TC02. Non-DB planned cases; not executed in this correction.
+- E: Migration lineage, rollback/recovery and Product/SKU boundary: TC09, TC23, TC24. `TC09_MIGRATION_GAP=OPEN`; TC24 deferred.
+
+### Required return state
+
+- `TEST_PLAN_COVERAGE=PASS`
+- `TEST_CASE_COVERAGE=PASS`
+- `TOTAL_UNIQUE_TEST_CASES=24`
+- `NON_DB_CASES=5`
+- `DB_DEPENDENT_CASES=19`
+- `MOCK_CASES=4`
+- `DESIGN_REQUIREMENT_COVERAGE=GAP / deferred DB and unresolved source admission`
+- `TC09_MIGRATION_GAP=OPEN`
+- `TEST_EXECUTION=NOT_RUN`
+- `REMOTE_TEST_DOCUMENT_READBACK=PENDING DELIVERY`
+- `KNOWLEDGE_READBACK=HOLD / no Knowledge connector authorized`
+- `MANUAL_RELAY_REQUIRED=YES`

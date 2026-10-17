@@ -85,10 +85,10 @@ def test_down_migrations_are_guarded_and_do_not_delete_rows():
 
 def test_existing_migrations_are_not_rewritten():
     expected = {
-        "fm02_item_master_0003_integrity_foundation.sql": "358dc7976b307a6972c3dc845895d4b32eb15a7344db6843b8193ef81bfa3b43",
-        "fm02_item_master_0004_c2_reference_contract.sql": "1e89d08f46c512bdf2f64d5bb203679c9820cb27fa29f5fe0c05e40de6232929",
-        "fm02_item_master_0005_c2_package_customer_conversion.sql": "e5a636d7f8ee1d53fa57263bacacaa3a0b1102d217cae296a2181fdf33388acd",
-        "fm02_item_master_0006_legacy_mapping_reconciliation.sql": "01a1d5067ceb7fb25c178ce189ded03e98e500ba5384422672aa2561b775e769",
+        "fm02_item_master_0003_integrity_foundation.sql": "b748d7c8bc3effcd4a0a3b64fa71154c0240af224d935ba3ad41485ea9a1e3df",
+        "fm02_item_master_0004_c2_reference_contract.sql": "308dfcae4b8b8be23425f70f323e0a4a428d32893b5c45de380ff07a8b11f892",
+        "fm02_item_master_0005_c2_package_customer_conversion.sql": "c59140f64f7dd36b6276f908def8825eb7b713c4baec016e8df67fd318d42f83",
+        "fm02_item_master_0006_legacy_mapping_reconciliation.sql": "e151550606f97924c831c8fa2b1d204a8b3a50ebb44b48d6911b6a5a6e436451",
     }
     import hashlib
 

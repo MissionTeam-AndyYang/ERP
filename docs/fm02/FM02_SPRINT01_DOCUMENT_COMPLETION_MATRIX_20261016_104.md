@@ -9,18 +9,18 @@ Date: 2026-10-17
 
 | Document ID | Actual Path | Reviewed | Corrections Completed | Git Commit | Final Status |
 | --- | --- | --- | --- | --- | --- |
-| D01 | `docs/fm02/FM02_SPRINT01_DOCUMENTATION_BASELINE_20261016.md` §D01 | CTO + source evidence review | Full Option A scope, classifications, business decisions and exclusions reconciled | This closure commit | PARTIAL — Product/owner decisions remain |
-| D02 | same baseline §D02 | CTO + source review | Full Item aggregate, Product/SKU dependency boundary and architecture ownership reconciled | This closure commit | PARTIAL — relationship authority remains open |
-| D03 | same baseline §D03; `04_Engineering/Database/` migrations 0001–0006 | CTO + migration/source review | Full source set and C2 physical boundary reconciled; no live readback claimed | This closure commit | PARTIAL — physical expansion not authorized |
-| D04 | same baseline §D04; forward/down migration pairs | CTO + source review | 0001–0006 sequence, zero-row gate, mapping and non-guessing rules reconciled | This closure commit | COMPLETE for documentation / live execution HOLD |
-| D05 | same baseline §D05; backend/API source paths | CTO + Engineering evidence | Foundation and C2 routes, boundaries and unverified runtime states reconciled | This closure commit | PARTIAL — dependency-complete runtime validation open |
-| D06 | same baseline §D06; `src/app/items/` and C2 UI source | CTO + frontend evidence | Full Option A UI gaps, mock/live distinction and Product acceptance needs recorded | This closure commit | PARTIAL — Product/Frontend acceptance open |
-| D07 | same baseline §D07; shared design system paths | CTO + source review | Shared CSS/design-system reuse and runtime validation limits reconciled | This closure commit | COMPLETE for specification / build verification HOLD |
-| D08 | same baseline §D08 | CTO + governance/source review | Office responsibilities, authority boundaries and unresolved role ownership recorded | This closure commit | PARTIAL — formal appointments/business matrix open |
-| D09 | same baseline §D09; `docs/fm02/FM02_C2_OFFLINE_TEST_PLAN_20261016.md` | CTO + prior Independent TEST evidence | Full Option A test inventory and evidence vocabulary reconciled | This closure commit | PARTIAL — dependency/live runs remain separate |
+| D01 | `docs/fm02/FM02_SPRINT01_DOCUMENTATION_BASELINE_20261016.md` §D01 | CTO + source evidence review | Full Option A scope, classifications, business decisions and exclusions reconciled | `a146004` | PARTIAL — Product/owner decisions remain |
+| D02 | same baseline §D02 | CTO + source review | Full Item aggregate, Product/SKU dependency boundary and architecture ownership reconciled | `a146004` | PARTIAL — relationship authority remains open |
+| D03 | same baseline §D03; `04_Engineering/Database/` migrations 0001–0006 | CTO + migration/source review | Full source set and C2 physical boundary reconciled; no live readback claimed | `a146004` | PARTIAL — physical expansion not authorized |
+| D04 | same baseline §D04; forward/down migration pairs | CTO + source review | 0001–0006 sequence, zero-row gate, mapping and non-guessing rules reconciled | `a146004` | COMPLETE for documentation / live execution HOLD |
+| D05 | same baseline §D05; backend/API source paths | CTO + Engineering evidence | Foundation and C2 routes, boundaries and unverified runtime states reconciled | `a146004` | PARTIAL — dependency-complete runtime validation open |
+| D06 | same baseline §D06; `src/app/items/` and C2 UI source | CTO + frontend evidence | Full Option A UI gaps, mock/live distinction and Product acceptance needs recorded | `a146004` | PARTIAL — Product/Frontend acceptance open |
+| D07 | same baseline §D07; shared design system paths | CTO + source review | Shared CSS/design-system reuse and runtime validation limits reconciled | `a146004` | COMPLETE for specification / build verification HOLD |
+| D08 | same baseline §D08 | CTO + governance/source review | Office responsibilities, authority boundaries and unresolved role ownership recorded | `a146004` | PARTIAL — formal appointments/business matrix open |
+| D09 | same baseline §D09; `docs/fm02/FM02_C2_OFFLINE_TEST_PLAN_20261016.md` | CTO + prior Independent TEST evidence | Full Option A test inventory and evidence vocabulary reconciled | `a146004` | PARTIAL — dependency/live runs remain separate |
 | D10 | `docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md` | CTO + engineering source review | Shared FM-01/FM-02/future-module applicability confirmed; status remains PROPOSED | No source correction required | PARTIAL — Repository Office standard custody/approval open |
-| D11 | same baseline §D11; `README.md`, `CONTRIBUTING.md` | CTO + source review | Tooling, environment, operations and prohibited actions reconciled | This closure commit | COMPLETE for documentation / runtime dependencies HOLD |
-| D12 | same baseline §D12; local Git records | CTO + Git/source review | Local custody, branch, untracked evidence and no-remote limitation recorded | This closure commit | PARTIAL — authorized remote/readback/push unavailable |
+| D11 | same baseline §D11; `README.md`, `CONTRIBUTING.md` | CTO + source review | Tooling, environment, operations and prohibited actions reconciled | `a146004` | COMPLETE for documentation / runtime dependencies HOLD |
+| D12 | same baseline §D12; local Git records | CTO + Git/source review | Local custody, branch, untracked evidence and no-remote limitation recorded | `a146004` | PARTIAL — authorized remote/readback/push unavailable |
 
 ## Supporting records
 

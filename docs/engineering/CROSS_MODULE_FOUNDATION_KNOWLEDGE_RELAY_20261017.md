@@ -18,7 +18,7 @@ Canonical index to reuse:
 | --- | --- | --- | --- | --- |
 | `ERP2-CF01-DOC-WORKING-MECHANISM-20261017-001` | CF-01 Documentation Working Mechanism | `docs/engineering/CF01_Documentation_Working_Mechanism_20261017_001/` | WORKING_MECHANISM / SHARED | ACTIVE_BOUNDED after review |
 | `ERP2-CF02-ENGINEERING-FOUNDATION-20261017-001` | CF-02 Shared Engineering Foundation | `engineering_foundation/` and `docs/engineering/cf02_shared_engineering_foundation.md` | FOUNDATION / SHARED | ACTIVE_BOUNDED after review |
-| `ERP2-CF02-OFFLINE-VERIFICATION-20261017-001` | CF-02 Offline Verification Report | `docs/engineering/cf02_offline_verification_20261017.md` | VALIDATION / EVIDENCE | PARTIAL — four tools unavailable |
+| `ERP2-CF02-OFFLINE-VERIFICATION-20261017-001` | CF-02 Offline Verification Report | `docs/engineering/cf02_offline_verification_20261017.md` | VALIDATION / EVIDENCE | PARTIAL — 3 PASS / 2 FAIL / 0 UNAVAILABLE; source findings remain |
 | `ERP2-CROSS-MODULE-FOUNDATION-DELIVERY-20261017-001` | Cross-Module Foundation Delivery | `docs/engineering/CROSS_MODULE_FOUNDATION_DELIVERY_20261017.md` | REVIEW / DELIVERY | PARTIAL |
 
 ## Required readback

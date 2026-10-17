@@ -81,15 +81,20 @@ CTO/Engineering should reconcile the exact baseline's migration file custody wit
 - `TEST_PLAN=APPROVED`
 - `TEST_CASES=APPROVED`
 - `MIGRATION_TEST_BASELINE=RECONCILED / SOURCE_ADMISSION_GAP; EXECUTION HOLD`
-- `NON_DB_TEST_EXECUTION=COMPLETE`
-- `NON_DB_TEST_VERDICT=FAIL`
-- `TEST_REPORT=COMPLETE`
+- `NON_DB_CASES_EXECUTED=4`
+- `NON_DB_CASES_PASS=1` (`TC21`)
+- `NON_DB_CASES_FAIL=0`
+- `NON_DB_CASES_BLOCKED=3` (`TC19`, `TC20`, `TC23`)
+- `NON_DB_TEST_EXECUTION=PARTIAL`
+- `NON_DB_TEST_VERDICT=PARTIAL`
+- `TEST_REPORT=UPDATED`
 - `REMOTE_TEST_DOCUMENT_READBACK=PENDING DELIVERY READBACK`
 - `KNOWLEDGE_READBACK=HOLD / NO KNOWLEDGE CONNECTOR AUTHORIZED`
 - `DB_DEPENDENT_TEST=DEFERRED_NOT_AUTHORIZED`
 - `PRODUCTION_TEST=NOT_AUTHORIZED`
 - `CIO_NOTIFICATION=MANUAL_REQUIRED`
 - `MANUAL_RELAY_REQUIRED=YES`
+- `TC09_STATIC_RETEST=BLOCKED until source admission`
 - `DESIGN_TO_TEST_COVERAGE=GAP / Section 9.E is undefined in the approved Design Spec`
 - `TEST_PLAN_DESIGN=APPROVED`
 - `TEST_CASE_DESIGN=APPROVED`
@@ -97,10 +102,28 @@ CTO/Engineering should reconcile the exact baseline's migration file custody wit
 - `AUTHORIZED_NON_DB_EXECUTABLE_CASES=4` (`TC19`, `TC20`, `TC21`, `TC23`)
 - `DB_DEFERRED_CASES=19`
 - `TEST_EXECUTION=NOT_AUTHORIZED`
+- `TEST_EVIDENCE_CUSTODY=PASS / TC21 output retained; blocked cases have explicit no-command records`
+- `DB_DEPENDENT_TEST=NOT_AUTHORIZED`
+- `LIVE_DATABASE_VALIDATION=NOT_RUN`
+
+## Authorized non-DB execution update — 2026-10-18
+
+This update records the bounded Independent TEST execution authorized for TC19, TC20, TC21 and TC23. No Product source, Test Plan, Test Cases, database, SQL, migration, credentials or live route was changed or contacted.
+
+| Case | Result | Source/environment | Command / evidence | Run ID |
+|---|---|---|---|---|
+| `TC19_CREATE_EDIT_API_VALIDATION` | `BLOCKED / NOT RUN` | No authorized non-DB contract stub exists; referenced foundation API is DB-bound | No command executed; live API explicitly prohibited | `FM02-NDB-TC19-20261018-001` |
+| `TC20_CREATE_EDIT_IDEMPOTENCY_CONFLICT` | `BLOCKED / NOT RUN` | No authorized non-DB deterministic contract stub exists; referenced C2 service is DB-bound | No command executed; persistence/concurrency evidence deferred | `FM02-NDB-TC20-20261018-001` |
+| `TC21_ROLE_AWARE_FRONTEND_CONTROLS` | `PASS` | Existing Vitest/jsdom component fixture; no live endpoint | `npm run test:component -- --run src/components/items/item-master-maintenance-panel.test.tsx --reporter=verbose`; 1 file, 5 tests passed | `FM02-NDB-TC21-20261018-001` |
+| `TC23_PRODUCT_SKU_BOUNDARY_NEGATIVE` | `BLOCKED / NOT RUN` | No authorized Item-only integration mock exists; live shared route is outside scope | No command executed; no Product/SKU route activation attempted | `FM02-NDB-TC23-20261018-001` |
+
+TC21 output: `FM02_TEST_Evidence_20261018_012/tc21-component-output.txt`, SHA-256 `A8041217345CC70C825FD134BC443826737312375AD8608F0BE4D96CB3E05B8A`. The Vite config warning was non-fatal; exit code was `0`.
+
+The three blocked cases are fixture-availability blockers, not implementation repairs or proven Product defects. Test Engineering does not invent a mock, alter the DB-bound service, or substitute Engineering unit tests.
 
 ## Test Foundation coverage correction
 
-This document update is documentation-only. No tests were executed, no source or migration SQL was changed, and no DB/runtime was contacted.
+The earlier coverage correction was documentation-only. The bounded non-DB execution update above records TC21 only; no source or migration SQL was changed, and no DB/runtime was contacted.
 
 - Original cases retained: `TC01-TC12`
 - Added coverage cases: `TC13-TC24` (12 planned cases)
@@ -111,7 +134,7 @@ This document update is documentation-only. No tests were executed, no source or
 - Non-DB cases: `5`
 - Mock/Stub cases: `4`
 - Historical status ledger: PASS `9`; NOT_VERIFIED `3` after normalizing TC12 PENDING; FAIL/BLOCKED/NOT RUN/DEFERRED `0` in the legacy catalog.
-- New coverage cases: `NOT_RUN`; DB-dependent cases are `DEFERRED_NOT_AUTHORIZED`.
+- New coverage cases: TC19/TC20/TC23 blocked for missing authorized non-DB fixtures; TC21 executed PASS; DB-dependent cases remain `DEFERRED_NOT_AUTHORIZED`.
 - Automated tools remain separate from functional case totals: frontend 5 PASS, backend 11 PASS, ESLint PASS, TypeScript PASS; prior static migration gate remains FAIL.
 
 ### Exact A-E crosswalk
@@ -160,7 +183,7 @@ All Case IDs are unique and have exactly one Primary Test Type. TC01-TC12 are re
 - `DESIGN_REQUIREMENTS_COVERED=12`
 - `DESIGN_REQUIREMENTS_UNCOVERED=0 defined requirements; Section 9.E undefined`
 - `TC09_MIGRATION_GAP=OPEN`
-- `TEST_EXECUTION=NOT_RUN`
+- `TEST_EXECUTION=PARTIAL / TC21 PASS; TC19, TC20, TC23 BLOCKED`
 - `REMOTE_TEST_DOCUMENT_READBACK=PENDING DELIVERY`
 - `KNOWLEDGE_READBACK=HOLD / no Knowledge connector authorized`
 - `MANUAL_RELAY_REQUIRED=YES`

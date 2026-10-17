@@ -40,8 +40,13 @@ function Invoke-ExternalCheck {
 
     $output = ''
     $exitCode = 1
+    $previousErrorActionPreference = $ErrorActionPreference
     Push-Location $WorkingDirectory
     try {
+        # Native tools may emit informational warnings on stderr (for example,
+        # Git's LF/CRLF advisory). Treat the process exit code as authoritative
+        # while still capturing output for genuine failures.
+        $ErrorActionPreference = 'Continue'
         $output = (& $FilePath @Arguments 2>&1 | Out-String).Trim()
         $exitCode = $LASTEXITCODE
     }
@@ -50,6 +55,7 @@ function Invoke-ExternalCheck {
         $exitCode = 1
     }
     finally {
+        $ErrorActionPreference = $previousErrorActionPreference
         Pop-Location
     }
 

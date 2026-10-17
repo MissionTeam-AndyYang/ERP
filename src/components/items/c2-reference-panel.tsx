@@ -58,30 +58,31 @@ function FormErrors({ errors }: { errors: C2ValidationError[] }) {
 }
 
 export function C2ReferencePanel({ itemId, dataSourceMode }: C2ReferencePanelProps) {
-  const [data, setData] = useState<C2ItemReferenceData>();
-  const [error, setError] = useState<string>();
-  const [isLoading, setIsLoading] = useState(true);
+  const [resolvedData, setResolvedData] = useState<C2ItemReferenceData>();
+  const [resolvedError, setResolvedError] = useState<string>();
+  const [resolvedRequestKey, setResolvedRequestKey] = useState<string>();
   const [formMode, setFormMode] = useState<FormMode>();
   const [conversionDraft, setConversionDraft] = useState<C2ConversionDraft>(initialConversionDraft());
   const [qualificationDraft, setQualificationDraft] = useState<C2CustomerQualificationDraft>(initialQualificationDraft);
   const [formErrors, setFormErrors] = useState<C2ValidationError[]>([]);
   const [formMessage, setFormMessage] = useState<string>();
+  const requestKey = `${dataSourceMode}:${itemId}`;
+  const isLoading = resolvedRequestKey !== requestKey;
+  const data = resolvedRequestKey === requestKey ? resolvedData : undefined;
+  const error = resolvedRequestKey === requestKey ? resolvedError : undefined;
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    setData(undefined);
-    setError(undefined);
-    setFormMode(undefined);
     getItemC2Reference(itemId, dataSourceMode).then((result) => {
       if (cancelled) return;
-      setData(result.data);
-      setError(result.error);
-      setIsLoading(false);
+      setResolvedData(result.data);
+      setResolvedError(result.error);
+      setResolvedRequestKey(requestKey);
+      setFormMode(undefined);
       if (result.data) setConversionDraft(initialConversionDraft(result.data));
     });
     return () => { cancelled = true; };
-  }, [dataSourceMode, itemId]);
+  }, [dataSourceMode, itemId, requestKey]);
 
   const uomIds = useMemo(() => data?.itemUoms.map((uom) => uom.id) ?? [], [data]);
 

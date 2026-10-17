@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 from sqlalchemy.orm import Session
 
@@ -38,7 +38,7 @@ def _load_approved_c2_service():
     if package_root_text not in sys.path:
         sys.path.insert(0, package_root_text)
 
-    from fm02_c2.service import C2Service  # noqa: PLC0415
+    from fm02_c2.service import C2Service
 
     return C2Service
 
@@ -54,17 +54,17 @@ class _SessionCursor:
         self._result: Any | None = None
         self.description: list[tuple[str]] = []
 
-    def __enter__(self) -> _SessionCursor:
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *_: Any) -> bool:
+    def __exit__(self, *_: object) -> bool:
         if self._result is not None:
             self._result.close()
         return False
 
     def execute(self, sql: str, params: tuple[Any, ...] = ()) -> None:
         self._result = self._session.connection().exec_driver_sql(sql, params)
-        self.description = [(key,) for key in self._result.keys()]
+        self.description = [(key,) for key in tuple(self._result.keys())]
 
     def fetchone(self) -> Any:
         if self._result is None:

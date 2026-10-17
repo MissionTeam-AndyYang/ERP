@@ -1,8 +1,8 @@
 from flask import Flask
 
 from app.api.v1.router import api_router
-from app.core.config import settings
 from app.api.v1.utils import close_db, register_error_handlers
+from app.core.config import settings
 
 
 def create_app() -> Flask:

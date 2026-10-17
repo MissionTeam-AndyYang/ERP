@@ -6,4 +6,4 @@ class Base(DeclarativeBase):
 
 
 # Import model modules so Alembic can discover metadata for autogeneration.
-from app.models import ewdb  # noqa: E402,F401
+from app.models import ewdb  # noqa: F401

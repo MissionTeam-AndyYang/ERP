@@ -9,7 +9,6 @@ from flask import Blueprint, current_app, jsonify, request
 from app.api.v1.utils import get_db
 from app.services.fm02_c2 import build_c2_service
 
-
 router = Blueprint("fm02_c2", __name__)
 
 

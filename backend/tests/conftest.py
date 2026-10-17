@@ -10,12 +10,12 @@ from app.db.base import Base
 
 def assign_sqlite_bigint_ids(session: Session) -> None:
     for obj in session.new:
-        if not hasattr(obj, "id") or getattr(obj, "id") is not None:
+        if not hasattr(obj, "id") or obj.id is not None:
             continue
 
         model = type(obj)
         max_id = session.scalar(select(func.max(model.id))) or 0
-        setattr(obj, "id", max_id + 1)
+        obj.id = max_id + 1
 
 
 @pytest.fixture()

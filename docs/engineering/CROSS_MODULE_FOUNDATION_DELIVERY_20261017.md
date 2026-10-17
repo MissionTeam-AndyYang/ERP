@@ -62,7 +62,7 @@ Use the isolated setup contract in `engineering_foundation/environment/dev_test_
 
 `OFFLINE_REFERENCE_VALIDATION=HOLD`
 
-`KNOWLEDGE_READBACK=PENDING`
+`KNOWLEDGE_READBACK=HOLD`
 
 `GITHUB_PUSH=BLOCKED_REMOTE`
 

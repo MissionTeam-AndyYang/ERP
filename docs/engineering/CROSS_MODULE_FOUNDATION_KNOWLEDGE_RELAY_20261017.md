@@ -29,6 +29,6 @@ The CF-02 quality report must retain `UNAVAILABLE` results until the isolated ru
 
 Current state before Repository Office action:
 
-`KNOWLEDGE_READBACK=PENDING`
+`KNOWLEDGE_READBACK=HOLD`
 
 `GITHUB_PUSH=BLOCKED_REMOTE_NOT_VERIFIED`

@@ -1,9 +1,11 @@
 "use client";
 
-import { AlertTriangle, Building2, Boxes, Eye, Link2, Loader2, PackageCheck, RefreshCw, Search, Tags } from "lucide-react";
+import { AlertTriangle, Building2, Boxes, Eye, Link2, Loader2, PackageCheck, Pencil, Plus, RefreshCw, Search, Tags } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DataSourceStatusBadge } from "@/components/common/data-source-status-badge";
 import { DataSourceToggle, type DataSourceMode } from "@/components/common/data-source-toggle";
+import { C2ReferencePanel } from "@/components/items/c2-reference-panel";
+import { ItemMasterMaintenancePanel, type ItemMasterMaintenanceTarget } from "@/components/items/item-master-maintenance-panel";
 import { ModuleHero } from "@/components/common/module-hero";
 import { ModuleKpiCard } from "@/components/common/module-kpi-card";
 import { SupportEmptyState } from "@/components/common/support-empty-state";
@@ -327,12 +329,16 @@ function DetailPanel({
   target,
   data,
   isLoading,
-  error
+  error,
+  dataSourceMode,
+  onEdit
 }: {
   target?: ItemMasterDetailTarget;
   data?: ItemMasterDetailData;
   isLoading: boolean;
   error?: string;
+  dataSourceMode: DataSourceMode;
+  onEdit: (item: MaterialItemMasterRow) => void;
 }) {
   return (
     <aside className="rounded-lg border border-border bg-white p-4">
@@ -364,10 +370,20 @@ function DetailPanel({
 
         {isMaterialDetail(data) ? (
           <div className="space-y-5">
-            <div>
-              <StatusBadge tone={data.item.tone}>{data.item.masterStatusLabel}</StatusBadge>
-              <h4 className="mt-3 text-base font-semibold text-textPrimary">{data.item.itemName || data.item.itemNo}</h4>
-              <p className="mt-1 text-sm text-textSecondary">{data.item.itemNo} · {data.item.itemCategoryLabel}</p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <StatusBadge tone={data.item.tone}>{data.item.masterStatusLabel}</StatusBadge>
+                <h4 className="mt-3 text-base font-semibold text-textPrimary">{data.item.itemName || data.item.itemNo}</h4>
+                <p className="mt-1 text-sm text-textSecondary">{data.item.itemNo} · {data.item.itemCategoryLabel}</p>
+              </div>
+              <button
+                className="inline-flex h-9 items-center gap-2 rounded-button border border-border bg-white px-3 text-xs font-medium text-textSecondary hover:bg-slate-50"
+                onClick={() => onEdit(data.item)}
+                type="button"
+              >
+                <Pencil className="h-4 w-4" />
+                維護
+              </button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <RowLabel label="目前庫存" value={`${formatNumber(data.inventorySummary.currentQuantity)} ${data.item.unitWarehouseLabel}`} />
@@ -414,6 +430,7 @@ function DetailPanel({
                 <SupportEmptyState title="沒有近期批號" description="目前 API 回傳近期批號清單為空。" />
               )}
             </section>
+            <C2ReferencePanel itemId={data.item.itemNo} dataSourceMode={dataSourceMode} />
           </div>
         ) : null}
 
@@ -515,12 +532,34 @@ export default function ItemsPage() {
   const [detailData, setDetailData] = useState<ItemMasterDetailData | undefined>();
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | undefined>();
+  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+  const [maintenanceTarget, setMaintenanceTarget] = useState<ItemMasterMaintenanceTarget>();
 
   const clearDetail = () => {
     setDetailTarget(undefined);
     setDetailData(undefined);
     setDetailError(undefined);
     setIsDetailLoading(false);
+  };
+
+  const closeMaintenance = () => {
+    setMaintenanceOpen(false);
+    setMaintenanceTarget(undefined);
+  };
+
+  const openCreateMaintenance = () => {
+    setMaintenanceTarget(undefined);
+    setMaintenanceOpen(true);
+  };
+
+  const openEditMaintenance = (item: MaterialItemMasterRow) => {
+    setMaintenanceTarget({
+      itemId: item.itemNo,
+      itemCode: item.itemNo,
+      displayName: item.itemName,
+      baseUomCode: item.unitWarehouseLabel
+    });
+    setMaintenanceOpen(true);
   };
 
   const selectDetail = (target: ItemMasterDetailTarget) => {
@@ -599,7 +638,7 @@ export default function ItemsPage() {
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <DataSourceStatusBadge source={dataSourceMode} isLoading={isLoading} hasError={Boolean(error)} />
-            <StatusBadge tone="neutral">Read-only</StatusBadge>
+            <StatusBadge tone="info">主檔治理</StatusBadge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex h-10 min-w-[260px] items-center gap-2 rounded-input border border-border bg-white px-3">
@@ -631,9 +670,18 @@ export default function ItemsPage() {
               onChange={(value) => {
                 setIsLoading(true);
                 clearDetail();
+                closeMaintenance();
                 setDataSourceMode(value);
               }}
             />
+            <button
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-button bg-primary px-3 text-sm font-medium text-white"
+              onClick={openCreateMaintenance}
+              type="button"
+            >
+              <Plus className="h-4 w-4" />
+              新增料品
+            </button>
           </div>
         </div>
 
@@ -668,6 +716,7 @@ export default function ItemsPage() {
                     onClick={() => {
                       setActiveTab(tab.id);
                       clearDetail();
+                      closeMaintenance();
                     }}
                     type="button"
                   >
@@ -696,8 +745,29 @@ export default function ItemsPage() {
             </div>
           </section>
 
-          <DetailPanel target={detailTarget} data={detailData} isLoading={isDetailLoading} error={detailError} />
+          <DetailPanel
+            target={detailTarget}
+            data={detailData}
+            isLoading={isDetailLoading}
+            error={detailError}
+            dataSourceMode={dataSourceMode}
+            onEdit={openEditMaintenance}
+          />
         </div>
+
+        {maintenanceOpen ? (
+          <ItemMasterMaintenancePanel
+            open={maintenanceOpen}
+            dataSourceMode={dataSourceMode}
+            target={maintenanceTarget}
+            onClose={closeMaintenance}
+            onSaved={() => {
+              closeMaintenance();
+              setIsLoading(true);
+              setRefreshKey((value) => value + 1);
+            }}
+          />
+        ) : null}
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-border bg-white p-4">

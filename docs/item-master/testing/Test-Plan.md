@@ -1,5 +1,7 @@
 # FM-02 TEST Plan
 
+Revision `2026-10-18-002`: aligned to source commit `d73588f5e528538aa6b12225abdcd96884ac11ad`. The prior migration assertion FAIL is preserved in Test-Report.md and classified as `SOURCE_ADMISSION_GAP`.
+
 ## Objectives
 
 1. Verify current bounded Item behavior against the approved design/source contract.
@@ -19,4 +21,12 @@
 ## Exit evidence
 
 Source commit/tree, exact commands, environment, target identity, test output, schema/revision readback, rollback/recovery, privilege separation, correlation and Repository receipt are required.
+
+## Current independent non-DB envelope
+
+The current authorized execution is limited to backend/frontend unit and contract tests, mock/stub functional and cross-layer checks, validation/negative cases, authorization/error contracts, and static schema/migration contract checks. Live MariaDB, SQL, migration execution, credentials, production, protected-main merge, and full runtime acceptance are outside this TEST envelope.
+
+## Migration baseline reconciliation
+
+The approved design and `FM02_C2_MODULE_CONTRACT_20261016.md` require immutable migration lineage 0003-0006 and new lineage 0007-0009. The exact source baseline contains 0007-0009 but no Git path/provenance for 0003-0006. This is classified as `SOURCE_ADMISSION_GAP`; no historical SQL was copied into Product and no migration runtime was executed. The DB-dependent migration cases remain retained and deferred.
 

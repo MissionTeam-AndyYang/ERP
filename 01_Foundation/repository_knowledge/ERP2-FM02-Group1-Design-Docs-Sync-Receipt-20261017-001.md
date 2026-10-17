@@ -1,0 +1,32 @@
+# ERP2.0 FM-02 Group 1 Design Documentation Sync Receipt
+
+Record ID: `ERP2-FM02-GROUP1-DESIGN-DOCS-SYNC-20261017-001`
+
+Repository: `https://github.com/MissionTeam-AndyYang/ERP.git`
+
+Branch: `codex/fm02-group1-design-docs-sync-20261017-001`
+
+Commit: `2856769758780e999dda01b3fa979a79fad36c37`
+
+Parent/Product main baseline: `89b374109312720b3ff6669a9664fb0cf8f9a6ba`
+
+## Result
+
+`GROUP1_KNOWLEDGE_REGISTRATION=PASS`
+
+`GROUP1_KNOWLEDGE_READBACK=PASS`
+
+`GROUP1_REMOTE_BINDING=PASS`
+
+Document-only scope is recorded. Product `main` was unchanged; no PR was created or merged; Groups 2 and 3 were not entered.
+
+## Four-file manifest
+
+| Existing Document ID | Product-relative path | SHA-256 |
+|---|---|---|
+| `ERP2-FM02-SPRINT01-DOC-BASELINE-20261016-001` | `docs/fm02/FM02_SPRINT01_DOCUMENTATION_BASELINE_20261016.md` | `8883C4A90C372F129AC989E5A5D945A097031746923D64BA7006074FC21E2513` |
+| `ERP2-FM02-SPRINT01-DOC-TRACEABILITY-20261016-001` | `docs/fm02/FM02_SPRINT01_TRACEABILITY_MATRIX_20261016.md` | `9960C256F1B250E53B129973D764664CE6EAB4906FE0A886DFDEE37884F2AE4A` |
+| `ERP2-FM02-SPRINT01-DOC-MATRIX-20261016-001` | `docs/fm02/FM02_SPRINT01_DOCUMENT_COMPLETION_MATRIX_20261016_104.md` | `C77BB1C7A37804424391DCB61B2002806CE3FE7A59776C96F28E2CDC499D2A28` |
+| `ERP2-FM02-SPRINT01-DOC-REVIEW-20261016-001` | `docs/fm02/FM02_SPRINT01_DOCUMENT_REVIEW_RECORD_20261016.md` | `7D0BAD8C41D3F68E0F375FCFD499E5FD673139D66D0EF1BDC0BF8B27E5745E0B` |
+
+Existing Document IDs, historical provenance and approval references are preserved. This record only adds remote custody/readback; it does not elevate document approval or authorize implementation.

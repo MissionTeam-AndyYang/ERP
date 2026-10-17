@@ -47,6 +47,13 @@ starts a database, runs migrations, accesses credentials, or rewrites
 `UNAVAILABLE`; `-FailOnUnavailable` converts that state into a non-zero CI
 exit code.
 
+## Current environment evidence
+
+The approved project-local environment was provisioned after the initial
+definition review: `npm ci` completed and `backend/.venv` was populated with
+the editable package and declared development dependencies. The resulting
+quality evidence is recorded in `cf02_offline_verification_20261017.md`.
+
 ## Explicit exclusions
 
 This CF-02 package does not modify application source, database or migration

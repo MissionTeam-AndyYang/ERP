@@ -31,4 +31,23 @@ Current state before Repository Office action:
 
 `KNOWLEDGE_READBACK=HOLD`
 
+The relay remains executable but unsubmitted: CTO has no exposed Repository
+Office registration/readback endpoint in this execution environment. The new
+CF-01/CF-02 records therefore remain unregistered; no local preparation is
+represented as authoritative registration.
+
+Current CF-02 evidence to register after Repository Office review:
+
+- Project-local setup completed: `npm ci`, `backend/.venv`, editable backend
+  development dependencies.
+- Quality result: 3 PASS / 2 FAIL / 0 UNAVAILABLE. Frontend build and backend
+  pytest pass; frontend lint and backend Ruff fail on existing source-level
+  findings.
+- Additional deterministic results: FM-02 migration contract 6/6 PASS;
+  FM-02 C2 service 11/11 PASS; direct TypeScript check reports five existing
+  target/downlevel-iteration errors; no frontend component-test framework is
+  configured in the repository package scripts.
+- Coding convention approval remains separate and is requested in
+  `docs/engineering/CROSS_MODULE_CODING_CONVENTION_APPROVAL_REQUEST_20261017.md`.
+
 `GITHUB_PUSH=BLOCKED_REMOTE_NOT_VERIFIED`

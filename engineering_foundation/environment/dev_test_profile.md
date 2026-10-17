@@ -1,6 +1,7 @@
 # CF-02 Isolated Development and Offline-Test Profile
 
-Status: shared foundation definition; no dependency installation performed
+Status: shared foundation definition; project-local environment provisioned
+and verified on 2026-10-17. Live database access remains excluded.
 
 ## Purpose
 
@@ -23,8 +24,10 @@ database, or requiring production credentials.
 ### Local development
 
 - Frontend: Node.js LTS compatible with the existing Next.js dependency and
-  npm using `package-lock.json`.
-- Backend: Python `>=3.12` in a repository-local `backend/.venv`.
+  npm using `package-lock.json`. Observed runtime: Node.js 24.15.0 and npm
+  11.12.1.
+- Backend: Python `>=3.12` in a repository-local `backend/.venv`. Observed
+  runtime: Python 3.14.5.
 - Frontend environment: copy `env/frontend.env.example` to the ignored
   `.env.local` file at repository root when an API endpoint is needed.
 - Backend environment: copy `env/backend.env.example` to the ignored
@@ -41,8 +44,10 @@ database, or requiring production credentials.
 - Backend checks use the existing `backend/.venv`; frontend checks use the
   existing `node_modules` installed from the lockfile. Neither is created by
   the quality entry point.
-- A missing isolated runtime or dependency is a documented `UNAVAILABLE`
-  result, not a reason to install or substitute dependencies.
+- The approved setup has been completed in this checkout: `npm ci` restored
+  the lockfile dependency tree and `backend/.venv` contains the editable
+  backend package plus its declared development dependencies. No global
+  runtime or package was modified.
 
 ## Reproduction sequence
 

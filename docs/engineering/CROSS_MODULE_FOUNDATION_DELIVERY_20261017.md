@@ -18,12 +18,12 @@ The executors worked in disjoint paths. CTO review and final integration remain 
 
 | Workstream | Deliverable | Actual File / Configuration | Validation | Local Commit | Knowledge Readback | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
-| CF-01 | Document identity/lifecycle, traceability and change-impact mechanism | `docs/engineering/CF01_Documentation_Working_Mechanism_20261017_001/` | `CF01_VALIDATION=PASS`; B02 PASS; B01–B06 6/6; FR 20/20; read-only scope PASS | Pending final local commit | PENDING new-artifact registration | PARTIAL — mechanism verified; canonical readback pending |
-| CF-01 | B02 read-only demonstration | `.../demonstrations/CF01_B02_READ_ONLY_DEMONSTRATION_20261017.md` and validator | No DB, credential, network or external-service access | Pending final local commit | PENDING | PASS locally |
-| CF-02 | Development/test environment definition and secret-free templates | `engineering_foundation/environment/`, `engineering_foundation/env/` | Static/source review PASS; no installation or global runtime change | Pending final local commit | PENDING | PASS for definition |
-| CF-02 | Local quality entry points | `engineering_foundation/checks/quality_check.ps1`, `quality_check.sh` | PowerShell parse PASS; normal run PASS=1/FAIL=0/UNAVAILABLE=4; `-FailOnUnavailable` exit 2 | Pending final local commit | PENDING | PARTIAL — unavailable dependencies remain |
-| CF-02 | Module template and offline verification record | `docs/engineering/cf02_module_template_guidance.md`, `cf02_offline_verification_20261017.md` | Deterministic report generated; protected paths unchanged | Pending final local commit | PENDING | PASS for local foundation record |
-| CF-02 | Shared coding convention review | `docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md` | Consistency review found no source defect | Existing source; unchanged | Existing readback; approval not evidenced | PROPOSED |
+| CF-01 | Document identity/lifecycle, traceability and change-impact mechanism | `docs/engineering/CF01_Documentation_Working_Mechanism_20261017_001/` | `CF01_VALIDATION=PASS`; B02 PASS; B01–B06 6/6; FR 20/20; read-only scope PASS | Pending final local commit | HOLD — Repository Office registration/readback unavailable | PARTIAL — local mechanism verified |
+| CF-01 | B02 read-only demonstration | `docs/engineering/CF01_Documentation_Working_Mechanism_20261017_001/demonstrations/CF01_B02_READ_ONLY_DEMONSTRATION_20261017.md` and validator | No DB, credential, network or external-service access | Pending final local commit | HOLD — pending canonical registration | PASS locally |
+| CF-02 | Development/test environment definition and secret-free templates | `engineering_foundation/environment/`, `engineering_foundation/env/` | `npm ci` PASS; repository-local `backend/.venv` and editable dev dependencies installed; no global/runtime or live DB change | Pending final local commit | HOLD — pending canonical registration | PASS |
+| CF-02 | Local quality entry points | `engineering_foundation/checks/quality_check.ps1`, `quality_check.sh` | Final run: 3 PASS / 2 FAIL / 0 UNAVAILABLE; build and pytest PASS; lint and Ruff FAIL | Pending final local commit | HOLD | HOLD — existing source findings remain |
+| CF-02 | Module template and offline verification record | `docs/engineering/cf02_module_template_guidance.md`, `cf02_offline_verification_20261017.md` | Migration contract 6/6 PASS; C2 service 11/11 PASS; no live DB/migration execution | Pending final local commit | HOLD | PASS for deterministic reference tests |
+| CF-02 | Shared coding convention and approval request | `docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md`, `docs/engineering/CROSS_MODULE_CODING_CONVENTION_APPROVAL_REQUEST_20261017.md` | Local consistency review PASS; formal owner approval and central version/readback not exposed | Pending final local commit | HOLD — Repository Office/standard owner action | PROPOSED |
 
 ## Offline verification
 
@@ -31,16 +31,24 @@ The executors worked in disjoint paths. CTO review and final integration remain 
 | --- | --- | --- |
 | CF-01 validator | PASS | Standard-library-only deterministic source coverage; read-only |
 | PowerShell quality script parse | PASS | Process-scoped execution-policy invocation only; no global policy change |
-| Local quality gate | PARTIAL | 1 PASS, 0 FAIL, 4 UNAVAILABLE |
-| Backend foundation tests | HOLD | `backend/.venv` absent; no global Python substitution |
-| Backend ruff | HOLD | `backend/.venv` absent |
-| Frontend lint | HOLD | `node_modules/.bin/eslint.cmd` absent |
-| Frontend build | HOLD | `node_modules/.bin/next.cmd` absent |
+| Local quality gate | HOLD | 3 PASS, 2 FAIL, 0 UNAVAILABLE |
+| Backend foundation/API tests | PASS | Repository-local pytest: 22/22 passed |
+| C2 service tests | PASS | Deterministic service suite: 11/11 passed |
+| Migration contract tests | PASS | Deterministic migration contract suite: 6/6 passed |
+| Backend Ruff | FAIL | 13 existing lint findings across imports, noqa usage and style rules |
+| Frontend ESLint | FAIL | One existing `react-hooks/set-state-in-effect` finding in `src/components/items/c2-reference-panel.tsx:72` |
+| TypeScript | FAIL | Five existing iterator/target errors under direct `tsc --noEmit --ignoreDeprecations 6.0`; Next build's internal TypeScript phase passed |
+| Frontend component tests | NOT_RUN | No supported frontend component-test script/configuration is present |
+| Frontend build | PASS | Next.js production build completed in the approved local context |
 | Database/live checks | NOT RUN | Explicitly excluded by directive |
 
 ## Required recovery for the remaining CF-02 holds
 
-Use the isolated setup contract in `engineering_foundation/environment/dev_test_profile.md`: approved `npm ci`, repository-local Python `backend/.venv`, and backend dev dependency installation. Re-run the quality entry point afterward. No global runtime, live database, production credential or application-code change is required.
+The isolated setup contract has been completed. Remaining quality failures are
+source-level findings in existing frontend/backend code or TypeScript
+configuration; they were not changed merely to force the foundation gate.
+No global runtime, live database, production credential or application-code
+change was made by the foundation work.
 
 ## Final verdicts
 
@@ -52,7 +60,7 @@ Use the isolated setup contract in `engineering_foundation/environment/dev_test_
 
 `DEV_ENVIRONMENT=PASS`
 
-`TEST_ENVIRONMENT=HOLD`
+`TEST_ENVIRONMENT=PASS`
 
 `ENGINEERING_TOOLCHAIN=HOLD`
 
@@ -68,4 +76,8 @@ Use the isolated setup contract in `engineering_foundation/environment/dev_test_
 
 `FM02_SPRINT02_ENTRY=NOT_READY`
 
-CF-01 and CF-02 are locally usable foundations, but full acceptance remains partial until Repository Office registers the new artifacts and the missing isolated dependencies are restored for the required offline reference validation. No FM-02 Sprint 2 coding authorization is inferred.
+CF-01 and CF-02 are locally usable foundations, but full acceptance remains
+partial: Repository Office registration/readback is unavailable, the shared
+coding convention is still proposed, and the local quality gate has existing
+Ruff/ESLint/TypeScript findings. No FM-02 Sprint 2 coding authorization is
+inferred.

@@ -1,0 +1,7 @@
+{
+  "fixture_id": "FM02-ACTOR-SEPARATION",
+  "records": [
+    {"business_actor_ref": "FM02-BUSINESS-ACTOR-001", "technical_executor_ref": "FM02-TECHNICAL-EXECUTOR-001", "delegation_ref": "FM02-NP-DELEGATION-001"}
+  ],
+  "mutation_policy": "synthetic references only; no credential material"
+}

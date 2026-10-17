@@ -1,0 +1,9 @@
+{
+  "target_id": "ERP2-PROD-MARIADB-001",
+  "database": "erp2_production",
+  "endpoint": "10.0.0.10:3306",
+  "environment": "PRODUCTION",
+  "listening": true,
+  "process_id": 12345,
+  "credentials_exposed": false
+}

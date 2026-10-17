@@ -1,0 +1,12 @@
+{
+  "package_id": "ERP2-FM02-REMOTE-TEST-EXECUTION-20261018-001",
+  "module_id": "ERP2-FM02-ITEM-MASTER",
+  "allowed_cases": ["TC01", "TC02", "TC03", "TC04", "TC05", "TC06", "TC07", "TC08", "TC09", "TC13", "TC14", "TC15", "TC16", "TC17", "TC18", "TC22", "TC24"],
+  "restricted_cases": ["TC10", "TC11"],
+  "mock_only_cases": ["TC19", "TC20", "TC21", "TC23"],
+  "source_commit": "d73588f5e528538aa6b12225abdcd96884ac11ad",
+  "target": {"target_id": "ERP2-FM02-C2-TEST-MARIADB-001", "database": "erp2_fm02_c2_test_001", "endpoint": "127.0.0.1:3345", "environment": "NON_PRODUCTION"},
+  "execution_policy": "offline-first; no credentials; no SQL; no service control; no migration runtime",
+  "runner": "run_item_master_tests.py",
+  "fixture_manifest": "fixture-manifest.json"
+}

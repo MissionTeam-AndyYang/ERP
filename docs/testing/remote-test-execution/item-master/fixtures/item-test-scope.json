@@ -1,0 +1,7 @@
+{
+  "fixture_id": "FM02-ITEM-TEST-SCOPE",
+  "records": [
+    {"item_code": "FM02-TEST-ITEM-001", "display_name": "Synthetic Item 001", "base_uom_code": "EA", "ownership_context": "FM02-NP-TEST"}
+  ],
+  "mutation_policy": "case-scoped only; reset by named executor"
+}

@@ -1,0 +1,33 @@
+# ERP2 FM02 Remote Test Execution Package Manifest
+
+Package: `ERP2-FM02-REMOTE-TEST-EXECUTION-20261018-001`
+Workspace branch: `codex/fm02-item-master-db-test-package-source-custody-20261018-001`
+Source baseline: `d73588f5e528538aa6b12225abdcd96884ac11ad`
+Migration admission source: `7b9620a25713338c8e6a60a55de8685070fe8538`
+Target: `ERP2-FM02-C2-TEST-MARIADB-001` / `erp2_fm02_c2_test_001` / `127.0.0.1:3345`
+
+This manifest covers the new package only. The authoritative Test Plan, Test Cases and Test Report remain unchanged in their existing locations.
+
+| Path | SHA-256 |
+|---|---|
+| `docs/testing/remote-test-execution/Remote-Test-Execution-Standard.md` | `557F21CB88C1BB3151AC7EE83BC4F13FE7A515AC32521C3C80B51DB698E0DB4E` |
+| `docs/testing/remote-test-execution/Test-Evidence-Contract.md` | `25D4641B40C87495CC523C3B0544AC5732DC864B32C006E3E16D77BAE9055C5C` |
+| `docs/testing/remote-test-execution/item-master/Test-Runbook.md` | `1BE98AA7304ABE49A8F063B6E6E1FCEA2E5263FD65241DB7AFA9A3A2991D495B` |
+| `docs/testing/remote-test-execution/item-master/Test-Report-Template.md` | `732F237A4AE8A0DA0D8B9B475B1166811C7038002FF7CAE19348553076111B75` |
+| `docs/testing/remote-test-execution/item-master/execution-manifest.json` | `DF84501B5B842AFF3584CC910D981DC099874384743755ED7CB980DFEBFCFD8F` |
+| `docs/testing/remote-test-execution/item-master/fixture-manifest.json` | `CDB5622A975DD1DA07B50D6EF378FCBD7B7DE7BBAA3C2B6E252E17B4610E2B0D` |
+| `docs/testing/remote-test-execution/item-master/fixtures/item-test-scope.json` | `A78A45455DBC6BE8DD2B3AFFEE51F6E95C043B4900C22AAF8EA81015A52057E1` |
+| `docs/testing/remote-test-execution/item-master/fixtures/actor-separation.json` | `9CEB8677ABE4B8AD8FD3ECFE81D96AF5F32FAD2D7F0C3629E4CFBA37F4F958DA` |
+| `docs/testing/remote-test-execution/item-master/run_item_master_tests.py` | `FCBAD5E55EB15BCD4EACB8984DD03FE307D99346F9380C6782C51A874BF076AE` |
+| `docs/testing/remote-test-execution/item-master/tests/target-status-valid.json` | `B4A7ADC97C8325E93451285DA1FAAAC28B7353DE3C9584123E3F3D353E472CEC` |
+| `docs/testing/remote-test-execution/item-master/tests/target-status-production.json` | `8396C5370C51AACF4432E2D3ABE8E2EECB874DFCC7AE1883A8FCE9AD60115D33` |
+
+## Status
+
+- Offline package validation: `PASS`
+- Target verification mode: `PASS` only against supplied synthetic status fixture; no live target contact
+- Unauthorized case rejection: `PASS`
+- Production-target rejection: `PASS`
+- Automated DB execution: `NOT_AUTHORIZED`
+- Live database validation: `NOT_RUN`
+- Test evidence contract: `PROPOSED FOR CTO REVIEW`

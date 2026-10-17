@@ -1,0 +1,9 @@
+{
+  "target_id": "ERP2-FM02-C2-TEST-MARIADB-001",
+  "database": "erp2_fm02_c2_test_001",
+  "endpoint": "127.0.0.1:3345",
+  "environment": "NON_PRODUCTION",
+  "listening": true,
+  "process_id": 12345,
+  "credentials_exposed": false
+}

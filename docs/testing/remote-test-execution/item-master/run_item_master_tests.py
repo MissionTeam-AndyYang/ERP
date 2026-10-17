@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,6 +37,15 @@ FORBIDDEN_TOKENS = (
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest().upper()
+
+
+def raw_git_sha256(path: Path, source_commit: str) -> str:
+    repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+    relative_path = path.resolve().relative_to(repo_root).as_posix()
+    payload = subprocess.check_output(["git", "cat-file", "blob", f"{source_commit}:{relative_path}"])
+    if payload.startswith(b"\xef\xbb\xbf"):
+        raise ValueError(f"BOM rejected in canonical Git payload: {path}")
+    return hashlib.sha256(payload).hexdigest().upper()
 
 
 def now() -> str:
@@ -75,7 +85,7 @@ def load_json(path: Path) -> dict:
     return value
 
 
-def validate_manifest(manifest_path: Path, fixture_path: Path) -> None:
+def validate_manifest(manifest_path: Path, fixture_path: Path, source_commit: str) -> None:
     manifest = load_json(manifest_path)
     fixture = load_json(fixture_path)
     if set(manifest.get("allowed_cases", [])) != ALLOWED_CASES:
@@ -93,8 +103,10 @@ def validate_manifest(manifest_path: Path, fixture_path: Path) -> None:
         raise ValueError("secret-like fixture content rejected")
     for entry in fixture.get("fixtures", []):
         path = fixture_path.parent / entry["path"]
-        if sha256(path) != entry["sha256"]:
-            raise ValueError(f"fixture hash mismatch: {entry['id']}")
+        if sha256(path) != entry["checkout_sha256"]:
+            raise ValueError(f"fixture checkout hash mismatch: {entry['id']}")
+        if raw_git_sha256(path, source_commit) != entry["canonical_raw_sha256"]:
+            raise ValueError(f"fixture canonical raw Git hash mismatch: {entry['id']}")
 
 
 def validate_status(status_path: Path) -> None:
@@ -120,10 +132,11 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, default=Path(__file__).with_name("execution-manifest.json"))
     parser.add_argument("--fixture-manifest", type=Path, default=Path(__file__).with_name("fixture-manifest.json"))
     parser.add_argument("--status-file", type=Path)
+    parser.add_argument("--source-commit", default="HEAD")
     args = parser.parse_args()
 
     try:
-        validate_manifest(args.manifest, args.fixture_manifest)
+        validate_manifest(args.manifest, args.fixture_manifest, args.source_commit)
         cases = set(args.cases) if args.cases else ALLOWED_CASES
         if not cases.issubset(ALLOWED_CASES):
             unauthorized = sorted(cases - ALLOWED_CASES)

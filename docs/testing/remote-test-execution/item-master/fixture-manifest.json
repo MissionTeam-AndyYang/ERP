@@ -1,10 +1,12 @@
 {
   "module_id": "ERP2-FM02-ITEM-MASTER",
+  "raw_source_commit": "HEAD",
+  "byte_representation": "canonical raw Git blob bytes plus checkout bytes; no BOM",
   "source_commit": "d73588f5e528538aa6b12225abdcd96884ac11ad",
   "migration_admission_commit": "7b9620a25713338c8e6a60a55de8685070fe8538",
   "fixture_policy": "deterministic synthetic fixtures only; no credentials",
   "fixtures": [
-    {"id": "FM02-ITEM-TEST-SCOPE", "path": "fixtures/item-test-scope.json", "description": "case-scoped synthetic Item records", "sha256": "A78A45455DBC6BE8DD2B3AFFEE51F6E95C043B4900C22AAF8EA81015A52057E1"},
-    {"id": "FM02-ACTOR-SEPARATION", "path": "fixtures/actor-separation.json", "description": "synthetic business/technical actor references", "sha256": "9CEB8677ABE4B8AD8FD3ECFE81D96AF5F32FAD2D7F0C3629E4CFBA37F4F958DA"}
+    {"id": "FM02-ITEM-TEST-SCOPE", "path": "fixtures/item-test-scope.json", "description": "case-scoped synthetic Item records", "canonical_raw_sha256": "A78A45455DBC6BE8DD2B3AFFEE51F6E95C043B4900C22AAF8EA81015A52057E1", "checkout_sha256": "A78A45455DBC6BE8DD2B3AFFEE51F6E95C043B4900C22AAF8EA81015A52057E1"},
+    {"id": "FM02-ACTOR-SEPARATION", "path": "fixtures/actor-separation.json", "description": "synthetic business/technical actor references", "canonical_raw_sha256": "9CEB8677ABE4B8AD8FD3ECFE81D96AF5F32FAD2D7F0C3629E4CFBA37F4F958DA", "checkout_sha256": "9CEB8677ABE4B8AD8FD3ECFE81D96AF5F32FAD2D7F0C3629E4CFBA37F4F958DA"}
   ]
 }

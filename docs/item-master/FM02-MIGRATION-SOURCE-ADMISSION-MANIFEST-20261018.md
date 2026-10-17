@@ -27,6 +27,12 @@ Static lineage is 0003 -> 0004 -> 0005 -> 0006. Existing 0007 -> 0008 -> 0009 fi
 
 The local C2 implementation copy recorded stale 0003 hashes `358DC797...` and `B2C487B8...`. The authoritative correction explicitly selects the hashes above and identifies those older values as stale/transcription references. The stale files were not admitted.
 
+## TC09 static contract correction
+
+The prior Independent TEST result is preserved as historical evidence: the exact baseline produced `5 passed, 1 failed` because the static assertion expected stale migration hashes. The minimum correction updates the four expected forward-source SHA-256 constants in `04_Engineering/Database/tests/test_fm02_item_master_approved_contract.py` to the authoritative custody values above. No SQL or lineage assertion was changed. The corrected test file SHA-256 is `2E8F2756DE8DD50B57E162E3C0A2714DA314578DAA168AB405FCDEE898A1F3F3`.
+
+Corrected static result: `6 passed`.
+
 ## Boundaries
 
 No SQL was executed. No database, migration runtime, Product `main`, production, merge, force-push, or unrelated source was modified.

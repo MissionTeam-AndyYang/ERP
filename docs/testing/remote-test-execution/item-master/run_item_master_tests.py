@@ -14,6 +14,8 @@ import json
 import re
 import subprocess
 import sys
+import tarfile
+import io
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -45,6 +47,18 @@ def raw_git_sha256(path: Path, source_commit: str) -> str:
     payload = subprocess.check_output(["git", "cat-file", "blob", f"{source_commit}:{relative_path}"])
     if payload.startswith(b"\xef\xbb\xbf"):
         raise ValueError(f"BOM rejected in canonical Git payload: {path}")
+    return hashlib.sha256(payload).hexdigest().upper()
+
+
+def archive_sha256(path: Path, source_commit: str) -> str:
+    repo_root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
+    relative_path = path.resolve().relative_to(repo_root).as_posix()
+    archive = subprocess.check_output(["git", "archive", "--format=tar", source_commit, relative_path])
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+        members = [member for member in tar.getmembers() if member.isfile()]
+        if len(members) != 1:
+            raise ValueError(f"archive member count mismatch: {path}")
+        payload = tar.extractfile(members[0]).read()
     return hashlib.sha256(payload).hexdigest().upper()
 
 
@@ -85,7 +99,7 @@ def load_json(path: Path) -> dict:
     return value
 
 
-def validate_manifest(manifest_path: Path, fixture_path: Path, source_commit: str) -> None:
+def validate_manifest(manifest_path: Path, fixture_path: Path, source_commit: str, verify_archive: bool) -> None:
     manifest = load_json(manifest_path)
     fixture = load_json(fixture_path)
     if set(manifest.get("allowed_cases", [])) != ALLOWED_CASES:
@@ -107,6 +121,8 @@ def validate_manifest(manifest_path: Path, fixture_path: Path, source_commit: st
             raise ValueError(f"fixture checkout hash mismatch: {entry['id']}")
         if raw_git_sha256(path, source_commit) != entry["canonical_raw_sha256"]:
             raise ValueError(f"fixture canonical raw Git hash mismatch: {entry['id']}")
+        if verify_archive and archive_sha256(path, source_commit) != entry["archive_extraction_sha256"]:
+            raise ValueError(f"fixture archive extraction hash mismatch: {entry['id']}")
 
 
 def validate_status(status_path: Path) -> None:
@@ -133,10 +149,11 @@ def main() -> int:
     parser.add_argument("--fixture-manifest", type=Path, default=Path(__file__).with_name("fixture-manifest.json"))
     parser.add_argument("--status-file", type=Path)
     parser.add_argument("--source-commit", default="HEAD")
+    parser.add_argument("--verify-archive", action="store_true")
     args = parser.parse_args()
 
     try:
-        validate_manifest(args.manifest, args.fixture_manifest, args.source_commit)
+        validate_manifest(args.manifest, args.fixture_manifest, args.source_commit, args.verify_archive)
         cases = set(args.cases) if args.cases else ALLOWED_CASES
         if not cases.issubset(ALLOWED_CASES):
             unauthorized = sorted(cases - ALLOWED_CASES)

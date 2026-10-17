@@ -18,7 +18,7 @@ The responsibility split is:
 
 The pre-correction source was verified at v1 / 2026-10-17 with SHA-256 `19D700832FE4A1505558A152E082C4327D8F6AF52EF6A22DEB2C208584DE0B0E`. Its header said `DRAFT_FOR_PARENT_REVIEW`, while the authoritative Knowledge record classified the registered mechanism as `ACTIVE_BOUNDED`.
 
-This v1.1 source records the approved status and responsibility correction. The v1 bytes remain recoverable from the prior Git commit and are not deleted or overwritten in custody history.
+This v1.1 source records the approved status and responsibility correction. The v1.1 source hash is `64180CED3A6F645692C658D1D0339450C6E82DB2A1F548D55A442B63602BB88B`. The v1 bytes remain recoverable from the prior Git commit and are not deleted or overwritten in custody history.
 
 ## Authority and custody boundary
 

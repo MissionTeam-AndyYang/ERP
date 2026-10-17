@@ -5,7 +5,7 @@ Related receipt: `ERP2-FM02-SPRINT01-KNOWLEDGE-REGISTRATION-20261017-105A`
 Prepared: 2026-10-17
 Source repository: `FM02_C2_Implementation_20261013_001`
 Branch: `codex/fm02-c2-isolated-20261013-001`
-Source commit: `a146004` and final binding commit to be recorded below
+Source commit: `c145cb0`
 
 ## Update result
 

@@ -90,6 +90,13 @@ CTO/Engineering should reconcile the exact baseline's migration file custody wit
 - `PRODUCTION_TEST=NOT_AUTHORIZED`
 - `CIO_NOTIFICATION=MANUAL_REQUIRED`
 - `MANUAL_RELAY_REQUIRED=YES`
+- `DESIGN_TO_TEST_COVERAGE=GAP / Section 9.E is undefined in the approved Design Spec`
+- `TEST_PLAN_DESIGN=APPROVED`
+- `TEST_CASE_DESIGN=APPROVED`
+- `TEST_DESIGN_CLOSURE=HOLD / resolve the undefined E-axis and TC09 source admission before design closure`
+- `AUTHORIZED_NON_DB_EXECUTABLE_CASES=4` (`TC19`, `TC20`, `TC21`, `TC23`)
+- `DB_DEFERRED_CASES=19`
+- `TEST_EXECUTION=NOT_AUTHORIZED`
 
 ## Test Foundation coverage correction
 
@@ -107,13 +114,38 @@ This document update is documentation-only. No tests were executed, no source or
 - New coverage cases: `NOT_RUN`; DB-dependent cases are `DEFERRED_NOT_AUTHORIZED`.
 - Automated tools remain separate from functional case totals: frontend 5 PASS, backend 11 PASS, ESLint PASS, TypeScript PASS; prior static migration gate remains FAIL.
 
-### A-E coverage disposition
+### Exact A-E crosswalk
 
-- A: Item identity, code non-reuse, name correction, base UOM/editability: TC01, TC13, TC14, TC15. Partial; DB cases deferred.
-- B: UOM/conversion, effective periods, customer/supplier/package scope: TC02, TC04, TC16, TC22. Partial; DB cases deferred.
-- C: Lifecycle, approval, successor and provenance: TC05, TC06, TC08, TC17, TC18. Partial; DB cases deferred.
-- D: API/UI, validation, idempotency, role-aware controls: TC19, TC20, TC21 plus TC01/TC02. Non-DB planned cases; not executed in this correction.
-- E: Migration lineage, rollback/recovery and Product/SKU boundary: TC09, TC23, TC24. `TC09_MIGRATION_GAP=OPEN`; TC24 deferred.
+| Design axis | Authoritative section | Case IDs | Positive coverage | Negative/ boundary coverage | Authorization coverage | Expected behavior / fixtures |
+|---|---|---|---|---|---|---|
+| A. Item Master foundation | Design 9.A; 2.1; 4.1; 6.2-6.6; 14.2-14.3 | TC01, TC02, TC13, TC14, TC15, TC16, TC17, TC18, TC22 | Item identity, category, UOM, qualification and lifecycle fixtures | duplicate/non-reuse, audit material-change, locked UOM, overlap, invalid transitions | approval and technical/business actor separation | valid synthetic Item remains governed; invalid or conflicting fixture is rejected without partial mutation |
+| B. Required future logical contracts | Design 9.B; 5.1-5.2; 10.1-10.4 | TC03, TC04, TC16, TC18, TC20, TC22, TC24 | stable Item/UOM/specification/provenance references | overlap, stale row, conflicting fingerprint, incomplete lineage | business approval and delegation evidence | consumers reference stable Item identity; revisions are effective-dated and conflicts fail closed |
+| C. Later FM-02 Product/SKU work | Design 9.C; 4.2; 14.4-14.5 | TC10, TC23 | Item-only contract stub | Product/SKU/GTIN/BOM/production side-effect exclusion | route/scope boundary | Item operation creates no Product/SKU side effect; live shared route remains separately authorized |
+| D. Other owning modules | Design 9.D; 4.2; 5.2; 14.4 | TC11, TC22, TC23 | supplier/customer/package references through contracts | ownership/valuation and unrelated runtime boundary | application grant and module authority boundary | Item Master does not become Inventory, Finance, Purchasing, Sales, Quality or Product authority |
+| E. A-E axis | No explicit Design 9.E section or definition found | None | `NOT_VERIFIED` | `NOT_VERIFIED` | `NOT_VERIFIED` | Design Spec Section 14.1 mentions A-E, but only Sections 9.A-9.D are defined; no test case is invented for undefined policy. |
+
+### Testable requirement crosswalk
+
+| Requirement ID | Design source | Case IDs | Coverage |
+|---|---|---|---|
+| IM-01 Permanent Item Code | 2.1, 7.3, 14.6 | TC01, TC13 | Mapped; DB execution deferred |
+| IM-02 Name correction audit | 6.6, 7.2, 14.4, 14.6 | TC14 | Mapped; DB execution deferred |
+| IM-03 Base UOM lock/editability | 2.1, 6.4, 14.2, 14.6 | TC02, TC15 | Mapped; DB execution deferred |
+| IM-04 Revisions/effective periods | 6.4, 7.2, 8.1, 14.3, 14.6 | TC04, TC16 | Mapped; DB execution deferred |
+| IM-05 Lifecycle/successor | 2.1, 6.5, 7.2, 14.3, 14.4, 14.6 | TC05, TC06, TC17 | Mapped; DB execution deferred |
+| IM-06 Authorization/provenance | 6.5, 7.2, 10.2, 14.6 | TC08, TC18 | Mapped; DB execution deferred |
+| IM-07 Create/Edit validation | 10.1, 14.4, 14.5 | TC02, TC19 | Mapped; non-DB case eligible but not run |
+| IM-08 Idempotency/conflict/row version | 10.1, 14.4, 14.6 | TC05, TC20 | Mapped; non-DB contract eligible, persistence deferred |
+| IM-09 Role-aware frontend/error behavior | 10.2, 14.5, 14.6 | TC21 | Mapped; non-DB case eligible but not run |
+| IM-10 Customer/supplier/package scope | 6.1, 7.2, 8.1, 14.6 | TC22 | Mapped; DB execution deferred |
+| IM-11 Product/SKU boundary | 4.2, 9.C, 14.4, 14.5, 14.6 | TC10, TC23 | Mapped; live route not authorized, stub case eligible but not run |
+| IM-12 Migration lineage/rollback/recovery | 10.3, 10.4, 12, 14.3 | TC07, TC09, TC24 | Mapped; `TC09_SOURCE_ADMISSION_GAP=OPEN`, execution not authorized |
+
+Crosswalk counts: `DESIGN_REQUIREMENTS_TOTAL=12`, `DESIGN_REQUIREMENTS_COVERED=12`, `DESIGN_REQUIREMENTS_UNCOVERED=0` for defined testable requirements. The undefined Section 9.E axis remains a separate `NOT_VERIFIED` design-document ambiguity.
+
+### TC01-TC24 identity and source mapping
+
+All Case IDs are unique and have exactly one Primary Test Type. TC01-TC12 are retained historical/catalogue cases; TC13-TC24 are planned coverage additions. Unit/component source mapping is explicit: `src/components/items/item-master-maintenance-panel.test.tsx` maps to TC02, TC15 and TC21; `src/components/items/item-master-maintenance-panel.tsx` is the UI source reference. Backend contract source `04_Engineering/Application/ERP-2.0/restserver/tests/test_fm02_c2_service.py` maps to TC03, TC04, TC05, TC06, TC08 and TC22. Static migration source/test maps to TC09 and TC24. Automated ESLint/TypeScript are tool checks, not Case IDs.
 
 ### Required return state
 
@@ -124,6 +156,9 @@ This document update is documentation-only. No tests were executed, no source or
 - `DB_DEPENDENT_CASES=19`
 - `MOCK_CASES=4`
 - `DESIGN_REQUIREMENT_COVERAGE=GAP / deferred DB and unresolved source admission`
+- `DESIGN_REQUIREMENTS_TOTAL=12`
+- `DESIGN_REQUIREMENTS_COVERED=12`
+- `DESIGN_REQUIREMENTS_UNCOVERED=0 defined requirements; Section 9.E undefined`
 - `TC09_MIGRATION_GAP=OPEN`
 - `TEST_EXECUTION=NOT_RUN`
 - `REMOTE_TEST_DOCUMENT_READBACK=PENDING DELIVERY`

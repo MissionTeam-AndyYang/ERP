@@ -7,7 +7,7 @@ Date: 2026-10-17
 
 ## Source and destination
 
-Current source custody repository: `20_Engineering_Workspace/FM02_C2_Implementation_20261013_001/`, branch `codex/fm02-c2-isolated-20261013-001`, HEAD `575aaa6d3282f92102c146cf46c7818c19c46e74`.
+Current source custody repository: `20_Engineering_Workspace/FM02_C2_Implementation_20261013_001/`, branch `codex/fm02-c2-isolated-20261013-001`. The listed source inventory is anchored to source commit `701b265a1ae5b8d9618bf9df8f539ae6d14f5028`; the CF-01 status correction and this local preparation package are subsequent local documentation commits and are not silently folded into the historical Product candidate.
 
 Historical Product destination reference: `https://github.com/MissionTeam-AndyYang/ERP.git`, Product `main` baseline `89b374109312720b3ff6669a9664fb0cf8f9a6ba`. Current remote access and push authority are not verified in this execution context.
 

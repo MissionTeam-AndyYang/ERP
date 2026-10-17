@@ -2,7 +2,9 @@
 
 ## Independent verdict
 
-`INDEPENDENT TEST VERDICT = FAIL / STATIC MIGRATION CONTRACT BASELINE DEFECT; NON-DB APPLICATION TESTS PASS`
+`CURRENT INDEPENDENT TEST VERDICT = PASS WITH CONDITIONS / STATIC SOURCE ADMISSION AND NON-DB MOCK VALIDATION PASS; DB/RUNTIME ACCEPTANCE NOT AUTHORIZED`
+
+Historical verdict retained: `FAIL / STATIC MIGRATION CONTRACT BASELINE DEFECT; NON-DB APPLICATION TESTS PASS` before bounded source-admission and harness custody correction.
 
 This is an independent Test Engineering result against the exact CIO-authorized baseline. It is not an Engineering self-test result and does not authorize database/runtime acceptance.
 
@@ -20,6 +22,35 @@ This is an independent Test Engineering result against the exact CIO-authorized 
 - Return target: CTO Office V2
 - Existing authority reused: `FM02-TEST-PLAN-20261013-001.md` and `FM02-TEST-CASE-CATALOG-20261013-001.md`
 - Source mutation: none
+
+## Final bounded evidence update — 2026-10-18
+
+The following evidence is accepted as Test Engineering validation of static custody and mock-only behavior. It does not establish live database, migration-runtime, API-route, shared-runtime, Product, Production or Go-Live acceptance.
+
+### Migration source admission and TC09
+
+- Admission branch: `codex/fm02-item-master-migration-source-admission-20261018-001`
+- Admission commit: `7b9620a25713338c8e6a60a55de8685070fe8538`
+- Parent: `768bd2bfc2d089cb720de9c2bb448ea724a90cc`
+- Tree: `7d94dcae515683729490d34d94a373adbcd86892`
+- Manifest: `FM02-MIGRATION-SOURCE-ADMISSION-MANIFEST-20261018.md`, SHA-256 `63375DD93BB2E8DB26F4785157B1997205104E2E5CAA31641E98227F9EDC5FE0`
+- Corrected static contract test SHA-256: `2E8F2756DE8DD50B57E162E3C0A2714DA314578DAA168AB405FCDEE898A1F3F3`
+- `TC09_STATIC_RETEST=PASS` — `6 passed`; historical `5 passed / 1 failed` is preserved as prior provenance.
+- Scope is limited to source custody and stale expected-hash correction. No SQL or migration runtime was executed.
+
+### Non-DB harness
+
+- Harness delivery commit: `13b124592287939bb86d7b2f8b2094de50a6d65c`
+- Parent: `d73588f5e528538aa6b12225abdcd96884ac11ad`
+- Tree: `836435d40b446d4d8687aff86ce236effa40c60e`
+- Provenance commit/tree: `329d0eb4f506f87170d41ee1a2646189523f87e9` / `4bd558ff94b9fdeddc1b7a76352adb2e500e5e3b`
+- Harness: `backend/tests/test_fm02_non_db_cases.py`
+- Canonical raw Git payload SHA-256: `C55592323FD5ADC3F1CE277C6A95C22FB18D788DF7F38DE3D393BF620FEDEC37`
+- Separate CRLF checkout hash: `FE4661A792D16FBE4C5072FAB1ABF7D57B0315E6971AE63ECFC1F78BE50CB640`
+- Isolated result: `4 passed`; TC19, TC20 and TC23 assertions accepted. Existing TC21 remains `PASS` with 5 component tests.
+- Containment: no DB, SQL, credentials, runtime, production, or protected test contact; temporary review extraction was removed.
+
+Mock results are validation evidence only. They do not replace live persistence, concurrency, migration, route, or runtime acceptance.
 
 ## Executed cases
 
@@ -51,7 +82,7 @@ The previous report recorded the exact FileNotFoundError and overall FAIL. Align
 
 - Validation/negative cases: PASS through the 5 frontend draft-validation tests and 11 backend FM02 contract tests.
 - Authorization/error contract cases: covered by the passing backend/frontend cases; no live authorization grant was attempted.
-- Mock/stub UI/API integration: no dedicated additional suite was present in the exact baseline; NOT RUN beyond the available component/contract coverage.
+- Mock/stub UI/API integration: accepted isolated harness evidence for TC19, TC20 and TC23; TC21 component fixture remains PASS.
 - Static schema/migration contract: FAIL as documented above.
 
 ## Explicitly not authorized / not run
@@ -73,7 +104,7 @@ The previous report recorded the exact FileNotFoundError and overall FAIL. Align
 
 ## Recommendation
 
-CTO/Engineering should reconcile the exact baseline's migration file custody with the approved static contract test, then return a new immutable baseline or explicit corrected test contract. Test Engineering should not claim overall FM02 independent PASS until the failed static migration contract is resolved and rerun under a newly accepted baseline.
+The prior source-admission gap is closed for static custody by the bounded correction above. Test Engineering still does not claim live database, migration-runtime, shared API, Product, Production or Go-Live acceptance.
 
 ## Formal return fields
 
@@ -82,29 +113,29 @@ CTO/Engineering should reconcile the exact baseline's migration file custody wit
 - `TEST_CASES=APPROVED`
 - `MIGRATION_TEST_BASELINE=RECONCILED / SOURCE_ADMISSION_GAP; EXECUTION HOLD`
 - `NON_DB_CASES_EXECUTED=4`
-- `NON_DB_CASES_PASS=1` (`TC21`)
+- `NON_DB_CASES_PASS=4` (`TC19`, `TC20`, `TC21`, `TC23`)
 - `NON_DB_CASES_FAIL=0`
-- `NON_DB_CASES_BLOCKED=3` (`TC19`, `TC20`, `TC23`)
-- `NON_DB_TEST_EXECUTION=PARTIAL`
-- `NON_DB_TEST_VERDICT=PARTIAL`
+- `NON_DB_CASES_BLOCKED=0`
+- `NON_DB_TEST_EXECUTION=PASS / MOCK-ONLY`
+- `NON_DB_TEST_VERDICT=PASS / MOCK-ONLY`
 - `TEST_REPORT=UPDATED`
 - `REMOTE_TEST_DOCUMENT_READBACK=PENDING DELIVERY READBACK`
 - `KNOWLEDGE_READBACK=HOLD / NO KNOWLEDGE CONNECTOR AUTHORIZED`
-- `DB_DEPENDENT_TEST=DEFERRED_NOT_AUTHORIZED`
+- `DB_DEPENDENT_TEST=NOT_AUTHORIZED / DEFERRED`
 - `PRODUCTION_TEST=NOT_AUTHORIZED`
 - `CIO_NOTIFICATION=MANUAL_REQUIRED`
 - `MANUAL_RELAY_REQUIRED=YES`
-- `TC09_STATIC_RETEST=BLOCKED until source admission`
+- `TC09_STATIC_RETEST=PASS / 6 passed after bounded stale-hash correction; prior 5 passed / 1 failed preserved`
 - `DESIGN_TO_TEST_COVERAGE=GAP / Section 9.E is undefined in the approved Design Spec`
 - `TEST_PLAN_DESIGN=APPROVED`
 - `TEST_CASE_DESIGN=APPROVED`
 - `TEST_DESIGN_CLOSURE=HOLD / resolve the undefined E-axis and TC09 source admission before design closure`
 - `AUTHORIZED_NON_DB_EXECUTABLE_CASES=4` (`TC19`, `TC20`, `TC21`, `TC23`)
 - `DB_DEFERRED_CASES=19`
-- `TEST_EXECUTION=NOT_AUTHORIZED`
-- `TEST_EVIDENCE_CUSTODY=PASS / TC21 output retained; blocked cases have explicit no-command records`
+- `TEST_EXECUTION=PASS WITH CONDITIONS / STATIC AND MOCK-ONLY`
+- `TEST_EVIDENCE_CUSTODY=PASS / migration and harness raw payloads verified`
 - `DB_DEPENDENT_TEST=NOT_AUTHORIZED`
-- `LIVE_DATABASE_VALIDATION=NOT_RUN`
+- `LIVE_DATABASE_VALIDATION=NOT_RUN / NOT_AUTHORIZED`
 
 ## Authorized non-DB execution update — 2026-10-18
 
@@ -134,7 +165,7 @@ The earlier coverage correction was documentation-only. The bounded non-DB execu
 - Non-DB cases: `5`
 - Mock/Stub cases: `4`
 - Historical status ledger: PASS `9`; NOT_VERIFIED `3` after normalizing TC12 PENDING; FAIL/BLOCKED/NOT RUN/DEFERRED `0` in the legacy catalog.
-- New coverage cases: TC19/TC20/TC23 blocked for missing authorized non-DB fixtures; TC21 executed PASS; DB-dependent cases remain `DEFERRED_NOT_AUTHORIZED`.
+- New coverage cases: TC19/TC20/TC23 accepted isolated mock PASS; TC21 component fixture PASS; DB-dependent cases remain `DEFERRED_NOT_AUTHORIZED`.
 - Automated tools remain separate from functional case totals: frontend 5 PASS, backend 11 PASS, ESLint PASS, TypeScript PASS; prior static migration gate remains FAIL.
 
 ### Exact A-E crosswalk
@@ -157,12 +188,12 @@ The earlier coverage correction was documentation-only. The bounded non-DB execu
 | IM-04 Revisions/effective periods | 6.4, 7.2, 8.1, 14.3, 14.6 | TC04, TC16 | Mapped; DB execution deferred |
 | IM-05 Lifecycle/successor | 2.1, 6.5, 7.2, 14.3, 14.4, 14.6 | TC05, TC06, TC17 | Mapped; DB execution deferred |
 | IM-06 Authorization/provenance | 6.5, 7.2, 10.2, 14.6 | TC08, TC18 | Mapped; DB execution deferred |
-| IM-07 Create/Edit validation | 10.1, 14.4, 14.5 | TC02, TC19 | Mapped; non-DB case eligible but not run |
-| IM-08 Idempotency/conflict/row version | 10.1, 14.4, 14.6 | TC05, TC20 | Mapped; non-DB contract eligible, persistence deferred |
-| IM-09 Role-aware frontend/error behavior | 10.2, 14.5, 14.6 | TC21 | Mapped; non-DB case eligible but not run |
+| IM-07 Create/Edit validation | 10.1, 14.4, 14.5 | TC02, TC19 | Mapped; mock-only validation PASS, persistence deferred |
+| IM-08 Idempotency/conflict/row version | 10.1, 14.4, 14.6 | TC05, TC20 | Mapped; mock-only replay/conflict/stale-version PASS, persistence deferred |
+| IM-09 Role-aware frontend/error behavior | 10.2, 14.5, 14.6 | TC21 | Mapped; component fixture PASS, live authorization deferred |
 | IM-10 Customer/supplier/package scope | 6.1, 7.2, 8.1, 14.6 | TC22 | Mapped; DB execution deferred |
-| IM-11 Product/SKU boundary | 4.2, 9.C, 14.4, 14.5, 14.6 | TC10, TC23 | Mapped; live route not authorized, stub case eligible but not run |
-| IM-12 Migration lineage/rollback/recovery | 10.3, 10.4, 12, 14.3 | TC07, TC09, TC24 | Mapped; `TC09_SOURCE_ADMISSION_GAP=OPEN`, execution not authorized |
+| IM-11 Product/SKU boundary | 4.2, 9.C, 14.4, 14.5, 14.6 | TC10, TC23 | Mapped; mock-only exclusion PASS, live route not authorized |
+| IM-12 Migration lineage/rollback/recovery | 10.3, 10.4, 12, 14.3 | TC07, TC09, TC24 | Mapped; static TC09 custody PASS, runtime not authorized |
 
 Crosswalk counts: `DESIGN_REQUIREMENTS_TOTAL=12`, `DESIGN_REQUIREMENTS_COVERED=12`, `DESIGN_REQUIREMENTS_UNCOVERED=0` for defined testable requirements. The undefined Section 9.E axis remains a separate `NOT_VERIFIED` design-document ambiguity.
 
@@ -182,8 +213,8 @@ All Case IDs are unique and have exactly one Primary Test Type. TC01-TC12 are re
 - `DESIGN_REQUIREMENTS_TOTAL=12`
 - `DESIGN_REQUIREMENTS_COVERED=12`
 - `DESIGN_REQUIREMENTS_UNCOVERED=0 defined requirements; Section 9.E undefined`
-- `TC09_MIGRATION_GAP=OPEN`
-- `TEST_EXECUTION=PARTIAL / TC21 PASS; TC19, TC20, TC23 BLOCKED`
+- `TC09_MIGRATION_GAP=CLOSED_FOR_STATIC_SOURCE_ADMISSION / RUNTIME DEFERRED`
+- `TEST_EXECUTION=PASS WITH CONDITIONS / TC19, TC20, TC21, TC23 MOCK-ONLY; DB/RUNTIME NOT_AUTHORIZED`
 - `REMOTE_TEST_DOCUMENT_READBACK=PENDING DELIVERY`
 - `KNOWLEDGE_READBACK=HOLD / no Knowledge connector authorized`
 - `MANUAL_RELAY_REQUIRED=YES`

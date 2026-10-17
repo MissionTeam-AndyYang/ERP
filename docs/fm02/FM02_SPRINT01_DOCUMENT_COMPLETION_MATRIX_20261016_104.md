@@ -1,43 +1,38 @@
-# FM-02 Sprint 1 Document Completion Matrix
+# FM-02 Sprint 1 — Full Module Document Completion Matrix
 
-Directive: `ERP2.0-CIO-GOV-FM02-SPRINT01-DOCUMENT-COMPLETION-20261016-104`
+Directive: `ERP2.0-CIO-GOV-FM02-SPRINT01-FULL-MODULE-CLOSURE-20261016-105`
 Repository: `FM02_C2_Implementation_20261013_001`
 Branch: `codex/fm02-c2-isolated-20261013-001`
+Date: 2026-10-17
 
-Status meanings: `COMPLETE` means the bounded document is source-reviewed and traceable. `PARTIAL` means the bounded slice is complete but broader Product or platform scope remains. `HOLD` means an authority, dependency or evidence predicate is unresolved. `NOT VERIFIED` means the current environment did not establish the claim.
+`Reviewed` identifies source/document review, not business approval. `Corrections Completed` records this closure cycle. No row claims live runtime or Sprint 2 authorization.
 
-| ID | Document Name | Actual Path | Reviewed By | Status | Corrections Completed | Git Commit | Remaining Decision |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| D01 | Business Requirements and Functional Specification | `docs/fm02/FM02_SPRINT01_DOCUMENTATION_BASELINE_20261016.md` §D01; `docs/fm02/FM02_C2_MODULE_CONTRACT_20261016.md` | CTO workspace review; Engineering evidence Hilbert; Product appointment not exposed | COMPLETE for bounded C2 | Approved functions, validation, exceptions, lifecycle, dependencies, exclusions and acceptance rules reconciled | This documentation commit | Product must confirm broader FM-02 scope before Sprint 2 |
-| D02 | Domain Model and Architecture Specification | baseline §D02; `docs/architecture/PROJECT_STRUCTURE.md` | CTO workspace review; Engineering evidence | COMPLETE for bounded C2 | Aggregate boundaries, layer ownership, transaction rules and non-goals recorded | This documentation commit | None for bounded C2; broader modules remain excluded |
-| D03 | Database Schema, ERD, DDL and Data Dictionary | baseline §D03; four `04_Engineering/Database/fm02_item_master_0003..0006*.sql` files; `evidence/routeb-20261013-001/` | CTO workspace review; prior Independent TEST evidence | COMPLETE for documented C2 physical scope | DDL, down scripts, 19-table evidence, 25 FK/20 unique counts and non-inference note reconciled | This documentation commit; migration sources prior commits | No new live readback or migration execution authorized |
-| D04 | Database Migration and Data Mapping | baseline §D04; four forward/down migration pairs | CTO workspace review; Engineering evidence | COMPLETE | Revision guards, zero-row gate, source identity fields and down safety documented | This documentation commit | Protected migration execution requires separate release |
-| D05 | Backend/API Specification and Contract | baseline §D05; `backend/app/api/v1/endpoints/fm02_c2.py`; `backend/app/services/fm02_c2.py`; isolated service | CTO workspace review; Hilbert task `01a14421-8bf5-7531-a63c-88f8f3903ba9` | PARTIAL / HOLD | Three C2 routes, request/response boundary, errors and implementation-versus-prototype distinction recorded | This documentation commit; `3368ab2` source | Dependency-complete API collection and broader API ownership remain open |
-| D06 | UI/UX Screen and Interaction Specification | baseline §D06; `src/app/items/page.tsx`; `src/components/items/c2-reference-panel.tsx`; types/services/mock | CTO workspace review; Lagrange task `01a14421-8cad-7683-9e5e-f00e69211ca3` | PARTIAL | Actual mock fields, states, validation, permissions/boundaries and unavailable features documented | This documentation commit; `b85ec85` source | Product/Frontend must accept live C2 UI/API scope |
-| D07 | CSS and Design System Mapping | baseline §D07; `docs/design-system/ERP_2_0_Design_System_Specification.md`; `src/app/globals.css` | CTO workspace review; Lagrange technical evidence | COMPLETE for prototype system / PARTIAL for C2 acceptance | Shared tokens and component patterns mapped; no parallel theme added | This documentation commit | Frontend build/browser verification requires approved dependencies |
-| D08 | Authorization and Permission Matrix | baseline §D08; existing ownership/verification plan | CTO workspace review; CIO boundary evidence | PARTIAL | Office separation, technical versus business authority and live boundary recorded | This documentation commit | Formal current Office appointments and business-role matrix need confirmation |
-| D09 | Test Strategy, Plan and Acceptance Criteria | baseline §D09; `docs/fm02/FM02_C2_OFFLINE_TEST_PLAN_20261016.md` | CTO workspace review; Independent TEST Kierkegaard `01a14421-8d45-7a82-a485-ffd1460724bb` | PARTIAL / HOLD | Offline, API, UI, migration, functional, negative, UAT and live-boundary statuses reconciled | This documentation commit | Dependency-complete API/UI runs and live TEST remain separate |
-| D10 | Engineering Standards Applicability and Coding Convention | `docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md`; existing backend/frontend conventions | CTO workspace review; Engineering evidence | PARTIAL | Unified Global/Backend/Frontend/Database/Test rules, quality gates, secrets, Git and evidence rules added | This documentation commit | Repository Office must confirm final centralized standard location |
-| D11 | Technical Architecture, Deployment and Operations | baseline §D11; `README.md`; `CONTRIBUTING.md`; `docs/fm02/FM02_C2_OFFLINE_TEST_PLAN_20261016.md` | CTO workspace review | COMPLETE for source/offline scope / HOLD for live ops | Local architecture, commands, target boundary and operational prohibitions reconciled | This documentation commit | Owner-host live operations remain separately gated |
-| D12 | Source Control, Git and Module Delivery | baseline §D12; `CONTRIBUTING.md`; `docs/fm02/FM02_P0_FINAL_ARTIFACT_MANIFEST_20261016.json` | CTO workspace review; Repository custody not remotely verified | PARTIAL | Branch, local commit custody, evidence preservation and no-remote rule recorded | This documentation commit | Authorized remote/readback/push path must be verified before GitHub delivery |
+| Document ID | Actual Path | Reviewed | Corrections Completed | Git Commit | Final Status |
+| --- | --- | --- | --- | --- | --- |
+| D01 | `docs/fm02/FM02_SPRINT01_DOCUMENTATION_BASELINE_20261016.md` §D01 | CTO + source evidence review | Full Option A scope, classifications, business decisions and exclusions reconciled | This closure commit | PARTIAL — Product/owner decisions remain |
+| D02 | same baseline §D02 | CTO + source review | Full Item aggregate, Product/SKU dependency boundary and architecture ownership reconciled | This closure commit | PARTIAL — relationship authority remains open |
+| D03 | same baseline §D03; `04_Engineering/Database/` migrations 0001–0006 | CTO + migration/source review | Full source set and C2 physical boundary reconciled; no live readback claimed | This closure commit | PARTIAL — physical expansion not authorized |
+| D04 | same baseline §D04; forward/down migration pairs | CTO + source review | 0001–0006 sequence, zero-row gate, mapping and non-guessing rules reconciled | This closure commit | COMPLETE for documentation / live execution HOLD |
+| D05 | same baseline §D05; backend/API source paths | CTO + Engineering evidence | Foundation and C2 routes, boundaries and unverified runtime states reconciled | This closure commit | PARTIAL — dependency-complete runtime validation open |
+| D06 | same baseline §D06; `src/app/items/` and C2 UI source | CTO + frontend evidence | Full Option A UI gaps, mock/live distinction and Product acceptance needs recorded | This closure commit | PARTIAL — Product/Frontend acceptance open |
+| D07 | same baseline §D07; shared design system paths | CTO + source review | Shared CSS/design-system reuse and runtime validation limits reconciled | This closure commit | COMPLETE for specification / build verification HOLD |
+| D08 | same baseline §D08 | CTO + governance/source review | Office responsibilities, authority boundaries and unresolved role ownership recorded | This closure commit | PARTIAL — formal appointments/business matrix open |
+| D09 | same baseline §D09; `docs/fm02/FM02_C2_OFFLINE_TEST_PLAN_20261016.md` | CTO + prior Independent TEST evidence | Full Option A test inventory and evidence vocabulary reconciled | This closure commit | PARTIAL — dependency/live runs remain separate |
+| D10 | `docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md` | CTO + engineering source review | Shared FM-01/FM-02/future-module applicability confirmed; status remains PROPOSED | No source correction required | PARTIAL — Repository Office standard custody/approval open |
+| D11 | same baseline §D11; `README.md`, `CONTRIBUTING.md` | CTO + source review | Tooling, environment, operations and prohibited actions reconciled | This closure commit | COMPLETE for documentation / runtime dependencies HOLD |
+| D12 | same baseline §D12; local Git records | CTO + Git/source review | Local custody, branch, untracked evidence and no-remote limitation recorded | This closure commit | PARTIAL — authorized remote/readback/push unavailable |
 
-## Traceability and verdict
+## Supporting records
 
-Detailed requirement mapping is in `FM02_SPRINT01_TRACEABILITY_MATRIX_20261016.md`. Existing code and test commits are preserved; this document cycle changes documentation only.
+- Traceability: `docs/fm02/FM02_SPRINT01_TRACEABILITY_MATRIX_20261016.md`.
+- Review: `docs/fm02/FM02_SPRINT01_DOCUMENT_REVIEW_RECORD_20261016.md`.
+- Prior Repository Knowledge receipt/readback: `Canonical_ERP2.0_Monorepo/01_Foundation/repository_knowledge/ERP2-FM02-Sprint01-Knowledge-Registration-Receipt-20261017-105A.md`.
+- Post-correction update request: `docs/fm02/FM02_SPRINT01_REPOSITORY_KNOWLEDGE_UPDATE_RELAY_20261017_105.md`.
+
+## Final status
 
 `FM02_SPRINT01_DOCUMENTS=PARTIAL`
-`CODING_CONVENTION=PARTIAL`
+`CROSS_MODULE_CODING_CONVENTION=PARTIAL`
+`REPOSITORY_KNOWLEDGE_STATUS=UPDATE_PENDING`
 `SPRINT02_ENTRY=NOT_READY`
-
-## Addendum 105A — Repository Knowledge closure
-
-Registration relay: `docs/fm02/FM02_SPRINT01_REPOSITORY_KNOWLEDGE_REGISTRATION_RELAY_20261016_105A.md`.
-
-The authoritative index is outside this delivery repository at `Canonical_ERP2.0_Monorepo/01_Foundation/repository_knowledge/Repository-Knowledge-Index-20261010-001.md`. No authorized direct write route or Repository Office readback was available in this task, so no registration was claimed and no competing index was created.
-
-`REPOSITORY_KNOWLEDGE_REGISTRATION=HOLD`
-`REPOSITORY_KNOWLEDGE_READBACK=HOLD`
-
-The Sprint 1 scope is documentation authoring, reconciliation, Coding Convention, local Git commit and Repository Knowledge handoff. Missing dependency installation, runtime tests, live DB access and GitHub push remain later-sprint activities and are not Sprint 1 document-review failures.
-
-The package is ready for formal review and local documentation commit. It is not a claim that missing Product decisions, dependency-complete test runs, remote Git custody or live database evidence have been completed.
+`GITHUB_PUSH=BLOCKED_REMOTE_NOT_VERIFIED`

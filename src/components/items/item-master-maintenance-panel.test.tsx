@@ -17,14 +17,17 @@ const validDraft: ItemMasterDraft = {
   specificationHash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   specificationEffectiveFrom: "2026-10-17T00:00",
   specificationEffectiveTo: "",
-  conversionFromUomCode: "KG",
-  conversionToUomCode: "G",
+  conversionFromItemUomId: "ITEM-UOM-KG",
+  conversionToItemUomId: "ITEM-UOM-G",
   conversionMode: "FIXED",
+  conversionRuleVersion: "1",
   conversionFactor: "1000",
+  conversionToleranceValue: "",
   conversionDecimalScale: "2",
   conversionRoundingMode: "HALF_UP",
   conversionEffectiveFrom: "2026-10-17T00:00",
-  conversionEffectiveTo: ""
+  conversionEffectiveTo: "",
+  conversionSourceReference: "frontend-test"
 };
 
 describe("validateItemMasterDraft", () => {
@@ -58,5 +61,18 @@ describe("validateItemMasterDraft", () => {
 
     expect(errors.conversionMode).toContain("授權");
     expect(validateItemMasterDraft({ ...validDraft, conversionMode: "CATCH_WEIGHT", conversionFactor: "" }, { catchWeightAuthorized: true })).toEqual({});
+  });
+
+  it("requires the approved Item-scoped conversion contract fields", () => {
+    const errors = validateItemMasterDraft({
+      ...validDraft,
+      conversionFromItemUomId: "",
+      conversionRuleVersion: "0",
+      conversionSourceReference: ""
+    });
+
+    expect(errors.conversionFromItemUomId).toContain("Item UOM ID");
+    expect(errors.conversionRuleVersion).toContain("正整數");
+    expect(errors.conversionSourceReference).toContain("來源參照");
   });
 });

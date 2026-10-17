@@ -2,6 +2,8 @@ import type { DataSourceMode } from "@/components/common/data-source-toggle";
 import { apiGet, apiPatch, apiPost, ApiClientError } from "@/services/api-client";
 import type {
   ItemMasterCategoryUpdateRequest,
+  ItemMasterConversionCreateRequest,
+  ItemMasterConversionRevision,
   ItemMasterCreateRequest,
   ItemMasterGovernanceData,
   ItemMasterLifecycleRequest,
@@ -17,6 +19,8 @@ type ApiGovernancePayload = {
 
 export type ItemMasterGovernanceResult = {
   data?: ItemMasterGovernanceData;
+  conversion?: ItemMasterConversionRevision;
+  idempotentReplay?: boolean;
   source: DataSourceMode;
   error?: string;
   status?: number;
@@ -127,23 +131,31 @@ function mapSpecificationRevision(value: unknown, index: number) {
 
 function mapConversionRevision(value: unknown, index: number) {
   const row = (value ?? {}) as Record<string, unknown>;
-  const mode = String(row.conversionMode ?? row.conversion_mode) === "CATCH_WEIGHT" ? "CATCH_WEIGHT" : "FIXED";
+  const mode = String(row.conversionMode ?? row.conversion_mode ?? row.conversion_type) === "CATCH_WEIGHT" ? "CATCH_WEIGHT" : "FIXED";
   return {
-    id: asString(row.id ?? row.conversion_id, `conversion-${index}`),
-    fromUomCode: asString(row.fromUomCode ?? row.from_uom_code),
-    toUomCode: asString(row.toUomCode ?? row.to_uom_code),
+    id: asString(row.id ?? row.conversion_id ?? row.conversion_rule_id, `conversion-${index}`),
+    fromItemUomId: asString(row.fromItemUomId ?? row.from_item_uom_id),
+    toItemUomId: asString(row.toItemUomId ?? row.to_item_uom_id),
+    fromUomCode: asString(row.fromUomCode ?? row.from_uom_code ?? row.from_item_uom_id),
+    toUomCode: asString(row.toUomCode ?? row.to_uom_code ?? row.to_item_uom_id),
     conversionMode: mode as "FIXED" | "CATCH_WEIGHT",
-    factor: asString(row.factor ?? row.factor_numerator),
-    decimalScale: asNumber(row.decimalScale ?? row.decimal_scale),
+    conversionRuleVersion: asNumber(row.conversionRuleVersion ?? row.conversion_rule_version),
+    factor: asString(row.factor ?? row.factor_numerator ?? row.conversion_factor),
+    toleranceValue: asString(row.toleranceValue ?? row.tolerance_value),
+    decimalScale: asNumber(row.decimalScale ?? row.decimal_scale ?? row.rounding_scale),
     roundingMode: asString(row.roundingMode ?? row.rounding_mode),
     effectiveFrom: asString(row.effectiveFrom ?? row.effective_from),
     effectiveTo: asString(row.effectiveTo ?? row.effective_to),
-    status: normalizeRevisionStatus(row.status)
+    status: normalizeConversionStatus(row.status ?? row.lifecycleStatus ?? row.lifecycle_status)
   };
 }
 
 function normalizeRevisionStatus(value: unknown): "DRAFT" | "ACTIVE" | "SUPERSEDED" {
   return value === "ACTIVE" || value === "SUPERSEDED" ? value : "DRAFT";
+}
+
+function normalizeConversionStatus(value: unknown): "DRAFT" | "ACTIVE" | "INACTIVE" | "SUPERSEDED" {
+  return value === "ACTIVE" || value === "INACTIVE" || value === "SUPERSEDED" ? value : "DRAFT";
 }
 
 function mapAuditEvent(value: unknown, index: number) {
@@ -229,16 +241,51 @@ export async function createSpecificationRevision(
 
 export async function createConversionRevision(
   itemId: string,
-  request: Record<string, unknown>,
+  request: ItemMasterConversionCreateRequest,
   dataSourceMode: DataSourceMode
 ): Promise<ItemMasterGovernanceResult> {
   if (dataSourceMode === "mock") {
     return { source: "mock", error: "示範資料模式不會寫入後端資料。" };
   }
-  return {
-    source: "api",
-    error: "Backend custody contract 尚未提供 Item-specific UOM conversion endpoint；未送出請求。"
-  };
+  try {
+    const payload = await apiPost<ApiGovernancePayload>(
+      `/api/v1/fm02/items/${encodeURIComponent(itemId)}/uom-conversions`,
+      request
+    );
+    return {
+      source: "api",
+      conversion: payload.conversion_rule ? mapConversionRevision(payload.conversion_rule, 0) : undefined,
+      idempotentReplay: payload.idempotent_replay === true
+    };
+  } catch (error) {
+    return mutationError(error);
+  }
+}
+
+export async function resolveConversionRevision(
+  itemId: string,
+  fromItemUomId: string,
+  toItemUomId: string,
+  effectiveAt: string,
+  dataSourceMode: DataSourceMode
+): Promise<ItemMasterGovernanceResult> {
+  if (dataSourceMode === "mock") {
+    return { source: "mock", error: "示範資料模式不會查詢後端有效換算規則。" };
+  }
+
+  try {
+    const query = effectiveAt ? `?effective_at=${encodeURIComponent(effectiveAt)}` : "";
+    const payload = await apiGet<ApiGovernancePayload>(
+      `/api/v1/fm02/items/${encodeURIComponent(itemId)}/uom-conversions/${encodeURIComponent(fromItemUomId)}/${encodeURIComponent(toItemUomId)}${query}`
+    );
+    return {
+      source: "api",
+      conversion: payload.conversion_rule ? mapConversionRevision(payload.conversion_rule, 0) : undefined,
+      idempotentReplay: payload.idempotent_replay === true
+    };
+  } catch (error) {
+    return mutationError(error);
+  }
 }
 
 export async function submitItemLifecycleAction(

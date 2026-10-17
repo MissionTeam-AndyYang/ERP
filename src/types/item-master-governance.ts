@@ -35,15 +35,19 @@ export type ItemMasterRevision = {
 
 export type ItemMasterConversionRevision = {
   id: string;
+  fromItemUomId?: string;
+  toItemUomId?: string;
   fromUomCode: string;
   toUomCode: string;
   conversionMode: ItemMasterConversionMode;
+  conversionRuleVersion?: number;
   factor: string;
+  toleranceValue?: string;
   decimalScale: number;
   roundingMode: string;
   effectiveFrom: string;
   effectiveTo: string;
-  status: "DRAFT" | "ACTIVE" | "SUPERSEDED";
+  status: "DRAFT" | "ACTIVE" | "INACTIVE" | "SUPERSEDED";
 };
 
 export type ItemMasterAuditEvent = {
@@ -94,14 +98,17 @@ export type ItemMasterDraft = {
   specificationHash: string;
   specificationEffectiveFrom: string;
   specificationEffectiveTo: string;
-  conversionFromUomCode: string;
-  conversionToUomCode: string;
+  conversionFromItemUomId: string;
+  conversionToItemUomId: string;
   conversionMode: ItemMasterConversionMode;
+  conversionRuleVersion: string;
   conversionFactor: string;
+  conversionToleranceValue: string;
   conversionDecimalScale: string;
   conversionRoundingMode: string;
   conversionEffectiveFrom: string;
   conversionEffectiveTo: string;
+  conversionSourceReference: string;
 };
 
 export type ItemMasterFieldError = {
@@ -132,6 +139,24 @@ export type ItemMasterCategoryUpdateRequest = {
   primary_category: ItemMasterPrimaryCategory;
   reason: string;
   expected_row_version: number;
+};
+
+export type ItemMasterConversionCreateRequest = {
+  from_item_uom_id: string;
+  to_item_uom_id: string;
+  conversion_type: ItemMasterConversionMode;
+  conversion_rule_version: number;
+  conversion_factor?: string;
+  rounding_mode?: string;
+  rounding_scale?: number;
+  tolerance_value?: string;
+  lifecycle_status: "DRAFT" | "ACTIVE" | "INACTIVE" | "SUPERSEDED";
+  effective_from: string;
+  effective_to?: string;
+  source_reference: string;
+  approved_by_role?: string;
+  approved_by_business_ref?: string;
+  approval_evidence_ref?: string;
 };
 
 export type ItemMasterLifecycleRequest = {

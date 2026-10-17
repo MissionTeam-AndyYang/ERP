@@ -18,12 +18,14 @@ import {
   createItemMaster,
   createSpecificationRevision,
   getItemMasterGovernance,
+  resolveConversionRevision,
   submitItemLifecycleAction,
   updateItemCategory,
   updateItemName
 } from "@/services/item-master-governance-api";
 import type {
   ItemMasterDraft,
+  ItemMasterConversionRevision,
   ItemMasterGovernanceData,
   ItemMasterLifecycleAction,
   ItemMasterLifecycleStatus,
@@ -71,14 +73,17 @@ const EMPTY_DRAFT: ItemMasterDraft = {
   specificationHash: "",
   specificationEffectiveFrom: "",
   specificationEffectiveTo: "",
-  conversionFromUomCode: "",
-  conversionToUomCode: "",
+  conversionFromItemUomId: "",
+  conversionToItemUomId: "",
   conversionMode: "FIXED",
+  conversionRuleVersion: "1",
   conversionFactor: "",
+  conversionToleranceValue: "",
   conversionDecimalScale: "2",
   conversionRoundingMode: "HALF_UP",
   conversionEffectiveFrom: "",
-  conversionEffectiveTo: ""
+  conversionEffectiveTo: "",
+  conversionSourceReference: "frontend-item-master"
 };
 
 const categoryLabels: Record<ItemMasterPrimaryCategory, string> = {
@@ -134,16 +139,21 @@ function draftFromGovernance(
     specificationHash: data?.specificationRevisions?.[0]?.specificationHash ?? "",
     specificationEffectiveFrom: data?.specificationRevisions?.[0]?.effectiveFrom ?? "",
     specificationEffectiveTo: data?.specificationRevisions?.[0]?.effectiveTo ?? "",
-    conversionFromUomCode: data?.conversionRevisions?.[0]?.fromUomCode ?? "",
-    conversionToUomCode: data?.conversionRevisions?.[0]?.toUomCode ?? "",
+    conversionFromItemUomId: data?.conversionRevisions?.[0]?.fromItemUomId ?? data?.conversionRevisions?.[0]?.fromUomCode ?? "",
+    conversionToItemUomId: data?.conversionRevisions?.[0]?.toItemUomId ?? data?.conversionRevisions?.[0]?.toUomCode ?? "",
     conversionMode: data?.conversionRevisions?.[0]?.conversionMode ?? "FIXED",
+    conversionRuleVersion: data?.conversionRevisions?.[0]?.conversionRuleVersion
+      ? String(data.conversionRevisions[0].conversionRuleVersion)
+      : "1",
     conversionFactor: data?.conversionRevisions?.[0]?.factor ?? "",
+    conversionToleranceValue: data?.conversionRevisions?.[0]?.toleranceValue ?? "",
     conversionDecimalScale: data?.conversionRevisions?.[0]?.decimalScale !== undefined
       ? String(data.conversionRevisions[0].decimalScale)
       : "2",
     conversionRoundingMode: data?.conversionRevisions?.[0]?.roundingMode ?? "HALF_UP",
     conversionEffectiveFrom: data?.conversionRevisions?.[0]?.effectiveFrom ?? "",
-    conversionEffectiveTo: data?.conversionRevisions?.[0]?.effectiveTo ?? ""
+    conversionEffectiveTo: data?.conversionRevisions?.[0]?.effectiveTo ?? "",
+    conversionSourceReference: "frontend-item-master"
   };
 }
 
@@ -213,19 +223,28 @@ export function validateItemMasterDraft(
   }
 
   const hasConversion = hasAnyValue(
-    draft.conversionFromUomCode,
-    draft.conversionToUomCode,
+    draft.conversionFromItemUomId,
+    draft.conversionToItemUomId,
     draft.conversionFactor,
+    draft.conversionToleranceValue,
     draft.conversionEffectiveFrom,
     draft.conversionEffectiveTo
   );
   if (hasConversion) {
-    if (!draft.conversionFromUomCode.trim()) errors.conversionFromUomCode = "請輸入來源單位。";
-    if (!draft.conversionToUomCode.trim()) errors.conversionToUomCode = "請輸入目的單位。";
-    if (draft.conversionFromUomCode.trim() === draft.conversionToUomCode.trim()) {
-      errors.conversionToUomCode = "來源與目的單位不可相同。";
+    if (!draft.conversionFromItemUomId.trim()) errors.conversionFromItemUomId = "請輸入來源 Item UOM ID。";
+    if (!draft.conversionToItemUomId.trim()) errors.conversionToItemUomId = "請輸入目的 Item UOM ID。";
+    if (draft.conversionFromItemUomId.trim() === draft.conversionToItemUomId.trim()) {
+      errors.conversionToItemUomId = "來源與目的 Item UOM 不可相同。";
     }
     if (!draft.conversionEffectiveFrom) errors.conversionEffectiveFrom = "換算 revision 需要生效起日。";
+    if (!draft.conversionSourceReference.trim()) errors.conversionSourceReference = "換算 revision 需要來源參照。";
+    if (!Number.isInteger(Number(draft.conversionRuleVersion)) || Number(draft.conversionRuleVersion) < 1) {
+      errors.conversionRuleVersion = "conversion rule version 必須是正整數。";
+    }
+    const roundingScale = Number(draft.conversionDecimalScale);
+    if (!Number.isInteger(roundingScale) || roundingScale < 0 || roundingScale > 18) {
+      errors.conversionDecimalScale = "小數位必須是 0 到 18 的整數。";
+    }
     if (
       draft.conversionEffectiveFrom &&
       draft.conversionEffectiveTo &&
@@ -236,8 +255,13 @@ export function validateItemMasterDraft(
     if (draft.conversionMode === "FIXED") {
       const factor = Number(draft.conversionFactor);
       if (!Number.isFinite(factor) || factor <= 0) errors.conversionFactor = "固定換算因子需為大於 0 的數字。";
-    } else if (!options.catchWeightAuthorized) {
-      errors.conversionMode = "目前品項未取得重量換算授權，不能建立 CATCH_WEIGHT revision。";
+    } else {
+      if (!options.catchWeightAuthorized) {
+        errors.conversionMode = "目前品項未取得重量換算授權，不能建立 CATCH_WEIGHT revision。";
+      }
+      if (draft.conversionFactor.trim()) {
+        errors.conversionFactor = "CATCH_WEIGHT 不接受固定換算因子。";
+      }
     }
   }
 
@@ -274,6 +298,7 @@ export function ItemMasterMaintenancePanel({
   const [error, setError] = useState<string>();
   const [notice, setNotice] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [conversionLookup, setConversionLookup] = useState<ItemMasterConversionRevision>();
   const [changeReason, setChangeReason] = useState("");
   const [lifecycleAction, setLifecycleAction] = useState<ItemMasterLifecycleAction>();
   const [lifecycleReason, setLifecycleReason] = useState("");
@@ -292,6 +317,7 @@ export function ItemMasterMaintenancePanel({
     setError(undefined);
     setNotice(undefined);
     setFieldErrors({});
+    setConversionLookup(undefined);
     setChangeReason("");
     setLifecycleAction(undefined);
     setBusinessActorType("BUSINESS");
@@ -456,26 +482,59 @@ export function ItemMasterMaintenancePanel({
     const revisionErrors = Object.fromEntries(
       Object.entries(errors).filter(([key]) => key.startsWith("conversion"))
     );
-    if (!draft.conversionFromUomCode.trim()) revisionErrors.conversionFromUomCode = "請輸入來源單位。";
-    if (!draft.conversionToUomCode.trim()) revisionErrors.conversionToUomCode = "請輸入目的單位。";
+    if (!draft.conversionFromItemUomId.trim()) revisionErrors.conversionFromItemUomId = "請輸入來源 Item UOM ID。";
+    if (!draft.conversionToItemUomId.trim()) revisionErrors.conversionToItemUomId = "請輸入目的 Item UOM ID。";
     if (!draft.conversionEffectiveFrom) revisionErrors.conversionEffectiveFrom = "換算 revision 需要生效起日。";
     setFieldErrors(revisionErrors);
     if (Object.keys(revisionErrors).length) return;
     setIsSubmitting(true);
     const result = await createConversionRevision(target.itemId, {
-      idempotency_key: createIdempotencyKey(),
-      from_uom_code: draft.conversionFromUomCode.trim(),
-      to_uom_code: draft.conversionToUomCode.trim(),
-      conversion_mode: draft.conversionMode,
-      factor: draft.conversionMode === "FIXED" ? draft.conversionFactor : undefined,
-      decimal_scale: Number(draft.conversionDecimalScale),
-      rounding_mode: draft.conversionRoundingMode.trim(),
+      from_item_uom_id: draft.conversionFromItemUomId.trim(),
+      to_item_uom_id: draft.conversionToItemUomId.trim(),
+      conversion_type: draft.conversionMode,
+      conversion_rule_version: Number(draft.conversionRuleVersion),
+      conversion_factor: draft.conversionMode === "FIXED" ? draft.conversionFactor.trim() : undefined,
+      rounding_mode: draft.conversionRoundingMode.trim() || undefined,
+      rounding_scale: Number(draft.conversionDecimalScale),
+      tolerance_value: draft.conversionToleranceValue.trim() || undefined,
+      lifecycle_status: "DRAFT",
       effective_from: draft.conversionEffectiveFrom,
       effective_to: draft.conversionEffectiveTo || undefined,
-      expected_row_version: governance?.rowVersion ?? 0
+      source_reference: draft.conversionSourceReference.trim()
     }, dataSourceMode);
     setIsSubmitting(false);
+    if (result.conversion) setConversionLookup(result.conversion);
     showResult(result);
+  };
+
+  const lookupConversionRevision = async () => {
+    if (!target) return;
+    const revisionErrors: Record<string, string> = {};
+    if (!draft.conversionFromItemUomId.trim()) revisionErrors.conversionFromItemUomId = "請輸入來源 Item UOM ID。";
+    if (!draft.conversionToItemUomId.trim()) revisionErrors.conversionToItemUomId = "請輸入目的 Item UOM ID。";
+    if (draft.conversionFromItemUomId.trim() === draft.conversionToItemUomId.trim()) revisionErrors.conversionToItemUomId = "來源與目的 Item UOM 不可相同。";
+    if (!draft.conversionEffectiveFrom) revisionErrors.conversionEffectiveFrom = "查詢有效換算需要查詢時間。";
+    setFieldErrors(revisionErrors);
+    setError(undefined);
+    setNotice(undefined);
+    if (Object.keys(revisionErrors).length) return;
+
+    setIsSubmitting(true);
+    const result = await resolveConversionRevision(
+      target.itemId,
+      draft.conversionFromItemUomId.trim(),
+      draft.conversionToItemUomId.trim(),
+      draft.conversionEffectiveFrom,
+      dataSourceMode
+    );
+    setIsSubmitting(false);
+    if (result.error) {
+      showResult(result);
+      return;
+    }
+    setConversionLookup(result.conversion);
+    setFieldErrors({});
+    setNotice(result.conversion ? "已取得指定時間的有效 Item-specific UOM conversion。" : "查無指定時間的有效 Item-specific UOM conversion。");
   };
 
   const submitLifecycle = async (event: FormEvent<HTMLFormElement>) => {
@@ -610,18 +669,25 @@ export function ItemMasterMaintenancePanel({
 
               <section className="border-t border-border pt-4">
                 <div className="flex items-center gap-2"><FilePlus2 className="h-4 w-4 text-primary" /><h4 className="text-sm font-semibold text-textPrimary">UOM conversion revision</h4></div>
-                <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                  <label className="text-xs text-textSecondary">來源單位<input aria-label="換算來源單位" className={inputClass(Boolean(fieldErrors.conversionFromUomCode))} onChange={(event) => updateDraft("conversionFromUomCode", event.target.value.toUpperCase())} value={draft.conversionFromUomCode} /><FieldError message={fieldErrors.conversionFromUomCode} /></label>
-                  <label className="text-xs text-textSecondary">目的單位<input aria-label="換算目的單位" className={inputClass(Boolean(fieldErrors.conversionToUomCode))} onChange={(event) => updateDraft("conversionToUomCode", event.target.value.toUpperCase())} value={draft.conversionToUomCode} /><FieldError message={fieldErrors.conversionToUomCode} /></label>
-                  <label className="text-xs text-textSecondary">換算模式<select aria-label="換算模式" className={inputClass(Boolean(fieldErrors.conversionMode))} onChange={(event) => updateDraft("conversionMode", event.target.value as ItemMasterDraft["conversionMode"])} value={draft.conversionMode}><option value="FIXED">固定換算</option><option value="CATCH_WEIGHT">重量換算</option></select><FieldError message={fieldErrors.conversionMode} /></label>
-                  <label className="text-xs text-textSecondary">固定換算因子<input aria-label="固定換算因子" className={inputClass(Boolean(fieldErrors.conversionFactor))} disabled={draft.conversionMode === "CATCH_WEIGHT"} onChange={(event) => updateDraft("conversionFactor", event.target.value)} value={draft.conversionFactor} /><FieldError message={fieldErrors.conversionFactor} /></label>
-                  <label className="text-xs text-textSecondary">小數位<input aria-label="換算小數位" className={inputClass()} inputMode="numeric" onChange={(event) => updateDraft("conversionDecimalScale", event.target.value)} value={draft.conversionDecimalScale} /></label>
-                  <label className="text-xs text-textSecondary">進位模式<input aria-label="換算進位模式" className={inputClass()} onChange={(event) => updateDraft("conversionRoundingMode", event.target.value)} value={draft.conversionRoundingMode} /></label>
-                  <label className="text-xs text-textSecondary">生效起日<input aria-label="換算生效起日" className={inputClass(Boolean(fieldErrors.conversionEffectiveFrom))} onChange={(event) => updateDraft("conversionEffectiveFrom", event.target.value)} type="datetime-local" value={draft.conversionEffectiveFrom} /><FieldError message={fieldErrors.conversionEffectiveFrom} /></label>
-                  <label className="text-xs text-textSecondary">生效迄日<input aria-label="換算生效迄日" className={inputClass(Boolean(fieldErrors.conversionEffectiveTo))} onChange={(event) => updateDraft("conversionEffectiveTo", event.target.value)} type="datetime-local" value={draft.conversionEffectiveTo} /><FieldError message={fieldErrors.conversionEffectiveTo} /></label>
-                </div>
-                <button className="mt-3 inline-flex h-9 items-center gap-2 rounded-button border border-border bg-white px-3 text-xs font-medium text-textSecondary disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting || dataSourceMode === "api"} onClick={submitConversionRevision} type="button"><FilePlus2 className="h-4 w-4" />新增 UOM conversion revision</button>
-                {dataSourceMode === "api" ? <p className="mt-2 text-xs text-warning">目前 backend contract 尚未提供 UOM conversion endpoint，API 模式不會送出此操作。</p> : null}
+                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                   <label className="text-xs text-textSecondary">來源 Item UOM ID<input aria-label="換算來源 Item UOM ID" className={inputClass(Boolean(fieldErrors.conversionFromItemUomId))} onChange={(event) => updateDraft("conversionFromItemUomId", event.target.value)} value={draft.conversionFromItemUomId} /><FieldError message={fieldErrors.conversionFromItemUomId} /></label>
+                   <label className="text-xs text-textSecondary">目的 Item UOM ID<input aria-label="換算目的 Item UOM ID" className={inputClass(Boolean(fieldErrors.conversionToItemUomId))} onChange={(event) => updateDraft("conversionToItemUomId", event.target.value)} value={draft.conversionToItemUomId} /><FieldError message={fieldErrors.conversionToItemUomId} /></label>
+                   <label className="text-xs text-textSecondary">換算模式<select aria-label="換算模式" className={inputClass(Boolean(fieldErrors.conversionMode))} onChange={(event) => { const mode = event.target.value === "CATCH_WEIGHT" ? "CATCH_WEIGHT" : "FIXED"; setDraft((current) => ({ ...current, conversionMode: mode, conversionFactor: mode === "CATCH_WEIGHT" ? "" : current.conversionFactor })); setFieldErrors((current) => { const next = { ...current }; delete next.conversionMode; delete next.conversionFactor; return next; }); }} value={draft.conversionMode}><option value="FIXED">固定換算</option><option value="CATCH_WEIGHT">重量換算</option></select><FieldError message={fieldErrors.conversionMode} /></label>
+                   <label className="text-xs text-textSecondary">固定換算因子<input aria-label="固定換算因子" className={inputClass(Boolean(fieldErrors.conversionFactor))} disabled={draft.conversionMode === "CATCH_WEIGHT"} onChange={(event) => updateDraft("conversionFactor", event.target.value)} value={draft.conversionFactor} /><FieldError message={fieldErrors.conversionFactor} /></label>
+                   <label className="text-xs text-textSecondary">Conversion rule version<input aria-label="換算規則版本" className={inputClass(Boolean(fieldErrors.conversionRuleVersion))} inputMode="numeric" onChange={(event) => updateDraft("conversionRuleVersion", event.target.value)} value={draft.conversionRuleVersion} /><FieldError message={fieldErrors.conversionRuleVersion} /></label>
+                   <label className="text-xs text-textSecondary">容許差值<input aria-label="換算容許差值" className={inputClass()} onChange={(event) => updateDraft("conversionToleranceValue", event.target.value)} value={draft.conversionToleranceValue} /></label>
+                   <label className="text-xs text-textSecondary">小數位<input aria-label="換算小數位" className={inputClass(Boolean(fieldErrors.conversionDecimalScale))} inputMode="numeric" onChange={(event) => updateDraft("conversionDecimalScale", event.target.value)} value={draft.conversionDecimalScale} /><FieldError message={fieldErrors.conversionDecimalScale} /></label>
+                   <label className="text-xs text-textSecondary">進位模式<input aria-label="換算進位模式" className={inputClass()} onChange={(event) => updateDraft("conversionRoundingMode", event.target.value)} value={draft.conversionRoundingMode} /></label>
+                   <label className="text-xs text-textSecondary">生效起日<input aria-label="換算生效起日" className={inputClass(Boolean(fieldErrors.conversionEffectiveFrom))} onChange={(event) => updateDraft("conversionEffectiveFrom", event.target.value)} type="datetime-local" value={draft.conversionEffectiveFrom} /><FieldError message={fieldErrors.conversionEffectiveFrom} /></label>
+                   <label className="text-xs text-textSecondary">生效迄日<input aria-label="換算生效迄日" className={inputClass(Boolean(fieldErrors.conversionEffectiveTo))} onChange={(event) => updateDraft("conversionEffectiveTo", event.target.value)} type="datetime-local" value={draft.conversionEffectiveTo} /><FieldError message={fieldErrors.conversionEffectiveTo} /></label>
+                   <label className="text-xs text-textSecondary">來源參照<input aria-label="換算來源參照" className={inputClass(Boolean(fieldErrors.conversionSourceReference))} onChange={(event) => updateDraft("conversionSourceReference", event.target.value)} value={draft.conversionSourceReference} /><FieldError message={fieldErrors.conversionSourceReference} /></label>
+                 </div>
+                 <div className="mt-3 flex flex-wrap gap-2">
+                   <button className="inline-flex h-9 items-center gap-2 rounded-button border border-border bg-white px-3 text-xs font-medium text-textSecondary disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting} onClick={submitConversionRevision} type="button"><FilePlus2 className="h-4 w-4" />新增 UOM conversion revision</button>
+                   <button className="inline-flex h-9 items-center gap-2 rounded-button border border-border bg-white px-3 text-xs font-medium text-textSecondary disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting || dataSourceMode === "mock"} onClick={lookupConversionRevision} type="button"><Loader2 className="h-4 w-4" />查詢有效換算</button>
+                 </div>
+                 {dataSourceMode === "mock" ? <p className="mt-2 text-xs text-textSecondary">示範資料模式只執行前端驗證；切換 API 模式後可送出 Item-scoped UOM conversion。</p> : null}
+                 {conversionLookup ? <div className="mt-3 rounded-md border border-info/20 bg-info/10 p-3 text-xs text-textSecondary"><p className="font-semibold text-textPrimary">目前有效換算</p><p className="mt-1">{conversionLookup.fromUomCode} → {conversionLookup.toUomCode} · {conversionLookup.conversionMode} · version {conversionLookup.conversionRuleVersion ?? "未提供"}</p><p className="mt-1">{formatDateTime(conversionLookup.effectiveFrom)} - {formatDateTime(conversionLookup.effectiveTo)}</p></div> : null}
                 {governance?.conversionRevisions.length ? <div className="mt-3 space-y-2">{governance.conversionRevisions.map((revision) => <div className="rounded-md border border-border p-3 text-sm" key={revision.id}><div className="flex justify-between gap-2"><p className="font-medium text-textPrimary">{revision.fromUomCode} → {revision.toUomCode} · {revision.factor || revision.conversionMode}</p><StatusBadge tone={revision.status === "ACTIVE" ? "success" : "neutral"}>{revision.status}</StatusBadge></div><p className="mt-1 text-xs text-textSecondary">{formatDateTime(revision.effectiveFrom)} - {formatDateTime(revision.effectiveTo)} · {revision.roundingMode || "未提供進位模式"}</p></div>)}</div> : <p className="mt-3 text-xs text-textSecondary">目前沒有 UOM conversion revision。</p>}
               </section>
 

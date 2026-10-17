@@ -14,6 +14,21 @@ The baseline is a documentation and source-reconciliation artifact. It does not 
 
 The existing C2 contract remains authoritative for the implemented C2 slice. Broader Option A statements below are classified explicitly so that a design reference is not mistaken for approval or implementation.
 
+## Business decision closure B01–B06
+
+The 2026-10-17 CIO/Product Owner decision record establishes the following boundaries. Confirmed boundaries are incorporated into the current documentation; deferred details remain controlled decisions and are not implemented by this closure.
+
+| Decision | Confirmed boundary | Deferred detail and mandatory trigger |
+| --- | --- | --- |
+| B01 | Item Master / Product Definition owns Item identity, classification and lifecycle business meaning. Product Structure owns relationship context. | Name the incumbent, delegation, escalation and formal authorization before approval workflow or accountable-role coding is frozen. Responsible scope: FM-02 governance / Product Structure. |
+| B02 | Item identity is separate from Product / SKU. No unapproved Product/SKU relationship or schema is created. | Decide cardinality, relationship model and authoritative Product Structure source of truth before Product/SKU schema, API or UI coding. Responsible scope: Product Structure / SR-1. |
+| B03 | Preserve C2 item-specific UOM conversion, original transaction quantity/UOM, and no unapproved global fallback. | Decide global conversion, precision/rounding, tolerance, catch-weight, exceptions and delegation before conversion policy or dependent API/UI design freeze. Responsible scope: FM-04 / shared data policy. |
+| B04 | New Item identity depends on controlled specification, business meaning, intended use and downstream impact; supplier, price or customer label alone is insufficient. | Only case-specific exceptions under existing authority remain open; record the authority before exception implementation. Responsible scope: Item Master Business Owner. |
+| B05 | Preserve unique Item identity, controlled code assignment and legacy-code references. No silent recoding, deletion or retired-code reuse. | Decide the final 12-character proposal, charset, sequencing, collision handling, immutable ID/display-code distinction and formal non-reuse policy before code-policy freeze or migration mapping. Responsible scope: FM-02 / data governance. |
+| B06 | New Item starts DRAFT; activation needs business approval evidence; technical execution is not business approval; lifecycle evidence is preserved. | Decide the state-transition matrix, approvers/delegates, emergency correction, blocking rules, supersession and audit minimums before lifecycle workflow coding. Responsible scope: FM-02 Product/Business Owner. |
+
+Decision classifications: `BOUNDARY_CONFIRMED` for B01–B03, B05–B06; `DECIDED` for B04 under existing approved business rules; deferred parameters are `DECISION_REQUIRED / CONTROLLED_DEFERRED`; unapproved implementation remains `NOT_AUTHORIZED`.
+
 ## Full Option A capability classification
 
 | Capability area | Classification | Evidence / boundary |
@@ -43,7 +58,7 @@ The business clarification establishes Item identity as a business decision base
 
 The source-reconciled bounded functions are Item create/read/list, DRAFT-only creation, controlled category and UOM, item-scoped references, specifications, qualifications, package/customer relationships, item-specific conversion, approval/lifecycle history, idempotent service behavior and legacy mapping admission. The full Option A document distinguishes these implemented or bounded capabilities from unresolved enterprise policies.
 
-Decision-required questions are: the named Item Master/Product Structure owners; final code/numbering and retired-code policy; supplier-item ownership; package/customer-variant identity; minimum evidence for code assignment; lifecycle transition authority; and prevention rules for blocked, obsolete, superseded and legacy-reference items.
+Decision-required questions are now limited to the controlled B01–B06 deferred details and the package/customer-variant rule already identified in the source review. B04 is decided under the existing approved business rule; no new exception policy is created here.
 
 ## D02 — Domain model and architecture specification
 
@@ -139,7 +154,7 @@ The canonical delivery repository is the nested FM02 repository on branch `codex
 - Product/domain authority: current formal appointment not exposed; open decisions remain visible.
 - Repository Knowledge: prior registration/readback is PASS for the earlier document versions; post-correction update is required.
 
-`FM02_SPRINT01_DOCUMENTS=PARTIAL`
-`CROSS_MODULE_CODING_CONVENTION=PARTIAL`
-`REPOSITORY_KNOWLEDGE_STATUS=UPDATE_PENDING`
-`SPRINT02_ENTRY=NOT_READY`
+`FM02_SPRINT01_DOCUMENTS=PASS`
+`CROSS_MODULE_CODING_CONVENTION=PROPOSED`
+`REPOSITORY_KNOWLEDGE_STATUS=PASS`
+`SPRINT02_ENTRY=READY_FOR_SEPARATE_AUTHORIZATION`

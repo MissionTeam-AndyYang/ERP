@@ -1,38 +1,45 @@
-# FM-02 Sprint 1 — Full Module Document Completion Matrix
+# FM-02 Sprint 1 — Final Documentation Closure Matrix
 
-Directive: `ERP2.0-CIO-GOV-FM02-SPRINT01-FULL-MODULE-CLOSURE-20261016-105`
+Directive: `ERP2.0-CIO-GOV-FM02-SPRINT01-FINAL-DECISION-AND-DOCUMENT-CLOSURE-20261017-108`
 Repository: `FM02_C2_Implementation_20261013_001`
 Branch: `codex/fm02-c2-isolated-20261013-001`
 Date: 2026-10-17
 
-`Reviewed` identifies source/document review, not business approval. `Corrections Completed` records this closure cycle. No row claims live runtime or Sprint 2 authorization.
+No row claims application-code completion, live runtime acceptance, database mutation, GitHub delivery or Sprint 2 authorization.
 
-| Document ID | Actual Path | Reviewed | Corrections Completed | Git Commit | Final Status |
-| --- | --- | --- | --- | --- | --- |
-| D01 | `docs/fm02/FM02_SPRINT01_DOCUMENTATION_BASELINE_20261016.md` §D01 | CTO + source evidence review | Full Option A scope, classifications, business decisions and exclusions reconciled | `a146004` | PARTIAL — Product/owner decisions remain |
-| D02 | same baseline §D02 | CTO + source review | Full Item aggregate, Product/SKU dependency boundary and architecture ownership reconciled | `a146004` | PARTIAL — relationship authority remains open |
-| D03 | same baseline §D03; `04_Engineering/Database/` migrations 0001–0006 | CTO + migration/source review | Full source set and C2 physical boundary reconciled; no live readback claimed | `a146004` | PARTIAL — physical expansion not authorized |
-| D04 | same baseline §D04; forward/down migration pairs | CTO + source review | 0001–0006 sequence, zero-row gate, mapping and non-guessing rules reconciled | `a146004` | COMPLETE for documentation / live execution HOLD |
-| D05 | same baseline §D05; backend/API source paths | CTO + Engineering evidence | Foundation and C2 routes, boundaries and unverified runtime states reconciled | `a146004` | PARTIAL — dependency-complete runtime validation open |
-| D06 | same baseline §D06; `src/app/items/` and C2 UI source | CTO + frontend evidence | Full Option A UI gaps, mock/live distinction and Product acceptance needs recorded | `a146004` | PARTIAL — Product/Frontend acceptance open |
-| D07 | same baseline §D07; shared design system paths | CTO + source review | Shared CSS/design-system reuse and runtime validation limits reconciled | `a146004` | COMPLETE for specification / build verification HOLD |
-| D08 | same baseline §D08 | CTO + governance/source review | Office responsibilities, authority boundaries and unresolved role ownership recorded | `a146004` | PARTIAL — formal appointments/business matrix open |
-| D09 | same baseline §D09; `docs/fm02/FM02_C2_OFFLINE_TEST_PLAN_20261016.md` | CTO + prior Independent TEST evidence | Full Option A test inventory and evidence vocabulary reconciled | `a146004` | PARTIAL — dependency/live runs remain separate |
-| D10 | `docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md` | CTO + engineering source review | Shared FM-01/FM-02/future-module applicability confirmed; status remains PROPOSED | No source correction required | PARTIAL — Repository Office standard custody/approval open |
-| D11 | same baseline §D11; `README.md`, `CONTRIBUTING.md` | CTO + source review | Tooling, environment, operations and prohibited actions reconciled | `a146004` | COMPLETE for documentation / runtime dependencies HOLD |
-| D12 | same baseline §D12; local Git records | CTO + Git/source review | Local custody, branch, untracked evidence and no-remote limitation recorded | `a146004` | PARTIAL — authorized remote/readback/push unavailable |
+| Document | Actual Path | Corrections | Review | Local Commit | Knowledge Status | Verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| D01 Business Requirements / Functional Specification | `docs/fm02/FM02_SPRINT01_DOCUMENTATION_BASELINE_20261016.md` §D01 and B01–B06 | Incorporated confirmed boundaries, B04 decision, controlled-deferred questions and triggers | CTO source review; Product Owner decision record referenced | `a146004` | UPDATE PASS / readback PASS after current update | PASS |
+| D02 Domain Model / Architecture | baseline §D02 and B01–B02 | Preserved Item/Product separation and Product Structure boundary | CTO source review | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D03 Schema / ERD / DDL / Data Dictionary | baseline §D03 and B02/B03/B05 | Bound schema policy to approved Item scope; no Product/SKU schema or global conversion added | CTO migration/source review | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D04 Migration / Legacy Mapping | baseline §D04 and B03/B05 | Preserved item-specific conversion, legacy references, zero-row gate and non-reuse restriction | CTO source review | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D05 Backend/API Contract | baseline §D05 and B02/B03/B06 | Restricted API implications to approved Item/C2 source; deferred Product/SKU and policy endpoints | CTO + Engineering technical evidence | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D06 UI/UX Specification | baseline §D06 and B02/B03 | Marked current UI as mock-ready; linked future Product/SKU, conversion and lifecycle triggers | CTO + frontend technical evidence | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D07 CSS / Design System | baseline §D07 | Confirmed shared convention/design-system applicability; no new theme | CTO source review | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D08 Authorization Matrix | baseline §D08 and B01/B06 | Added business-owner, delegation and technical-versus-business approval boundaries | CTO governance review | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D09 Test Strategy / Acceptance | baseline §D09 and traceability B01–B06 | Added deferred decision triggers and affected test-case dependencies; preserved evidence vocabulary | CTO + Independent TEST evidence review | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D10 Cross-Module Coding Convention | `docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md` | Consistency reviewed; no defect requiring source correction | CTO engineering review | unchanged; hash preserved | PROPOSED; update/readback PASS | PROPOSED |
+| D11 Technical Architecture / Environment / Operations | baseline §D11 | Linked decision triggers to environment and implementation restrictions | CTO source review | `a146004` | UPDATE PASS / readback PASS | PASS |
+| D12 Git / Version Control / Delivery | baseline §D12; local Git records | Updated custody and current local commit references; no remote push | CTO Git review | `a146004`, `203ddfd` | UPDATE PASS / readback PASS | PASS |
 
-## Supporting records
+## Final verdicts
 
-- Traceability: `docs/fm02/FM02_SPRINT01_TRACEABILITY_MATRIX_20261016.md`.
-- Review: `docs/fm02/FM02_SPRINT01_DOCUMENT_REVIEW_RECORD_20261016.md`.
-- Prior Repository Knowledge receipt/readback: `Canonical_ERP2.0_Monorepo/01_Foundation/repository_knowledge/ERP2-FM02-Sprint01-Knowledge-Registration-Receipt-20261017-105A.md`.
-- Post-correction update request: `docs/fm02/FM02_SPRINT01_REPOSITORY_KNOWLEDGE_UPDATE_RELAY_20261017_105.md`.
+`B01-B06_BOUNDARY_DISPOSITION=PASS`
 
-## Final status
+`DEFERRED_DECISION_TRACEABILITY=PASS`
 
-`FM02_SPRINT01_DOCUMENTS=PARTIAL`
-`CROSS_MODULE_CODING_CONVENTION=PARTIAL`
-`REPOSITORY_KNOWLEDGE_STATUS=UPDATE_PENDING`
-`SPRINT02_ENTRY=NOT_READY`
-`GITHUB_PUSH=BLOCKED_REMOTE_NOT_VERIFIED`
+`FM02_SPRINT01_DOCUMENTS=PASS`
+
+`CROSS_MODULE_CODING_CONVENTION=PROPOSED`
+
+`REPOSITORY_KNOWLEDGE_UPDATE=PASS`
+
+`REPOSITORY_KNOWLEDGE_READBACK=PASS`
+
+`SPRINT01_CLOSURE=READY`
+
+`SPRINT02_CODING_AUTHORIZATION=NOT_GRANTED`
+
+## Residual controlled decisions
+
+The remaining B01/B02/B03/B05/B06 details are intentionally `DECISION_REQUIRED / CONTROLLED_DEFERRED`. They do not block this documentation closure because the current approved Item/C2 schema and source do not require them. They do block any future Product/SKU schema, global conversion policy, final code-policy freeze or lifecycle workflow coding until the stated trigger is met.

@@ -5,7 +5,17 @@ Related receipt: `ERP2-FM02-SPRINT01-KNOWLEDGE-REGISTRATION-20261017-105A`
 Prepared: 2026-10-17
 Source repository: `FM02_C2_Implementation_20261013_001`
 Branch: `codex/fm02-c2-isolated-20261013-001`
-Source commit: `a146004`
+Source commit: `a146004` and final binding commit to be recorded below
+
+## Update result
+
+`KNOWLEDGE_UPDATE=PASS`
+
+`KNOWLEDGE_READBACK=PASS`
+
+Index commit: `02ea9e7e79ab60defd72d3b603a749d20e687b94`
+
+The existing Document IDs were updated in place. No duplicate index or new governance framework was created.
 
 ## Purpose
 

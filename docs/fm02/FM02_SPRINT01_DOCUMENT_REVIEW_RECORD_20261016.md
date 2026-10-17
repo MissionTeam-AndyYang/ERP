@@ -1,51 +1,65 @@
-# FM-02 Sprint 1 — Full Module Documentation Review Record
+# FM-02 Sprint 1 — Final Documentation Review Record
 
-Directive: `ERP2.0-CIO-GOV-FM02-SPRINT01-FULL-MODULE-CLOSURE-20261016-105`
+Directive: `ERP2.0-CIO-GOV-FM02-SPRINT01-FINAL-DECISION-AND-DOCUMENT-CLOSURE-20261017-108`
 Date: 2026-10-17
 Repository: `FM02_C2_Implementation_20261013_001`
 Branch: `codex/fm02-c2-isolated-20261013-001`
 
 ## Review activity
 
-- Scope: D01–D12 full FM-02 Item Master Option A documentation, shared coding convention, traceability and repository-status reconciliation.
-- Method: source inspection of business clarification, Sprint 1 predecessor records, C2 contract, migrations 0001–0006, service/API/UI source, offline test plan, Git records and the Repository Knowledge receipt.
+- Scope: D01–D12 full FM-02 Item Master Option A documentation, B01–B06 decision incorporation, cross-document consistency and Repository Knowledge status.
+- Method: source inspection of the final CIO/Product Owner decision, existing business clarification, C2 contract, migrations 0001–0006, service/API/UI source, offline test plan, Git records and Repository Knowledge update/readback evidence.
 - Live actions: none. No MariaDB, SQL, credential, DPAPI, migration, restore, restart, DML, concurrency, production or remote Git operation was performed.
-- Sprint boundary: dependency installation, backend/frontend runtime/build/test execution, live database work and GitHub push remain later-sprint activities.
+- Sprint boundary: dependency installation, runtime/build/test execution, live database work and GitHub push remain outside Sprint 1 documentation closure.
 
-## Scope review result
+## B01–B06 review result
 
-The earlier documentation package was C2-focused. This closure expands it to the full Option A Item Master documentation boundary while preserving the distinction between `APPROVED_AND_SPECIFIED`, `IMPLEMENTED`, `PROPOSED_NOT_APPROVED`, `EXCLUDED` and `DECISION_REQUIRED`.
+| Decision | Disposition | Review conclusion |
+| --- | --- | --- |
+| B01 | `BOUNDARY_CONFIRMED` / controlled deferred authority | Item Master/Product Definition owns Item identity, classification and lifecycle meaning; Product Structure owns relationship context. Incumbent/delegation remains a future trigger. |
+| B02 | `BOUNDARY_CONFIRMED` / controlled deferred model | Item is separate from Product/SKU; no unapproved relationship or schema was added. Cardinality/source of truth remains a future trigger. |
+| B03 | `BOUNDARY_CONFIRMED` / controlled deferred policy | C2 item-specific conversion, original quantity/UOM and no global fallback are preserved. Global precision/rounding/tolerance policy remains deferred. |
+| B04 | `DECIDED` | Existing identity rule is incorporated: specification, business meaning, intended use and downstream impact control identity; supplier, price or label alone does not. |
+| B05 | `BOUNDARY_CONFIRMED` / controlled deferred parameters | Unique identity, controlled code and legacy references are preserved; silent recoding, deletion and retired-code reuse are prohibited. Final code parameters remain deferred. |
+| B06 | `BOUNDARY_CONFIRMED` / controlled deferred workflow | New Items start DRAFT; activation needs business evidence; technical execution is not approval; lifecycle evidence is preserved. Final state/approver matrix remains deferred. |
 
-Product/SKU, BOM, Inventory, Production, live database, migration execution, release and production are not silently promoted into FM-02 Sprint 1 implementation.
+Every deferred item has a responsible future module/role, mandatory design/coding trigger, impacted D01–D12 references and downstream test implications in the traceability matrix.
 
-## Provenance and responsibility
+## Cross-document consistency review
+
+`Functional → Domain → Database → API → UI → Test → Decision Reference` was reviewed. The current approved source remains bounded to Item/C2 capabilities. No Product/SKU schema, global UOM conversion, unapproved lifecycle workflow, BOM/Inventory/Production implementation or live integration was inferred.
+
+## Provenance and custody
 
 | Responsibility | Evidence | Classification |
 | --- | --- | --- |
-| CTO technical review | Current workspace source review and this record | Completed for documentation scope |
-| Engineering technical evidence | Hilbert backend task `01a14421-8bf5-7531-a63c-88f8f3903ba9`; Lagrange frontend task `01a14421-8cad-7683-9e5e-f00e69211ca3` | Platform technical evidence; no formal Assignment ID inferred |
-| Independent TEST evidence | Kierkegaard task `01a14421-8d45-7a82-a485-ffd1460724bb` | Independent platform evidence; no live verdict inferred |
-| Product/domain authority | Business clarification and PMO decision records; no formal current appointment exposed | Source evidence reviewed; approval not inferred |
-| Repository custody | Prior Repository Knowledge receipt `ERP2-FM02-SPRINT01-KNOWLEDGE-REGISTRATION-20261017-105A` | Prior registration/readback PASS; update required for changed bytes |
-| Git delivery | Local branch and commits; no configured remote | Local custody verified; remote delivery blocked |
+| CTO technical review | Current workspace source review and this record | Completed |
+| Engineering technical evidence | Hilbert backend task `01a14421-8bf5-7531-a63c-88f8f3903ba9`; Lagrange frontend task `01a14421-8cad-7683-9e5e-f00e69211ca3` | Platform evidence; no formal Assignment ID inferred |
+| Independent TEST evidence | Kierkegaard task `01a14421-8d45-7a82-a485-ffd1460724bb` | Prior technical evidence; no new live verdict inferred |
+| Product/domain authority | CIO/Product Owner final decision and existing business clarification | Boundary decisions accepted; formal incumbent appointments still deferred |
+| Repository custody | Existing Repository Knowledge update/readback, index commit `02ea9e7e79ab60defd72d3b603a749d20e687b94` | UPDATE PASS / READBACK PASS |
+| Git delivery | Local branch; no configured remote | Local custody verified; no GitHub push claimed |
 
-## Review findings and corrections
+## Coding convention
 
-1. D01–D12 now cover the full Option A Item Master domain rather than only the C2 slice.
-2. The baseline records cross-module dependencies without expanding scope into BOM, Inventory, Production or other modules.
-3. Deferred Product/SKU, owner, numbering, lifecycle, UOM-policy and variant decisions are expressed as exact questions with recommended bounded options and downstream impacts.
-4. The traceability matrix now contains full-module requirements and evidence states.
-5. The completion matrix now uses the required six columns and records actual path, review, correction and final status.
-6. The shared convention remains a proposed cross-module standard; no FM-02-only activation or Repository Office approval is claimed.
-7. The prior Repository Knowledge registration remains valid for its registered versions; an update relay is required because the baseline, traceability, matrix and review record changed.
+`docs/engineering/CROSS_MODULE_CODING_CONVENTION_20261016.md` remains a shared proposed standard for FM-01, FM-02 and future modules. Consistency review found no defect requiring source correction. Its formal shared-standard approval and activation remain outside this Sprint 1 closure.
 
-## Final package disposition
+## Final disposition
 
-`FM02_SPRINT01_DOCUMENTS=PARTIAL` — documentation is complete for the source-verifiable record, with genuine Product/domain and dependency/runtime decisions still open.
-`CROSS_MODULE_CODING_CONVENTION=PARTIAL` — shared standard reviewed, still PROPOSED pending central custody/approval.
-`REPOSITORY_KNOWLEDGE_STATUS=UPDATE_PENDING` — prior registration/readback PASS; changed artifacts await index update/readback.
-`SPRINT02_ENTRY=NOT_READY` — no Sprint 2 coding authorization, dependency-complete validation or unresolved business decision closure.
+`B01-B06_BOUNDARY_DISPOSITION=PASS`
 
-## Boundaries preserved
+`DEFERRED_DECISION_TRACEABILITY=PASS`
 
-No source implementation, database schema, migration, credential, runtime, production, remote Git or Sprint 2 authorization was added by this review. The pre-existing untracked `evidence/` directory remains outside the staged documentation change.
+`FM02_SPRINT01_DOCUMENTS=PASS`
+
+`CROSS_MODULE_CODING_CONVENTION=PROPOSED`
+
+`REPOSITORY_KNOWLEDGE_UPDATE=PASS`
+
+`REPOSITORY_KNOWLEDGE_READBACK=PASS`
+
+`SPRINT01_CLOSURE=READY`
+
+`SPRINT02_CODING_AUTHORIZATION=NOT_GRANTED`
+
+The deferred details block only the future functions they govern: Product/SKU relationship/schema, global conversion policy, final code-policy freeze, lifecycle workflow and formal accountable-role implementation. They do not block this documentation closure or authorize those functions.

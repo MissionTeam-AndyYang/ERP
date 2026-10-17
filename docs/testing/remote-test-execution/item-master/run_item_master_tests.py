@@ -99,7 +99,7 @@ def load_json(path: Path) -> dict:
     return value
 
 
-def validate_manifest(manifest_path: Path, fixture_path: Path, source_commit: str, verify_archive: bool) -> None:
+def validate_manifest(manifest_path: Path, fixture_path: Path, source_commit: str, verify_archive: bool, verify_checkout: bool) -> None:
     manifest = load_json(manifest_path)
     fixture = load_json(fixture_path)
     if set(manifest.get("allowed_cases", [])) != ALLOWED_CASES:
@@ -117,12 +117,19 @@ def validate_manifest(manifest_path: Path, fixture_path: Path, source_commit: st
         raise ValueError("secret-like fixture content rejected")
     for entry in fixture.get("fixtures", []):
         path = fixture_path.parent / entry["path"]
-        if sha256(path) != entry["checkout_sha256"]:
-            raise ValueError(f"fixture checkout hash mismatch: {entry['id']}")
+        checkout_hash = sha256(path)
+        if verify_checkout and checkout_hash not in {
+            entry["checkout_sha256"],
+            entry["archive_extraction_sha256_crlf"],
+        }:
+            raise ValueError(f"fixture checkout representation mismatch: {entry['id']}")
         if raw_git_sha256(path, source_commit) != entry["canonical_raw_sha256"]:
             raise ValueError(f"fixture canonical raw Git hash mismatch: {entry['id']}")
-        if verify_archive and archive_sha256(path, source_commit) != entry["archive_extraction_sha256"]:
-            raise ValueError(f"fixture archive extraction hash mismatch: {entry['id']}")
+        if verify_archive and archive_sha256(path, source_commit) not in {
+            entry["archive_extraction_sha256_lf"],
+            entry["archive_extraction_sha256_crlf"],
+        }:
+            raise ValueError(f"fixture archive extraction representation mismatch: {entry['id']}")
 
 
 def validate_status(status_path: Path) -> None:
@@ -150,10 +157,11 @@ def main() -> int:
     parser.add_argument("--status-file", type=Path)
     parser.add_argument("--source-commit", default="HEAD")
     parser.add_argument("--verify-archive", action="store_true")
+    parser.add_argument("--verify-checkout", action="store_true")
     args = parser.parse_args()
 
     try:
-        validate_manifest(args.manifest, args.fixture_manifest, args.source_commit, args.verify_archive)
+        validate_manifest(args.manifest, args.fixture_manifest, args.source_commit, args.verify_archive, args.verify_checkout)
         cases = set(args.cases) if args.cases else ALLOWED_CASES
         if not cases.issubset(ALLOWED_CASES):
             unauthorized = sorted(cases - ALLOWED_CASES)

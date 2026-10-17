@@ -31,6 +31,8 @@ Every run record must contain these fields. Values must be explicit; `unknown` i
 
 - Credentials and secret values are never evidence fields.
 - Fixture hashes identify inputs, not execution results.
+- Canonical custody hashes are SHA-256 over `git cat-file blob <exact-commit>:<path>` bytes (LF/no BOM). Checkout and `git archive` bytes are diagnostic representations and must be recorded separately with their line-ending policy; they must never replace the canonical raw hash.
+- A clean Windows checkout with `core.autocrlf=false` is the LF representation; `core.autocrlf=true` may produce CRLF checkout/archive bytes. Both are accepted only against their explicit representation hashes.
 - Mock, static, source, and historical evidence must be labeled and cannot substitute for current database evidence.
 - For concurrency, migration, restart, restore, or recovery cases, the case-specific owner and authorization must be recorded.
 - A report must preserve the first failed predicate and the exact safe-stop action.

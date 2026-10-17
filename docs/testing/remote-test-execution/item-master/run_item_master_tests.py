@@ -109,6 +109,11 @@ def validate_status(status_path: Path) -> None:
 
 
 def main() -> int:
+    raw_args = " ".join(sys.argv[1:]).lower()
+    forbidden = [token for token in FORBIDDEN_TOKENS if token in raw_args]
+    if forbidden:
+        print(json.dumps({"package_check": "BLOCKED", "reason": "forbidden operation token rejected", "tokens": sorted(set(forbidden)), "db_execution": "NOT_AUTHORIZED"}, sort_keys=True))
+        return 2
     parser = argparse.ArgumentParser(description="Fail-closed FM02 Item Master test package runner")
     parser.add_argument("--mode", choices=("offline-static-validation", "read-only-target-verification", "manual-authorized-execution"), required=True)
     parser.add_argument("--case", action="append", dest="cases", default=[])

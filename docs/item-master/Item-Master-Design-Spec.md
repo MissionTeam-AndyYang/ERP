@@ -344,6 +344,12 @@ Product family, FG-to-Product relationship, SKU/GTIN, own-brand substitution, cu
 | Quality | Quality | specification revision, sampling/approval, lot disposition |
 | Costing/Finance | Finance/Costing | Item and supply method policy; actual valuation/cost owned here |
 
+### E. Approved Product/SKU boundary
+
+This milestone is limited to Item Master identity, fields, status, lifecycle, and applicable Item-scoped reference contracts. Product, Product Structure, FG, SKU/GTIN, Customer Variant, and downstream Product/SKU functionality remain outside this Create/Edit implementation scope. No new Product/SKU schema, endpoint, UI feature, or transaction is authorized by this milestone. Item Master may expose only the approved bounded reference/contract surface needed by owning modules; it must not create Product/SKU records or infer Item-to-Product/SKU identity.
+
+Authority: `Business-Owner-Review-Response-FM02-Item-Master-Create-Edit-Bounded-Business-Decision-20261017-001`, Decision Table E=APPROVED, with references to `FM02-ITEM-MASTER-SCHEMA-DESIGN-V1.1-FINAL-CIO-BASELINE-CANDIDATE-20261012-001` Sections 2.1(7), 4.2 and 9, and `ERP2-BOR-RESP-FM02-SPRINT01-BUSINESS-DECISION-CLOSURE-20261017-106` B02.
+
 ## 10. API, UI, migration, and recovery contract
 
 ### 10.1 Existing API delta
@@ -440,7 +446,7 @@ Acceptance should approve the preferred physical candidate and the explicit cros
 
 ### 14.1 Amendment authority and scope
 
-This section records the CIO/Product Owner confirmation of the A–E Item Master policy and the CTO cross-layer design review by Engineering A (Database/Schema), Engineering C (Backend/API), and Engineering D (Frontend/UI). It amends this authoritative candidate specification; it does not create a competing design document.
+This section records the CIO/Product Owner confirmation of the A–E Item Master policy expressed by the explicit A–E boundary sections in Section 9 and the CTO cross-layer design review by Engineering A (Database/Schema), Engineering C (Backend/API), and Engineering D (Frontend/UI). It amends this authoritative candidate specification; it does not create a competing design document.
 
 Approved policy decisions:
 

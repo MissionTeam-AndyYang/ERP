@@ -52,7 +52,7 @@ function ErrorPanel({ error, onRetry }: { error: Fm01ApiError; onRetry: () => vo
   return (
     <div className="m-4 rounded-card border border-danger/30 bg-red-50 p-4" role="alert">
       <p className="text-sm font-medium text-textPrimary">{fm01Text("page.errorTitle")}</p>
-      <p className="mt-1 text-sm text-textSecondary">{fm01ErrorText(error.code, error.status)}</p>
+      <p className="mt-1 text-sm text-textSecondary">{fm01ErrorText(error.code, error.status, error.correlationId)}</p>
       <button type="button" onClick={onRetry} className="mt-3 min-h-11 rounded-button bg-primary px-4 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
         {fm01Text("page.retry")}
       </button>

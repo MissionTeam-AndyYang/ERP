@@ -46,7 +46,7 @@ export default function OrganizationLocationCreatePage() {
 
   const parentResource = fm01ParentFor[resource];
   const parentOptions = parentResource ? hierarchy?.[parentResource] ?? [] : [];
-  const loadMessage = loadError ? fm01ErrorText(loadError.code, loadError.status) : "";
+  const loadMessage = loadError ? fm01ErrorText(loadError.code, loadError.status, loadError.correlationId) : "";
 
   function validate() {
     const errors: FieldErrors = {};

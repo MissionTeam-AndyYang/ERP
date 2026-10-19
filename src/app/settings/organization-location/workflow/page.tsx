@@ -83,7 +83,7 @@ export default function OrganizationLocationWorkflowPage() {
           <section className="rounded-card border border-danger/30 bg-red-50 p-4" role="alert">
             <div className="flex gap-3">
               <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger" aria-hidden="true" />
-              <div><h3 className="text-sm font-semibold text-textPrimary">{fm01Text("page.errorTitle")}</h3><p className="mt-1 text-sm text-textSecondary">{fm01ErrorText(error.code, error.status)}</p></div>
+              <div><h3 className="text-sm font-semibold text-textPrimary">{fm01Text("page.errorTitle")}</h3><p className="mt-1 text-sm text-textSecondary">{fm01ErrorText(error.code, error.status, error.correlationId)}</p></div>
             </div>
           </section>
         )}

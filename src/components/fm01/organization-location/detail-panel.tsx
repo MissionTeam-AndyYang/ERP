@@ -96,7 +96,7 @@ export function DetailPanel({ record, hierarchy, isLoading, error, onRetry, onEd
     return (
       <section className="rounded-card border border-danger/30 bg-white p-5 shadow-card" aria-live="polite">
         <h2 className="text-base font-semibold text-textPrimary">{fm01Text("detail.unavailable")}</h2>
-        <p role="alert" className="mt-2 text-sm text-textSecondary">{fm01ErrorText(error.code, error.status)}</p>
+        <p role="alert" className="mt-2 text-sm text-textSecondary">{fm01ErrorText(error.code, error.status, error.correlationId)}</p>
         <button
           type="button"
           onClick={onRetry}

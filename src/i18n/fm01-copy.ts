@@ -92,6 +92,7 @@ const traditionalChineseCopy = {
   "error.invalidResponse": "資料格式暫時無法讀取。",
   "error.invalidRoute": "流程連結無效，請返回組織與地點重新選取資料。",
   "error.generic": "讀取資料時發生錯誤；不會以示意資料取代實際資料。",
+  "error.correlationId": "追蹤編號",
   "error.dismiss": "關閉訊息"
 } as const;
 
@@ -101,15 +102,20 @@ export function fm01Text(key: Fm01CopyKey) {
   return traditionalChineseCopy[key];
 }
 
-export function fm01ErrorText(code: string, status?: number) {
-  if (code === "API_BASE_URL_MISSING") return fm01Text("error.apiConfig");
-  if (code === "NETWORK_UNAVAILABLE") return fm01Text("error.network");
-  if (status === 401) return fm01Text("error.unauthorized");
-  if (status === 403) return fm01Text("error.forbidden");
-  if (status === 404 || code === "NOT_FOUND") return fm01Text("error.notFound");
-  if (status === 409) return fm01Text("error.conflict");
-  if (status === 400 || status === 422) return fm01Text("error.invalidQuery");
-  if (code === "INVALID_ROUTE") return fm01Text("error.invalidRoute");
-  if (code === "INVALID_RESPONSE") return fm01Text("error.invalidResponse");
-  return fm01Text("error.generic");
+export function fm01ErrorText(code: string, status?: number, correlationId?: string) {
+  let message = fm01Text("error.generic");
+  if (code === "API_BASE_URL_MISSING") message = fm01Text("error.apiConfig");
+  else if (code === "NETWORK_UNAVAILABLE") message = fm01Text("error.network");
+  else if (status === 401) message = fm01Text("error.unauthorized");
+  else if (status === 403) message = fm01Text("error.forbidden");
+  else if (status === 404 || code === "NOT_FOUND") message = fm01Text("error.notFound");
+  else if (status === 409) message = fm01Text("error.conflict");
+  else if (status === 400 || status === 422) message = fm01Text("error.invalidQuery");
+  else if (code === "INVALID_ROUTE") message = fm01Text("error.invalidRoute");
+  else if (code === "INVALID_RESPONSE") message = fm01Text("error.invalidResponse");
+
+  const safeCorrelationId = correlationId && /^[A-Za-z0-9._:-]{1,128}$/.test(correlationId)
+    ? `（${fm01Text("error.correlationId")}：${correlationId}）`
+    : "";
+  return `${message}${safeCorrelationId}`;
 }

@@ -21,6 +21,7 @@ export class Fm01ApiError extends Error {
   constructor(
     readonly code: string,
     readonly status: number | undefined,
+    readonly correlationId?: string,
     message = "FM-01 request failed"
   ) {
     super(message);
@@ -97,7 +98,11 @@ async function requestJson(path: string, params?: Record<string, string>) {
       ? (root.error as Record<string, unknown>)
       : root;
     const code = typeof detail.code === "string" ? detail.code : "REQUEST_FAILED";
-    throw new Fm01ApiError(code, response.status);
+    const details = detail.details && typeof detail.details === "object"
+      ? (detail.details as Record<string, unknown>)
+      : {};
+    const correlationId = typeof details.correlation_id === "string" ? details.correlation_id : undefined;
+    throw new Fm01ApiError(code, response.status, correlationId);
   }
 
   return assertObject(payload);

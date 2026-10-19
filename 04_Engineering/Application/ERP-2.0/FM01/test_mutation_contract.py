@@ -7,6 +7,8 @@ from .mutation_contract import (
     FM01ApprovalAuditAdapter,
     FM01ContractError,
     FM01MutationGateway,
+    FM01InMemoryIdempotencyStore,
+    FM01MutationCoordinator,
     MutationActor,
     MutationRequest,
 )
@@ -198,3 +200,68 @@ def test_row_version_is_carried_to_pending_request_shape():
     adapter = FM01ApprovalAuditAdapter(lambda: session)
     row = adapter.create_pending(_request(operation="create", payload={"display_name": "New"}), "f" * 64)
     assert row["row_version"] == 1
+
+
+def test_coordinator_replays_same_request_and_rejects_conflicting_fingerprint():
+    class Entity:
+        def __init__(self):
+            self.applied = 0
+
+        def read_row_version(self, resource, entity_id):
+            return 1 if self.applied == 0 else 2
+
+        def validate_parent_and_lifecycle(self, request):
+            return None
+
+        def apply_business_effect(self, request):
+            self.applied += 1
+            return {"approval_state": "PENDING_APPROVAL", "applied": self.applied}
+
+    entity = Entity()
+    coordinator = FM01MutationCoordinator(FM01InMemoryIdempotencyStore(), entity)
+    request = _request(operation="create", payload={"display_name": "New"})
+    first = coordinator.submit(request, "fm01")
+    replay = coordinator.submit(request, "fm01")
+    assert first["replayed"] is False
+    entity.applied = 1
+    assert replay["replayed"] is True
+    assert entity.applied == 1
+    with pytest.raises(FM01ContractError) as error:
+        coordinator.submit(_request(operation="create", payload={"display_name": "Other"}), "fm01")
+    assert error.value.code == "IDEMPOTENCY_CONFLICT"
+
+
+def test_coordinator_rejects_stale_row_version_before_business_effect():
+    class Entity:
+        def read_row_version(self, resource, entity_id):
+            return 2
+
+        def validate_parent_and_lifecycle(self, request):
+            raise AssertionError("validation must not run for stale input")
+
+        def apply_business_effect(self, request):
+            raise AssertionError("business effect must not run for stale input")
+
+    coordinator = FM01MutationCoordinator(FM01InMemoryIdempotencyStore(), Entity())
+    with pytest.raises(FM01ContractError) as error:
+        coordinator.submit(_request(expected_row_version=1), "fm01")
+    assert error.value.code == "STALE_VERSION"
+
+
+def test_coordinator_preserves_parent_lifecycle_failure_and_does_not_store():
+    class Entity:
+        def read_row_version(self, resource, entity_id):
+            return 1
+
+        def validate_parent_and_lifecycle(self, request):
+            raise FM01ContractError("PARENT_NOT_VALID", "parent or lifecycle is not valid", 409)
+
+        def apply_business_effect(self, request):
+            raise AssertionError("business effect must not run")
+
+    store = FM01InMemoryIdempotencyStore()
+    coordinator = FM01MutationCoordinator(store, Entity())
+    with pytest.raises(FM01ContractError) as error:
+        coordinator.submit(_request(), "fm01")
+    assert error.value.code == "PARENT_NOT_VALID"
+    assert store.get("fm01", "idem-1") is None

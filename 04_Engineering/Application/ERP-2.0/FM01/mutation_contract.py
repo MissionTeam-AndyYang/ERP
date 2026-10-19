@@ -25,6 +25,31 @@ class FM01ContractError(Exception):
 
 
 @dataclass(frozen=True)
+class IdempotencyReplay:
+    """Durable replay result returned when key and fingerprint agree."""
+
+    request: Mapping[str, Any]
+
+
+class FM01IdempotencyStore(Protocol):
+    """Storage contract for one atomic idempotency namespace."""
+
+    def get(self, scope: str, key: str) -> Mapping[str, Any] | None: ...
+
+    def put(self, scope: str, key: str, fingerprint: str, request: Mapping[str, Any]) -> Mapping[str, Any]: ...
+
+
+class FM01EntityStateAdapter(Protocol):
+    """Entity-specific CAS/lifecycle/parent checks supplied by the runtime."""
+
+    def read_row_version(self, resource: str, entity_id: int) -> int | None: ...
+
+    def validate_parent_and_lifecycle(self, request: "MutationRequest") -> None: ...
+
+    def apply_business_effect(self, request: "MutationRequest") -> Mapping[str, Any]: ...
+
+
+@dataclass(frozen=True)
 class MutationActor:
     actor_id: str
     role: str
@@ -290,3 +315,66 @@ class FM01MutationGateway:
         }
         encoded = json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
         return sha256(encoded).hexdigest()
+
+
+class FM01InMemoryIdempotencyStore:
+    """Deterministic source-level idempotency store for unit tests only."""
+
+    def __init__(self):
+        self._rows: dict[tuple[str, str], tuple[str, Mapping[str, Any]]] = {}
+
+    def get(self, scope: str, key: str) -> Mapping[str, Any] | None:
+        row = self._rows.get((scope, key))
+        return None if row is None else row[1]
+
+    def put(self, scope: str, key: str, fingerprint: str, request: Mapping[str, Any]) -> Mapping[str, Any]:
+        existing = self._rows.get((scope, key))
+        if existing is not None:
+            if existing[0] != fingerprint:
+                raise FM01ContractError("IDEMPOTENCY_CONFLICT", "idempotency request conflicts", 409)
+            return existing[1]
+        self._rows[(scope, key)] = (fingerprint, dict(request))
+        return self._rows[(scope, key)][1]
+
+
+class FM01MutationCoordinator:
+    """Source-level orchestration for CAS, replay and approved business effect.
+
+    Concrete SQLAlchemy/session work and runtime authority remain injected. The
+    coordinator never treats an absent binding as success.
+    """
+
+    def __init__(
+        self,
+        idempotency_store: FM01IdempotencyStore,
+        entity_adapter: FM01EntityStateAdapter,
+    ):
+        self._idempotency_store = idempotency_store
+        self._entity_adapter = entity_adapter
+
+    def submit(self, request: MutationRequest, scope: str) -> Mapping[str, Any]:
+        if not scope or not request.idempotency_key:
+            raise FM01ContractError("IDEMPOTENCY_REQUIRED", "idempotency scope and key are required", 409)
+        fingerprint = FM01MutationGateway.fingerprint(request)
+        existing = self._idempotency_store.get(scope, request.idempotency_key)
+        if existing is not None:
+            existing_fingerprint = existing.get("request_fingerprint")
+            if existing_fingerprint != fingerprint:
+                raise FM01ContractError("IDEMPOTENCY_CONFLICT", "idempotency request conflicts", 409)
+            return {"replayed": True, "request": existing}
+        if request.expected_row_version is None or request.expected_row_version < 1:
+            raise FM01ContractError("STALE_VERSION", "expected_row_version is required", 409)
+        current_version = self._entity_adapter.read_row_version(request.resource, request.entity_id)
+        if current_version is None:
+            raise FM01ContractError("NOT_FOUND", "entity was not found", 404)
+        if current_version != request.expected_row_version:
+            raise FM01ContractError("STALE_VERSION", "entity row_version is stale", 409)
+        self._entity_adapter.validate_parent_and_lifecycle(request)
+        result = self._entity_adapter.apply_business_effect(request)
+        stored = self._idempotency_store.put(
+            scope,
+            request.idempotency_key,
+            fingerprint,
+            {"request_fingerprint": fingerprint, "result": result},
+        )
+        return {"replayed": False, "request": stored, "result": result}

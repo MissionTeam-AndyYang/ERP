@@ -1,7 +1,7 @@
 # FM-01 F2-A Integrated Local Persistence Design
 
-Assignment: `CTO-FM01-F2-A-20261019-001`  
-Baseline: `65b87fc2ef36aa9c05e0900d639dad4f7fcc5f6f`  
+Assignment: `CTO-FM01-F2-A-20261019-001`
+Baseline: `65b87fc2ef36aa9c05e0900d639dad4f7fcc5f6f`
 Design scope: FM01-local persistence only
 
 ## Design decision

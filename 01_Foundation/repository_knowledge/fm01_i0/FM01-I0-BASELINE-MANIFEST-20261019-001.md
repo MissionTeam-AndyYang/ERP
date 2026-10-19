@@ -1,0 +1,25 @@
+# FM-01 I0 Final Source Custody Manifest
+
+- Custody record: `ERP2-FM01-I0-FINAL-SOURCE-CUSTODY-20261019-001`
+- Scope: bounded mutation design freeze evidence only
+- `FM01_BOUNDED_MUTATION_DESIGN_FREEZE=APPROVED`
+- `FM01_FULL_RUNTIME_ACCEPTANCE=NOT_GRANTED`
+- Product main: unchanged
+- Existing G5 custody preserved: `4ec83b8a08c8912de96aa375fd7d613dc4bb961f`
+- Existing limited-freeze record preserved: `ERP2-FM01-FINAL-C1-C3-LIMITED-FREEZE-20261019-001`
+
+## Evidence hashes
+
+- Owner policy registration: `DEA0B767EF824B88F0C998D9D0EAFFBEEA6ED5AD5B9B1DBA3432EDF94F6C474F`
+- Owner policy readback: `D28C18CA0C23A104196BE53D25233E8A1A2319EDD0695C76B5DEECCDC3152B91`
+- C1 technical closure: `4074217CE7C5585F7466CA0B6AFBCE160B9A5DE2EA2D54C2E462B9523F15636D`
+- C1 lifecycle decision: `5B55E542FBE4EA43B2F7D616C7CA32AC65FC3948623DC18FA949D038F7E42B35`
+- C2 DB closure: `6B4972BE07F4818E531ABD51BEC078813FB06F62FE4F886ACC2AA922C8B69E9C`
+- C2 API contract: `BE74D50556FBBD7F8DDE4E293DC4B758CE195B9B5D28E901E7D510464FA1D30`
+- C3 UI v005: `74F286EC62A89CDBA8167BD40E1F5C358080A3754689B1FB24DA022D3D7C5D02`
+- UI v004 preserved: `47FFCE3106AD3F0A74F5FE10F231FCD752D1D8243CC60ED763CE2455CD838AEA`
+- TEST package 20261019_004: existing six hashes plus package Remote-DB design reference retained from T4 custody
+
+## Limitations
+
+This manifest records custody and the limited freeze only. It does not authorize coding, SQL, database, migration, runtime, TEST execution, Product main changes, production, release, or full runtime acceptance.

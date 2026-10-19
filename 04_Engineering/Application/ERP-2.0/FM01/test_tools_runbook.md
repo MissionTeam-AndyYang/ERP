@@ -30,6 +30,23 @@ payload. `write_report()` writes only to a caller-selected path. Fixture
 cleanup is the caller's responsibility and must be deterministic; no live or
 governed data may be used.
 
+## Frontend static checks
+
+The FM-01 frontend recovery reuses the FM-02 ESLint flat-config shape and
+retains the original FM-01 lockfile. From the frontend repository root, run:
+
+```powershell
+npm ci
+npm run lint
+node_modules\\.bin\\tsc.cmd --noEmit -p tsconfig.json
+npm run build
+```
+
+Component tests remain `NOT_RUN` until the FM-02 Vitest/Testing Library
+packages are available through an approved source or cache. Do not add an
+unapproved global runner or change the existing lockfile to make the check
+available.
+
 ## Classification
 
 - Tool source: implemented at source level.

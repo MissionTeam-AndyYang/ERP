@@ -66,6 +66,39 @@ class MutationPersistence(Protocol):
     def replay_or_conflict(self, idempotency_key: str, fingerprint: str) -> Mapping[str, Any] | None: ...
 
 
+class ApprovalRequestPersistence(Protocol):
+    """Adapter for the approved FM01-local approval request table."""
+
+    def find_idempotent(self, scope: str, key: str, fingerprint: str) -> Mapping[str, Any] | None: ...
+
+    def create_pending(self, request: MutationRequest, fingerprint: str) -> Mapping[str, Any]: ...
+
+    def decide(self, request_id: int, approver_id: str, approved: bool, note: str | None) -> Mapping[str, Any]: ...
+
+
+class FM01ApprovalService:
+    """Pending approval service; storage and final business effect stay injected."""
+
+    def __init__(self, persistence: ApprovalRequestPersistence):
+        self._persistence = persistence
+
+    def submit(self, request: MutationRequest, scope: str) -> Mapping[str, Any]:
+        if not scope:
+            raise FM01ContractError("IDEMPOTENCY_SCOPE_REQUIRED", "idempotency scope is required", 400)
+        fingerprint = FM01MutationGateway.fingerprint(request)
+        existing = self._persistence.find_idempotent(scope, request.idempotency_key or "", fingerprint)
+        if existing is not None:
+            return existing
+        return self._persistence.create_pending(request, fingerprint)
+
+    def decide(self, request_id: int, requester_id: str, approver_id: str, approved: bool, note: str | None = None):
+        if not approver_id or approver_id == requester_id:
+            raise FM01ContractError("SELF_APPROVAL_FORBIDDEN", "requester cannot approve own request", 403)
+        if not note or not note.strip():
+            raise FM01ContractError("DECISION_NOTE_REQUIRED", "approval decision note is required", 400)
+        return self._persistence.decide(request_id, approver_id, approved, note.strip())
+
+
 class FM01MutationGateway:
     """Fail-closed FM-01-local mutation orchestration boundary.
 

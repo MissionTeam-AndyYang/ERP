@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from .mutation_contract import FM01ContractError, FM01MutationGateway, MutationActor, MutationRequest
+from .mutation_contract import (
+    FM01ApprovalService,
+    FM01ContractError,
+    FM01MutationGateway,
+    MutationActor,
+    MutationRequest,
+)
 
 
 def _request(**overrides):
@@ -68,3 +74,46 @@ def test_fingerprint_is_stable_for_mapping_order():
     first = _request(payload={"display_name": "Updated", "nested": {"b": 2, "a": 1}})
     second = _request(payload={"nested": {"a": 1, "b": 2}, "display_name": "Updated"})
     assert FM01MutationGateway.fingerprint(first) == FM01MutationGateway.fingerprint(second)
+
+
+def test_approval_service_submits_and_replays_without_final_effect():
+    class Store:
+        def __init__(self):
+            self.rows = {}
+
+        def find_idempotent(self, scope, key, fingerprint):
+            row = self.rows.get((scope, key))
+            if row is None:
+                return None
+            if row["fingerprint"] != fingerprint:
+                raise FM01ContractError("IDEMPOTENCY_CONFLICT", "idempotency request conflicts", 409)
+            return row
+
+        def create_pending(self, request, fingerprint):
+            row = {"approval_state": "PENDING_APPROVAL", "fingerprint": fingerprint}
+            self.rows[("fm01", request.idempotency_key)] = row
+            return row
+
+        def decide(self, request_id, approver_id, approved, note):
+            return {"approval_state": "APPROVED" if approved else "REJECTED"}
+
+    service = FM01ApprovalService(Store())
+    request = _request(operation="create", payload={"display_name": "New"})
+    first = service.submit(request, "fm01")
+    second = service.submit(request, "fm01")
+    assert first == second
+    assert first["approval_state"] == "PENDING_APPROVAL"
+
+
+def test_approval_service_rejects_self_approval_and_missing_note():
+    class Store:
+        def decide(self, request_id, approver_id, approved, note):
+            return {}
+
+    service = FM01ApprovalService(Store())
+    with pytest.raises(FM01ContractError) as error:
+        service.decide(1, "same", "same", True, "approve")
+    assert error.value.code == "SELF_APPROVAL_FORBIDDEN"
+    with pytest.raises(FM01ContractError) as error:
+        service.decide(1, "requester", "approver", True, "")
+    assert error.value.code == "DECISION_NOTE_REQUIRED"

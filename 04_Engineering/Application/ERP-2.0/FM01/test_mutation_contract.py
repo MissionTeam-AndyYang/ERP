@@ -4,6 +4,7 @@ import pytest
 
 from .mutation_contract import (
     FM01ApprovalService,
+    FM01ApprovalAuditAdapter,
     FM01ContractError,
     FM01MutationGateway,
     MutationActor,
@@ -117,3 +118,83 @@ def test_approval_service_rejects_self_approval_and_missing_note():
     with pytest.raises(FM01ContractError) as error:
         service.decide(1, "requester", "approver", True, "")
     assert error.value.code == "DECISION_NOTE_REQUIRED"
+
+
+def test_persistence_adapter_rolls_back_when_audit_write_fails():
+    class Session:
+        def __init__(self):
+            self.committed = False
+            self.rolled_back = False
+            self.values = []
+
+        def begin(self):
+            return self
+
+        def add(self, value):
+            self.values.append(value)
+            if value.get("event_type") == "REQUEST_SUBMITTED":
+                raise RuntimeError("synthetic audit failure")
+
+        def flush(self):
+            self.values[0]["approval_request_id"] = 1
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            self.rolled_back = True
+
+    session = Session()
+    adapter = FM01ApprovalAuditAdapter(lambda: session)
+    with pytest.raises(FM01ContractError) as error:
+        adapter.create_pending(_request(operation="create", payload={"display_name": "New"}), "f" * 64)
+    assert error.value.code == "PERSISTENCE_FAILED"
+    assert session.rolled_back is True
+    assert session.committed is False
+
+
+def test_approval_adapter_decision_uses_requester_and_approver_contract():
+    class Session:
+        def __init__(self):
+            self.values = []
+            self.committed = False
+
+        def add(self, value):
+            self.values.append(value)
+
+        def flush(self):
+            return None
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            raise AssertionError("rollback was not expected")
+
+    session = Session()
+    adapter = FM01ApprovalAuditAdapter(lambda: session)
+    result = adapter.decide(7, "requester-1", "approver-1", True, "approved by independent reviewer")
+    assert result["approval_state"] == "APPROVED"
+    assert result["approver_id"] == "approver-1"
+    assert session.values[1]["actor_id"] == "approver-1"
+    assert session.committed is True
+
+
+def test_row_version_is_carried_to_pending_request_shape():
+    class Session:
+        def add(self, value):
+            self.value = value
+
+        def flush(self):
+            self.value["approval_request_id"] = 1
+
+        def commit(self):
+            return None
+
+        def rollback(self):
+            return None
+
+    session = Session()
+    adapter = FM01ApprovalAuditAdapter(lambda: session)
+    row = adapter.create_pending(_request(operation="create", payload={"display_name": "New"}), "f" * 64)
+    assert row["row_version"] == 1

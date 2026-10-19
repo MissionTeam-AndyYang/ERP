@@ -73,7 +73,100 @@ class ApprovalRequestPersistence(Protocol):
 
     def create_pending(self, request: MutationRequest, fingerprint: str) -> Mapping[str, Any]: ...
 
-    def decide(self, request_id: int, approver_id: str, approved: bool, note: str | None) -> Mapping[str, Any]: ...
+    def decide(self, request_id: int, requester_id: str, approver_id: str, approved: bool, note: str | None) -> Mapping[str, Any]: ...
+
+
+class FM01Session(Protocol):
+    """Minimal session surface; concrete SQL/session ownership stays external."""
+
+    def begin(self) -> Any: ...
+
+    def add(self, value: Mapping[str, Any]) -> None: ...
+
+    def flush(self) -> None: ...
+
+    def commit(self) -> None: ...
+
+    def rollback(self) -> None: ...
+
+
+class FM01ApprovalAuditAdapter:
+    """Mapping adapter for the approved 0004 tables.
+
+    It emits table-shaped records and delegates transaction execution to the
+    injected session. The injected session factory owns the transaction boundary:
+    the adapter calls commit only after all request/audit writes succeed and calls
+    rollback on every failure. It does not open connections, execute SQL, or
+    select runtime retention/authorization policy.
+    """
+
+    def __init__(self, session_factory: Callable[[], FM01Session]):
+        self._session_factory = session_factory
+
+    def create_pending(self, request: MutationRequest, fingerprint: str) -> Mapping[str, Any]:
+        session = self._session_factory()
+        try:
+            request_row = self._pending_row(request, fingerprint)
+            session.add(request_row)
+            session.flush()
+            session.add(self._audit_row(request, request_row, "REQUEST_SUBMITTED"))
+            session.commit()
+            return request_row
+        except Exception as exc:
+            session.rollback()
+            raise FM01ContractError("PERSISTENCE_FAILED", "approval request was not persisted", 503) from exc
+
+    def decide(self, request_id: int, requester_id: str, approver_id: str, approved: bool, note: str | None):
+        if not approver_id or requester_id == approver_id:
+            raise FM01ContractError("SELF_APPROVAL_FORBIDDEN", "requester cannot approve own request", 403)
+        session = self._session_factory()
+        try:
+            decision = {
+                "approval_request_id": request_id,
+                "approver_id": approver_id,
+                "approval_state": "APPROVED" if approved else "REJECTED",
+                "decision_note": note,
+            }
+            session.add(decision)
+            session.add({
+                "approval_request_id": request_id,
+                "event_type": "APPROVED" if approved else "REJECTED",
+                "actor_id": approver_id,
+            })
+            session.commit()
+            return decision
+        except Exception as exc:
+            session.rollback()
+            raise FM01ContractError("PERSISTENCE_FAILED", "approval decision was not persisted", 503) from exc
+
+    def find_idempotent(self, scope: str, key: str, fingerprint: str):
+        raise FM01ContractError("PERSISTENCE_NOT_BOUND", "idempotency lookup adapter is not bound", 503)
+
+    def _pending_row(self, request: MutationRequest, fingerprint: str) -> dict[str, Any]:
+        return {
+            "resource_type": request.resource,
+            "entity_id": request.entity_id,
+            "operation": request.operation,
+            "requester_id": request.actor.actor_id if request.actor else "",
+            "requester_role": request.actor.role if request.actor else None,
+            "approval_state": "PENDING_APPROVAL",
+            "row_version": request.expected_row_version,
+            "payload_json": dict(request.payload),
+            "idempotency_key": request.idempotency_key,
+            "request_fingerprint": fingerprint,
+            "correlation_id": request.correlation_id,
+            "evidence_ref": request.evidence_ref,
+        }
+
+    def _audit_row(self, request: MutationRequest, request_row: Mapping[str, Any], event_type: str):
+        return {
+            "approval_request_id": request_row.get("approval_request_id"),
+            "event_type": event_type,
+            "actor_id": request.actor.actor_id if request.actor else "",
+            "actor_role": request.actor.role if request.actor else None,
+            "correlation_id": request.correlation_id,
+            "evidence_ref": request.evidence_ref,
+        }
 
 
 class FM01ApprovalService:

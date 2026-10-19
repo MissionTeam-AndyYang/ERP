@@ -61,7 +61,7 @@ export const fm01ResourceReferences: Record<Fm01Resource, { id: string; ref: str
   locations: { id: "location_id", ref: "location_ref" }
 };
 
-export const fm01HierarchyKeys: Record<Fm01Resource, keyof Fm01Hierarchy> = {
+export const fm01HierarchyKeys: Record<Fm01Resource, string> = {
   "legal-entities": "legal_entities",
   companies: "companies",
   sites: "sites",

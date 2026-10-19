@@ -42,6 +42,28 @@ def test_missing_runtime_binding_fails_closed():
     assert error.value.status == 503
 
 
+def test_missing_atomic_persistence_binding_fails_closed():
+    class Pending:
+        def submit(self, request, fingerprint):
+            return {"status": "pending_approval"}
+
+        def replay(self, idempotency_key, fingerprint):
+            return None
+
+    class Audit:
+        def append(self, request, before, after):
+            return None
+
+    gateway = FM01MutationGateway(
+        pending_store=Pending(),
+        audit_store=Audit(),
+        runtime_authorizer=lambda request: True,
+    )
+    with pytest.raises(FM01ContractError) as error:
+        gateway.submit_create(_request(operation="create", payload={"display_name": "New"}))
+    assert error.value.code == "MUTATION_NOT_BOUND"
+
+
 def test_fingerprint_is_stable_for_mapping_order():
     first = _request(payload={"display_name": "Updated", "nested": {"b": 2, "a": 1}})
     second = _request(payload={"nested": {"a": 1, "b": 2}, "display_name": "Updated"})

@@ -58,6 +58,14 @@ class AuditEvidenceStore(Protocol):
     def append(self, request: MutationRequest, before: Mapping[str, Any], after: Mapping[str, Any]) -> None: ...
 
 
+class MutationPersistence(Protocol):
+    """Optional FM01-local persistence adapter with explicit atomic semantics."""
+
+    def submit_pending_with_audit(self, request: MutationRequest, fingerprint: str) -> Mapping[str, Any]: ...
+
+    def replay_or_conflict(self, idempotency_key: str, fingerprint: str) -> Mapping[str, Any] | None: ...
+
+
 class FM01MutationGateway:
     """Fail-closed FM-01-local mutation orchestration boundary.
 
@@ -81,10 +89,12 @@ class FM01MutationGateway:
         pending_store: PendingApprovalStore | None = None,
         audit_store: AuditEvidenceStore | None = None,
         runtime_authorizer: Callable[[MutationRequest], bool] | None = None,
+        persistence: MutationPersistence | None = None,
     ):
         self._pending_store = pending_store
         self._audit_store = audit_store
         self._runtime_authorizer = runtime_authorizer
+        self._persistence = persistence
 
     def submit_create(self, request: MutationRequest) -> Mapping[str, Any]:
         self._validate_common(request, "create")
@@ -131,17 +141,17 @@ class FM01MutationGateway:
             raise FM01ContractError("VALIDATION_ERROR", "display_name is required", 400)
 
     def _require_pending_bindings(self) -> None:
-        if not self._pending_store or not self._audit_store or not self._runtime_authorizer:
+        if not self._pending_store or not self._audit_store or not self._runtime_authorizer or not self._persistence:
             raise FM01ContractError("MUTATION_NOT_BOUND", "FM-01 mutation bindings are unavailable", 503)
 
     def _submit_pending(self, request: MutationRequest) -> Mapping[str, Any]:
         if not self._runtime_authorizer(request):
             raise FM01ContractError("AUTHORIZATION_DENIED", "mutation authority is unavailable", 403)
         fingerprint = self.fingerprint(request)
-        replay = self._pending_store.replay(request.idempotency_key or "", fingerprint)
+        replay = self._persistence.replay_or_conflict(request.idempotency_key or "", fingerprint)
         if replay is not None:
             return replay
-        return self._pending_store.submit(request, fingerprint)
+        return self._persistence.submit_pending_with_audit(request, fingerprint)
 
     @staticmethod
     def fingerprint(request: MutationRequest) -> str:

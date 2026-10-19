@@ -299,7 +299,7 @@ export default function OrganizationLocationPage() {
           <DetailPanel
             record={detail}
             hierarchy={hierarchy ?? undefined}
-            isLoading={detailLoading}
+            isLoading={detailLoading || hierarchyLoading}
             error={detailError}
             onRetry={retryDetail}
             onEdit={() => setEditRecord(detail)}

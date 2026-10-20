@@ -42,6 +42,40 @@ The preparation package does not invent authorization IDs, credentials, signatur
 or approval metadata. Secret values must never appear in arguments, logs, reports,
 or evidence.
 
+## Source-Only Capability Harness
+
+`tools/fm01_3342_adapters.py` contains `SourceOnlyCapabilityHarness`, an
+injected-fake, temporary-directory harness for source-level validation only. It
+simulates start/readiness, stop, deterministic migration invocation
+`0001 -> 0002 -> 0003 -> 0004`, backup with SHA-256 manifest, hash-verified
+restore, isolated reset, fixture setup/cleanup ownership, and redacted evidence
+generation. It never invokes a real process, client, database, SQL, Alembic,
+credential, service, or target datadir.
+
+This harness is TEST_ONLY simulation and source-level contract validation. It is
+not runtime validation, does not prove target/database behavior, and does not
+authorize any operation. The exact offline suite is:
+
+`G1P313\\python-3.13.14\\python.exe 20_Engineering_Workspace\\FM01_Isolated_DB_Preparation_20261020_001\\tests\\test_runner_contract.py`
+
+Current expected result:
+`STANDARD_LIBRARY_CASES=10;PASSED=10;FAILED=0`
+
+The harness is separate from the actual operational PowerShell entrypoints.
+`tools/backup_3342.ps1`, `tools/restore_3342.ps1`, `tools/reset_3342.ps1`, and
+`tools/safe_stop_3342.ps1` remain explicit fail-closed `HOLD` stubs. They do not
+start or stop services, invoke clients, access credentials, execute SQL/Alembic,
+or mutate the target. Runtime execution remains blocked until the authorization
+verifier, target-specific operator, credential custody, and approved executor
+are supplied through a separate CIO-approved context.
+
+No approved signer, public key, certificate, issuer, or trust root was found in
+the governed files inspected for this package. CIO must decide who may sign,
+which trust root/certificate/issuer is authoritative, and the custody,
+rotation, revocation, and expiry policy. Until then live authorization remains
+fail-closed. Test-only ephemeral signature mechanics do not satisfy that
+decision.
+
 ## Future Modes (all NOT RUN)
 
 | Mode | Required pre/post checks | Required authorization | Current state |

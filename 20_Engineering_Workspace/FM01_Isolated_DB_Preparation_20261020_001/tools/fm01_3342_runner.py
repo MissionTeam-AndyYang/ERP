@@ -61,9 +61,36 @@ def source_inventory(source_dir: Path) -> dict[str, str]:
         actual[name] = digest
     return actual
 
+def dependency_inventory(source_dir: Path) -> list[str]:
+    expected_order = [
+        "fm01_org_location_0001.py",
+        "fm01_org_location_0002_design_reconciliation.py",
+        "fm01_org_location_0003_mutation_contract.py",
+        "fm01_approval_audit_0004_local_persistence.py",
+    ]
+    revisions = []
+    for name in expected_order:
+        text = (source_dir / name).read_text(encoding="utf-8")
+        match = re.search(r"revision\s*=\s*['\"]([^'\"]+)['\"]", text)
+        if not match or not match.group(1).strip():
+            fail(f"migration revision missing: {name}")
+        revisions.append(match.group(1))
+    if len(set(revisions)) != len(revisions):
+        fail("duplicate migration revision")
+    for index, name in enumerate(expected_order):
+        text = (source_dir / name).read_text(encoding="utf-8")
+        dependency = re.search(r"down_revision\s*=\s*['\"]([^'\"]+)['\"]", text)
+        if index == 0:
+            if dependency and dependency.group(1) not in ("None", "null"):
+                fail("0001 dependency is not root")
+        elif not dependency or dependency.group(1) != revisions[index - 1]:
+            fail(f"dependency order mismatch: {name}")
+    return revisions
+
 def plan(manifest_path: Path, source_dir: Path, expected_datadir: str, verifier) -> dict[str, Any]:
     binding = validate_manifest(json.loads(manifest_path.read_text(encoding="utf-8")), expected_datadir, verifier)
-    return {"status": "AUTHORIZED_PLAN_ONLY", "target": binding["target"], "authorization_id": binding["authorization_id"], "allowed_operations": binding["operations"], "source_hashes": source_inventory(source_dir), "live_operation_invoked": False, "db_client_invoked": False, "service_invoked": False, "secret_accessed": False, "evidence_contract": "fm01-3342-evidence-v1"}
+    hashes = source_inventory(source_dir)
+    return {"status": "AUTHORIZED_PLAN_ONLY", "target": binding["target"], "authorization_id": binding["authorization_id"], "allowed_operations": binding["operations"], "source_hashes": hashes, "dependency_chain": dependency_inventory(source_dir), "live_operation_invoked": False, "db_client_invoked": False, "service_invoked": False, "secret_accessed": False, "evidence_contract": "fm01-3342-evidence-v1"}
 
 def main(argv: list[str]) -> int:
     if len(argv) != 7 or argv[1] != "--manifest" or argv[3] != "--source-dir" or argv[5] != "--datadir": print("HOLD: usage requires --manifest <manifest> --source-dir <source-dir> --datadir <approved-datadir>"); return 2

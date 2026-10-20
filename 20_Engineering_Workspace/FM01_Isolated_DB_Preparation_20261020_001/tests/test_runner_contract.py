@@ -1,12 +1,16 @@
 import json
+import hashlib
+import hmac
 import subprocess
 import sys
 import tempfile
+import shutil
+from unittest.mock import patch
 from pathlib import Path
-ROOT = Path(__file__).parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from fm01_3342_runner import HoldError, plan
-from fm01_3342_adapters import FM013342Adapter, LiveAdapterUnavailable, OperationResult
+from fm01_3342_adapters import FM013342Adapter, LiveAdapterUnavailable, OperationResult, SourceOnlyCapabilityHarness
 RUNNER = ROOT / "tools" / "fm01_3342_runner.py"
 SOURCE = ROOT / "source"
 DATADIR = r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\FM01_Functional_NP_Target_Binding_20261007_001\data"
@@ -88,6 +92,102 @@ def case_injected_adapter_requires_authorized_operation_and_executor():
     finally:
         path.unlink(missing_ok=True)
 
+def case_test_only_ephemeral_signature_mechanics():
+    key = b"TEST_ONLY_EPHEMERAL_KEY"
+    payload = json.dumps(manifest(), sort_keys=True, separators=(",", ":")).encode()
+    signature = hmac.new(key, payload, hashlib.sha256).hexdigest()
+    assert hmac.compare_digest(signature, hmac.new(key, payload, hashlib.sha256).hexdigest())
+    tampered = payload.replace(b"readback", b"reset")
+    assert not hmac.compare_digest(signature, hmac.new(key, tampered, hashlib.sha256).hexdigest())
+
+def case_source_only_capability_harness_covers_required_paths():
+    parent_root = (ROOT / "tests").resolve()
+    parent_root.mkdir(parents=True, exist_ok=True)
+    assert parent_root.is_relative_to(ROOT.resolve() / "tests")
+    parent = Path(tempfile.mkdtemp(prefix="fm01-harness-parent-", dir=str(parent_root)))
+    root = Path(tempfile.mkdtemp(prefix="owned-", dir=parent))
+    harness = SourceOnlyCapabilityHarness(root)
+    try:
+        assert harness.start_readiness()["details"]["ready"] is True
+        assert harness.migrate()["details"]["revisions"] == ["0001", "0002", "0003", "0004"]
+        backup = harness.backup_integrity()
+        assert backup["details"]["integrity_verified"] is True
+        assert harness.restore_verified()["details"]["integrity_verified"] is True
+        assert harness.fixture_setup_cleanup()["details"]["cleaned"] is True
+        assert harness.reset_isolated()["details"]["isolated_target"] is True
+        assert harness.stop()["details"]["stopped"] is True
+        evidence = harness.redacted_evidence()
+        assert evidence["live_operation_invoked"] is False
+        assert evidence["secret_values_exposed"] is False
+        assert harness.process_running is False
+        assert harness.events == ["start_readiness", "migrate", "backup", "restore", "fixture", "reset", "stop"]
+    finally:
+        harness.close()
+        assert harness.cleanup_status in ("CLEANED", "CLEANUP_DEFERRED_BY_HOST")
+        shutil.rmtree(parent, ignore_errors=True)
+
+def case_source_only_capability_harness_rejects_tampered_backup():
+    parent_root = (ROOT / "tests").resolve()
+    parent_root.mkdir(parents=True, exist_ok=True)
+    assert parent_root.is_relative_to(ROOT.resolve() / "tests")
+    parent = Path(tempfile.mkdtemp(prefix="fm01-harness-parent-", dir=str(parent_root)))
+    root = Path(tempfile.mkdtemp(prefix="owned-", dir=parent))
+    harness = SourceOnlyCapabilityHarness(root)
+    try:
+        harness.backup_integrity()
+        (harness.backup / "identity.json").write_text("tampered", encoding="utf-8")
+        try:
+            harness.restore_verified()
+            assert False, "tampered backup must HOLD"
+        except HoldError:
+            pass
+    finally:
+        harness.close()
+        assert harness.cleanup_status in ("CLEANED", "CLEANUP_DEFERRED_BY_HOST")
+        shutil.rmtree(parent, ignore_errors=True)
+
+def case_source_only_harness_preserves_preexisting_sibling():
+    parent_root = (ROOT / "tests").resolve()
+    parent_root.mkdir(parents=True, exist_ok=True)
+    assert parent_root.is_relative_to(ROOT.resolve() / "tests")
+    parent = Path(tempfile.mkdtemp(prefix="fm01-harness-parent-", dir=str(parent_root)))
+    sibling = parent / "preexisting-sibling"
+    sibling.mkdir()
+    marker = sibling / "keep.txt"
+    marker.write_text("must remain", encoding="utf-8")
+    root = Path(tempfile.mkdtemp(prefix="owned-", dir=parent))
+    harness = SourceOnlyCapabilityHarness(root)
+    try:
+        harness.start_readiness()
+    finally:
+        harness.close()
+        assert marker.read_text(encoding="utf-8") == "must remain"
+        assert sibling.is_dir()
+        shutil.rmtree(parent, ignore_errors=True)
+
+def case_dependency_inventory_rejects_duplicate_revision():
+    source = ROOT / "tests" / "mocked-source"
+    names = list(HASHES)
+    texts = {
+        names[0]: 'revision = "r0001"\ndown_revision = "None"\n',
+        names[1]: 'revision = "r0002"\ndown_revision = "r0001"\n',
+        names[2]: 'revision = "r0003"\ndown_revision = "r0002"\n',
+        names[3]: 'revision = "r0003"\ndown_revision = "r0003"\n',
+    }
+    real_read_text = Path.read_text
+    def fake_read_text(path, *args, **kwargs):
+        name = Path(path).name
+        if name in texts:
+            return texts[name]
+        return real_read_text(path, *args, **kwargs)
+    from fm01_3342_runner import dependency_inventory
+    with patch.object(Path, "read_text", autospec=True, side_effect=fake_read_text):
+        try:
+            dependency_inventory(source)
+            assert False, "duplicate revision must HOLD"
+        except HoldError:
+            pass
+
 test_valid_3342_plan = case_valid_3342_plan
 test_rejects_forbidden_ports_and_wrong_target = case_rejects_forbidden_ports_and_wrong_target
 test_rejects_wrong_datadir_and_source_hash = case_rejects_wrong_datadir_and_source_hash
@@ -95,6 +195,11 @@ test_rejects_missing_signature_and_unsupported_operation = case_rejects_missing_
 test_rejects_wrong_window_and_database = case_rejects_wrong_window_and_database
 test_contract_mentions_timeout_cleanup_and_redaction = case_contract_mentions_timeout_cleanup_and_redaction
 test_injected_adapter_requires_authorized_operation_and_executor = case_injected_adapter_requires_authorized_operation_and_executor
+test_test_only_ephemeral_signature_mechanics = case_test_only_ephemeral_signature_mechanics
+test_source_only_capability_harness_covers_required_paths = case_source_only_capability_harness_covers_required_paths
+test_source_only_capability_harness_rejects_tampered_backup = case_source_only_capability_harness_rejects_tampered_backup
+test_source_only_harness_preserves_preexisting_sibling = case_source_only_harness_preserves_preexisting_sibling
+test_dependency_inventory_rejects_duplicate_revision = case_dependency_inventory_rejects_duplicate_revision
 
 def main():
     cases = [value for name, value in globals().items() if name.startswith("test_") and callable(value)]

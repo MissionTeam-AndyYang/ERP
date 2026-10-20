@@ -16,8 +16,23 @@ dedicated backup/restore/reset/safe-stop entrypoints fail closed until a
 separate CIO-approved executor is injected. The future modes `backup`,
 `migrate`, `readback`, `fixture`, `restore`, `rollback`, `reset`, and
 `safe_stop` remain `NOT RUN / REQUIRES SEPARATE CIO DB EXECUTION AUTHORIZATION`.
+The `SourceOnlyCapabilityHarness` in `tools/fm01_3342_adapters.py` provides
+test-only injected-fake paths for start/readiness, stop, deterministic 0001 to
+0004 invocation, backup/hash manifest creation, verified restore, isolated
+reset, fixture setup/cleanup, and redacted evidence generation. It uses only
+temporary test directories and never invokes a real process, client, database,
+SQL, Alembic, credential, or service. These behaviors are simulation and
+source-level contract validation only; they are not runtime validation and do
+not authorize any procedure.
+The exact offline suite is:
+`G1P313\\python-3.13.14\\python.exe 20_Engineering_Workspace\\FM01_Isolated_DB_Preparation_20261020_001\\tests\\test_runner_contract.py`
+Expected result for the current package is
+`STANDARD_LIBRARY_CASES=10;PASSED=10;FAILED=0`.
 Signature fields are structural metadata only; this package does not
 authenticate them. Package status remains `HOLD` for live operation readiness.
+Offline test-only signature mechanics use an ephemeral fixture key solely to
+prove valid/tampered payload behavior; this is not a trusted signer, public key,
+issuer, or operational authority.
 
 Repository-controlled exchange addendum:
 `evidence/controlled-exchange/FM01-3342-TARGET-BINDING-ADDENDUM-20261020-001.md`.

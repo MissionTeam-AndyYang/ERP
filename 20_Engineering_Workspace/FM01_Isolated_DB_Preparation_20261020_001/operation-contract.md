@@ -25,18 +25,28 @@ custody, and Git/Knowledge custody are documented in
 
 ## Authorization Gate
 
-Every future mutating/runtime action requires a caller-provided, signed/approved
-authorization manifest. The manifest must contain an authorization ID, exact
-target binding, execution window, all four source hashes, operator identity,
-credential-custody role, reviewer, signature/approval proof, and an explicit
-operation allowlist. Missing, expired, unsigned, malformed, or mismatched input
-is a fail-closed `HOLD`.
+Every future side-effecting action requires a caller-provided Owner-host
+execution-release JSON artifact. It must contain exact target binding,
+per-stage allowlist, Owner identity, expiry, and a unique one-time nonce. The
+wrapper atomically consumes the nonce under the target evidence directory and
+rejects replay. Missing, expired, malformed, mismatched, or reused input is a
+fail-closed `HOLD`; separate human confirmation is still required.
 
-The trust verifier is injectable by design. No verifier/trust anchor is
-configured in this package, so the default command-line planner rejects even a
-syntactically valid manifest. A future CIO-approved execution context must
-inject the verifier and the operation executor; this package does not create
-or infer either authority.
+For this isolated non-production 3342 target only, CIO's effective signed-
+manifest exception permits the bounded Owner-host Windows PowerShell and
+CurrentUser-DPAPI mechanism already recorded in the accepted FM01 Owner-host
+readback script. This exception is not a new PKI/trust-root platform and does
+not extend to 3344, 3345, Production, or any other target. The target-specific
+credential filename and owner context must be reused exactly from that accepted
+script; no credential name may be invented or copied from FM02. Secret values
+must remain only in the child-process environment at execution time and must
+never appear in arguments, logs, reports, evidence, or chat.
+
+Broader manifest controls remain required for any operation: exact target,
+operation allowlist, execution window, operator identity, explicit human
+confirmation for side-effecting stages, pre/post target/config/source/backup
+checks, expiry/replay protection, least privilege, and fail-closed mismatch
+handling. This package does not create or infer execution authority.
 
 The preparation package does not invent authorization IDs, credentials, signatures,
 or approval metadata. Secret values must never appear in arguments, logs, reports,
@@ -59,22 +69,22 @@ authorize any operation. The exact offline suite is:
 `G1P313\\python-3.13.14\\python.exe 20_Engineering_Workspace\\FM01_Isolated_DB_Preparation_20261020_001\\tests\\test_runner_contract.py`
 
 Current expected result:
-`STANDARD_LIBRARY_CASES=10;PASSED=10;FAILED=0`
+`STANDARD_LIBRARY_CASES=24;PASSED=24;FAILED=0`
 
 The harness is separate from the actual operational PowerShell entrypoints.
 `tools/backup_3342.ps1`, `tools/restore_3342.ps1`, `tools/reset_3342.ps1`, and
-`tools/safe_stop_3342.ps1` remain explicit fail-closed `HOLD` stubs. They do not
+`tools/safe_stop_3342.ps1` remain explicit fail-closed `HOLD` stubs. The
+Owner-host stage wrapper is `tools/invoke_fm01_owner_stage.ps1`; its default
+preflight/read-only mode does not invoke runtime, and every side-effecting mode
+requires explicit human confirmation plus a future execution release. None do
 start or stop services, invoke clients, access credentials, execute SQL/Alembic,
 or mutate the target. Runtime execution remains blocked until the authorization
-verifier, target-specific operator, credential custody, and approved executor
-are supplied through a separate CIO-approved context.
+window, target-specific operator, and approved execution release are supplied
+through the CIO-approved Owner-host context.
 
-No approved signer, public key, certificate, issuer, or trust root was found in
-the governed files inspected for this package. CIO must decide who may sign,
-which trust root/certificate/issuer is authoritative, and the custody,
-rotation, revocation, and expiry policy. Until then live authorization remains
-fail-closed. Test-only ephemeral signature mechanics do not satisfy that
-decision.
+The generic trust-root blocker is superseded for this bounded 3342 exception.
+The exception does not establish credential/operator capability in Engineering B
+and does not authorize execution in this preparation session.
 
 ## Future Modes (all NOT RUN)
 
@@ -140,4 +150,34 @@ rotation, expiry, revocation, and audit policy before runtime use.
 
 ## Host-effect boundary
 
-FM013342ConcreteProviders dispatches only explicitly injected providers. It does not call built-in Windows process APIs, MariaDB binaries, database clients, filesystem commands, DPAPI, or network endpoints. Mock-provider tests prove sequencing and fail-closed gates only; they do not prove runtime readiness. The PowerShell entrypoints are guarded wrappers and remain HOLD until an authenticated manifest, approved executor, and target-specific credential handle are supplied.
+The Python source-only providers and harness do not call host processes, MariaDB,
+DPAPI, or network endpoints. The Owner-host PowerShell stage wrapper is the
+separate operational boundary and is fully gated as described above. Tests in
+this package are offline/synthetic only and do not prove runtime readiness.
+
+## Owner-host exception and stage order
+
+The effective CIO exception is limited to Owner-host Windows PowerShell,
+CurrentUser-DPAPI, and target `127.0.0.1:3342` / database
+`erp2_fm01_functional_np_001`. The verified launch config is
+`20_Engineering_Workspace/FM01_Functional_NP_Target_Binding_20261007_001/runtime/my-erp2-fm01-functional-np-11410.ini`
+with SHA-256
+`D386B8D32CC2897D1C1DBEB0CC9DB62BDA365072F3434B6EDF5146506AE61A3D`.
+The runtime binaries are under the approved MariaDB 11.4.10 installation path.
+
+Copy/paste stage order is:
+
+1. `TargetCheck` — read-only binding/config/source/hash checks; no runtime side effect.
+2. `SafeStart` — changes runtime; NOT TO EXECUTE without a separate execution release.
+3. `BackupRecoveryCheck` — may create/read backup artifacts; NOT TO EXECUTE without release.
+4. `Migrations0001To0004` — changes database; NOT TO EXECUTE. Exact execution adapter is not admitted by this package.
+5. `DbTests` — DB access; NOT TO EXECUTE and TEST evidence authority remains separate.
+6. `EvidenceExport` — may write evidence; NOT TO EXECUTE against live results in this session.
+7. `GracefulStop` — changes runtime; NOT TO EXECUTE without release.
+
+`tools/invoke_fm01_owner_stage.ps1` is the bounded command wrapper. It is
+fail-closed by default, rejects non-3342 targets, requires exact config/source
+hashes, requires `-ConfirmHumanExecution` for side-effecting stages, and never
+prints secrets. Recovery/restore is not allowed to target any datadir other
+than the exact FM01 binding and remains NOT TO EXECUTE absent a specific
+release.

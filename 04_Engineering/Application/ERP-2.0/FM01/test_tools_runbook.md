@@ -137,19 +137,30 @@ Product-main changes, or PM closure.
 
 ## Preparation-Only Target Sequence Notice
 
-This notice is preparation metadata only and is **not an adopted operational
-runbook**. The review-only future sequence is:
+This notice records the approved target sequence but does not by itself
+authorize a database operation. The approved bounded sequence is:
 
 1. Module-Isolated Validation on selected FM-01 target `ERP2-FM01-FUNCTIONAL-NP-001` / `127.0.0.1:3342`;
 2. Shared DEV Integration candidate `ERP2-DEV-MARIADB-001` / `127.0.0.1:3344`;
 3. System Integration Acceptance after separate authorization.
 
-No database execution, service start/stop, SQL, migration, fixture, backup,
-restore, reset, runtime credential use, or assignment activation occurred for
-this notice. Port `3344` is a candidate only; port `3345` is FM02 and remains
-untouched. The current 3342 runner, backup, restore, reset, and safe-stop
-procedures remain `HOLD` / planning-only pending an external trusted verifier,
-executor, and separate CIO DB execution authorization.
+The CIO's existing FM-01 3342 Signed Manifest Exception Decision is effective:
+for this isolated non-production target only, the Owner-host Windows
+PowerShell / CurrentUser-DPAPI mechanism is the bounded substitute control.
+No new PKI, signing certificate, or trust root is required. This exception
+does not authorize immediate DB mutation, grant TEST execution authority, or
+extend to ports `3344`, `3345`, Production, or FM02. The current task's
+operation-package preparation did not start/stop MariaDB, read DPAPI, connect
+to the database, run SQL/migrations/tests, or change target data.
+
+The exact Owner-host command entrypoint and source/config bindings are in
+`20_Engineering_Workspace/FM01_Isolated_DB_Preparation_20261020_001/README.md`
+and `operation-contract.md`. Run only its read-only `TargetCheck` unless a
+separate release explicitly permits a stateful stage. Migration execution
+remains HOLD until the migration runner passes focused safety review; the
+53-case catalogue is design-only, so `DbTests` remains NOT_RUN/HOLD. Backup,
+restore, reset and shutdown must retain exact target/PID checks, bounded
+timeouts, no-overwrite evidence and fail-closed recovery behavior.
 
 Independent TEST evidence must be produced independently and transferred back
 through the owner-host/CTO evidence route with target, source, operator,
@@ -160,4 +171,4 @@ authority. Target-binding addendum:
 
 ## FM01 3342 host-effect boundary
 
-The concrete provider class dispatches only to explicitly injected process, database, filesystem, credential-handle, and evidence providers. It does not itself call Windows process APIs, MariaDB binaries, database clients, filesystem backup/restore commands, DPAPI, or network endpoints. Therefore source presence and mock-provider success do not prove runtime readiness. The FM01 PowerShell entrypoints remain guarded wrappers and return HOLD unless the separately approved executor, authenticated manifest, and target-specific credential handle are supplied.
+The concrete provider class dispatches only to explicitly injected process, database, filesystem, credential-handle, and evidence providers. It does not itself call Windows process APIs, MariaDB binaries, database clients, filesystem backup/restore commands, DPAPI, or network endpoints. Therefore source presence and mock-provider success do not prove runtime readiness. The FM01 PowerShell entrypoints are Owner-host stage gates. CurrentUser-DPAPI is confined to the approved Owner context; secret values must never be printed, logged, passed as command-line arguments, or written to evidence. The signed-manifest exception does not make a plain SHA-256 hash an authorization signature; package integrity and execution authority remain distinct controls.

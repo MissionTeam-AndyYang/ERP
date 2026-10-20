@@ -13,6 +13,7 @@ from fm01_3342_runner import HoldError, plan, SignatureVerifier, canonical_paylo
 from fm01_3342_adapters import FM013342Adapter, LiveAdapterUnavailable, OperationResult, SourceOnlyCapabilityHarness, TargetBoundOperations
 from target_secret_provider_interface import NoCredentialProvider, CredentialProviderUnavailable
 from fm01_host_adapter_contract import FM013342HostBinding, HostProvidersUnavailable, FM013342ConcreteProviders, WindowsProcessProvider, MariaDBClientProvider, WindowsCredentialHandle, RedactedEvidenceWriter
+from migrate_3342 import execute as migration_execute
 RUNNER = ROOT / "tools" / "fm01_3342_runner.py"
 SOURCE = ROOT / "source"
 DATADIR = r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\FM01_Functional_NP_Target_Binding_20261007_001\data"
@@ -261,6 +262,27 @@ def case_target_bound_operations_reject_unsafe_requests():
     finally:
         path.unlink(missing_ok=True)
 
+def case_target_bound_operations_gate_start_and_fixture_before_side_effects():
+    value = manifest(allowed_operations=["readback"])
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
+        json.dump(value, f); path = Path(f.name)
+    calls = []
+    class Process:
+        def start(self, target): calls.append("start")
+    class Database:
+        def fixture_load(self, target, fixture_id): calls.append("load"); return {"success": True}
+        def fixture_cleanup(self, target, fixture_id): calls.append("cleanup"); return {"success": True}
+    try:
+        operations = TargetBoundOperations(FM013342Adapter(path, SOURCE, DATADIR, lambda _: True), Process(), Database(), object(), lambda evidence: evidence)
+        for action in (lambda: operations.start(), lambda: operations.fixture("FM01-TEST-0001")):
+            try:
+                action(); assert False, "unauthorized operation must HOLD before adapter access"
+            except HoldError:
+                pass
+        assert calls == []
+    finally:
+        path.unlink(missing_ok=True)
+
 def case_target_bound_operations_rejects_incomplete_cleanup_and_fixture_authority():
     value = manifest(allowed_operations=["restore", "reset"])
     with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
@@ -404,6 +426,13 @@ def case_powerShell_entrypoints_hold_without_external_authority():
     except HoldError:
         pass
 
+def case_direct_migration_function_is_zero_side_effect_hold():
+    try:
+        migration_execute(Path(r"C:\does-not-exist"), r"C:\does-not-exist", Path(r"C:\secret.dpapi"))
+        assert False, "direct migration function must HOLD"
+    except HoldError as exc:
+        assert "live migration function is disabled" in str(exc)
+
 test_valid_3342_plan = case_valid_3342_plan
 test_rejects_forbidden_ports_and_wrong_target = case_rejects_forbidden_ports_and_wrong_target
 test_rejects_wrong_datadir_and_source_hash = case_rejects_wrong_datadir_and_source_hash
@@ -419,6 +448,7 @@ test_source_only_harness_preserves_preexisting_sibling = case_source_only_harnes
 test_dependency_inventory_rejects_duplicate_revision = case_dependency_inventory_rejects_duplicate_revision
 test_injected_target_bound_operations_dispatch_without_real_runtime = case_injected_target_bound_operations_dispatch_without_real_runtime
 test_target_bound_operations_reject_unsafe_requests = case_target_bound_operations_reject_unsafe_requests
+test_target_bound_operations_gate_start_and_fixture_before_side_effects = case_target_bound_operations_gate_start_and_fixture_before_side_effects
 test_target_bound_operations_rejects_incomplete_cleanup_and_fixture_authority = case_target_bound_operations_rejects_incomplete_cleanup_and_fixture_authority
 test_concrete_entrypoint_and_credential_provider_remain_fail_closed = case_concrete_entrypoint_and_credential_provider_remain_fail_closed
 test_clone_manifest_completeness_for_secret_interface = case_clone_manifest_completeness_for_secret_interface

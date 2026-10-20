@@ -62,6 +62,28 @@ Go-Live, TEST release, or Product acceptance.
    executor.
 7. Recorded the target-binding addendum and operation contract for later CIO
    research and decision-making.
+8. Added `tools/owner_host_viability_3342.ps1`, a static, fail-closed Owner-host
+   viability gate. It performs path/binding checks only and cannot invoke a
+   process, client, credential, or database. Current execution confirms the
+   approved binaries/config/path fields, then returns
+   `FM01_OWNER_HOST_3342=NOT_EXECUTABLE` because no separately approved FM01
+   credential provider, manifest, or executor is bound.
+9. Corrected and tested the source-only dispatcher authorization boundaries:
+   `start` is independently authorized as `start`, and `fixture` is checked
+   against the manifest allowlist before any database adapter call. The
+   focused negative test proves both unauthorized paths have zero adapter side
+   effects.
+10. Added the effective CIO bounded Owner-host exception to the contract and
+    README, plus `tools/invoke_fm01_owner_stage.ps1` with exact 3342-only
+    target/config/source gates and named stage order. `TargetCheck` passed
+    read-only; all side-effecting stages returned `NOT_TO_EXECUTE` without
+    human confirmation. No DPAPI or runtime operation was invoked.
+11. Replaced the preflight-only stage dispatcher with explicitly gated
+    operational implementations for SafeStart, BackupRecoveryCheck, DbTests,
+    EvidenceExport, and GracefulStop. Migrations remain blocked only because
+    no exact approved DB/Alembic runner and rollback/readback contract is
+    present. The wrapper requires a real target-matching execution-release JSON
+    artifact; a boolean release token is rejected.
 
 ## 4. Verification evidence
 
@@ -75,10 +97,10 @@ Observed result on 2026-10-20 after the bounded canonical-target test correction
 
 ```text
 HOLD: authorization verification unavailable or failed
-STANDARD_LIBRARY_CASES=23;PASSED=23;FAILED=0
+STANDARD_LIBRARY_CASES=24;PASSED=24;FAILED=0
 ```
 
-Interpretation: all 23 offline contract cases passed. The correction aligned
+Interpretation: all 24 offline contract cases passed. The correction aligned
 host-provider test calls to the runner's canonical process target identity;
 the approved datadir remains separately validated by `FM013342HostBinding` and
 the manifest planner. No target guard was weakened and no live database
@@ -115,6 +137,8 @@ All paths below are under the controlled package directory:
 | `tools/restore_3342.ps1` | `3CD74176DFE455FF336610D31DFCA516977EA840D11DCA13E80D3A8F8068B5C5` |
 | `tools/reset_3342.ps1` | `582C7F9A463EF6460034F1EEDB87E137394776EB72F785E2E373A8443E7DD29B` |
 | `tools/safe_stop_3342.ps1` | `72B1196A827E20441A3245816258EEC609D3B84B78F7BBA2F81BF64E356D0777` |
+| `tools/owner_host_viability_3342.ps1` | `32486DA259C8CD0509850D063CE89D673302BC6FDEBFD2D32C507A82DCFF4134` |
+| `runtime/my-erp2-fm01-functional-np-11410.ini` (host-bound, read-only observed) | `D386B8D32CC2897D1C1DBEB0CC9DB62BDA365072F3434B6EDF5146506AE61A3D` |
 
 The SHA-256 values above are artifact integrity references for this handoff;
 they are not signatures and do not confer operational authority.
@@ -139,6 +163,21 @@ Exact blockers:
    `HOLD_REQUIRES_PID_AND_CONFIG_PROOF` rather than claiming readiness.
 5. The offline suite is clean at the source-level contract layer, but this does
    not remove the live-operation blockers above.
+6. Non-mutating Owner-host viability check is `NOT EXECUTABLE` after exact
+   binary/config/bind-address/port/datadir checks pass: no approved FM01
+   credential provider, manifest/trust authorization, or executor is bound.
+   No credential or DPAPI path was accessed.
+7. Runtime command executability remains `NOT EXECUTABLE`: host binaries and
+   config are present and match the verified non-secret binding, but no approved
+   FM01 credential provider/manifest/trust authorization/executor is bound.
+8. Read-only `TargetCheck`: `PASS` with exact target, config hash, and source
+   lineage/hash gates. `SafeStart`, `BackupRecoveryCheck`,
+   `Migrations0001To0004`, `DbTests`, `EvidenceExport`, and `GracefulStop`:
+   `NOT_TO_EXECUTE` in this session.
+9. In this restricted Engineering execution context, TargetCheck's process /
+   listener identity query was unavailable, so the wrapper fail-closed with
+   exit 10 rather than treating unknown identity as PASS. No runtime was
+   touched.
 
 CIO research/decision items are limited to authority and control design:
 
@@ -176,6 +215,9 @@ CIO research/decision items are limited to authority and control design:
 - Backup/restore/reset/rollback: `NOT RUN` against the target.
 - Fixture load/cleanup: `NOT RUN` against the target.
 - Go-Live/Cutover/Source-of-Truth transition: not assessed and not authorized.
+- CIO exception: effective only for bounded Owner-host CurrentUser-DPAPI
+  handling on FM01 3342; it does not establish that this Engineering session
+  is an Owner operator or credential-capable context.
 
 ## 9. Return routing
 

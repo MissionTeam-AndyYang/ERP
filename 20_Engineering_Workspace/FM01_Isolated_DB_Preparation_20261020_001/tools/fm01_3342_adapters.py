@@ -10,7 +10,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Callable, Mapping
+from typing import Callable, Mapping, Protocol
 from fm01_3342_runner import HoldError, plan
 
 OPERATIONS = ("backup", "migrate", "readback", "fixture", "restore", "rollback", "reset", "safe_stop")
@@ -24,6 +24,101 @@ class OperationResult:
 
 class LiveAdapterUnavailable(RuntimeError):
     pass
+
+
+class ProcessAdapter(Protocol):
+    def status(self, target: Mapping[str, object]) -> Mapping[str, object]: ...
+    def start(self, target: Mapping[str, object]) -> Mapping[str, object]: ...
+    def graceful_stop(self, target: Mapping[str, object]) -> Mapping[str, object]: ...
+
+
+class DatabaseAdapter(Protocol):
+    def migrate(self, target: Mapping[str, object], revisions: list[str]) -> Mapping[str, object]: ...
+    def readback(self, target: Mapping[str, object]) -> Mapping[str, object]: ...
+    def fixture_load(self, target: Mapping[str, object], fixture_id: str) -> Mapping[str, object]: ...
+    def fixture_cleanup(self, target: Mapping[str, object], fixture_id: str) -> Mapping[str, object]: ...
+
+
+class FilesystemAdapter(Protocol):
+    def backup(self, target: Mapping[str, object]) -> Mapping[str, object]: ...
+    def restore(self, target: Mapping[str, object], backup_hash: str) -> Mapping[str, object]: ...
+    def reset(self, target: Mapping[str, object]) -> Mapping[str, object]: ...
+
+
+class EvidenceAdapter(Protocol):
+    def write(self, evidence: Mapping[str, object]) -> Mapping[str, object]: ...
+
+
+class TargetBoundOperations:
+    """Real operation dispatch with all side effects supplied by injected adapters."""
+
+    def __init__(self, adapter: FM013342Adapter, process: ProcessAdapter,
+                 database: DatabaseAdapter, filesystem: FilesystemAdapter,
+                 evidence: EvidenceAdapter):
+        self.adapter = adapter
+        self.process = process
+        self.database = database
+        self.filesystem = filesystem
+        self.evidence = evidence
+        self.target = self.adapter.plan["target"]
+
+    def _run(self, operation: str, action: Callable[[], Mapping[str, object]]) -> Mapping[str, object]:
+        if operation not in self.adapter.plan["allowed_operations"]:
+            raise HoldError(f"HOLD: operation not authorized {operation}")
+        result = dict(action())
+        if result.get("pre_target_identity") is False or result.get("post_target_identity") is False:
+            raise HoldError(f"HOLD: target identity evidence failed for {operation}")
+        result.update({"operation": operation, "target": self.target,
+                       "live_operation_invoked": True, "secret_values_exposed": False})
+        return self.evidence.write(result)
+
+    def status(self):
+        return self._run("readback", lambda: self.process.status(self.target))
+
+    def start(self):
+        return self._run("start", lambda: self.process.start(self.target))
+
+    def graceful_stop(self):
+        return self._run("safe_stop", lambda: self.process.graceful_stop(self.target))
+
+    def migrate(self, revisions: list[str]):
+        if revisions != ["0001", "0002", "0003", "0004"]:
+            raise HoldError("HOLD: migration order mismatch")
+        return self._run("migrate", lambda: self.database.migrate(self.target, revisions))
+
+    def backup(self):
+        return self._run("backup", lambda: self.filesystem.backup(self.target))
+
+    def restore(self, backup_hash: str):
+        if not backup_hash:
+            raise HoldError("HOLD: backup hash required")
+        result = self._run("restore", lambda: self.filesystem.restore(self.target, backup_hash))
+        if result.get("backup_hash") != backup_hash or result.get("cleanup_complete") is not True:
+            raise HoldError("HOLD: restore integrity or cleanup evidence incomplete")
+        return result
+
+    def reset(self):
+        result = self._run("reset", lambda: self.filesystem.reset(self.target))
+        if result.get("cleanup_complete") is not True or result.get("post_empty_readback") is not True:
+            raise HoldError("HOLD: reset cleanup or post-empty evidence incomplete")
+        return result
+
+    def fixture(self, fixture_id: str):
+        if "fixture" not in self.adapter.plan["allowed_operations"]:
+            raise HoldError("HOLD: operation not authorized fixture")
+        if not fixture_id.startswith("FM01-"):
+            raise HoldError("HOLD: fixture id must be FM01-scoped")
+        loaded = self.database.fixture_load(self.target, fixture_id)
+        cleaned = self.database.fixture_cleanup(self.target, fixture_id)
+        if loaded.get("success") is not True or cleaned.get("success") is not True:
+            raise HoldError("HOLD: fixture load or cleanup incomplete")
+        evidence = self.evidence.write({"operation": "fixture", "target": self.target,
+                                    "fixture_id": fixture_id, "loaded": loaded,
+                                    "cleaned": cleaned, "live_operation_invoked": True,
+                                    "secret_values_exposed": False})
+        if not isinstance(evidence, Mapping) or evidence.get("cleanup_complete") is not True:
+            raise HoldError("HOLD: fixture evidence incomplete")
+        return evidence
 
 
 class SourceOnlyCapabilityHarness:

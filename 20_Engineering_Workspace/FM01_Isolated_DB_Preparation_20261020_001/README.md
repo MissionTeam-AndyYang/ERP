@@ -45,3 +45,14 @@ preparation-only, unverified, and not an adopted operational procedure.
 The approved source lineage is `0001 -> 0002 -> 0003 -> 0004` from source
 commit `38efa0d5a45c6425cdb5139d27bdc682db5a49d1` (tree
 `6095d409859e89889c7fd02a285fbcc648d5196a`).
+
+## Guarded Source Entrypoints
+
+The concrete guarded operation entrypoint is `tools/fm01_3342_entrypoint.py`.
+It accepts operation names but returns `HOLD` unless an approved verifier and
+target-bound executor context are supplied. `tools/target_secret_provider_interface.py`
+defines target-specific credential custody without retrieving or storing secret
+values. `SignatureVerifier` requires canonical-payload asymmetric signing with
+`ECDSA-SHA256` or `RSA-PSS-SHA256`, pinned issuer/key ID, and non-expired,
+non-revoked metadata. No trust root, public key, certificate, or private key is
+present in this package.

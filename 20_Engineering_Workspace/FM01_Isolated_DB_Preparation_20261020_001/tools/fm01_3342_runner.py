@@ -14,10 +14,33 @@ SOURCE_HASHES = {
     "fm01_org_location_0003_mutation_contract.py": "9AD18755FB919EA5E6DD621A3DC6614891A11D6CFBD92C83190E033C183BFED0",
     "fm01_approval_audit_0004_local_persistence.py": "C3898F5500C554909E86D01EA370748131AC12A9433C36B141B619627C6DE94E",
 }
-OPS = {"backup", "migrate", "readback", "fixture", "restore", "rollback", "reset", "safe_stop"}
+OPS = {"backup", "migrate", "readback", "start", "fixture", "restore", "rollback", "reset", "safe_stop"}
+SUPPORTED_SIGNATURE_ALGORITHMS = {"ECDSA-SHA256", "RSA-PSS-SHA256"}
 
 class HoldError(ValueError): pass
 def fail(message: str) -> None: raise HoldError(f"HOLD: {message}")
+
+def canonical_payload(manifest: dict[str, Any]) -> bytes:
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("signature"), dict):
+        fail("canonical payload requires signature object")
+    unsigned = dict(manifest)
+    unsigned.pop("signature", None)
+    return json.dumps(unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+class SignatureVerifier:
+    """Policy-shaped verifier hook; cryptographic trust material is mandatory."""
+    def __init__(self, *, issuer: str, key_id: str, algorithm: str, verify_callable):
+        if not issuer or not key_id or algorithm not in SUPPORTED_SIGNATURE_ALGORITHMS or not callable(verify_callable):
+            fail("signature verifier configuration is incomplete")
+        self.issuer, self.key_id, self.algorithm, self.verify_callable = issuer, key_id, algorithm, verify_callable
+
+    def __call__(self, manifest: dict[str, Any]) -> bool:
+        signature = manifest.get("signature", {})
+        if signature.get("algorithm") != self.algorithm or signature.get("key_id") != self.key_id or signature.get("issuer") != self.issuer:
+            return False
+        if signature.get("revoked") is True or signature.get("expired") is True:
+            return False
+        return bool(self.verify_callable(canonical_payload(manifest), signature.get("value"), signature))
 
 def validate_manifest(manifest: dict[str, Any], expected_datadir: str, verifier) -> dict[str, Any]:
     if not isinstance(manifest, dict): fail("authorization manifest must be an object")
@@ -46,8 +69,10 @@ def validate_manifest(manifest: dict[str, Any], expected_datadir: str, verifier)
     if not isinstance(manifest["allowed_operations"], list) or not manifest["allowed_operations"] or any(not isinstance(op, str) or op not in OPS for op in manifest["allowed_operations"]): fail("unsupported operation")
     if not isinstance(manifest["operator"], dict) or not isinstance(manifest["operator"].get("identity"), str) or not isinstance(manifest["operator"].get("credential_owner_role"), str) or not manifest["operator"]["identity"] or not manifest["operator"]["credential_owner_role"]: fail("operator/custody role malformed")
     signature = manifest["signature"]
-    if not isinstance(signature, dict) or not all(isinstance(signature.get(key), str) and signature[key] for key in ("algorithm", "key_id", "value")):
+    if not isinstance(signature, dict) or not all(isinstance(signature.get(key), str) and signature[key] for key in ("algorithm", "key_id", "value", "issuer")):
         fail("authorization signature malformed")
+    if signature["algorithm"] not in SUPPORTED_SIGNATURE_ALGORITHMS:
+        fail("unsupported signature algorithm")
     if not verifier(manifest): fail("authorization verification unavailable or failed")
     return {"authorization_id": manifest["authorization_id"], "operations": manifest["allowed_operations"], "target": TARGET}
 

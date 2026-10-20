@@ -115,3 +115,25 @@ authorization ID, operation list, timings, exit status, backup hash, schema/tabl
 readback, migration revision, and cleanup state. It must explicitly state
 `live_operation_invoked=false` when preparation or a rejected operation is being
 reported, and `secret_values_exposed=false`.
+
+## Concrete Guarded Entrypoints
+
+`tools/fm01_3342_entrypoint.py` is the concrete command entrypoint for plan,
+status, start, safe_stop, migrate, backup, restore, reset, and fixture. It
+validates manifest/source/target binding and returns `HOLD` by default because
+no approved verifier, credential provider, process adapter, database adapter,
+filesystem adapter, or evidence sink is configured here.
+
+`SignatureVerifier` validates canonical UTF-8 JSON formed by removing
+`signature` and serializing with sorted keys and compact separators. Only
+`ECDSA-SHA256` and `RSA-PSS-SHA256` are accepted. Issuer and key ID are pinned
+by the injected verifier; expired or revoked metadata is rejected. SHA-256 is
+used for content integrity only, never as a signature algorithm. No trust root,
+public key, certificate, issuer trust store, private key, or revocation service
+is included.
+
+`tools/target_secret_provider_interface.py` defines target-specific ephemeral
+credential acquire/release without exposing secret values to command lines,
+repository files, logs, evidence, or assistant output. `NoCredentialProvider`
+always returns `HOLD`. CIO must approve custody role, injection mechanism,
+rotation, expiry, revocation, and audit policy before runtime use.

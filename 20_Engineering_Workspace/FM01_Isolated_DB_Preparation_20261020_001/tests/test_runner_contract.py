@@ -9,8 +9,9 @@ from unittest.mock import patch
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-from fm01_3342_runner import HoldError, plan
-from fm01_3342_adapters import FM013342Adapter, LiveAdapterUnavailable, OperationResult, SourceOnlyCapabilityHarness
+from fm01_3342_runner import HoldError, plan, SignatureVerifier, canonical_payload
+from fm01_3342_adapters import FM013342Adapter, LiveAdapterUnavailable, OperationResult, SourceOnlyCapabilityHarness, TargetBoundOperations
+from target_secret_provider_interface import NoCredentialProvider, CredentialProviderUnavailable
 RUNNER = ROOT / "tools" / "fm01_3342_runner.py"
 SOURCE = ROOT / "source"
 DATADIR = r"C:\Users\andyy\Desktop\Codex-workspace\projects\ERP 2.0 Phase1\20_Engineering_Workspace\FM01_Functional_NP_Target_Binding_20261007_001\data"
@@ -23,7 +24,7 @@ HASHES = {
 }
 
 def manifest(**changes):
-    value = {"authorization_id": "TEST-AUTH", "target": dict(TARGET), "window": {"not_before": "2026-10-20T00:00:00Z", "expires_at": "2099-10-20T00:00:00Z"}, "source_hashes": dict(HASHES), "allowed_operations": ["readback"], "operator": {"identity": "fake-operator", "credential_owner_role": "Engineering B Runtime"}, "reviewer": "CTO V2", "signature": {"algorithm": "TEST_ONLY_FAKE", "key_id": "TEST_ONLY_KEY", "value": "TEST_ONLY_SIGNATURE"}}
+    value = {"authorization_id": "TEST-AUTH", "target": dict(TARGET), "window": {"not_before": "2026-10-20T00:00:00Z", "expires_at": "2099-10-20T00:00:00Z"}, "source_hashes": dict(HASHES), "allowed_operations": ["readback"], "operator": {"identity": "fake-operator", "credential_owner_role": "Engineering B Runtime"}, "reviewer": "CTO V2", "signature": {"algorithm": "ECDSA-SHA256", "key_id": "TEST_ONLY_KEY", "issuer": "TEST_ONLY_ISSUER", "value": "TEST_ONLY_SIGNATURE"}}
     for key, value2 in changes.items():
         if key == "target": value["target"].update(value2)
         else: value[key] = value2
@@ -99,6 +100,22 @@ def case_test_only_ephemeral_signature_mechanics():
     assert hmac.compare_digest(signature, hmac.new(key, payload, hashlib.sha256).hexdigest())
     tampered = payload.replace(b"readback", b"reset")
     assert not hmac.compare_digest(signature, hmac.new(key, tampered, hashlib.sha256).hexdigest())
+
+def case_signature_verifier_requires_approved_shape_and_canonical_payload():
+    value = manifest()
+    seen = []
+    verifier = SignatureVerifier(issuer="TEST_ONLY_ISSUER", key_id="TEST_ONLY_KEY", algorithm="ECDSA-SHA256", verify_callable=lambda payload, value, signature: seen.append(payload) or value == "VALID")
+    value["signature"]["value"] = "VALID"
+    assert verifier(value) is True
+    assert seen == [canonical_payload(value)]
+    value["signature"]["key_id"] = "OTHER"
+    assert verifier(value) is False
+    value["signature"]["key_id"] = "TEST_ONLY_KEY"
+    value["signature"]["algorithm"] = "TEST_ONLY_FAKE"
+    assert verifier(value) is False
+    value["signature"]["algorithm"] = "ECDSA-SHA256"
+    value["signature"]["revoked"] = True
+    assert verifier(value) is False
 
 def case_source_only_capability_harness_covers_required_paths():
     parent_root = (ROOT / "tests").resolve()
@@ -188,6 +205,109 @@ def case_dependency_inventory_rejects_duplicate_revision():
         except HoldError:
             pass
 
+def case_injected_target_bound_operations_dispatch_without_real_runtime():
+    value = manifest(allowed_operations=["readback", "start", "safe_stop", "migrate", "backup", "restore", "reset", "fixture"])
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
+        json.dump(value, f); path = Path(f.name)
+    calls = []
+    class Process:
+        def status(self, target): calls.append("status"); return {"ready": True, "pre_target_identity": True, "post_target_identity": True}
+        def start(self, target): calls.append("start"); return {"started": True, "pre_target_identity": True, "post_target_identity": True}
+        def graceful_stop(self, target): calls.append("stop"); return {"stopped": True, "pre_target_identity": True, "post_target_identity": True}
+    class Database:
+        def migrate(self, target, revisions): calls.append(("migrate", revisions)); return {"migrated": revisions, "pre_target_identity": True, "post_target_identity": True}
+        def readback(self, target): calls.append("readback"); return {"readback": True}
+        def fixture_load(self, target, fixture_id): calls.append(("load", fixture_id)); return {"loaded": True, "success": True}
+        def fixture_cleanup(self, target, fixture_id): calls.append(("cleanup", fixture_id)); return {"cleaned": True, "success": True}
+    class Filesystem:
+        def backup(self, target): calls.append("backup"); return {"backup_hash": "TEST_HASH", "pre_target_identity": True, "post_target_identity": True}
+        def restore(self, target, backup_hash): calls.append(("restore", backup_hash)); return {"restored": True, "backup_hash": backup_hash, "cleanup_complete": True, "pre_target_identity": True, "post_target_identity": True}
+        def reset(self, target): calls.append("reset"); return {"reset": True, "cleanup_complete": True, "post_empty_readback": True, "pre_target_identity": True, "post_target_identity": True}
+    class Evidence:
+        def write(self, evidence):
+            assert evidence["secret_values_exposed"] is False
+            assert evidence["live_operation_invoked"] is True
+            evidence["cleanup_complete"] = True
+            return evidence
+    try:
+        adapter = FM013342Adapter(path, SOURCE, DATADIR, lambda _: True)
+        operations = TargetBoundOperations(adapter, Process(), Database(), Filesystem(), Evidence())
+        assert operations.status()["operation"] == "readback"
+        assert operations.start()["operation"] == "start"
+        assert operations.graceful_stop()["operation"] == "safe_stop"
+        assert operations.migrate(["0001", "0002", "0003", "0004"])["operation"] == "migrate"
+        assert operations.backup()["operation"] == "backup"
+        assert operations.restore("TEST_HASH")["operation"] == "restore"
+        assert operations.reset()["operation"] == "reset"
+        assert operations.fixture("FM01-TEST-0001")["operation"] == "fixture"
+        assert "backup" in calls and "reset" in calls
+    finally:
+        path.unlink(missing_ok=True)
+
+def case_target_bound_operations_reject_unsafe_requests():
+    value = manifest(allowed_operations=["migrate", "fixture", "restore"])
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
+        json.dump(value, f); path = Path(f.name)
+    class Null:
+        def __getattr__(self, name): return lambda *args: {}
+    try:
+        operations = TargetBoundOperations(FM013342Adapter(path, SOURCE, DATADIR, lambda _: True), Null(), Null(), Null(), lambda x: x)
+        for action in (lambda: operations.migrate(["0001", "0003"]), lambda: operations.fixture("PROD-1"), lambda: operations.restore("")):
+            try:
+                action(); assert False, "unsafe request must HOLD"
+            except HoldError:
+                pass
+    finally:
+        path.unlink(missing_ok=True)
+
+def case_target_bound_operations_rejects_incomplete_cleanup_and_fixture_authority():
+    value = manifest(allowed_operations=["restore", "reset"])
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
+        json.dump(value, f); path = Path(f.name)
+    class BadFS:
+        def restore(self, target, backup_hash): return {"backup_hash": backup_hash, "cleanup_complete": False, "pre_target_identity": True, "post_target_identity": True}
+        def reset(self, target): return {"cleanup_complete": False, "post_empty_readback": False, "pre_target_identity": True, "post_target_identity": True}
+    class NoEvidence:
+        def write(self, evidence): return evidence
+    try:
+        operations = TargetBoundOperations(FM013342Adapter(path, SOURCE, DATADIR, lambda _: True), object(), object(), BadFS(), NoEvidence())
+        for action in (lambda: operations.restore("HASH"), lambda: operations.reset()):
+            try:
+                action(); assert False, "incomplete cleanup must HOLD"
+            except HoldError:
+                pass
+        try:
+            operations.fixture("FM01-TEST-0001")
+            assert False, "unauthorized fixture must HOLD before adapter access"
+        except HoldError:
+            pass
+    finally:
+        path.unlink(missing_ok=True)
+
+def case_concrete_entrypoint_and_credential_provider_remain_fail_closed():
+    from fm01_3342_entrypoint import main
+    value = manifest()
+    path = ROOT / "tests" / "_entrypoint_manifest.json"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    try:
+        assert main(["--manifest", str(path), "--source-dir", str(SOURCE), "--datadir", DATADIR, "--operation", "backup"]) == 10
+        try:
+            NoCredentialProvider().acquire(TARGET["target_id"], "test-operator")
+            assert False, "credential provider must HOLD"
+        except CredentialProviderUnavailable:
+            pass
+    finally:
+        path.unlink(missing_ok=True)
+
+def case_clone_manifest_completeness_for_secret_interface():
+    interface = ROOT / "tools" / "target_secret_provider_interface.py"
+    ignored_name = ROOT / "tools" / "credential_provider_contract.py"
+    assert interface.is_file()
+    assert not ignored_name.exists()
+    text = interface.read_text(encoding="utf-8").lower()
+    for token in ("password=", "secret=", "private_key", "dpapi", "credential_value"):
+        assert token not in text
+
 test_valid_3342_plan = case_valid_3342_plan
 test_rejects_forbidden_ports_and_wrong_target = case_rejects_forbidden_ports_and_wrong_target
 test_rejects_wrong_datadir_and_source_hash = case_rejects_wrong_datadir_and_source_hash
@@ -196,10 +316,16 @@ test_rejects_wrong_window_and_database = case_rejects_wrong_window_and_database
 test_contract_mentions_timeout_cleanup_and_redaction = case_contract_mentions_timeout_cleanup_and_redaction
 test_injected_adapter_requires_authorized_operation_and_executor = case_injected_adapter_requires_authorized_operation_and_executor
 test_test_only_ephemeral_signature_mechanics = case_test_only_ephemeral_signature_mechanics
+test_signature_verifier_requires_approved_shape_and_canonical_payload = case_signature_verifier_requires_approved_shape_and_canonical_payload
 test_source_only_capability_harness_covers_required_paths = case_source_only_capability_harness_covers_required_paths
 test_source_only_capability_harness_rejects_tampered_backup = case_source_only_capability_harness_rejects_tampered_backup
 test_source_only_harness_preserves_preexisting_sibling = case_source_only_harness_preserves_preexisting_sibling
 test_dependency_inventory_rejects_duplicate_revision = case_dependency_inventory_rejects_duplicate_revision
+test_injected_target_bound_operations_dispatch_without_real_runtime = case_injected_target_bound_operations_dispatch_without_real_runtime
+test_target_bound_operations_reject_unsafe_requests = case_target_bound_operations_reject_unsafe_requests
+test_target_bound_operations_rejects_incomplete_cleanup_and_fixture_authority = case_target_bound_operations_rejects_incomplete_cleanup_and_fixture_authority
+test_concrete_entrypoint_and_credential_provider_remain_fail_closed = case_concrete_entrypoint_and_credential_provider_remain_fail_closed
+test_clone_manifest_completeness_for_secret_interface = case_clone_manifest_completeness_for_secret_interface
 
 def main():
     cases = [value for name, value in globals().items() if name.startswith("test_") and callable(value)]

@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "required": ["authorization_id", "target", "window", "source_hashes", "allowed_operations", "operator", "reviewer", "signature"],
+  "properties": {
+    "authorization_id": {"type": "string", "minLength": 1},
+    "target": {"type": "object", "required": ["target_id", "database", "host", "port", "datadir"]},
+    "window": {"type": "object", "required": ["not_before", "expires_at"]},
+    "source_hashes": {"type": "object", "minProperties": 4},
+    "allowed_operations": {"type": "array", "minItems": 1},
+    "operator": {"type": "object", "required": ["identity", "credential_owner_role"]},
+    "reviewer": {"type": "string", "minLength": 1},
+    "signature": {
+      "type": "object",
+      "required": ["algorithm", "key_id", "value"],
+      "properties": {
+        "algorithm": {"type": "string", "minLength": 1},
+        "key_id": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

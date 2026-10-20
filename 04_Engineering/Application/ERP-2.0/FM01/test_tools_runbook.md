@@ -134,3 +134,26 @@ Product-main changes, or PM closure.
 - Remote DB execution: `NOT_RUN` / runtime authorization required.
 - Test Engineering: component toolchain complete for this bounded non-DB scope;
   broader integration, remote DB, and release acceptance remain deferred.
+
+## Preparation-Only Target Sequence Notice
+
+This notice is preparation metadata only and is **not an adopted operational
+runbook**. The review-only future sequence is:
+
+1. Module-Isolated Validation on selected FM-01 target `ERP2-FM01-FUNCTIONAL-NP-001` / `127.0.0.1:3342`;
+2. Shared DEV Integration candidate `ERP2-DEV-MARIADB-001` / `127.0.0.1:3344`;
+3. System Integration Acceptance after separate authorization.
+
+No database execution, service start/stop, SQL, migration, fixture, backup,
+restore, reset, runtime credential use, or assignment activation occurred for
+this notice. Port `3344` is a candidate only; port `3345` is FM02 and remains
+untouched. The current 3342 runner, backup, restore, reset, and safe-stop
+procedures remain `HOLD` / planning-only pending an external trusted verifier,
+executor, and separate CIO DB execution authorization.
+
+Independent TEST evidence must be produced independently and transferred back
+through the owner-host/CTO evidence route with target, source, operator,
+authorization, timing, and cleanup provenance. This notice does not grant TEST
+authority, runtime credentials, Product acceptance, release, or Go-Live
+authority. Target-binding addendum:
+`FM01_Isolated_DB_Preparation_20261020_001/evidence/controlled-exchange/FM01-3342-TARGET-BINDING-ADDENDUM-20261020-001.md`.

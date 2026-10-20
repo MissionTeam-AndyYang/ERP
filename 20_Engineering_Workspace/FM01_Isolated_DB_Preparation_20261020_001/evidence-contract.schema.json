@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "required": ["status", "target", "source_hashes", "operator_identity", "authorization_id", "operations"],
+  "properties": {
+    "status": {"enum": ["NOT_RUN", "PASS", "FAIL", "HOLD"]},
+    "target": {"const": "ERP2-FM01-FUNCTIONAL-NP-001"},
+    "database": {"const": "erp2_fm01_functional_np_001"},
+    "endpoint": {"const": "127.0.0.1:3342"},
+    "datadir": {"type": "string"},
+    "source_hashes": {"type": "object"},
+    "operator_identity": {"type": "string"},
+    "credential_owner_role": {"type": "string"},
+    "authorization_id": {"type": ["string", "null"]},
+    "operations": {"type": "array"},
+    "started_at": {"type": ["string", "null"]},
+    "finished_at": {"type": ["string", "null"]},
+    "exit_status": {"type": ["integer", "null"]},
+    "backup_sha256": {"type": ["string", "null"]},
+    "persistent_tables": {"type": ["array", "null"]},
+    "migration_revision": {"type": ["string", "null"]},
+    "secret_values_exposed": {"const": false},
+    "live_operation_invoked": {"type": "boolean"}
+  }
+}

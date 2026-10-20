@@ -137,3 +137,7 @@ credential acquire/release without exposing secret values to command lines,
 repository files, logs, evidence, or assistant output. `NoCredentialProvider`
 always returns `HOLD`. CIO must approve custody role, injection mechanism,
 rotation, expiry, revocation, and audit policy before runtime use.
+
+## Host-effect boundary
+
+FM013342ConcreteProviders dispatches only explicitly injected providers. It does not call built-in Windows process APIs, MariaDB binaries, database clients, filesystem commands, DPAPI, or network endpoints. Mock-provider tests prove sequencing and fail-closed gates only; they do not prove runtime readiness. The PowerShell entrypoints are guarded wrappers and remain HOLD until an authenticated manifest, approved executor, and target-specific credential handle are supplied.

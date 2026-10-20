@@ -1,6 +1,7 @@
 """Fail-closed FM-01 3342 operation planner; never invokes live operations."""
 from __future__ import annotations
 import hashlib, json, re, sys
+import base64
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ SOURCE_HASHES = {
     "fm01_org_location_0003_mutation_contract.py": "9AD18755FB919EA5E6DD621A3DC6614891A11D6CFBD92C83190E033C183BFED0",
     "fm01_approval_audit_0004_local_persistence.py": "C3898F5500C554909E86D01EA370748131AC12A9433C36B141B619627C6DE94E",
 }
-OPS = {"backup", "migrate", "readback", "start", "fixture", "restore", "rollback", "reset", "safe_stop"}
+OPS = {"backup", "migrate", "status", "readback", "start", "fixture", "restore", "rollback", "reset", "safe_stop"}
 SUPPORTED_SIGNATURE_ALGORITHMS = {"ECDSA-SHA256", "RSA-PSS-SHA256"}
 
 class HoldError(ValueError): pass
@@ -41,6 +42,21 @@ class SignatureVerifier:
         if signature.get("revoked") is True or signature.get("expired") is True:
             return False
         return bool(self.verify_callable(canonical_payload(manifest), signature.get("value"), signature))
+
+class PinnedPublicKeyVerifier:
+    """Fail-closed verifier adapter; key path is external and never generated."""
+    def __init__(self, *, key_path: Path, issuer: str, key_id: str, algorithm: str, verifier_command=None):
+        if not key_path.is_absolute() or not issuer or not key_id or algorithm not in SUPPORTED_SIGNATURE_ALGORITHMS:
+            fail("pinned verifier configuration invalid")
+        self.key_path, self.issuer, self.key_id, self.algorithm = key_path, issuer, key_id, algorithm
+        self.verifier_command = verifier_command
+    def __call__(self, manifest: dict[str, Any]) -> bool:
+        if self.verifier_command is None or not self.key_path.is_file():
+            return False
+        signature = manifest.get("signature", {})
+        if signature.get("issuer") != self.issuer or signature.get("key_id") != self.key_id or signature.get("algorithm") != self.algorithm:
+            return False
+        return bool(self.verifier_command(self.key_path, canonical_payload(manifest), signature.get("value")))
 
 def validate_manifest(manifest: dict[str, Any], expected_datadir: str, verifier) -> dict[str, Any]:
     if not isinstance(manifest, dict): fail("authorization manifest must be an object")

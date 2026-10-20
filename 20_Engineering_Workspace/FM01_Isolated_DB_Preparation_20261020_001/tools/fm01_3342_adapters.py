@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Callable, Mapping, Protocol
 from fm01_3342_runner import HoldError, plan
 
-OPERATIONS = ("backup", "migrate", "readback", "fixture", "restore", "rollback", "reset", "safe_stop")
+OPERATIONS = ("backup", "migrate", "status", "start", "readback", "fixture", "restore", "rollback", "reset", "safe_stop")
 
 @dataclass(frozen=True)
 class OperationResult:
@@ -73,7 +73,7 @@ class TargetBoundOperations:
         return self.evidence.write(result)
 
     def status(self):
-        return self._run("readback", lambda: self.process.status(self.target))
+        return self._run("status", lambda: self.process.status(self.target))
 
     def start(self):
         return self._run("start", lambda: self.process.start(self.target))

@@ -84,9 +84,6 @@ export default function OrganizationLocationPage() {
 
   useEffect(() => {
     let active = true;
-    setHierarchyLoading(true);
-    setHierarchyError(undefined);
-    setHierarchy(null);
     getFm01Hierarchy()
       .then((data) => { if (active) setHierarchy(data); })
       .catch((error: unknown) => {
@@ -97,16 +94,8 @@ export default function OrganizationLocationPage() {
   }, [hierarchyReload]);
 
   useEffect(() => {
-    if (!selection) {
-      setDetail(null);
-      setDetailError(undefined);
-      setDetailLoading(false);
-      return;
-    }
+    if (!selection) return;
     let active = true;
-    setDetail(null);
-    setDetailError(undefined);
-    setDetailLoading(true);
     getFm01Record(selection.resource, selection.id)
       .then((record) => { if (active) setDetail(record); })
       .catch((error: unknown) => {
@@ -119,9 +108,6 @@ export default function OrganizationLocationPage() {
   useEffect(() => {
     if (mode !== "list") return;
     let active = true;
-    setListLoading(true);
-    setListData(null);
-    setListError(undefined);
     const offset = (listPage - 1) * PAGE_SIZE + 1;
     getFm01Collection(listResource, offset, PAGE_SIZE)
       .then((data) => { if (active) setListData(data); })
@@ -159,19 +145,54 @@ export default function OrganizationLocationPage() {
   const pageCount = Math.max(1, Math.ceil((listData?.total ?? 0) / PAGE_SIZE));
 
   const closeDrawer = useCallback(() => setEditRecord(null), []);
-  const chooseRecord = useCallback((record: Fm01Record) => {
-    setSelection({ resource: record.resource, id: record.id });
-  }, []);
-
   function retryHierarchy() {
     setSelection(null);
     setDetail(null);
     setDetailError(undefined);
+    setDetailLoading(false);
+    setHierarchyLoading(true);
+    setHierarchyError(undefined);
+    setHierarchy(null);
     setEditRecord(null);
     setHierarchyReload((value) => value + 1);
   }
-  function retryList() { setListReload((value) => value + 1); }
-  function retryDetail() { setDetailReload((value) => value + 1); }
+  function retryList() {
+    setListLoading(true);
+    setListData(null);
+    setListError(undefined);
+    setListReload((value) => value + 1);
+  }
+  function retryDetail() {
+    if (!selection) return;
+    setDetailLoading(true);
+    setDetail(null);
+    setDetailError(undefined);
+    setDetailReload((value) => value + 1);
+  }
+  function selectRecord(record: Fm01Record) {
+    setDetail(null);
+    setDetailError(undefined);
+    setDetailLoading(true);
+    setSelection({ resource: record.resource, id: record.id });
+  }
+  function clearSelection() {
+    setDetail(null);
+    setDetailError(undefined);
+    setDetailLoading(false);
+    setSelection(null);
+  }
+  function openListMode() {
+    setListLoading(true);
+    setListData(null);
+    setListError(undefined);
+    setMode("list");
+  }
+  function changeListPage(nextPage: number) {
+    setListLoading(true);
+    setListData(null);
+    setListError(undefined);
+    setListPage(nextPage);
+  }
 
   return (
     <AppLayout activePath="/settings" title={fm01Text("page.title")} site={fm01Text("settings.title")}>
@@ -196,7 +217,7 @@ export default function OrganizationLocationPage() {
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="inline-flex w-fit items-center rounded-button border border-border bg-white p-1" role="tablist" aria-label="組織與地點檢視方式">
             <button type="button" role="tab" aria-selected={mode === "hierarchy"} onClick={() => setMode("hierarchy")} className={`min-h-10 rounded-button px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${mode === "hierarchy" ? "bg-primary text-white" : "text-textSecondary hover:bg-slate-50"}`}>{fm01Text("page.hierarchy")}</button>
-            <button type="button" role="tab" aria-selected={mode === "list"} onClick={() => setMode("list")} className={`min-h-10 rounded-button px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${mode === "list" ? "bg-primary text-white" : "text-textSecondary hover:bg-slate-50"}`}>{fm01Text("page.list")}</button>
+            <button type="button" role="tab" aria-selected={mode === "list"} onClick={openListMode} className={`min-h-10 rounded-button px-4 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${mode === "list" ? "bg-primary text-white" : "text-textSecondary hover:bg-slate-50"}`}>{fm01Text("page.list")}</button>
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(240px,1fr)_220px] xl:w-[620px]">
@@ -212,7 +233,7 @@ export default function OrganizationLocationPage() {
                 value={mode === "hierarchy" ? resourceFilter : listResource}
                 onChange={(event) => {
                   if (mode === "hierarchy") setResourceFilter(event.target.value as Fm01Resource | "all");
-                  else { setListResource(event.target.value as Fm01Resource); setListPage(1); setSelection(null); }
+                  else { setListLoading(true); setListData(null); setListError(undefined); setListResource(event.target.value as Fm01Resource); setListPage(1); clearSelection(); }
                 }}
                 className="h-11 w-full rounded-input border border-border bg-white px-3 text-sm text-textPrimary outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               >
@@ -238,7 +259,7 @@ export default function OrganizationLocationPage() {
                     <div className="p-6 text-center text-sm text-textSecondary">{search || resourceFilter !== "all" ? fm01Text("page.emptySearch") : fm01Text("page.empty")}</div>
                   ) : (
                     <>
-                      {filteredTree.length > 0 && <HierarchyTree nodes={filteredTree} query={search} selected={selection ?? undefined} expanded={expanded} onToggle={(key) => setExpanded((current) => { const next = new Set(current); next.has(key) ? next.delete(key) : next.add(key); return next; })} onSelect={chooseRecord} />}
+                      {filteredTree.length > 0 && <HierarchyTree nodes={filteredTree} query={search} selected={selection ?? undefined} expanded={expanded} onToggle={(key) => setExpanded((current) => { const next = new Set(current); next.has(key) ? next.delete(key) : next.add(key); return next; })} onSelect={selectRecord} />}
                       {unattachedRecords.length > 0 && (
                         <section className="mt-4 rounded-card border border-warning/40 bg-amber-50 p-3" aria-labelledby="fm01-unattached-title">
                           <h3 id="fm01-unattached-title" className="text-sm font-semibold text-textPrimary">未能對應上層的資料</h3>
@@ -246,7 +267,7 @@ export default function OrganizationLocationPage() {
                           <ul className="mt-2 divide-y divide-amber-200">
                             {filteredUnattachedRecords.map((record) => (
                                 <li key={`${record.resource}:${record.id}`}>
-                                  <button type="button" onClick={() => chooseRecord(record)} className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                                  <button type="button" onClick={() => selectRecord(record)} className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                                     <span className="min-w-0"><span className="block truncate text-sm font-medium text-textPrimary">{record.displayName || "（名稱未提供）"}</span><span className="block truncate text-xs text-textSecondary">{fm01ResourceLabels[record.resource]} · {record.ref || `ID ${record.id}`}</span></span>
                                     <span className="shrink-0 text-xs text-primary">查看</span>
                                   </button>
@@ -276,7 +297,7 @@ export default function OrganizationLocationPage() {
                             <tr key={record.id} className={selection?.resource === record.resource && selection.id === record.id ? "bg-blue-50" : "hover:bg-slate-50"}>
                               <td className="break-all px-4 py-3 text-textPrimary">{record.ref || `ID ${record.id}`}</td>
                               <td className="break-words px-4 py-3 text-textPrimary">{record.displayName || "（名稱未提供）"}</td>
-                              <td className="px-4 py-3 text-right"><button type="button" onClick={() => chooseRecord(record)} aria-label={`查看 ${record.ref || record.id}`} className="min-h-10 rounded-button px-3 font-medium text-primary hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">查看</button></td>
+                              <td className="px-4 py-3 text-right"><button type="button" onClick={() => selectRecord(record)} aria-label={`查看 ${record.ref || record.id}`} className="min-h-10 rounded-button px-3 font-medium text-primary hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">查看</button></td>
                             </tr>
                           ))}
                         </tbody>
@@ -285,9 +306,9 @@ export default function OrganizationLocationPage() {
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
                       <p className="text-xs text-textSecondary">{fm01Text("page.rows").replace("{count}", String(listData.total))}</p>
                       <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => setListPage((value) => Math.max(1, value - 1))} disabled={listPage <= 1} aria-label={fm01Text("page.previous")} className="grid h-10 w-10 place-items-center rounded-button border border-border text-textPrimary hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft className="h-4 w-4" aria-hidden="true" /></button>
+                        <button type="button" onClick={() => changeListPage(Math.max(1, listPage - 1))} disabled={listPage <= 1} aria-label={fm01Text("page.previous")} className="grid h-10 w-10 place-items-center rounded-button border border-border text-textPrimary hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"><ChevronLeft className="h-4 w-4" aria-hidden="true" /></button>
                         <span aria-live="polite" className="min-w-24 text-center text-xs text-textSecondary">{fm01Text("page.pageCount").replace("{page}", String(listPage)).replace("{pages}", String(pageCount))}</span>
-                        <button type="button" onClick={() => setListPage((value) => Math.min(pageCount, value + 1))} disabled={listPage >= pageCount} aria-label={fm01Text("page.next")} className="grid h-10 w-10 place-items-center rounded-button border border-border text-textPrimary hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight className="h-4 w-4" aria-hidden="true" /></button>
+                        <button type="button" onClick={() => changeListPage(Math.min(pageCount, listPage + 1))} disabled={listPage >= pageCount} aria-label={fm01Text("page.next")} className="grid h-10 w-10 place-items-center rounded-button border border-border text-textPrimary hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-40"><ChevronRight className="h-4 w-4" aria-hidden="true" /></button>
                       </div>
                     </div>
                   </>

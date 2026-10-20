@@ -12,15 +12,19 @@ type EditDrawerProps = {
   onClose: () => void;
 };
 
-export function EditDrawer({ record, hierarchy, onClose }: EditDrawerProps) {
-  const [draft, setDraft] = useState("");
-  const [validationMessage, setValidationMessage] = useState("");
-  const panelRef = useRef<HTMLElement>(null);
+type DraftState = {
+  recordId: number | null;
+  value: string;
+  validationMessage: string;
+};
 
-  useEffect(() => {
-    setDraft(record?.displayName ?? "");
-    setValidationMessage("");
-  }, [record]);
+export function EditDrawer({ record, hierarchy, onClose }: EditDrawerProps) {
+  const [draftState, setDraftState] = useState<DraftState>(() => ({
+    recordId: record?.id ?? null,
+    value: record?.displayName ?? "",
+    validationMessage: ""
+  }));
+  const panelRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!record) return;
@@ -57,10 +61,17 @@ export function EditDrawer({ record, hierarchy, onClose }: EditDrawerProps) {
   }, [record, onClose]);
 
   if (!record) return null;
+  const recordId = record.id;
   const relations = getFm01RelationRows(record, hierarchy);
+  const draft = draftState.recordId === record.id ? draftState.value : record.displayName;
+  const validationMessage = draftState.recordId === record.id ? draftState.validationMessage : "";
 
   function validateDraft() {
-    setValidationMessage(draft.trim() ? "" : fm01Text("edit.invalid"));
+    setDraftState({
+      recordId,
+      value: draft,
+      validationMessage: draft.trim() ? "" : fm01Text("edit.invalid")
+    });
   }
 
   return (
@@ -102,7 +113,7 @@ export function EditDrawer({ record, hierarchy, onClose }: EditDrawerProps) {
             <input
               id="fm01-display-name"
               value={draft}
-              onChange={(event) => { setDraft(event.target.value); setValidationMessage(""); }}
+              onChange={(event) => setDraftState({ recordId: record.id, value: event.target.value, validationMessage: "" })}
               aria-invalid={Boolean(validationMessage)}
               aria-describedby={validationMessage ? "fm01-edit-error" : "fm01-edit-help"}
               className="mt-2 h-11 w-full rounded-input border border-border bg-white px-3 text-sm text-textPrimary outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"

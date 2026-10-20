@@ -34,7 +34,6 @@ export default function OrganizationLocationCreatePage() {
 
   useEffect(() => {
     let active = true;
-    setIsLoading(true);
     getFm01Hierarchy()
       .then((data) => { if (active) { setHierarchy(data); setLoadError(undefined); } })
       .catch((error: unknown) => {
@@ -173,7 +172,7 @@ export default function OrganizationLocationCreatePage() {
           {loadError && (
             <div className="mt-5 flex gap-3 rounded-card border border-danger/30 bg-red-50 p-4" role="alert">
               <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
-              <div><p className="text-sm font-medium text-textPrimary">{fm01Text("create.parentLoadError")}</p><p className="mt-1 text-sm text-textSecondary">{loadMessage}</p><button type="button" onClick={() => setReload((value) => value + 1)} className="mt-2 min-h-9 text-sm font-medium text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{fm01Text("page.retry")}</button></div>
+              <div><p className="text-sm font-medium text-textPrimary">{fm01Text("create.parentLoadError")}</p><p className="mt-1 text-sm text-textSecondary">{loadMessage}</p><button type="button" onClick={() => { setHierarchy(null); setLoadError(undefined); setIsLoading(true); setReload((value) => value + 1); }} className="mt-2 min-h-9 text-sm font-medium text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{fm01Text("page.retry")}</button></div>
             </div>
           )}
 

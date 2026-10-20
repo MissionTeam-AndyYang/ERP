@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { ArrowLeft, CircleAlert, LockKeyhole } from "lucide-react";
 import { AppLayout } from "@/layouts/app-layout";
 import { fm01ErrorText, fm01Text } from "@/i18n/fm01-copy";
@@ -13,46 +14,51 @@ import {
   type Fm01Resource
 } from "@/types/fm01-organization-location";
 
-type WorkflowOperation = "deactivate" | "reactivate";
 type WorkflowTab = "overview" | "approval" | "audit";
+
+type WorkflowRequestResult = {
+  key: string;
+  record: Fm01Record | null;
+  error?: Fm01ApiError;
+};
 
 function validResource(value: string | null): value is Fm01Resource {
   return value !== null && fm01Resources.includes(value as Fm01Resource);
 }
 
-export default function OrganizationLocationWorkflowPage() {
-  const [record, setRecord] = useState<Fm01Record | null>(null);
-  const [operation, setOperation] = useState<WorkflowOperation>("deactivate");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Fm01ApiError>();
+function OrganizationLocationWorkflowContent() {
+  const searchParams = useSearchParams();
+  const resourceParam = searchParams.get("resource");
+  const idValue = Number(searchParams.get("id"));
+  const requestedOperation = searchParams.get("operation");
+  const validRequest = validResource(resourceParam)
+    && Number.isInteger(idValue)
+    && idValue > 0
+    && ["deactivate", "reactivate"].includes(requestedOperation ?? "");
+  const requestKey = `${resourceParam ?? ""}:${idValue}:${requestedOperation ?? ""}`;
+  const routeError = validRequest ? undefined : new Fm01ApiError("INVALID_ROUTE", undefined);
+  const [result, setResult] = useState<WorkflowRequestResult>({ key: "", record: null });
   const [tab, setTab] = useState<WorkflowTab>("overview");
   const [reason, setReason] = useState("");
   const [evidence, setEvidence] = useState("");
 
   useEffect(() => {
+    if (!validRequest || !validResource(resourceParam)) return;
     let active = true;
-    const params = new URLSearchParams(window.location.search);
-    const resource = params.get("resource");
-    const idValue = Number(params.get("id"));
-    const requestedOperation = params.get("operation");
-
-    if (!validResource(resource) || !Number.isInteger(idValue) || idValue < 1 || !["deactivate", "reactivate"].includes(requestedOperation ?? "")) {
-      setError(new Fm01ApiError("INVALID_ROUTE", undefined));
-      setIsLoading(false);
-      return () => { active = false; };
-    }
-
-    setOperation(requestedOperation as WorkflowOperation);
-    getFm01Record(resource, idValue)
-      .then((data) => { if (active) setRecord(data); })
+    getFm01Record(resourceParam, idValue)
+      .then((data) => { if (active) setResult({ key: requestKey, record: data }); })
       .catch((caught: unknown) => {
-        if (active) setError(caught instanceof Fm01ApiError ? caught : new Fm01ApiError("REQUEST_FAILED", undefined));
-      })
-      .finally(() => { if (active) setIsLoading(false); });
+        if (active) setResult({ key: requestKey, record: null, error: caught instanceof Fm01ApiError ? caught : new Fm01ApiError("REQUEST_FAILED", undefined) });
+      });
 
     return () => { active = false; };
-  }, []);
+  }, [idValue, requestedOperation, requestKey, resourceParam, validRequest]);
 
+  const currentResult = result.key === requestKey ? result : undefined;
+  const record = currentResult?.record ?? null;
+  const error = routeError ?? currentResult?.error;
+  const isLoading = validRequest && !currentResult;
+  const operation = requestedOperation === "reactivate" ? "reactivate" : "deactivate";
   const operationLabel = operation === "deactivate" ? fm01Text("workflow.deactivate") : fm01Text("workflow.reactivate");
 
   return (
@@ -160,5 +166,13 @@ export default function OrganizationLocationWorkflowPage() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+export default function OrganizationLocationWorkflowPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" aria-busy="true" />}>
+      <OrganizationLocationWorkflowContent />
+    </Suspense>
   );
 }

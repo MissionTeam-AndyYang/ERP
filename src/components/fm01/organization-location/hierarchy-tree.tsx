@@ -57,10 +57,11 @@ export function filterFm01Hierarchy(
   });
 }
 
-function nodeIcon(resource: Fm01Resource) {
-  if (resource === "legal-entities") return Landmark;
-  if (resource === "warehouses" || resource === "locations") return resource === "warehouses" ? Warehouse : MapPin;
-  return Network;
+function ResourceIcon({ resource }: { resource: Fm01Resource }) {
+  if (resource === "legal-entities") return <Landmark className="h-4 w-4 shrink-0 text-textSecondary" aria-hidden="true" />;
+  if (resource === "warehouses") return <Warehouse className="h-4 w-4 shrink-0 text-textSecondary" aria-hidden="true" />;
+  if (resource === "locations") return <MapPin className="h-4 w-4 shrink-0 text-textSecondary" aria-hidden="true" />;
+  return <Network className="h-4 w-4 shrink-0 text-textSecondary" aria-hidden="true" />;
 }
 
 type TreeNodeProps = {
@@ -79,7 +80,6 @@ function TreeNode({ node, level, query, selected, expanded, onToggle, onSelect }
   const canExpand = ["legal-entities", "companies", "sites", "warehouses"].includes(record.resource);
   const isExpanded = query.trim().length > 0 || expanded.has(key);
   const isSelected = selected?.resource === record.resource && selected.id === record.id;
-  const Icon = nodeIcon(record.resource);
   const childListId = `fm01-children-${record.resource}-${record.id}`;
 
   return (
@@ -111,7 +111,7 @@ function TreeNode({ node, level, query, selected, expanded, onToggle, onSelect }
           aria-current={isSelected ? "true" : undefined}
           onClick={() => onSelect(record)}
         >
-          <Icon className="h-4 w-4 shrink-0 text-textSecondary" aria-hidden="true" />
+          <ResourceIcon resource={record.resource} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium text-textPrimary">
               {record.displayName || "（名稱未提供）"}
